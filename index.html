@@ -1,4 +1,5 @@
-html_content = """
+# Revised HTML with visuals (stars, emojis, and symbols)
+html_content_visual = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,38 +54,31 @@ html_content = """
     </thead>
     <tbody>
         <tr><td>Total Cost (After Incentives)</td><td>$17,625 (after $2,600 tax credit & $650 rebate)</td><td>$16,705 (includes $1,000 instant rebate)</td><td>$15,500 (no rebates)</td></tr>
-        <tr><td>Brand Reputation</td><td>Top-tier</td><td>Reliable</td><td>Budget</td></tr>
+        <tr><td>Brand Reputation</td><td>★★★★★ (Top-tier)</td><td>★★★★☆ (Reliable)</td><td>★★★☆☆ (Budget)</td></tr>
         <tr><td>Heating Efficiency</td><td>97% (2-stage)</td><td>97% (single-stage)</td><td>92% (single-stage)</td></tr>
         <tr><td>Cooling Efficiency</td><td>Likely 16–17 SEER2</td><td>14.5 SEER2</td><td>Not listed</td></tr>
         <tr><td>System Type</td><td>Hybrid (Gas + Heat Pump)</td><td>Standard AC + Furnace</td><td>Standard AC + Furnace</td></tr>
-        <tr><td>Comfort Level</td><td>High</td><td>Medium</td><td>Basic</td></tr>
+        <tr><td>Comfort Level</td><td>✅ High</td><td>⚠️ Medium</td><td>❌ Basic</td></tr>
         <tr><td>Air Quality Features</td><td>Aprilaire 2410 (high-end filter)</td><td>Polarized Media Filter</td><td>None</td></tr>
-        <tr><td>Included Protection Items</td><td>Not listed</td><td>Full protection setup</td><td>None</td></tr>
+        <tr><td>Included Protection Items</td><td>Not listed</td><td>✅ Full protection setup</td><td>❌ None</td></tr>
         <tr><td>Warranty</td><td>10-year parts</td><td>10-year parts + 3-year labor + maintenance</td><td>10-year parts + 2-year labor</td></tr>
-        <tr><td>Who It's Best For</td><td>Comfort and long-term savings</td><td>Balanced value</td><td>Budget needs</td></tr>
+        <tr><td>Who It's Best For</td><td>👑 Comfort & savings</td><td>💸 Balanced value</td><td>🏷️ Budget basic</td></tr>
     </tbody>
 </table>
 
 <div class="section-title">Key Takeaways</div>
 <ul>
-    <li>American Standard is the most advanced and efficient system with high comfort and rebates.</li>
-    <li>Bryant offers a great mix of quality, comfort, and protection features at a lower price.</li>
-    <li>Heil is the most affordable but lacks comfort features, efficiency, and install extras.</li>
+    <li>👑 <strong>American Standard</strong> is the most advanced and efficient system with high comfort and rebates.</li>
+    <li>💸 <strong>Bryant</strong> offers a great mix of quality, comfort, and protection features at a lower price.</li>
+    <li>🏷️ <strong>Heil</strong> is the most affordable but lacks comfort features, efficiency, and install extras.</li>
 </ul>
 
 <div class="section-title">Matt's Recommendation</div>
 <p>
-    If planning to stay in the home long-term, choose American Standard or Bryant for best value.<br>
-    If minimizing upfront cost is most important, Heil is acceptable but comes with compromises.
+    If planning to stay in the home long-term, choose <strong>American Standard</strong> or <strong>Bryant</strong> for best value.<br>
+    If minimizing upfront cost is most important, <strong>Heil</strong> is acceptable but comes with compromises.
 </p>
 
 </body>
 </html>
 """
-
-# Save to file
-html_path = "/mnt/data/hvac_quote_comparison.html"
-with open(html_path, "w") as f:
-    f.write(html_content)
-
-html_path
