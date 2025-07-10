@@ -1,0 +1,99 @@
+# Generate HTML content explaining Gas + Heat Pump (Hybrid) vs. Standard Furnace in the same style
+hybrid_vs_gas_html = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hybrid (Gas + Heat Pump) vs Gas Furnace Explained</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #004080;
+        }
+        h2 {
+            color: #004080;
+            margin-top: 2rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #e0e0e0;
+        }
+        p {
+            line-height: 1.6;
+        }
+        ul {
+            margin-top: 0.5rem;
+        }
+        .note {
+            background-color: #e6f2ff;
+            padding: 1rem;
+            border-left: 4px solid #004080;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Hybrid (Gas + Heat Pump) vs Standard Furnace</h1>
+
+<p>If both heating systems claim 97% efficiency, why should you care whether it uses just gas or a hybrid system with a heat pump?</p>
+
+<h2>🔥 Gas Furnace vs ⚡ Hybrid System</h2>
+
+<table>
+    <tr><th>Attribute</th><th>Standard Gas Furnace</th><th>Hybrid (Gas + Heat Pump)</th></tr>
+    <tr><td>Primary Fuel</td><td>Natural gas or propane</td><td>Electricity (heat pump) + gas backup</td></tr>
+    <tr><td>Heating Efficiency</td><td>AFUE 92–97%</td><td>AFUE 97% (gas) + COP 2–3 (electric)</td></tr>
+    <tr><td>Electric Heating Efficiency</td><td>N/A</td><td>200–300% efficient on mild days</td></tr>
+    <tr><td>Winter Behavior</td><td>Always burns gas to heat</td><td>Uses electric heat pump unless it's too cold, then switches to gas</td></tr>
+    <tr><td>Energy Cost Flexibility</td><td>Always gas</td><td>Chooses cheaper fuel (gas or electric)</td></tr>
+    <tr><td>Environmental Impact</td><td>Higher (burns fossil fuel year-round)</td><td>Lower (electric most of the time)</td></tr>
+</table>
+
+<h2>⚡ Why You Should Care About Hybrid Systems</h2>
+
+<p>Even if two systems both claim 97% efficiency:</p>
+
+<ul>
+    <li>A gas furnace with 97% AFUE is efficient, but it’s still burning fuel 100% of the time.</li>
+    <li>A hybrid system uses a heat pump for most of the year—which is 2–3x more efficient than even a 97% furnace.</li>
+    <li>Only when it gets very cold does the hybrid system switch to gas, making it the best of both worlds.</li>
+</ul>
+
+<h2>🔍 Example:</h2>
+<p>If electric rates are low and it's 45°F outside, your hybrid heat pump might be heating your home at the cost of just <strong>1/3 of what gas would cost</strong>. You won’t see that savings if you're using a gas furnace only, no matter how efficient.</p>
+
+<div class="note">
+    <strong>Bottom Line:</strong><br>
+    A gas furnace with 97% AFUE is great.<br>
+    But a <strong>hybrid system</strong> may cost <strong>less to run</strong> year-round and helps you <strongfuture-proof your home</strong> as energy prices change.
+</div>
+
+<p>If you care about operating cost, fuel flexibility, or emissions—hybrid wins.</p>
+
+</body>
+</html>
+"""
+
+# Save to file
+hybrid_html_path = "/mnt/data/hybrid_vs_gas.html"
+with open(hybrid_html_path, "w") as f:
+    f.write(hybrid_vs_gas_html)
+
+hybrid_html_path
