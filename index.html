@@ -1,7 +1,90 @@
+html_content = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HVAC System Quote Comparison</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #004080;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #e0e0e0;
+        }
+        .section-title {
+            margin-top: 2rem;
+            font-size: 1.2rem;
+            color: #004080;
+        }
+        ul {
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+
+<h1>HVAC System Quote Comparison</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>Feature</th>
+            <th>American Standard</th>
+            <th>Bryant</th>
+            <th>Heil</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>Total Cost (After Incentives)</td><td>$17,625 (after $2,600 tax credit & $650 rebate)</td><td>$16,705 (includes $1,000 instant rebate)</td><td>$15,500 (no rebates)</td></tr>
+        <tr><td>Brand Reputation</td><td>Top-tier</td><td>Reliable</td><td>Budget</td></tr>
+        <tr><td>Heating Efficiency</td><td>97% (2-stage)</td><td>97% (single-stage)</td><td>92% (single-stage)</td></tr>
+        <tr><td>Cooling Efficiency</td><td>Likely 16–17 SEER2</td><td>14.5 SEER2</td><td>Not listed</td></tr>
+        <tr><td>System Type</td><td>Hybrid (Gas + Heat Pump)</td><td>Standard AC + Furnace</td><td>Standard AC + Furnace</td></tr>
+        <tr><td>Comfort Level</td><td>High</td><td>Medium</td><td>Basic</td></tr>
+        <tr><td>Air Quality Features</td><td>Aprilaire 2410 (high-end filter)</td><td>Polarized Media Filter</td><td>None</td></tr>
+        <tr><td>Included Protection Items</td><td>Not listed</td><td>Full protection setup</td><td>None</td></tr>
+        <tr><td>Warranty</td><td>10-year parts</td><td>10-year parts + 3-year labor + maintenance</td><td>10-year parts + 2-year labor</td></tr>
+        <tr><td>Who It's Best For</td><td>Comfort and long-term savings</td><td>Balanced value</td><td>Budget needs</td></tr>
+    </tbody>
+</table>
+
+<div class="section-title">Key Takeaways</div>
+<ul>
+    <li>American Standard is the most advanced and efficient system with high comfort and rebates.</li>
+    <li>Bryant offers a great mix of quality, comfort, and protection features at a lower price.</li>
+    <li>Heil is the most affordable but lacks comfort features, efficiency, and install extras.</li>
+</ul>
+
+<div class="section-title">Matt's Recommendation</div>
+<p>
+    If planning to stay in the home long-term, choose American Standard or Bryant for best value.<br>
+    If minimizing upfront cost is most important, Heil is acceptable but comes with compromises.
+</p>
+
 </body>
 </html>
+"""
+
+# Save to file
+html_path = "/mnt/data/hvac_quote_comparison.html"
+with open(html_path, "w") as f:
+    f.write(html_content)
+
+html_path
