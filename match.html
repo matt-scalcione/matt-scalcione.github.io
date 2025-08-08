@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Match Preview – eSports Betting Tips</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#1e293b',
+              secondary: '#f1f5f9',
+              accent: '#3b82f6',
+              danger: '#ef4444',
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-secondary min-h-screen flex flex-col font-sans">
+    <!-- Site Header -->
+    <header class="bg-primary text-white sticky top-0 z-10 shadow-md">
+      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div class="text-lg font-bold">
+          <a href="index.html" class="hover:text-accent">eSports Betting Tips</a>
+        </div>
+        <ul class="hidden md:flex space-x-6">
+          <li><a href="index.html" class="hover:text-accent">Home</a></li>
+          <li><a href="about.html" class="hover:text-accent">About</a></li>
+          <li><a href="contact.html" class="hover:text-accent">Contact</a></li>
+        </ul>
+        <button id="mobileMenuButton" class="md:hidden focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </nav>
+      <!-- Mobile menu -->
+      <div id="mobileMenu" class="md:hidden hidden bg-primary">
+        <ul class="px-4 pt-2 pb-4 space-y-2 text-white">
+          <li><a href="index.html" class="block hover:text-accent">Home</a></li>
+          <li><a href="about.html" class="block hover:text-accent">About</a></li>
+          <li><a href="contact.html" class="block hover:text-accent">Contact</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main class="flex-grow">
+      <section id="matchSection" class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- Match details will be inserted here -->
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-primary text-white mt-10">
+      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-sm">
+        <p>&copy; <span id="yearPlaceholder"></span> eSports Betting Tips. All rights reserved.</p>
+        <div class="space-x-4 mt-4 sm:mt-0">
+          <a href="disclaimer.html" class="hover:text-accent">Disclaimer</a>
+          <a href="privacy-policy.html" class="hover:text-accent">Privacy Policy</a>
+          <a href="contact.html" class="hover:text-accent">Contact</a>
+        </div>
+      </div>
+      <div class="bg-danger text-white text-center py-3 text-sm">
+        21+ only. All information provided is for entertainment purposes only. We do not accept wagers of any kind.
+      </div>
+    </footer>
+
+    <!-- Configuration and API helpers -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="data/matches.js"></script>
+    <script>
+      // Populate footer year
+      document.getElementById('yearPlaceholder').textContent = new Date().getFullYear();
+
+      // Toggle mobile menu
+      const mobileMenuBtn = document.getElementById('mobileMenuButton');
+      const mobileMenu = document.getElementById('mobileMenu');
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
+
+      // Extract match ID from query string
+      const urlParams = new URLSearchParams(window.location.search);
+      const matchIdParam = urlParams.get('id');
+      const matchId = matchIdParam ? parseInt(matchIdParam, 10) : null;
+      const container = document.getElementById('matchSection');
+
+      async function renderPage() {
+        let match = null;
+        // Attempt to fetch match details from local sample data
+        if (window.matches && matchId) {
+          match = window.matches.find(m => parseInt(m.id) === matchId);
+        }
+        // If a live API is available, attempt to fetch additional details
+        let liveDetails = null;
+        if (matchId && typeof fetchPandaScoreMatchDetails === 'function' && API_CONFIG && API_CONFIG.pandaScoreApiKey) {
+          try {
+            liveDetails = await fetchPandaScoreMatchDetails(matchId);
+          } catch (err) {
+            console.error('Error fetching live match details', err);
+          }
+        }
+        // If live details exist, merge them with sample match data or construct a new object
+        if (liveDetails) {
+          // Extract teams from liveDetails
+          const opponents = liveDetails.opponents || [];
+          const team1Name = opponents[0] && opponents[0].opponent ? opponents[0].opponent.name : (match ? match.team1 : 'Team 1');
+          const team2Name = opponents[1] && opponents[1].opponent ? opponents[1].opponent.name : (match ? match.team2 : 'Team 2');
+          const beginAt = liveDetails.begin_at ? new Date(liveDetails.begin_at) : null;
+          match = {
+            id: liveDetails.id,
+            game: liveDetails.videogame ? (liveDetails.videogame.slug === 'league-of-legends' ? 'lol' : 'dota2') : (match ? match.game : 'lol'),
+            date: beginAt ? beginAt.toISOString().substring(0, 10) : (match ? match.date : ''),
+            time: beginAt ? beginAt.toISOString().substring(11, 16) : (match ? match.time : ''),
+            team1: team1Name,
+            team2: team2Name,
+            event: liveDetails.league ? `${liveDetails.league.name} ${liveDetails.serie ? liveDetails.serie.full_name : ''}`.trim() : (match ? match.event : ''),
+            analysis: match && match.analysis ? match.analysis : 'Analysis is not available for this match yet.',
+            stats: match && match.stats ? match.stats : {},
+            odds: match && match.odds ? match.odds : [],
+            bestBook: match && match.bestBook ? match.bestBook : '',
+            bestOdds: match && match.bestOdds ? match.bestOdds : '',
+          };
+        }
+        // If no match data available, show error message
+        if (!match) {
+          container.innerHTML = '<p class="text-center text-gray-600">Match not found. <a href="index.html" class="text-accent underline">Return to home</a>.</p>';
+          return;
+        }
+        // Attempt to fetch live odds if available
+        let liveOdds = [];
+        try {
+          if (typeof fetchOddsForMatch === 'function') {
+            liveOdds = await fetchOddsForMatch(match);
+          }
+        } catch (err) {
+          console.error('Error fetching live odds', err);
+        }
+        if (Array.isArray(liveOdds) && liveOdds.length > 0) {
+          match.odds = liveOdds;
+          // Determine best book/odds by simple heuristic: choose the highest moneyline for the underdog or best price for favourite
+          // This is a placeholder and may need refinement based on available markets
+          const favourite = match.team1; // default assumption
+          let bestEntry = liveOdds[0];
+          liveOdds.forEach(row => {
+            if (row.team1Odds && row.team1Odds.startsWith('+')) {
+              // Prefer higher plus odds
+              if (parseInt(row.team1Odds) > parseInt(bestEntry.team1Odds)) {
+                bestEntry = row;
+              }
+            }
+          });
+          match.bestBook = bestEntry.book;
+          match.bestOdds = bestEntry.team1Odds;
+        }
+        // Attempt to fetch live stats
+        try {
+          if (typeof fetchStatsForMatch === 'function') {
+            const stats = await fetchStatsForMatch(match);
+            if (stats) {
+              match.stats = stats;
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching stats for match', err);
+        }
+        // Format date/time
+        let dateFormatted = '';
+        let timeFormatted = '';
+        if (match.date && match.time) {
+          const dateObj = new Date(match.date + 'T' + match.time);
+          dateFormatted = dateObj.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          timeFormatted = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+        // Build odds table rows
+        let oddsRows = '';
+        if (Array.isArray(match.odds) && match.odds.length > 0) {
+          match.odds.forEach(row => {
+            const isBest = match.bestBook && row.book === match.bestBook;
+            oddsRows += `
+              <tr class="${isBest ? 'bg-green-100' : 'bg-white'}">
+                <td class="py-2 px-3 border">${row.book}</td>
+                <td class="py-2 px-3 border text-center">${row.team1Odds}</td>
+                <td class="py-2 px-3 border text-center">${row.team2Odds}</td>
+                <td class="py-2 px-3 border text-center">${row.total || '-'}</td>
+              </tr>
+            `;
+          });
+        }
+        // Stats list
+        const statsItems = [];
+        if (match.stats) {
+          if (match.stats.recentForm) statsItems.push({ label: 'Recent Form', value: match.stats.recentForm });
+          if (match.stats.winRates) statsItems.push({ label: 'Win Rates', value: match.stats.winRates });
+          if (match.stats.headToHead) statsItems.push({ label: 'Head-to-Head', value: match.stats.headToHead });
+          if (match.stats.keyPlayers) statsItems.push({ label: 'Key Players', value: match.stats.keyPlayers });
+        }
+        let statsHtml = '';
+        statsItems.forEach(item => {
+          statsHtml += `<li class="flex justify-between py-2 border-b"><span class="font-medium">${item.label}</span><span class="text-right">${item.value}</span></li>`;
+        });
+        container.innerHTML = `
+          <div class="mb-4">
+            <a href="index.html" class="text-accent hover:underline">← Back to Matches</a>
+          </div>
+          <div class="bg-white shadow rounded-lg p-6">
+            <h1 class="text-2xl sm:text-3xl font-bold mb-2">${match.team1} vs ${match.team2}</h1>
+            <p class="text-sm text-gray-600 mb-1">${match.game === 'lol' ? 'League of Legends' : 'Dota 2'}${match.event ? ' • ' + match.event : ''}</p>
+            <p class="text-sm text-gray-600 mb-4">${dateFormatted}${timeFormatted ? ' at ' + timeFormatted : ''}</p>
+            <h2 class="text-xl font-semibold mb-3">Match Analysis</h2>
+            <p class="mb-6 text-gray-700 leading-relaxed">${match.analysis || 'No analysis available for this match.'}</p>
+            <h2 class="text-xl font-semibold mb-3">Key Stats</h2>
+            <ul class="mb-6">${statsHtml || '<li class="text-gray-600">No statistics available.</li>'}</ul>
+            <h2 class="text-xl font-semibold mb-3">Betting Odds</h2>
+            ${oddsRows ? `<div class="overflow-x-auto"><table class="min-w-full text-sm"><thead><tr class="bg-gray-200"><th class="py-2 px-3 border text-left">Sportsbook</th><th class="py-2 px-3 border text-center">${match.team1}</th><th class="py-2 px-3 border text-center">${match.team2}</th><th class="py-2 px-3 border text-center">Total Maps</th></tr></thead><tbody>${oddsRows}</tbody></table></div>` : '<p class="text-gray-600">No live odds available for this match.</p>'}
+            <h2 class="text-xl font-semibold mt-6 mb-3">Where to Bet</h2>
+            ${match.bestBook ? `<p class="mb-4 text-gray-700">We recommend placing your bet on <span class="font-semibold">${match.bestBook}</span> where you can currently find the best odds for this matchup.</p><a href="#" class="inline-block bg-accent text-white px-5 py-3 rounded-lg shadow hover:shadow-lg transition">Bet Now at ${match.bestBook}</a>` : '<p class="text-gray-600">Betting recommendations will appear here once odds are available.</p>'}
+          </div>
+        `;
+      }
+      // Render the page
+      renderPage();
+    </script>
+  </body>
+</html>
