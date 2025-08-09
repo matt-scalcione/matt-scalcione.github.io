@@ -4,7 +4,7 @@
 const API_CONFIG = {
   // PandaScore API key for accessing match schedules, stats and (if available) odds.
   // You can obtain a free API token by creating an account at https://pandascore.co.
-  pandaScoreApiKey: '',
+  pandaScoreApiKey: '9dTkhsoOf_Y6Zh2jNRZFOcytBRxzVPaOkQgIjkigjyW4rne4nkA',
 
   // Stratz API token for Dota statistics. Create a free account at https://stratz.com
   // and obtain your default API token to enable Dota-specific stats (optional).
