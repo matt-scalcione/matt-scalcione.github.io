@@ -8,7 +8,7 @@ const API_CONFIG = {
 
   // Stratz API token for Dota statistics. Create a free account at https://stratz.com
   // and obtain your default API token to enable Dota-specific stats (optional).
-  stratzApiToken: '',
+  stratzApiToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTdWJqZWN0IjoiNGViMTI2MmYtYjkzNS00ODk4LWE3ZTgtNTA4Zjk3MjUyMWYzIiwiU3RlYW1JZCI6Ijg1MTg1ODQ3IiwiQVBJVXNlciI6ImZhbHNlIiwibmJmIjoxNzU0NzYxOTczLCJleHAiOjE3ODYyOTc5NzMsImlhdCI6MTc1NDc2MTk3MywiaXNzIjoiaHR0cHM6Ly9hcGkuc3RyYXR6LmNvbSJ9.4wWzrJQD7zBLEOPaqBkmbr9KaRuyPdaTKrrZvq6KWRs',
 
   // Odds API key. If you sign up for a free plan from a provider that offers esports odds,
   // populate this value and update the fetchOddsForMatch function accordingly.
