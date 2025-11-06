@@ -5,7 +5,7 @@ import { generateId } from './id'
 export const STORAGE_KEY = 'estate-executor-dashboard-data-v1'
 export const SESSION_KEY = 'estate-executor-dashboard-session'
 
-export const PASSWORD_HASH = 'c1bf7aa95df384dd61f576e37526bb4fdc8b6e8a0c08fb45b85dda9f3b629b25'
+export const PASSWORD_HASH = 'd00b620f93cb1618e31a7bc681d476b2aba6c2f6589e382584d34893f4a14b9b'
 export const CHECKLIST_SEEDED_KEY = 'estate-executor-checklist-seeded'
 
 interface TemplateTask extends Omit<Task, 'id' | 'createdAt' | 'updatedAt'> {
