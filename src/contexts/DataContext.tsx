@@ -12,6 +12,7 @@ import {
   TaskStatus
 } from '../types'
 import { STORAGE_KEY } from '../utils/constants'
+import { generateId } from '../utils/id'
 import { calculateDeadlines } from '../utils/dates'
 
 const defaultData: AppData = {
@@ -135,7 +136,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setData((prev) => {
         const newTask: Task = {
           ...task,
-          id: crypto.randomUUID(),
+          id: generateId(),
           createdAt: dayjs().toISOString(),
           updatedAt: dayjs().toISOString()
         }
@@ -190,7 +191,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           ...prev.documents,
           {
             ...doc,
-            id: crypto.randomUUID(),
+            id: generateId(),
             uploadedAt: dayjs().toISOString()
           }
         ]
@@ -219,7 +220,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     addAsset: (asset) => {
       setData((prev) => ({
         ...prev,
-        assets: [...prev.assets, { ...asset, id: crypto.randomUUID() }]
+        assets: [...prev.assets, { ...asset, id: generateId() }]
       }))
     },
     updateAsset: (id, asset) => {
@@ -237,7 +238,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     addExpense: (expense) => {
       setData((prev) => ({
         ...prev,
-        expenses: [...prev.expenses, { ...expense, id: crypto.randomUUID() }]
+        expenses: [...prev.expenses, { ...expense, id: generateId() }]
       }))
     },
     updateExpense: (id, expense) => {
@@ -255,7 +256,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     addBeneficiary: (beneficiary) => {
       setData((prev) => ({
         ...prev,
-        beneficiaries: [...prev.beneficiaries, { ...beneficiary, id: crypto.randomUUID() }]
+        beneficiaries: [...prev.beneficiaries, { ...beneficiary, id: generateId() }]
       }))
     },
     updateBeneficiary: (id, beneficiary) => {
@@ -275,7 +276,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     addEvent: (event) => {
       setData((prev) => ({
         ...prev,
-        manualEvents: [...prev.manualEvents, { ...event, id: crypto.randomUUID() }]
+        manualEvents: [...prev.manualEvents, { ...event, id: generateId() }]
       }))
     },
     updateEvent: (id, event) => {

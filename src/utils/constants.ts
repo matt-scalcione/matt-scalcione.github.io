@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import { AutoScheduleKey, Task } from '../types'
+import { generateId } from './id'
 
 export const STORAGE_KEY = 'estate-executor-dashboard-data-v1'
 export const SESSION_KEY = 'estate-executor-dashboard-session'
@@ -95,7 +96,7 @@ const baseTasks: TemplateTask[] = [
 export const defaultTasks = (): Task[] =>
   baseTasks.map((task) => ({
     ...task,
-    id: crypto.randomUUID(),
+    id: generateId(),
     createdAt: dayjs().toISOString(),
     updatedAt: dayjs().toISOString()
   }))
