@@ -26,6 +26,8 @@ const defaultData: AppData = {
 
 type DataContextValue = {
   data: AppData
+  storageError: string | null
+  dismissStorageError: () => void
   updateEstateInfo: (info: EstateInfo) => void
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void
   updateTask: (id: string, task: Partial<Task>) => void
@@ -98,13 +100,27 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       tasks: applyAutomaticDueDates(loaded.tasks, loaded.estateInfo)
     }
   })
+  const [storageError, setStorageError] = useState<string | null>(null)
 
   useEffect(() => {
-    persistData(data)
+    try {
+      persistData(data)
+      setStorageError((prev) => (prev ? null : prev))
+    } catch (error) {
+      console.error('Failed to persist data to storage', error)
+      const message =
+        error instanceof DOMException &&
+        (error.name === 'QuotaExceededError' || error.code === 22 || error.code === 1014)
+          ? 'Storage is full. Please delete large documents or download your backup before trying again.'
+          : 'Failed to save your latest changes. Please try again.'
+      setStorageError(message)
+    }
   }, [data])
 
   const value = useMemo<DataContextValue>(() => ({
     data,
+    storageError,
+    dismissStorageError: () => setStorageError(null),
     updateEstateInfo: (info) => {
       setData((prev) => {
         const estateInfo = { ...prev.estateInfo, ...info }
@@ -287,7 +303,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         estateInfo: incoming.estateInfo ?? {}
       }))
     }
-  }), [data])
+  }), [data, storageError])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

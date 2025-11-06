@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaBars, FaTimes } from 'react-icons/fa'
+import { useDataContext } from '../contexts/DataContext'
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
@@ -15,6 +16,7 @@ const navItems = [
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   const [open, setOpen] = useState(false)
+  const { storageError, dismissStorageError } = useDataContext()
 
   return (
     <div className="app-shell">
@@ -46,6 +48,14 @@ export const Layout = ({ children }: { children: ReactNode }) => {
           </button>
           <h1 className="app-title">Estate Executor Dashboard</h1>
         </header>
+        {storageError && (
+          <div className="storage-error-banner" role="alert">
+            <span>{storageError}</span>
+            <button type="button" onClick={dismissStorageError} aria-label="Dismiss storage warning">
+              ×
+            </button>
+          </div>
+        )}
         <main className="app-main">{children}</main>
       </div>
     </div>
