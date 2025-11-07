@@ -11,7 +11,6 @@ import {
   Task,
   TaskStatus
 } from '../types'
-import { STORAGE_KEY } from '../utils/constants'
 import { generateId } from '../utils/id'
 import { calculateDeadlines } from '../utils/dates'
 
@@ -22,11 +21,15 @@ const defaultData: AppData = {
   expenses: [],
   beneficiaries: [],
   manualEvents: [],
-  estateInfo: {}
+  estateInfo: {},
+  metadata: {
+    checklistSeeded: false
+  }
 }
 
 type DataContextValue = {
   data: AppData
+  isLoaded: boolean
   storageError: string | null
   dismissStorageError: () => void
   updateEstateInfo: (info: EstateInfo) => void
@@ -35,6 +38,7 @@ type DataContextValue = {
   removeTask: (id: string) => void
   changeTaskStatus: (id: string, status: TaskStatus) => void
   replaceTasks: (tasks: Task[]) => void
+  markChecklistSeeded: () => void
   addDocument: (doc: Omit<DocumentRecord, 'id' | 'uploadedAt'>) => void
   updateDocument: (id: string, doc: Partial<DocumentRecord>) => void
   removeDocument: (id: string) => void
@@ -50,35 +54,60 @@ type DataContextValue = {
   addEvent: (event: Omit<ManualEvent, 'id'>) => void
   updateEvent: (id: string, event: Partial<ManualEvent>) => void
   removeEvent: (id: string) => void
-  restoreData: (data: AppData) => void
+  restoreData: (data: Partial<AppData>) => void
 }
 
 const DataContext = createContext<DataContextValue | undefined>(undefined)
 
-const persistData = (data: AppData) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+const resolveApiBaseUrl = () => {
+  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env
+  const value = env?.VITE_API_BASE_URL
+  return typeof value === 'string' ? value : ''
 }
 
-const loadData = (): AppData => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return defaultData
-    const parsed = JSON.parse(raw) as AppData
-    return {
-      ...defaultData,
-      ...parsed,
-      tasks: parsed.tasks ?? [],
-      documents: parsed.documents ?? [],
-      assets: parsed.assets ?? [],
-      expenses: parsed.expenses ?? [],
-      beneficiaries: parsed.beneficiaries ?? [],
-      manualEvents: parsed.manualEvents ?? [],
-      estateInfo: parsed.estateInfo ?? {}
+const API_BASE_URL = resolveApiBaseUrl()
+
+const normalizeData = (raw?: Partial<AppData>): AppData => {
+  const base = raw ?? {}
+  return {
+    ...defaultData,
+    ...base,
+    tasks: base.tasks ?? [],
+    documents: base.documents ?? [],
+    assets: base.assets ?? [],
+    expenses: base.expenses ?? [],
+    beneficiaries: base.beneficiaries ?? [],
+    manualEvents: base.manualEvents ?? [],
+    estateInfo: base.estateInfo ?? {},
+    metadata: {
+      ...defaultData.metadata,
+      ...(base.metadata ?? {})
     }
-  } catch (error) {
-    console.error('Failed to load data from storage', error)
-    return defaultData
   }
+}
+
+const fetchDataFromServer = async (): Promise<AppData> => {
+  const response = await fetch(`${API_BASE_URL}/api/data`)
+  if (!response.ok) {
+    throw new Error(`Failed to load data: ${response.status}`)
+  }
+  const payload = (await response.json()) as Partial<AppData>
+  return normalizeData(payload)
+}
+
+const persistDataToServer = async (data: AppData) => {
+  const response = await fetch(`${API_BASE_URL}/api/data`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to save data: ${response.status}`)
+  }
+  const saved = (await response.json()) as Partial<AppData>
+  return normalizeData(saved)
 }
 
 const applyAutomaticDueDates = (tasks: Task[], estateInfo: EstateInfo): Task[] => {
@@ -94,32 +123,71 @@ const applyAutomaticDueDates = (tasks: Task[], estateInfo: EstateInfo): Task[] =
 }
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [data, setData] = useState<AppData>(() => {
-    const loaded = loadData()
-    return {
-      ...loaded,
-      tasks: applyAutomaticDueDates(loaded.tasks, loaded.estateInfo)
-    }
-  })
+  const [data, setData] = useState<AppData>(defaultData)
   const [storageError, setStorageError] = useState<string | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    try {
-      persistData(data)
-      setStorageError((prev) => (prev ? null : prev))
-    } catch (error) {
-      console.error('Failed to persist data to storage', error)
-      const message =
-        error instanceof DOMException &&
-        (error.name === 'QuotaExceededError' || error.code === 22 || error.code === 1014)
-          ? 'Storage is full. Please delete large documents or download your backup before trying again.'
-          : 'Failed to save your latest changes. Please try again.'
-      setStorageError(message)
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const loaded = await fetchDataFromServer()
+        if (cancelled) return
+        setData({
+          ...loaded,
+          tasks: applyAutomaticDueDates(loaded.tasks, loaded.estateInfo)
+        })
+        setStorageError(null)
+      } catch (error) {
+        console.error('Failed to load data from server', error)
+        if (!cancelled) {
+          setStorageError('Unable to load saved data from the server. Starting with a blank workspace.')
+          setData(defaultData)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoaded(true)
+        }
+      }
     }
-  }, [data])
+
+    void load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isLoaded) return
+
+    let cancelled = false
+
+    const save = async () => {
+      try {
+        await persistDataToServer(data)
+        if (!cancelled) {
+          setStorageError(null)
+        }
+      } catch (error) {
+        console.error('Failed to persist data to server', error)
+        if (!cancelled) {
+          setStorageError('Failed to save your latest changes to the server. Please try again.')
+        }
+      }
+    }
+
+    void save()
+
+    return () => {
+      cancelled = true
+    }
+  }, [data, isLoaded])
 
   const value = useMemo<DataContextValue>(() => ({
     data,
+    isLoaded,
     storageError,
     dismissStorageError: () => setStorageError(null),
     updateEstateInfo: (info) => {
@@ -182,6 +250,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setData((prev) => ({
         ...prev,
         tasks: applyAutomaticDueDates(tasks, prev.estateInfo)
+      }))
+    },
+    markChecklistSeeded: () => {
+      setData((prev) => ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          checklistSeeded: true
+        }
       }))
     },
     addDocument: (doc) => {
@@ -292,19 +369,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       }))
     },
     restoreData: (incoming) => {
-      setData(() => ({
-        ...defaultData,
-        ...incoming,
-        tasks: applyAutomaticDueDates(incoming.tasks ?? [], incoming.estateInfo ?? {}),
-        documents: incoming.documents ?? [],
-        assets: incoming.assets ?? [],
-        expenses: incoming.expenses ?? [],
-        beneficiaries: incoming.beneficiaries ?? [],
-        manualEvents: incoming.manualEvents ?? [],
-        estateInfo: incoming.estateInfo ?? {}
-      }))
+      const normalized = normalizeData(incoming)
+      setData({
+        ...normalized,
+        tasks: applyAutomaticDueDates(normalized.tasks, normalized.estateInfo)
+      })
     }
-  }), [data, storageError])
+  }), [data, isLoaded, storageError])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

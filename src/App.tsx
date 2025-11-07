@@ -11,23 +11,25 @@ import { SettingsPage } from './pages/SettingsPage'
 import { Layout } from './components/Layout'
 import { Login } from './components/Login'
 import { useDataContext } from './contexts/DataContext'
-import { CHECKLIST_SEEDED_KEY, SESSION_KEY, defaultTasks } from './utils/constants'
+import { SESSION_KEY, defaultTasks } from './utils/constants'
 
 export const App = () => {
   const {
-    data: { tasks },
-    replaceTasks
+    data: { tasks, metadata },
+    isLoaded,
+    replaceTasks,
+    markChecklistSeeded
   } = useDataContext()
 
   const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem(SESSION_KEY) === 'true')
 
   useEffect(() => {
-    const seeded = localStorage.getItem(CHECKLIST_SEEDED_KEY) === 'true'
-    if (tasks.length === 0 && !seeded) {
+    if (!isLoaded) return
+    if (tasks.length === 0 && !metadata.checklistSeeded) {
       replaceTasks(defaultTasks())
-      localStorage.setItem(CHECKLIST_SEEDED_KEY, 'true')
+      markChecklistSeeded()
     }
-  }, [tasks.length, replaceTasks])
+  }, [isLoaded, tasks.length, metadata.checklistSeeded, replaceTasks, markChecklistSeeded])
 
   if (!authenticated) {
     return <Login onAuthenticated={() => setAuthenticated(true)} />

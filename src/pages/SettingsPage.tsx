@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, useState } from 'react'
 import { FaDownload, FaFileImport, FaListAlt } from 'react-icons/fa'
 import { useDataContext } from '../contexts/DataContext'
-import { CHECKLIST_SEEDED_KEY, defaultTasks } from '../utils/constants'
+import { defaultTasks } from '../utils/constants'
 import { downloadFile } from '../utils/exporters'
 import { calculateDeadlines, formatDate } from '../utils/dates'
 import { AppData } from '../types'
@@ -15,12 +15,7 @@ const estateFields = [
 ] as const
 
 export const SettingsPage = () => {
-  const {
-    data,
-    updateEstateInfo,
-    replaceTasks,
-    restoreData
-  } = useDataContext()
+  const { data, updateEstateInfo, replaceTasks, restoreData, markChecklistSeeded } = useDataContext()
 
   const [notes, setNotes] = useState(data.estateInfo.notes ?? '')
 
@@ -42,7 +37,7 @@ export const SettingsPage = () => {
   const handleLoadChecklist = () => {
     const tasks = defaultTasks()
     replaceTasks(tasks)
-    localStorage.setItem(CHECKLIST_SEEDED_KEY, 'true')
+    markChecklistSeeded()
   }
 
   const handleExportBackup = () => {
@@ -147,7 +142,7 @@ export const SettingsPage = () => {
           </label>
         </div>
         <p className="help-text">
-          Use the backup feature to save a JSON copy of your tasks, documents (metadata), assets, expenses, beneficiaries, and reminders. Document files are stored locally in your browser; exporting ensures you have a record of your data before clearing storage.
+          Use the backup feature to save a JSON copy of your tasks, documents (metadata), assets, expenses, beneficiaries, and reminders. Your information is saved on the estate dashboard server, but exporting ensures you keep a personal copy before making major changes.
         </p>
       </section>
     </div>
