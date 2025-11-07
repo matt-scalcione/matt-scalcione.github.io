@@ -98,6 +98,11 @@ export interface EstateInfo {
   notes?: string
 }
 
+export interface AppMetadata {
+  checklistSeeded?: boolean
+  updatedAt?: string
+}
+
 export interface AppData {
   tasks: Task[]
   documents: DocumentRecord[]
@@ -106,4 +111,5 @@ export interface AppData {
   beneficiaries: BeneficiaryRecord[]
   manualEvents: ManualEvent[]
   estateInfo: EstateInfo
+  metadata: AppMetadata
 }
