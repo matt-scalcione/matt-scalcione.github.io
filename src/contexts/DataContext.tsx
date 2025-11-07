@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import {
   AppData,
@@ -126,6 +126,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<AppData>(defaultData)
   const [storageError, setStorageError] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [canPersist, setCanPersist] = useState(false)
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
 
   useEffect(() => {
     let cancelled = false
@@ -139,11 +141,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           tasks: applyAutomaticDueDates(loaded.tasks, loaded.estateInfo)
         })
         setStorageError(null)
+        setCanPersist(true)
       } catch (error) {
         console.error('Failed to load data from server', error)
         if (!cancelled) {
           setStorageError('Unable to load saved data from the server. Starting with a blank workspace.')
-          setData(defaultData)
+          setCanPersist(false)
         }
       } finally {
         if (!cancelled) {
@@ -160,13 +163,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   useEffect(() => {
-    if (!isLoaded) return
+    if (!isLoaded || !canPersist) return
 
     let cancelled = false
+    const snapshot = data
 
-    const save = async () => {
+    const runSave = async () => {
       try {
-        await persistDataToServer(data)
+        await persistDataToServer(snapshot)
         if (!cancelled) {
           setStorageError(null)
         }
@@ -175,15 +179,21 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         if (!cancelled) {
           setStorageError('Failed to save your latest changes to the server. Please try again.')
         }
+        throw error
       }
     }
 
-    void save()
+    const next = saveQueueRef.current
+      .catch(() => undefined)
+      .then(() => (cancelled ? undefined : runSave()))
+
+    saveQueueRef.current = next
+    void next.catch(() => undefined)
 
     return () => {
       cancelled = true
     }
-  }, [data, isLoaded])
+  }, [data, isLoaded, canPersist])
 
   const value = useMemo<DataContextValue>(() => ({
     data,
@@ -374,6 +384,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         ...normalized,
         tasks: applyAutomaticDueDates(normalized.tasks, normalized.estateInfo)
       })
+      setCanPersist(true)
     }
   }), [data, isLoaded, storageError])
 
