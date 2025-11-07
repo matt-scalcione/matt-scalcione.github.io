@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && npm run publish",
+    "server": "node server/index.js",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "publish": "node scripts/publish-static.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "dayjs": "^1.11.11",
+    "express": "^4.19.2",
     "jspdf": "^2.5.1",
     "react": "^18.2.0",
     "react-calendar": "^4.8.0",
