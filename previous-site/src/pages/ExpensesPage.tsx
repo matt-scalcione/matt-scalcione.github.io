@@ -1,100 +1,73 @@
 import { FormEvent, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { FaDownload, FaPlus } from 'react-icons/fa'
-import { useDataContext } from '../contexts/useDataContext'
-import { exportExpensesToCsv } from '../utils/exporters'
-import { ExpenseRecord } from '../types'
-import { formatDate } from '../utils/dates'
+import { useDataContext } from '../context/DataContext'
+import { ExpenseCategory, ExpenseRecord } from '../types'
+import { formatDate, formatDateInput } from '../utils/date'
+import { exportExpensesToCsv } from '../utils/export'
+
+const categories: ExpenseCategory[] = ['Funeral', 'Utilities', 'Maintenance', 'CourtFees', 'Professional', 'Tax', 'Other']
 
 interface ExpenseFormState {
   id?: string
   date: string
   payee: string
   description: string
+  category: ExpenseCategory
   amount: string
-  category: string
-  paidFromEstate: 'yes' | 'no'
-  reimbursed: 'yes' | 'no'
-  reimbursementDate: string
+  paidFrom: 'Estate' | 'ExecutorAdvance'
+  reimbursed: boolean
   notes: string
-  receiptId: string
 }
-
-const categories = [
-  'Funeral Expense',
-  'Utility Bill',
-  'Maintenance',
-  'Legal Fee',
-  'Probate Fee',
-  'Insurance',
-  'Tax Payment',
-  'Miscellaneous'
-]
 
 const emptyForm: ExpenseFormState = {
   date: dayjs().format('YYYY-MM-DD'),
   payee: '',
   description: '',
+  category: 'Funeral',
   amount: '',
-  category: '',
-  paidFromEstate: 'yes',
-  reimbursed: 'no',
-  reimbursementDate: '',
-  notes: '',
-  receiptId: ''
+  paidFrom: 'Estate',
+  reimbursed: false,
+  notes: ''
 }
 
 export const ExpensesPage = () => {
-  const {
-    data: { expenses, documents },
-    addExpense,
-    updateExpense,
-    removeExpense
-  } = useDataContext()
-
+  const { expenses, addExpense, updateExpense, deleteExpense } = useDataContext()
   const [form, setForm] = useState<ExpenseFormState>(emptyForm)
-  const [filter, setFilter] = useState<'all' | 'estate' | 'executor' | 'unreimbursed'>('all')
+  const [filterCategory, setFilterCategory] = useState<'all' | ExpenseCategory>('all')
+  const [filterPaidFrom, setFilterPaidFrom] = useState<'all' | 'Estate' | 'ExecutorAdvance'>('all')
 
   const filteredExpenses = useMemo(() => {
-    switch (filter) {
-      case 'estate':
-        return expenses.filter((expense) => expense.paidFromEstate)
-      case 'executor':
-        return expenses.filter((expense) => !expense.paidFromEstate)
-      case 'unreimbursed':
-        return expenses.filter((expense) => !expense.paidFromEstate && !expense.reimbursed)
-      default:
-        return expenses
-    }
-  }, [expenses, filter])
+    return expenses.filter((expense) => {
+      const matchesCategory = filterCategory === 'all' || expense.category === filterCategory
+      const matchesSource = filterPaidFrom === 'all' || expense.paidFrom === filterPaidFrom
+      return matchesCategory && matchesSource
+    })
+  }, [expenses, filterCategory, filterPaidFrom])
 
-  const estateTotal = expenses.filter((expense) => expense.paidFromEstate).reduce((sum, expense) => sum + expense.amount, 0)
-  const advancesTotal = expenses.filter((expense) => !expense.paidFromEstate).reduce((sum, expense) => sum + expense.amount, 0)
-  const unreimbursedTotal = expenses
-    .filter((expense) => !expense.paidFromEstate && !expense.reimbursed)
-    .reduce((sum, expense) => sum + expense.amount, 0)
+  const total = useMemo(() => filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0), [filteredExpenses])
+  const unreimbursedTotal = useMemo(
+    () => expenses.filter((expense) => expense.paidFrom === 'ExecutorAdvance' && !expense.reimbursed).reduce((sum, e) => sum + e.amount, 0),
+    [expenses]
+  )
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!form.payee.trim() || !form.amount) return
-
-    const payload: Omit<ExpenseRecord, 'id'> = {
-      date: form.date,
-      payee: form.payee,
-      description: form.description,
+    const payload: Omit<ExpenseRecord, 'id' | 'createdAt' | 'updatedAt'> = {
+      date: dayjs(form.date).toISOString(),
+      payee: form.payee.trim(),
+      description: form.description.trim(),
+      category: form.category,
       amount: Number(form.amount),
-      category: form.category || 'Miscellaneous',
-      paidFromEstate: form.paidFromEstate === 'yes',
-      reimbursed: form.reimbursed === 'yes',
-      reimbursementDate: form.reimbursementDate || undefined,
-      notes: form.notes || undefined,
-      receiptId: form.receiptId || undefined
+      paidFrom: form.paidFrom,
+      reimbursed: form.reimbursed,
+      notes: form.notes.trim() || undefined,
+      receiptId: undefined
     }
-
     if (form.id) {
-      updateExpense(form.id, payload)
+      await updateExpense(form.id, payload)
     } else {
-      addExpense(payload)
+      await addExpense(payload)
     }
     setForm(emptyForm)
   }
@@ -102,95 +75,143 @@ export const ExpensesPage = () => {
   const handleEdit = (expense: ExpenseRecord) => {
     setForm({
       id: expense.id,
-      date: dayjs(expense.date).format('YYYY-MM-DD'),
+      date: formatDateInput(expense.date) || dayjs().format('YYYY-MM-DD'),
       payee: expense.payee,
       description: expense.description,
-      amount: expense.amount.toString(),
       category: expense.category,
-      paidFromEstate: expense.paidFromEstate ? 'yes' : 'no',
-      reimbursed: expense.reimbursed ? 'yes' : 'no',
-      reimbursementDate: expense.reimbursementDate ? dayjs(expense.reimbursementDate).format('YYYY-MM-DD') : '',
-      notes: expense.notes ?? '',
-      receiptId: expense.receiptId ?? ''
+      amount: expense.amount.toString(),
+      paidFrom: expense.paidFrom,
+      reimbursed: expense.reimbursed,
+      notes: expense.notes ?? ''
     })
   }
 
+  const cancelEdit = () => setForm(emptyForm)
+
   return (
-    <div className="page expenses">
+    <div className="space-y-6">
       <section className="card">
-        <div className="section-header">
-          <h2>{form.id ? 'Update Expense' : 'Log Estate Expense'}</h2>
+        <div className="card-header">
+          <div>
+            <h2 className="text-lg font-semibold">{form.id ? 'Update expense' : 'Log expense'}</h2>
+            <p className="text-sm text-slate-500">Track reimbursements and estate disbursements.</p>
+          </div>
         </div>
-        <form className="form grid" onSubmit={handleSubmit}>
-          <label>
-            <span>Date</span>
-            <input type="date" value={form.date} onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))} required />
-          </label>
-          <label>
-            <span>Payee / vendor</span>
-            <input value={form.payee} onChange={(event) => setForm((prev) => ({ ...prev, payee: event.target.value }))} required />
-          </label>
-          <label>
-            <span>Description</span>
-            <textarea value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} rows={3} />
-          </label>
-          <label>
-            <span>Amount</span>
-            <input type="number" min="0" step="0.01" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} required />
-          </label>
-          <label>
-            <span>Category</span>
-            <select value={form.category} onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}>
-              <option value="">Select category</option>
+        <form className="card-body grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <div>
+            <label className="label" htmlFor="expenseDate">
+              Date
+            </label>
+            <input
+              id="expenseDate"
+              type="date"
+              className="input"
+              value={form.date}
+              onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="expensePayee">
+              Payee
+            </label>
+            <input
+              id="expensePayee"
+              className="input"
+              value={form.payee}
+              onChange={(event) => setForm((prev) => ({ ...prev, payee: event.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="expenseDescription">
+              Description
+            </label>
+            <input
+              id="expenseDescription"
+              className="input"
+              value={form.description}
+              onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+              placeholder="Probate filing fee"
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="expenseCategory">
+              Category
+            </label>
+            <select
+              id="expenseCategory"
+              className="input"
+              value={form.category}
+              onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value as ExpenseCategory }))}
+            >
               {categories.map((category) => (
                 <option key={category} value={category}>
                   {category}
                 </option>
               ))}
             </select>
-          </label>
-          <label>
-            <span>Paid from estate account?</span>
-            <select value={form.paidFromEstate} onChange={(event) => setForm((prev) => ({ ...prev, paidFromEstate: event.target.value as ExpenseFormState['paidFromEstate'] }))}>
-              <option value="yes">Yes</option>
-              <option value="no">No (advanced by executor)</option>
-            </select>
-          </label>
-          <label>
-            <span>Reimbursed?</span>
-            <select value={form.reimbursed} onChange={(event) => setForm((prev) => ({ ...prev, reimbursed: event.target.value as ExpenseFormState['reimbursed'] }))}>
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
-          </label>
-          {form.reimbursed === 'yes' && (
-            <label>
-              <span>Reimbursement date</span>
-              <input type="date" value={form.reimbursementDate} onChange={(event) => setForm((prev) => ({ ...prev, reimbursementDate: event.target.value }))} />
+          </div>
+          <div>
+            <label className="label" htmlFor="expenseAmount">
+              Amount (USD)
             </label>
-          )}
-          <label>
-            <span>Receipt</span>
-            <select value={form.receiptId} onChange={(event) => setForm((prev) => ({ ...prev, receiptId: event.target.value }))}>
-              <option value="">No attachment</option>
-              {documents.map((doc) => (
-                <option key={doc.id} value={doc.id}>
-                  {doc.title}
-                </option>
-              ))}
+            <input
+              id="expenseAmount"
+              type="number"
+              min="0"
+              step="0.01"
+              className="input"
+              value={form.amount}
+              onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="expensePaidFrom">
+              Paid from
+            </label>
+            <select
+              id="expensePaidFrom"
+              className="input"
+              value={form.paidFrom}
+              onChange={(event) => setForm((prev) => ({ ...prev, paidFrom: event.target.value as 'Estate' | 'ExecutorAdvance' }))}
+            >
+              <option value="Estate">Estate funds</option>
+              <option value="ExecutorAdvance">Advanced by executor</option>
             </select>
-          </label>
-          <label>
-            <span>Notes</span>
-            <textarea value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} rows={3} />
-          </label>
-          <div className="form-actions">
-            <button type="submit" className="btn primary">
-              <FaPlus /> {form.id ? 'Save changes' : 'Log expense'}
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
+                checked={form.reimbursed}
+                onChange={(event) => setForm((prev) => ({ ...prev, reimbursed: event.target.checked }))}
+              />
+              Reimbursed
+            </label>
+          </div>
+          <div className="md:col-span-2">
+            <label className="label" htmlFor="expenseNotes">
+              Notes
+            </label>
+            <textarea
+              id="expenseNotes"
+              className="input"
+              rows={3}
+              value={form.notes}
+              onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+              placeholder="Receipt filed in documents"
+            />
+          </div>
+          <div className="flex items-center gap-3 md:col-span-2">
+            <button type="submit" className="btn btn-primary">
+              {form.id ? 'Save changes' : 'Add expense'}
             </button>
             {form.id && (
-              <button type="button" className="btn" onClick={() => setForm(emptyForm)}>
-                Cancel
+              <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
+                Cancel edit
               </button>
             )}
           </div>
@@ -198,95 +219,85 @@ export const ExpensesPage = () => {
       </section>
 
       <section className="card">
-        <div className="section-header">
-          <h2>Expense Register</h2>
-          <div className="actions">
-            <select value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)}>
-              <option value="all">All expenses</option>
-              <option value="estate">Paid from estate</option>
-              <option value="executor">Executor advances</option>
-              <option value="unreimbursed">Unreimbursed advances</option>
+        <div className="card-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Expense ledger</h2>
+            <p className="text-sm text-slate-500">Unreimbursed executor advances: ${unreimbursedTotal.toFixed(2)}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select className="input" value={filterCategory} onChange={(event) => setFilterCategory(event.target.value as typeof filterCategory)}>
+              <option value="all">All categories</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
             </select>
-            <button type="button" className="btn" onClick={() => exportExpensesToCsv(expenses)}>
-              <FaDownload /> Export CSV
+            <select className="input" value={filterPaidFrom} onChange={(event) => setFilterPaidFrom(event.target.value as typeof filterPaidFrom)}>
+              <option value="all">All sources</option>
+              <option value="Estate">Estate</option>
+              <option value="ExecutorAdvance">Executor advance</option>
+            </select>
+            <button type="button" className="btn btn-secondary" onClick={() => exportExpensesToCsv(filteredExpenses)}>
+              Export CSV
             </button>
           </div>
         </div>
-        <div className="inventory-totals">
-          <span>Estate account disbursements: ${estateTotal.toFixed(2)}</span>
-          <span>Executor advances: ${advancesTotal.toFixed(2)}</span>
-          <span>Outstanding reimbursement: ${unreimbursedTotal.toFixed(2)}</span>
-        </div>
-        {filteredExpenses.length === 0 ? (
-          <p className="empty">Track every bill, fee, and reimbursement to support the final accounting and inheritance tax return.</p>
-        ) : (
-          <table className="data-table">
-            <thead>
+        <div className="card-body overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+            <thead className="bg-slate-50 dark:bg-slate-800/60">
               <tr>
-                <th>Date</th>
-                <th>Payee</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Category</th>
-                <th>Paid from estate</th>
-                <th>Reimbursed</th>
-                <th>Receipt</th>
-                <th>Actions</th>
+                <th className="px-3 py-2 text-left font-medium">Date</th>
+                <th className="px-3 py-2 text-left font-medium">Payee</th>
+                <th className="px-3 py-2 text-left font-medium">Description</th>
+                <th className="px-3 py-2 text-left font-medium">Category</th>
+                <th className="px-3 py-2 text-left font-medium">Paid from</th>
+                <th className="px-3 py-2 text-left font-medium">Reimbursed</th>
+                <th className="px-3 py-2 text-right font-medium">Amount</th>
+                <th className="px-3 py-2 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {filteredExpenses
-                .slice()
-                .sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix())
-                .map((expense) => (
-                  <tr key={expense.id}>
-                    <td>{formatDate(expense.date)}</td>
-                    <td>{expense.payee}</td>
-                    <td>
-                      {expense.description}
-                      {expense.notes && <p className="meta-item">{expense.notes}</p>}
-                    </td>
-                    <td>${expense.amount.toFixed(2)}</td>
-                    <td>{expense.category}</td>
-                    <td>{expense.paidFromEstate ? 'Yes' : 'No'}</td>
-                    <td>
-                      {expense.reimbursed ? (
-                        <span className="meta-item">Yes {expense.reimbursementDate && `(${formatDate(expense.reimbursementDate)})`}</span>
-                      ) : (
-                        'No'
-                      )}
-                    </td>
-                    <td>
-                      {expense.receiptId ? (
-                        (() => {
-                          const doc = documents.find((document) => document.id === expense.receiptId)
-                          return doc ? (
-                            <a href={doc.dataUrl} download={doc.fileName} className="text-link">
-                              {doc.title}
-                            </a>
-                          ) : (
-                            <span>Missing</span>
-                          )
-                        })()
-                      ) : (
-                        <span>None</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="table-actions">
-                        <button type="button" className="btn link" onClick={() => handleEdit(expense)}>
-                          Edit
-                        </button>
-                        <button type="button" className="btn link danger" onClick={() => removeExpense(expense.id)}>
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              {filteredExpenses.map((expense) => (
+                <tr key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                  <td className="px-3 py-2 text-slate-500">{formatDate(expense.date)}</td>
+                  <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{expense.payee}</td>
+                  <td className="px-3 py-2 text-slate-500">{expense.description}</td>
+                  <td className="px-3 py-2 text-slate-500">{expense.category}</td>
+                  <td className="px-3 py-2 text-slate-500">{expense.paidFrom === 'Estate' ? 'Estate' : 'Executor advance'}</td>
+                  <td className="px-3 py-2 text-slate-500">{expense.reimbursed ? 'Yes' : 'No'}</td>
+                  <td className="px-3 py-2 text-right font-semibold">${expense.amount.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex justify-end gap-2 text-xs">
+                      <button type="button" className="text-brand-600 hover:underline" onClick={() => handleEdit(expense)}>
+                        Edit
+                      </button>
+                      <button type="button" className="text-rose-500 hover:underline" onClick={() => void deleteExpense(expense.id)}>
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredExpenses.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-3 py-6 text-center text-sm text-slate-500">
+                    No expenses match the current filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={6} className="px-3 py-2 text-right text-sm font-semibold">
+                  Total
+                </td>
+                <td className="px-3 py-2 text-right text-sm font-semibold">${total.toFixed(2)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
-        )}
+        </div>
       </section>
     </div>
   )

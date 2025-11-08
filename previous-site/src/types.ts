@@ -1,115 +1,173 @@
-export type TaskStatus = 'todo' | 'inProgress' | 'completed'
+export type TaskCategory =
+  | 'Legal'
+  | 'Tax'
+  | 'Property'
+  | 'Financial'
+  | 'Comms'
+  | 'Other'
+
+export type TaskStatus = 'Todo' | 'InProgress' | 'Blocked' | 'Done'
+
+export interface LinkedIds {
+  documents?: string[]
+  assets?: string[]
+  expenses?: string[]
+}
 
 export interface Task {
   id: string
   title: string
   description?: string
-  dueDate?: string
-  category?: string
+  category: TaskCategory
   tags: string[]
   status: TaskStatus
-  assignedTo?: string
+  dueDate?: string
+  assignedTo?: string[]
+  relatedIds?: LinkedIds
   createdAt: string
   updatedAt: string
-  autoSchedule?: AutoScheduleKey
+  templateKey?: string
 }
 
-export type AutoScheduleKey =
-  | 'heirNotice'
-  | 'inventoryDue'
-  | 'inheritanceTax'
-  | 'inheritanceTaxDiscount'
-  | 'creditorBar'
+export type DocumentTag = 'Legal' | 'Tax' | 'Property' | 'Receipts' | 'Bank' | 'ID' | 'Other'
 
 export interface DocumentRecord {
   id: string
-  title: string
-  description?: string
-  tags: string[]
-  category?: string
+  filename: string
+  mimeType: string
+  size: number
+  title?: string
   notes?: string
-  uploadedAt: string
-  fileName: string
-  fileType: string
-  dataUrl: string
+  tags: DocumentTag[]
+  createdAt: string
+  updatedAt?: string
+  blobRef: string
 }
+
+export interface DocumentBlob {
+  id: string
+  blob: Blob
+}
+
+export type AssetCategory =
+  | 'RealEstate'
+  | 'Vehicle'
+  | 'Bank'
+  | 'Retirement'
+  | 'Brokerage'
+  | 'PersonalProperty'
+  | 'LifeInsurance'
+  | 'Other'
 
 export interface AssetRecord {
   id: string
-  name: string
-  category: string
-  ownerStatus: string
-  probateStatus: 'probate' | 'non-probate'
-  taxable: boolean
-  value?: number
-  notes?: string
-  attachedDocumentIds: string[]
-  disposition?: {
-    status: 'held' | 'sold' | 'distributed'
-    date?: string
-    details?: string
-  }
+  category: AssetCategory
+  description: string
+  probate: boolean
+  paInheritanceTaxable: boolean
+  ownershipNote?: string
+  dodValue?: number
+  valuationNotes?: string
+  documents?: string[]
+  disposed?: boolean
+  disposedNote?: string
+  createdAt: string
+  updatedAt: string
 }
+
+export type ExpenseCategory =
+  | 'Funeral'
+  | 'Utilities'
+  | 'Maintenance'
+  | 'CourtFees'
+  | 'Professional'
+  | 'Tax'
+  | 'Other'
 
 export interface ExpenseRecord {
   id: string
   date: string
   payee: string
   description: string
+  category: ExpenseCategory
   amount: number
-  category: string
-  paidFromEstate: boolean
+  paidFrom: 'Estate' | 'ExecutorAdvance'
   reimbursed: boolean
-  reimbursementDate?: string
   notes?: string
   receiptId?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface BeneficiaryRecord {
   id: string
   name: string
-  relation?: string
+  relation: string
   email?: string
   phone?: string
   address?: string
-  share?: string
+  sharePct?: number
+  rule10_5NoticeSentDate?: string
   notes?: string
-  noticeSentDate?: string
+  createdAt: string
+  updatedAt: string
 }
 
-export interface ManualEvent {
-  id: string
-  title: string
-  description?: string
-  date: string
-  relatedTaskId?: string
-  category?: string
-}
-
-export interface EstateInfo {
-  estateName?: string
-  decedentName?: string
-  docketNumber?: string
-  county?: string
-  dateOfDeath?: string
-  lettersGrantedDate?: string
+export interface EstateProfile {
+  decedentFullName: string
+  dateOfDeath: string
+  county: string
+  state: string
+  fileNumber?: string
+  lettersGrantedDate: string
   firstAdvertisementDate?: string
-  attorneyName?: string
-  notes?: string
+  contactName?: string
+  contactEmail?: string
+  contactPhone?: string
+  contactAddress?: string
 }
 
-export interface AppMetadata {
-  checklistSeeded?: boolean
-  updatedAt?: string
+export interface AppSettings {
+  theme: 'light' | 'dark' | 'system'
+  rememberDevice: boolean
 }
 
-export interface AppData {
+export interface MetadataRecord {
+  checklistSeeded: boolean
+}
+
+export interface KeyValueRecord<T = unknown> {
+  key: string
+  value: T
+}
+
+export interface BackupPayload {
+  version: number
+  generatedAt: string
+  profile: EstateProfile | null
+  settings: AppSettings
+  metadata: MetadataRecord
   tasks: Task[]
-  documents: DocumentRecord[]
   assets: AssetRecord[]
   expenses: ExpenseRecord[]
   beneficiaries: BeneficiaryRecord[]
-  manualEvents: ManualEvent[]
-  estateInfo: EstateInfo
-  metadata: AppMetadata
+  documents: DocumentRecord[]
+}
+
+export interface DeadlineSummary {
+  rule105Notice?: string
+  certificationOfNotice?: string
+  inventoryDue?: string
+  inheritanceTaxDue?: string
+  inheritanceTaxDiscount?: string
+  creditorBarDate?: string
+}
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  date: string
+  type: 'Task' | 'Deadline'
+  status?: TaskStatus
+  referenceId?: string
 }
