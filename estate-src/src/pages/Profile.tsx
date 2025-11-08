@@ -1,5 +1,7 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createTask, db } from '../storage/tasksDB'
+import { useEstate } from '../context/EstateContext'
+import { ESTATE_IDS, loadSeedVersion, persistEstatePlan, reseedFromPlan } from '../storage/estatePlan'
 import { EstateSetup, loadEstateSetup, saveEstateSetup } from '../storage/setup'
 import { computeDeadlines, formatDeadlineDate, isSetupComplete } from '../utils/deadlines'
 import { exportWorkspaceData, importWorkspaceData, type WorkspaceExportPayload } from '../storage/dataTransfer'
@@ -26,6 +28,17 @@ const defaultFormState: SetupFormState = {
   estate1041Required: true,
 }
 
+const formatPlanDate = (iso?: string) => {
+  if (!iso) return 'Not set'
+  const parsed = new Date(iso)
+  if (Number.isNaN(parsed.valueOf())) return iso
+  return parsed.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
 const Profile = () => {
   const [formState, setFormState] = useState<SetupFormState>(defaultFormState)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -39,6 +52,13 @@ const Profile = () => {
   const [isImporting, setIsImporting] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const importInputRef = useRef<HTMLInputElement | null>(null)
+  const { activeEstateId, estateProfiles, setActiveEstateId, refreshEstateProfiles } = useEstate()
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
+  const [planInput, setPlanInput] = useState('')
+  const [planImportError, setPlanImportError] = useState<string | null>(null)
+  const [isPlanImporting, setIsPlanImporting] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [seedVersion, setSeedVersion] = useState<string | null>(() => loadSeedVersion())
 
   const hydrateSetup = useCallback(() => {
     const stored = loadEstateSetup()
@@ -57,6 +77,13 @@ const Profile = () => {
   useEffect(() => {
     hydrateSetup()
   }, [hydrateSetup])
+
+  useEffect(() => {
+    if (!toastMessage) return undefined
+    if (typeof window === 'undefined') return undefined
+    const timeout = window.setTimeout(() => setToastMessage(null), 3500)
+    return () => window.clearTimeout(timeout)
+  }, [toastMessage])
 
   const setup = useMemo(() => {
     const candidate = toEstateSetup(formState)
@@ -121,7 +148,7 @@ const Profile = () => {
 
     setIsGenerating(true)
     try {
-      const existing = await db.tasks.toArray()
+      const existing = await db.tasks.where('estateId').equals(activeEstateId).toArray()
       const existingTitles = new Set(existing.map((task) => task.title.toLowerCase()))
 
       let created = 0
@@ -139,6 +166,7 @@ const Profile = () => {
         }
 
         await createTask({
+          estateId: activeEstateId,
           title: deadline.title,
           description: deadline.description ?? '',
           due_date: deadline.dueDate.toISOString(),
@@ -247,6 +275,50 @@ const Profile = () => {
     }
   }
 
+  const openPlanModal = () => {
+    setPlanImportError(null)
+    setPlanInput('')
+    setIsPlanModalOpen(true)
+  }
+
+  const closePlanModal = () => {
+    if (isPlanImporting) return
+    setIsPlanModalOpen(false)
+    setPlanInput('')
+    setPlanImportError(null)
+  }
+
+  const handlePlanImport = async () => {
+    if (!planInput.trim()) {
+      setPlanImportError('Paste the plan JSON before importing.')
+      return
+    }
+
+    setIsPlanImporting(true)
+    setPlanImportError(null)
+
+    try {
+      const parsed = JSON.parse(planInput)
+      const plan = persistEstatePlan(parsed)
+      await reseedFromPlan(plan, { replaceExistingWithSameSeedVersion: true })
+      refreshEstateProfiles()
+      setSeedVersion(plan.seedVersion)
+      setStatusMessage(null)
+      setGenerateMessage(null)
+      setErrorMessage(null)
+      setDataStatusMessage(null)
+      setDataErrorMessage(null)
+      setToastMessage('Plan imported')
+      setIsPlanModalOpen(false)
+      setPlanInput('')
+    } catch (error) {
+      console.error(error)
+      setPlanImportError('Unable to import plan. Confirm the JSON matches the expected structure.')
+    } finally {
+      setIsPlanImporting(false)
+    }
+  }
+
   return (
     <section className="space-y-10">
       <header className="space-y-3">
@@ -259,6 +331,77 @@ const Profile = () => {
 
       <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
         <div className="space-y-6">
+          <article className="card-surface space-y-5">
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Estate plans</h2>
+                <p className="text-sm text-slate-500">
+                  Switch between estates to view tailored tasks, documents, and guidance.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openPlanModal}
+                className="rounded-full border border-primary-200 bg-white px-4 py-2 text-sm font-semibold text-primary-700 transition hover:border-primary-300 hover:bg-primary-50"
+              >
+                Import plan
+              </button>
+            </header>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {ESTATE_IDS.map((id) => {
+                const profile = estateProfiles[id]
+                const isActive = id === activeEstateId
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveEstateId(id)}
+                    aria-pressed={isActive}
+                    className={`rounded-2xl border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 ${
+                      isActive
+                        ? 'border-primary-400 bg-primary-50 shadow-sm shadow-primary-100'
+                        : 'border-slate-200 bg-white hover:border-primary-200 hover:bg-primary-50/70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-700">{profile.label}</p>
+                      {isActive ? (
+                        <span className="rounded-full bg-primary-500 px-2 py-0.5 text-xs font-semibold text-white">
+                          Active
+                        </span>
+                      ) : null}
+                    </div>
+                    <dl className="mt-3 space-y-1 text-xs text-slate-600">
+                      <div className="flex justify-between gap-2">
+                        <dt className="font-medium text-slate-500">Decedent</dt>
+                        <dd className="text-right text-slate-700">{profile.decedentName || 'Not set'}</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="font-medium text-slate-500">County</dt>
+                        <dd className="text-right text-slate-700">
+                          {profile.county ? `${profile.county} County` : 'Not set'}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="font-medium text-slate-500">Date of death</dt>
+                        <dd className="text-right text-slate-700">{formatPlanDate(profile.dodISO)}</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="font-medium text-slate-500">Letters</dt>
+                        <dd className="text-right text-slate-700">{formatPlanDate(profile.lettersISO)}</dd>
+                      </div>
+                    </dl>
+                  </button>
+                )
+              })}
+            </div>
+            {seedVersion ? (
+              <p className="text-xs text-slate-500">
+                Last imported seed version{' '}
+                <span className="font-semibold text-slate-700">{seedVersion}</span>
+              </p>
+            ) : null}
+          </article>
           <article className="card-surface space-y-6">
             <header className="space-y-1">
               <h2 className="text-xl font-semibold text-slate-900">Estate timeline</h2>
@@ -452,6 +595,54 @@ const Profile = () => {
           )}
         </article>
       </div>
+      {isPlanModalOpen ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-4 py-6">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+            <header className="mb-4 space-y-1">
+              <h2 className="text-lg font-semibold text-slate-900">Import estate plan</h2>
+              <p className="text-sm text-slate-500">
+                Paste the JSON configuration to load profiles, seeded tasks, documents, and guidance into this device.
+              </p>
+            </header>
+            <div className="space-y-4">
+              <textarea
+                value={planInput}
+                onChange={(event) => {
+                  setPlanInput(event.target.value)
+                  setPlanImportError(null)
+                }}
+                rows={10}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-800 shadow-inner focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                placeholder={'{"seedVersion":"v2","estateProfiles":{...}}'}
+              />
+              {planImportError ? <p className="text-sm text-rose-600">{planImportError}</p> : null}
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closePlanModal}
+                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+                  disabled={isPlanImporting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePlanImport}
+                  disabled={isPlanImporting}
+                  className="rounded-full bg-primary-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isPlanImporting ? 'Importing…' : 'Import'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {toastMessage ? (
+        <div className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg">
+          {toastMessage}
+        </div>
+      ) : null}
     </section>
   )
 }

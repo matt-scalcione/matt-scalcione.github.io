@@ -1,7 +1,8 @@
+import type { EstateId } from '../types/estate'
 import { db, type DocumentRecord, type JournalEntryRecord, type TaskRecord } from './tasksDB'
 import { type EstateSetup, clearEstateSetup, loadEstateSetup, saveEstateSetup } from './setup'
 
-const EXPORT_VERSION = 1
+const EXPORT_VERSION = 2
 
 export type ExportedDocumentRecord = Omit<DocumentRecord, 'file'> & {
   fileData: string
@@ -65,6 +66,7 @@ export const exportWorkspaceData = async (): Promise<WorkspaceExportPayload> => 
   const exportedDocuments: ExportedDocumentRecord[] = await Promise.all(
     documents.map(async (doc) => ({
       id: doc.id,
+      estateId: doc.estateId,
       title: doc.title,
       tags: doc.tags,
       taskId: doc.taskId,
@@ -97,7 +99,7 @@ export const importWorkspaceData = async (payload: WorkspaceExportPayload) => {
     throw new Error('Invalid workspace data')
   }
 
-  if (payload.version !== EXPORT_VERSION) {
+  if (payload.version > EXPORT_VERSION) {
     throw new Error('Unsupported export version')
   }
 
@@ -105,6 +107,7 @@ export const importWorkspaceData = async (payload: WorkspaceExportPayload) => {
     const fileBlob = dataUrlToBlob(doc.fileData)
     return {
       id: doc.id,
+      estateId: (doc.estateId as EstateId) ?? 'mother',
       title: doc.title,
       tags: doc.tags,
       taskId: doc.taskId,
@@ -115,14 +118,24 @@ export const importWorkspaceData = async (payload: WorkspaceExportPayload) => {
     }
   })
 
+  const normalizedTasks = payload.tasks.map((task) => ({
+    ...task,
+    estateId: (task.estateId as EstateId) ?? 'mother',
+  }))
+
+  const normalizedJournalEntries = payload.journalEntries.map((entry) => ({
+    ...entry,
+    estateId: (entry.estateId as EstateId) ?? 'mother',
+  }))
+
   await db.transaction('rw', db.tasks, db.documents, db.journalEntries, async () => {
     await Promise.all([db.tasks.clear(), db.documents.clear(), db.journalEntries.clear()])
-    await db.tasks.bulkAdd(payload.tasks.map((task) => ({ ...task })))
+    await db.tasks.bulkAdd(normalizedTasks)
     if (reconstructedDocs.length > 0) {
       await db.documents.bulkAdd(reconstructedDocs)
     }
-    if (payload.journalEntries.length > 0) {
-      await db.journalEntries.bulkAdd(payload.journalEntries.map((entry) => ({ ...entry })))
+    if (normalizedJournalEntries.length > 0) {
+      await db.journalEntries.bulkAdd(normalizedJournalEntries)
     }
   })
 

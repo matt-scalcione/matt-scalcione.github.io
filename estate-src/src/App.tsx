@@ -11,6 +11,7 @@ import Profile from './pages/Profile'
 import Tasks from './pages/Tasks'
 import { useAuth } from './context/AuthContext'
 import { db } from './storage/tasksDB'
+import { useEstate } from './context/EstateContext'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -25,13 +26,14 @@ const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { logout } = useAuth()
+  const { activeEstateId } = useEstate()
   const [overdueCount, setOverdueCount] = useState(0)
 
   useEffect(() => {
     let isMounted = true
     let subscription: Subscription | undefined
 
-    subscription = liveQuery(() => db.tasks.toArray()).subscribe({
+    subscription = liveQuery(() => db.tasks.where('estateId').equals(activeEstateId).toArray()).subscribe({
       next: (rows) => {
         if (!isMounted) return
         const today = new Date()
@@ -55,7 +57,7 @@ const Layout = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   const handleLogout = () => {
     logout()

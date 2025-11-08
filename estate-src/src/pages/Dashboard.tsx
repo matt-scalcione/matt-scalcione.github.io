@@ -8,6 +8,7 @@ import {
   TaskRecord,
   db,
 } from '../storage/tasksDB'
+import { useEstate } from '../context/EstateContext'
 
 type TaskMetrics = {
   total: number
@@ -47,12 +48,18 @@ const Dashboard = () => {
   const [documents, setDocuments] = useState<DocumentRecord[]>([])
   const [journalEntries, setJournalEntries] = useState<JournalEntryRecord[]>([])
   const navigate = useNavigate()
+  const { activeEstateId } = useEstate()
 
   useEffect(() => {
     let isMounted = true
     let subscription: Subscription | undefined
 
-    subscription = liveQuery(() => db.tasks.toArray()).subscribe({
+    subscription = liveQuery(() =>
+      db.tasks
+        .where('estateId')
+        .equals(activeEstateId)
+        .toArray(),
+    ).subscribe({
       next: (rows) => {
         if (!isMounted) return
         const ordered = [...rows].sort(
@@ -69,13 +76,18 @@ const Dashboard = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
     let subscription: Subscription | undefined
 
-    subscription = liveQuery(() => db.documents.toArray()).subscribe({
+    subscription = liveQuery(() =>
+      db.documents
+        .where('estateId')
+        .equals(activeEstateId)
+        .toArray(),
+    ).subscribe({
       next: (rows) => {
         if (!isMounted) return
         const ordered = [...rows].sort(
@@ -92,16 +104,21 @@ const Dashboard = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
     let subscription: Subscription | undefined
 
-    subscription = liveQuery(() => db.journalEntries.orderBy('created_at').reverse().toArray()).subscribe({
+    subscription = liveQuery(() =>
+      db.journalEntries
+        .where('estateId')
+        .equals(activeEstateId)
+        .sortBy('created_at'),
+    ).subscribe({
       next: (rows) => {
         if (!isMounted) return
-        setJournalEntries(rows)
+        setJournalEntries(rows.slice().reverse())
       },
       error: (err) => {
         console.error(err)
@@ -112,7 +129,7 @@ const Dashboard = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   const metrics = useMemo<TaskMetrics>(() => {
     const total = tasks.length
