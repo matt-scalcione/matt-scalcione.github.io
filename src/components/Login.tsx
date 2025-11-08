@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { SESSION_STORAGE_KEY } from '../utils/constants'
-import { buildApiUrl } from '../utils/api'
+import { buildApiUrl, fetchWithRetry } from '../utils/api'
 
 interface LoginSuccess {
   token: string
@@ -35,7 +35,7 @@ export const Login = ({ onAuthenticated }: LoginProps) => {
         username: username.trim(),
         password
       }
-      const response = await fetch(buildApiUrl('/api/login'), {
+      const response = await fetchWithRetry(buildApiUrl('/api/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

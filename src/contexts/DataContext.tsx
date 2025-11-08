@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import { AppData, EstateInfo, Task } from '../types'
 import { generateId } from '../utils/id'
 import { calculateDeadlines } from '../utils/dates'
-import { buildApiUrl } from '../utils/api'
+import { buildApiUrl, fetchWithRetry } from '../utils/api'
 import { DataContext } from './DataContextBase'
 import type { DataContextValue } from './DataContext.types'
 
@@ -43,7 +43,7 @@ const normalizeData = (raw?: Partial<AppData>): AppData => {
 }
 
 const fetchDataFromServer = async (token: string): Promise<AppData> => {
-  const response = await fetch(buildApiUrl('/api/data'), {
+  const response = await fetchWithRetry(buildApiUrl('/api/data'), {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -61,7 +61,7 @@ const fetchDataFromServer = async (token: string): Promise<AppData> => {
 }
 
 const persistDataToServer = async (token: string, data: AppData) => {
-  const response = await fetch(buildApiUrl('/api/data'), {
+  const response = await fetchWithRetry(buildApiUrl('/api/data'), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
