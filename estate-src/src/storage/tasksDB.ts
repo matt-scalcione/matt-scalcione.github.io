@@ -29,52 +29,10 @@ class EstateWorkspaceDB extends Dexie {
 
 export const db = new EstateWorkspaceDB()
 
-const seedData: TaskRecord[] = [
-  {
-    id: 'seed-plan-review',
-    title: 'Review estate plan documents',
-    description:
-      'Re-read existing estate plan, confirm executor assignments, and outline any updates needed before the annual review.',
-    due_date: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
-    status: 'in-progress',
-    priority: 'high',
-    tags: ['planning', 'legal'],
-    docIds: ['will-v2', 'executor-letter'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-inventory',
-    title: 'Update household inventory spreadsheet',
-    description:
-      'Audit home assets and photos, add new acquisitions, and update approximate replacement values in the shared spreadsheet.',
-    due_date: new Date(new Date().setDate(new Date().getDate() + 12)).toISOString(),
-    status: 'not-started',
-    priority: 'med',
-    tags: ['operations'],
-    docIds: ['inventory-2024'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-family-meeting',
-    title: 'Schedule quarterly family planning meeting',
-    description:
-      'Coordinate with beneficiaries for next meeting, confirm agenda topics, and circulate prep materials.',
-    due_date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(),
-    status: 'in-progress',
-    priority: 'med',
-    tags: ['family', 'communication'],
-    docIds: [],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-]
-
 export const seedTasksIfEmpty = async () => {
   const count = await db.tasks.count()
   if (count === 0) {
-    await db.tasks.bulkAdd(seedData)
+    // Intentionally empty: tasks will be generated from the estate setup flow.
   }
 }
 
