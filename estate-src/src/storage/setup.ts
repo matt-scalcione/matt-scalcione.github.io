@@ -40,3 +40,15 @@ export const saveEstateSetup = (setup: EstateSetup) => {
     console.warn('Unable to persist estate setup', error)
   }
 }
+
+export const clearEstateSetup = () => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch (error) {
+    console.warn('Unable to clear estate setup', error)
+  }
+}

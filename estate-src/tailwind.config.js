@@ -20,6 +20,26 @@ export default {
           900: '#121f52',
         },
       },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: 0, transform: 'translateY(0.5rem)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        'fade-scale': {
+          '0%': { opacity: 0, transform: 'translateY(0.25rem) scale(0.99)' },
+          '100%': { opacity: 1, transform: 'translateY(0) scale(1)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 280ms ease-out',
+        'fade-scale': 'fade-scale 200ms ease-out',
+      },
+      boxShadow: {
+        subtle: '0 10px 35px -18px rgba(15, 23, 42, 0.25)',
+      },
+      borderRadius: {
+        '3xl': '1.75rem',
+      },
     },
   },
   plugins: [],
