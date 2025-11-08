@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { AppData, EstateInfo, Task } from '../types'
 import { generateId } from '../utils/id'
 import { calculateDeadlines } from '../utils/dates'
+import { buildApiUrl } from '../utils/api'
 import { DataContext } from './DataContextBase'
 import type { DataContextValue } from './DataContext.types'
 
@@ -20,46 +21,7 @@ const defaultData: AppData = {
 }
 
 
-type RuntimeConfig = {
-  apiBaseUrl?: string
-}
-
-const resolveRuntimeConfig = (): RuntimeConfig => {
-  if (typeof window === 'undefined') {
-    return {}
-  }
-
-  const config = (window as typeof window & { __APP_CONFIG__?: RuntimeConfig }).__APP_CONFIG__
-  if (config && typeof config === 'object') {
-    return config
-  }
-
-  return {}
-}
-
-const resolveApiBaseUrl = () => {
-  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env
-  const value = env?.VITE_API_BASE_URL
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim()
-  }
-
-  const runtime = resolveRuntimeConfig()
-  if (runtime.apiBaseUrl && runtime.apiBaseUrl.trim().length > 0) {
-    return runtime.apiBaseUrl.trim()
-  }
-
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3001'
-    }
-  }
-
-  return ''
-}
-
-const API_BASE_URL = resolveApiBaseUrl()
+type ApiError = Error & { status?: number }
 
 const normalizeData = (raw?: Partial<AppData>): AppData => {
   const base = raw ?? {}
@@ -80,8 +42,17 @@ const normalizeData = (raw?: Partial<AppData>): AppData => {
   }
 }
 
-const fetchDataFromServer = async (): Promise<AppData> => {
-  const response = await fetch(`${API_BASE_URL}/api/data`)
+const fetchDataFromServer = async (token: string): Promise<AppData> => {
+  const response = await fetch(buildApiUrl('/api/data'), {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+  if (response.status === 401) {
+    const error = new Error('Unauthorized') as ApiError
+    error.status = 401
+    throw error
+  }
   if (!response.ok) {
     throw new Error(`Failed to load data: ${response.status}`)
   }
@@ -89,14 +60,20 @@ const fetchDataFromServer = async (): Promise<AppData> => {
   return normalizeData(payload)
 }
 
-const persistDataToServer = async (data: AppData) => {
-  const response = await fetch(`${API_BASE_URL}/api/data`, {
+const persistDataToServer = async (token: string, data: AppData) => {
+  const response = await fetch(buildApiUrl('/api/data'), {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(data)
   })
+  if (response.status === 401) {
+    const error = new Error('Unauthorized') as ApiError
+    error.status = 401
+    throw error
+  }
   if (!response.ok) {
     throw new Error(`Failed to save data: ${response.status}`)
   }
@@ -116,7 +93,13 @@ const applyAutomaticDueDates = (tasks: Task[], estateInfo: EstateInfo): Task[] =
   )
 }
 
-export const DataProvider = ({ children }: { children: ReactNode }) => {
+type DataProviderProps = {
+  authToken: string
+  children: ReactNode
+  onUnauthorized: () => void
+}
+
+export const DataProvider = ({ authToken, children, onUnauthorized }: DataProviderProps) => {
   const [data, setData] = useState<AppData>(defaultData)
   const [storageError, setStorageError] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
@@ -134,8 +117,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     let cancelled = false
 
     const load = async () => {
+      if (!authToken) {
+        setData(defaultData)
+        setIsLoaded(true)
+        return
+      }
+
+      setIsLoaded(false)
+      lastSavedSignatureRef.current = null
+      saveQueueRef.current = Promise.resolve()
+
       try {
-        const loaded = await fetchDataFromServer()
+        const loaded = await fetchDataFromServer(authToken)
         if (cancelled) return
         setData({
           ...loaded,
@@ -144,6 +137,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         setStorageError(null)
       } catch (error) {
         console.error('Failed to load data from server', error)
+        const status = (error as ApiError)?.status
+        if (status === 401) {
+          onUnauthorized()
+          return
+        }
         if (!cancelled) {
           setStorageError('Unable to load saved data from the server. Starting with a blank workspace.')
           setData(defaultData)
@@ -160,10 +158,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [authToken, onUnauthorized])
 
   useEffect(() => {
-    if (!isLoaded) return
+    if (!isLoaded || !authToken) return
 
     const signature = JSON.stringify(data)
     if (lastSavedSignatureRef.current === signature) {
@@ -172,13 +170,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
     const runSave = async () => {
       try {
-        await persistDataToServer(data)
+        await persistDataToServer(authToken, data)
         if (isMountedRef.current) {
           lastSavedSignatureRef.current = signature
           setStorageError(null)
         }
       } catch (error) {
         console.error('Failed to persist data to server', error)
+        const status = (error as ApiError)?.status
+        if (status === 401) {
+          onUnauthorized()
+          return
+        }
         if (isMountedRef.current) {
           setStorageError('Failed to save your latest changes to the server. Please try again.')
         }
@@ -190,7 +193,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         console.error('Previous save request failed', error)
       })
       .then(() => runSave())
-  }, [data, isLoaded])
+  }, [authToken, data, isLoaded, onUnauthorized])
 
   const value = useMemo<DataContextValue>(() => ({
     data,

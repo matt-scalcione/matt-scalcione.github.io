@@ -189,6 +189,21 @@ button {
   z-index: 10;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topbar-username {
+  font-size: 0.9rem;
+  color: rgba(20, 33, 61, 0.75);
+}
+
+.topbar-actions .btn {
+  padding: 0.45rem 0.85rem;
+}
+
 .storage-error-banner {
   margin: 0 2rem;
   margin-bottom: 1rem;
@@ -705,6 +720,14 @@ button {
 
   .app-topbar {
     padding: 1rem;
+  }
+
+  .topbar-actions {
+    gap: 0.5rem;
+  }
+
+  .topbar-username {
+    display: none;
   }
 
   .storage-error-banner {
