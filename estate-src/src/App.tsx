@@ -63,7 +63,7 @@ const Layout = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <>
       <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
@@ -106,47 +106,47 @@ const Layout = () => {
           </nav>
         </div>
       </header>
-      <main className="flex-1">
+      <main className="main-shell">
         <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 lg:py-12">
           <div key={location.pathname} className="animate-fade-in">
             <Outlet />
           </div>
         </div>
       </main>
-      <nav className="sticky bottom-0 z-20 border-t border-slate-200/70 bg-white/90 backdrop-blur md:hidden">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-around px-2 py-3 text-xs font-medium text-slate-500">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-1 rounded-2xl px-3 py-2 transition-colors focus-visible:ring-offset-0 ${
-                  isActive ? 'bg-primary-50 text-primary-600' : 'text-slate-500 hover:bg-primary-50/70 hover:text-primary-600'
-                }`
-              }
-            >
-              <span className="text-base">•</span>
-              <span className="flex items-center gap-1">
-                {item.label}
-                {item.to === '/tasks' && overdueCount > 0 ? (
-                  <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[0.625rem] font-semibold text-white">
-                    {overdueCount}
-                  </span>
-                ) : null}
-              </span>
-            </NavLink>
-          ))}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-offset-0"
+      <nav className="bottom-toolbar md:hidden text-xs font-medium text-slate-500">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            aria-label={item.label}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 rounded-2xl px-3 py-2 transition-colors focus-visible:ring-offset-0 ${
+                isActive ? 'bg-primary-50 text-primary-600' : 'text-slate-500 hover:bg-primary-50/70 hover:text-primary-600'
+              }`
+            }
           >
-            <span className="text-base">⎋</span>
-            Logout
-          </button>
-        </div>
+            <span className="text-base">•</span>
+            <span className="flex items-center gap-1">
+              {item.label}
+              {item.to === '/tasks' && overdueCount > 0 ? (
+                <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[0.625rem] font-semibold text-white">
+                  {overdueCount}
+                </span>
+              ) : null}
+            </span>
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label="Logout"
+          className="flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-offset-0"
+        >
+          <span className="text-base">⎋</span>
+          Logout
+        </button>
       </nav>
-    </div>
+    </>
   )
 }
 
