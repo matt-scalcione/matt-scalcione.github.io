@@ -31,7 +31,12 @@ export const Login = ({ onAuthenticated }: LoginProps) => {
 
   return (
     <div className="login-screen">
-      <form className="login-card" onSubmit={handleSubmit}>
+      <form
+        className="login-card"
+        onSubmit={(event) => {
+          void handleSubmit(event)
+        }}
+      >
         <h1>Estate Executor Dashboard</h1>
         <p className="login-copy">Enter the private passphrase to access the administration workspace.</p>
         <label>

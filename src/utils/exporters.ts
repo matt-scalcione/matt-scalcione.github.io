@@ -49,7 +49,8 @@ export const exportTasksToPdf = (tasks: Task[]) => {
       task.tags.join(', ')
     ]
     values.forEach((value, idx) => {
-      doc.text(doc.splitTextToSize(value, colWidth[idx] - 4), 14 + colWidth.slice(0, idx).reduce((a, b) => a + b, 0), y)
+      const text = doc.splitTextToSize(value, colWidth[idx] - 4) as string | string[]
+      doc.text(text, 14 + colWidth.slice(0, idx).reduce((a, b) => a + b, 0), y)
     })
     y += 8
     if (y > 190) {

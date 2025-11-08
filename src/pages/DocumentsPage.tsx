@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from 'react'
 import { FaCloudUploadAlt } from 'react-icons/fa'
-import { useDataContext } from '../contexts/DataContext'
+import { useDataContext } from '../contexts/useDataContext'
 import { DocumentRecord } from '../types'
 import { formatDate } from '../utils/dates'
 
@@ -135,7 +135,13 @@ export const DocumentsPage = () => {
           </label>
           <label className="file-input">
             <span>File</span>
-            <input type="file" onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt" />
+            <input
+              type="file"
+              onChange={(event) => {
+                void handleFileChange(event)
+              }}
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt"
+            />
             {form.fileName && <p className="help">Current file: {form.fileName}</p>}
           </label>
           <div className="form-actions">

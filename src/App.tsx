@@ -10,7 +10,7 @@ import { BeneficiariesPage } from './pages/BeneficiariesPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { Layout } from './components/Layout'
 import { Login } from './components/Login'
-import { useDataContext } from './contexts/DataContext'
+import { useDataContext } from './contexts/useDataContext'
 import { SESSION_KEY, defaultTasks } from './utils/constants'
 
 export const App = () => {

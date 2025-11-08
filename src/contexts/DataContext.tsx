@@ -1,18 +1,10 @@
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
-import {
-  AppData,
-  AssetRecord,
-  BeneficiaryRecord,
-  DocumentRecord,
-  EstateInfo,
-  ExpenseRecord,
-  ManualEvent,
-  Task,
-  TaskStatus
-} from '../types'
+import { AppData, EstateInfo, Task } from '../types'
 import { generateId } from '../utils/id'
 import { calculateDeadlines } from '../utils/dates'
+import { DataContext } from './DataContextBase'
+import type { DataContextValue } from './DataContext.types'
 
 const defaultData: AppData = {
   tasks: [],
@@ -27,37 +19,6 @@ const defaultData: AppData = {
   }
 }
 
-type DataContextValue = {
-  data: AppData
-  isLoaded: boolean
-  storageError: string | null
-  dismissStorageError: () => void
-  updateEstateInfo: (info: EstateInfo) => void
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void
-  updateTask: (id: string, task: Partial<Task>) => void
-  removeTask: (id: string) => void
-  changeTaskStatus: (id: string, status: TaskStatus) => void
-  replaceTasks: (tasks: Task[]) => void
-  markChecklistSeeded: () => void
-  addDocument: (doc: Omit<DocumentRecord, 'id' | 'uploadedAt'>) => void
-  updateDocument: (id: string, doc: Partial<DocumentRecord>) => void
-  removeDocument: (id: string) => void
-  addAsset: (asset: Omit<AssetRecord, 'id'>) => void
-  updateAsset: (id: string, asset: Partial<AssetRecord>) => void
-  removeAsset: (id: string) => void
-  addExpense: (expense: Omit<ExpenseRecord, 'id'>) => void
-  updateExpense: (id: string, expense: Partial<ExpenseRecord>) => void
-  removeExpense: (id: string) => void
-  addBeneficiary: (beneficiary: Omit<BeneficiaryRecord, 'id'>) => void
-  updateBeneficiary: (id: string, beneficiary: Partial<BeneficiaryRecord>) => void
-  removeBeneficiary: (id: string) => void
-  addEvent: (event: Omit<ManualEvent, 'id'>) => void
-  updateEvent: (id: string, event: Partial<ManualEvent>) => void
-  removeEvent: (id: string) => void
-  restoreData: (data: Partial<AppData>) => void
-}
-
-const DataContext = createContext<DataContextValue | undefined>(undefined)
 
 type RuntimeConfig = {
   apiBaseUrl?: string
@@ -159,6 +120,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<AppData>(defaultData)
   const [storageError, setStorageError] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const lastSavedSignatureRef = useRef<string | null>(null)
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -195,27 +165,31 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!isLoaded) return
 
-    let cancelled = false
+    const signature = JSON.stringify(data)
+    if (lastSavedSignatureRef.current === signature) {
+      return
+    }
 
-    const save = async () => {
+    const runSave = async () => {
       try {
         await persistDataToServer(data)
-        if (!cancelled) {
+        if (isMountedRef.current) {
+          lastSavedSignatureRef.current = signature
           setStorageError(null)
         }
       } catch (error) {
         console.error('Failed to persist data to server', error)
-        if (!cancelled) {
+        if (isMountedRef.current) {
           setStorageError('Failed to save your latest changes to the server. Please try again.')
         }
       }
     }
 
-    void save()
-
-    return () => {
-      cancelled = true
-    }
+    saveQueueRef.current = saveQueueRef.current
+      .catch((error) => {
+        console.error('Previous save request failed', error)
+      })
+      .then(() => runSave())
   }, [data, isLoaded])
 
   const value = useMemo<DataContextValue>(() => ({
@@ -411,12 +385,4 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }), [data, isLoaded, storageError])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
-}
-
-export const useDataContext = () => {
-  const context = useContext(DataContext)
-  if (!context) {
-    throw new Error('useDataContext must be used within DataProvider')
-  }
-  return context
 }
