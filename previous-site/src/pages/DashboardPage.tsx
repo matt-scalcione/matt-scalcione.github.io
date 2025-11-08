@@ -1,173 +1,173 @@
-import dayjs from 'dayjs'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faFilePdf, faImage, faTasks } from '@fortawesome/free-solid-svg-icons'
 import { Link } from 'react-router-dom'
-import { SummaryCard } from '../components/SummaryCard'
-import { StatusBadge } from '../components/StatusBadge'
-import { useDataContext } from '../contexts/useDataContext'
-import { calculateDeadlines, formatDate, isDueSoon } from '../utils/dates'
-import { AutoScheduleKey } from '../types'
-import { getTaskProgress, sortTasksByDueDate } from '../utils/taskHelpers'
+import { useDataContext } from '../context/DataContext'
+import { getUpcomingEvents, isDueSoon, isOverdue, formatDate } from '../utils/date'
 
 export const DashboardPage = () => {
-  const {
-    data: { tasks, documents, assets, expenses, beneficiaries, estateInfo, manualEvents }
-  } = useDataContext()
+  const { tasks, documents, deadlines, calendarEvents } = useDataContext()
 
-  const progress = getTaskProgress(tasks)
-  const overdueTasks = tasks.filter((task) => task.dueDate && dayjs(task.dueDate).isBefore(dayjs(), 'day') && task.status !== 'completed')
-  const upcomingTasks = sortTasksByDueDate(
-    tasks.filter((task) => task.status !== 'completed' && task.dueDate && !dayjs(task.dueDate).isBefore(dayjs(), 'day'))
-  ).slice(0, 5)
-  const dueSoonCount = tasks.filter((task) => isDueSoon(task.dueDate) && task.status !== 'completed').length
-
-  const totalEstateValue = assets.reduce((sum, asset) => sum + (asset.value ?? 0), 0)
-  const unreimbursed = expenses
-    .filter((expense) => !expense.paidFromEstate && !expense.reimbursed)
-    .reduce((sum, expense) => sum + expense.amount, 0)
-
-  const deadlines = calculateDeadlines(estateInfo)
-  const deadlineEntries = (Object.entries(deadlines) as Array<[
-    AutoScheduleKey,
-    string | undefined
-  ]>).flatMap(([key, date]) => {
-    if (!date) {
-      return []
-    }
-    return [
-      {
-        key,
-        date,
-        label: deadlineLabels[key]
-      }
-    ]
-  })
-
-  const upcomingEvents = [...deadlineEntries, ...manualEvents.map((event) => ({ key: event.id, date: event.date, label: event.title }))]
-    .filter((entry) => dayjs(entry.date).isAfter(dayjs().subtract(1, 'day')))
-    .sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix())
-    .slice(0, 5)
+  const totalTasks = tasks.length
+  const completedTasks = tasks.filter((task) => task.status === 'Done').length
+  const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100)
+  const dueSoon = tasks.filter((task) => isDueSoon(task.dueDate)).slice(0, 5)
+  const overdue = tasks.filter((task) => isOverdue(task.dueDate)).slice(0, 5)
+  const upcoming = getUpcomingEvents(calendarEvents, 90).slice(0, 6)
+  const recentDocs = documents.slice(0, 5)
 
   return (
-    <div className="page dashboard">
-      <section className="summary-grid">
-        <SummaryCard
-          title="Task Progress"
-          value={<span>{progress.completed} / {progress.total}</span>}
-          description={`Overall completion ${progress.percentage}%`}
-          accent="green"
-        />
-        <SummaryCard
-          title="Upcoming Deadlines"
-          value={<span>{dueSoonCount}</span>}
-          description="Tasks due in the next 14 days"
-          accent="orange"
-        />
-        <SummaryCard
-          title="Documents"
-          value={<span>{documents.length}</span>}
-          description="Filed and reference materials"
-          accent="purple"
-        />
-        <SummaryCard
-          title="Estate Assets"
-          value={<span>${totalEstateValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>}
-          description={`${assets.length} items tracked`}
-          accent="blue"
-        />
-        <SummaryCard
-          title="Unreimbursed Advances"
-          value={<span>${unreimbursed.toFixed(2)}</span>}
-          description="Expenses to reimburse executor"
-          accent="red"
-        />
-        <SummaryCard
-          title="Beneficiaries"
-          value={<span>{beneficiaries.length}</span>}
-          description="Contacts and distribution tracking"
-          accent="green"
-        />
+    <div className="space-y-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="card">
+          <div className="card-body">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300">Tasks complete</h3>
+              <FontAwesomeIcon icon={faTasks} className="text-brand-500" />
+            </div>
+            <div className="flex items-center gap-4">
+              <div
+                className="relative h-20 w-20 rounded-full"
+                style={{
+                  background: `conic-gradient(#6366f1 ${progress * 3.6}deg, rgba(99, 102, 241, 0.15) 0deg)`
+                }}
+              >
+                <div className="absolute inset-1 flex items-center justify-center rounded-full bg-white text-lg font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                  {progress}%
+                </div>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">{completedTasks}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">of {totalTasks} total tasks</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-body">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300">Upcoming deadlines</h3>
+            <ul className="space-y-2">
+              {upcoming.length === 0 && <li className="text-sm text-slate-500">No upcoming deadlines in the next 90 days.</li>}
+              {upcoming.map((event) => (
+                <li key={event.id} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800">
+                  <span>{event.title}</span>
+                  <span className="font-medium">{formatDate(event.date)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-body">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300">Due soon</h3>
+            <ul className="space-y-2">
+              {dueSoon.length === 0 && <li className="text-sm text-slate-500">No tasks due within 14 days.</li>}
+              {dueSoon.map((task) => (
+                <li key={task.id} className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/20 dark:text-amber-200">
+                  <span>{task.title}</span>
+                  <span className="font-medium">{formatDate(task.dueDate)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-body">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-300">Overdue</h3>
+            <ul className="space-y-2">
+              {overdue.length === 0 && <li className="text-sm text-slate-500">No overdue tasks 🎉</li>}
+              {overdue.map((task) => (
+                <li key={task.id} className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/20 dark:text-rose-200">
+                  <span>{task.title}</span>
+                  <span className="font-medium">{formatDate(task.dueDate)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </section>
 
-      <div className="grid two-column">
-        <section className="card">
-          <div className="section-header">
-            <h2>Upcoming Tasks</h2>
-            <Link to="/tasks" className="text-link">
-              View all tasks
-            </Link>
+      <section className="grid gap-4 lg:grid-cols-3">
+        <div className="card lg:col-span-2">
+          <div className="card-header">
+            <h2 className="text-lg font-semibold">Computed deadlines</h2>
           </div>
-          {upcomingTasks.length === 0 ? (
-            <p className="empty">No upcoming tasks scheduled. Add due dates to keep deadlines visible.</p>
-          ) : (
-            <ul className="list">
-              {upcomingTasks.map((task) => (
-                <li key={task.id}>
-                  <div>
-                    <h3>{task.title}</h3>
-                    {task.description && <p>{task.description}</p>}
-                    <div className="meta">
-                      <StatusBadge status={task.status} />
-                      {task.category && <span className="meta-item">{task.category}</span>}
+          <div className="card-body">
+            <dl className="grid gap-4 md:grid-cols-2">
+              <div>
+                <dt className="text-xs uppercase text-slate-500">Rule 10.5 notices</dt>
+                <dd className="text-base font-semibold">{formatDate(deadlines.rule105Notice)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-slate-500">Certification of Notice</dt>
+                <dd className="text-base font-semibold">{formatDate(deadlines.certificationOfNotice)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-slate-500">Inventory due</dt>
+                <dd className="text-base font-semibold">{formatDate(deadlines.inventoryDue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-slate-500">Inheritance tax return</dt>
+                <dd className="text-base font-semibold">{formatDate(deadlines.inheritanceTaxDue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-slate-500">5% discount deadline</dt>
+                <dd className="text-base font-semibold">{formatDate(deadlines.inheritanceTaxDiscount)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-slate-500">Creditor bar date</dt>
+                <dd className="text-base font-semibold">{formatDate(deadlines.creditorBarDate)}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-lg font-semibold">Recent documents</h2>
+          </div>
+          <div className="card-body">
+            <ul className="space-y-3 text-sm">
+              {recentDocs.length === 0 && <li className="text-slate-500">No documents uploaded yet.</li>}
+              {recentDocs.map((doc) => (
+                <li key={doc.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FontAwesomeIcon icon={doc.mimeType.includes('image') ? faImage : faFilePdf} className="text-brand-500" />
+                    <div>
+                      <p className="font-medium text-slate-800 dark:text-slate-100">{doc.title ?? doc.filename}</p>
+                      <p className="text-xs text-slate-500">Uploaded {formatDate(doc.createdAt)}</p>
                     </div>
                   </div>
-                  <span className="meta-date">Due {formatDate(task.dueDate, 'Date TBD')}</span>
+                  <Link to="/documents" className="text-xs font-semibold text-brand-600 hover:underline">
+                    View
+                  </Link>
                 </li>
               ))}
             </ul>
-          )}
-        </section>
-
-        <section className="card">
-          <div className="section-header">
-            <h2>Key Deadlines & Events</h2>
-            <Link to="/calendar" className="text-link">
-              Open calendar
-            </Link>
           </div>
-          {upcomingEvents.length === 0 ? (
-            <p className="empty">Add dates in the calendar or estate settings to populate reminders.</p>
-          ) : (
-            <ul className="list">
-              {upcomingEvents.map((event) => (
-                <li key={event.key}>
-                  <div>
-                    <h3>{event.label}</h3>
-                  </div>
-                  <span className="meta-date">{formatDate(event.date)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+        </div>
+      </section>
 
       <section className="card">
-        <div className="section-header">
-          <h2>Overdue</h2>
+        <div className="card-header">
+          <h2 className="text-lg font-semibold">Timeline overview</h2>
+          <Link to="/calendar" className="text-sm font-semibold text-brand-600 hover:underline">
+            Open calendar
+          </Link>
         </div>
-        {overdueTasks.length === 0 ? (
-          <p className="empty">No overdue work. Great job staying on schedule.</p>
-        ) : (
-          <ul className="list">
-            {overdueTasks.map((task) => (
-              <li key={task.id}>
+        <div className="card-body">
+          <ol className="space-y-3">
+            {calendarEvents.map((event) => (
+              <li key={event.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
                 <div>
-                  <h3>{task.title}</h3>
-                  {task.description && <p>{task.description}</p>}
+                  <p className="font-medium">{event.title}</p>
+                  <p className="text-xs text-slate-500">{event.type === 'Task' ? 'Task deadline' : 'Statutory deadline'}</p>
                 </div>
-                <span className="meta-date overdue">Was due {formatDate(task.dueDate)}</span>
+                <span className="font-semibold">{formatDate(event.date)}</span>
               </li>
             ))}
-          </ul>
-        )}
+            {calendarEvents.length === 0 && <li className="text-sm text-slate-500">Set estate profile to generate statutory reminders.</li>}
+          </ol>
+        </div>
       </section>
     </div>
   )
-}
-
-const deadlineLabels: Record<AutoScheduleKey, string> = {
-  heirNotice: 'Rule 10.5 heir notices due',
-  inventoryDue: 'Inventory filing deadline',
-  inheritanceTax: 'Inheritance tax return due',
-  inheritanceTaxDiscount: 'Early inheritance tax discount deadline',
-  creditorBar: 'Creditor claim period ends'
 }

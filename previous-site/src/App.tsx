@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
+import { DataProvider } from './context/DataContext'
+import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { TasksPage } from './pages/TasksPage'
 import { CalendarPage } from './pages/CalendarPage'
@@ -8,72 +10,21 @@ import { AssetsPage } from './pages/AssetsPage'
 import { ExpensesPage } from './pages/ExpensesPage'
 import { BeneficiariesPage } from './pages/BeneficiariesPage'
 import { SettingsPage } from './pages/SettingsPage'
-import { Layout } from './components/Layout'
-import { Login } from './components/Login'
-import { DataProvider } from './contexts/DataContext'
-import { useDataContext } from './contexts/useDataContext'
-import { SESSION_STORAGE_KEY, defaultTasks } from './utils/constants'
+import { AppLayout } from './components/AppLayout'
 
-type AuthSession = {
-  token: string
-  userId: string
-  username: string
+const RequireAuth = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated } = useAuth()
+  const location = useLocation()
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+  return children
 }
 
-const readStoredSession = (): AuthSession | null => {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY)
-  if (!raw) {
-    return null
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<AuthSession>
-    if (
-      parsed &&
-      typeof parsed.token === 'string' &&
-      typeof parsed.userId === 'string' &&
-      typeof parsed.username === 'string'
-    ) {
-      return parsed as AuthSession
-    }
-  } catch (error) {
-    console.warn('Failed to parse stored session', error)
-  }
-
-  window.sessionStorage.removeItem(SESSION_STORAGE_KEY)
-  return null
-}
-
-const clearStoredSession = () => {
-  if (typeof window === 'undefined') {
-    return
-  }
-  window.sessionStorage.removeItem(SESSION_STORAGE_KEY)
-}
-
-const AuthenticatedApp = ({ session, onLogout }: { session: AuthSession; onLogout: () => void }) => {
-  const {
-    data: { tasks, metadata },
-    isLoaded,
-    replaceTasks,
-    markChecklistSeeded
-  } = useDataContext()
-
-  useEffect(() => {
-    if (!isLoaded) return
-    if (tasks.length === 0 && !metadata.checklistSeeded) {
-      replaceTasks(defaultTasks())
-      markChecklistSeeded()
-    }
-  }, [isLoaded, tasks.length, metadata.checklistSeeded, replaceTasks, markChecklistSeeded])
-
+const ProtectedApp = () => {
   return (
-    <BrowserRouter>
-      <Layout username={session.username} onLogout={onLogout}>
+    <DataProvider>
+      <AppLayout>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/tasks" element={<TasksPage />} />
@@ -84,32 +35,36 @@ const AuthenticatedApp = ({ session, onLogout }: { session: AuthSession; onLogou
           <Route path="/beneficiaries" element={<BeneficiariesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
-      </Layout>
-    </BrowserRouter>
-  )
-}
-
-export const App = () => {
-  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession())
-
-  const handleAuthenticated = useCallback((nextSession: AuthSession) => {
-    setSession(nextSession)
-  }, [])
-
-  const handleLogout = useCallback(() => {
-    clearStoredSession()
-    setSession(null)
-  }, [])
-
-  if (!session) {
-    return <Login onAuthenticated={handleAuthenticated} />
-  }
-
-  return (
-    <DataProvider authToken={session.token} onUnauthorized={handleLogout}>
-      <AuthenticatedApp session={session} onLogout={handleLogout} />
+      </AppLayout>
     </DataProvider>
   )
 }
 
-export default App
+export const App = () => {
+  const { isAuthenticated, initializing } = useAuth()
+
+  if (initializing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 text-slate-600 dark:bg-slate-950 dark:text-slate-200">
+        <div className="space-y-2 text-center">
+          <span className="inline-flex h-12 w-12 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></span>
+          <p className="text-sm font-medium">Loading estate workspace…</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route
+        path="/*"
+        element={
+          <RequireAuth>
+            <ProtectedApp />
+          </RequireAuth>
+        }
+      />
+    </Routes>
+  )
+}
