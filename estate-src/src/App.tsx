@@ -112,7 +112,10 @@ const App = () => {
         <Route element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/tasks">
+            <Route index element={<Tasks />} />
+            <Route path=":taskId" element={<Tasks />} />
+          </Route>
           <Route path="/documents" element={<Documents />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/journal" element={<Journal />} />
