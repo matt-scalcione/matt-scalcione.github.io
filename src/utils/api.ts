@@ -2,6 +2,19 @@ export type RuntimeConfig = {
   apiBaseUrl?: string
 }
 
+type FetchRetryOptions = {
+  retries?: number
+  retryDelayMs?: number
+}
+
+const DEFAULT_RETRY_ATTEMPTS = 2
+const DEFAULT_RETRY_DELAY_MS = 750
+
+const wait = (duration: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, duration)
+  })
+
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 
 const resolveRuntimeConfig = (): RuntimeConfig => {
@@ -51,4 +64,35 @@ export const buildApiUrl = (path: string) => {
   }
 
   return `${API_BASE_URL}${path}`
+}
+
+const shouldRetry = (error: unknown) => {
+  if (!error) {
+    return false
+  }
+  if (error instanceof TypeError) {
+    return true
+  }
+  return false
+}
+
+export const fetchWithRetry = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options: FetchRetryOptions = {}
+) => {
+  const { retries = DEFAULT_RETRY_ATTEMPTS, retryDelayMs = DEFAULT_RETRY_DELAY_MS } = options
+  let attempt = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      return await fetch(input, init)
+    } catch (error) {
+      if (attempt >= retries || !shouldRetry(error)) {
+        throw error
+      }
+      attempt += 1
+      await wait(retryDelayMs)
+    }
+  }
 }
