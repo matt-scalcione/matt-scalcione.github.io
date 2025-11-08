@@ -3,11 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <title>Estate</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Block pinch zoom
+      addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+      addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+      addEventListener('gestureend', e => e.preventDefault(), { passive: false });
+      // Block double-tap zoom
+      let lastTouchEnd = 0;
+      document.addEventListener(
+        'touchend',
+        e => {
+          const now = Date.now();
+          if (now - lastTouchEnd <= 300) e.preventDefault();
+          lastTouchEnd = now;
+        },
+        { passive: false }
+      );
+    </script>
   </body>
 </html>
