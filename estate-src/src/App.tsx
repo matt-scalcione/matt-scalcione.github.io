@@ -4,6 +4,7 @@ import { liveQuery } from 'dexie'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
+import Buyout from './pages/Buyout'
 import Guidance from './pages/Guidance'
 import Journal from './pages/Journal'
 import Login from './pages/Login'
@@ -19,6 +20,7 @@ const navItems = [
   { to: '/tasks', label: 'Tasks' },
   { to: '/guidance', label: 'Guidance' },
   { to: '/documents', label: 'Documents' },
+  { to: '/buyout', label: 'Buyout' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/journal', label: 'Journal' },
   { to: '/profile', label: 'Profile' },
@@ -176,6 +178,7 @@ const App = () => {
           </Route>
           <Route path="/guidance" element={<Guidance />} />
           <Route path="/documents" element={<Documents />} />
+          <Route path="/buyout" element={<Buyout />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/profile" element={<Profile />} />
