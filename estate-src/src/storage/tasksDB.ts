@@ -1,10 +1,12 @@
 import Dexie, { Table } from 'dexie'
+import type { EstateId } from '../types/estate'
 
 export type TaskStatus = 'not-started' | 'in-progress' | 'done'
 export type TaskPriority = 'low' | 'med' | 'high'
 
 export interface TaskRecord {
   id: string
+  estateId: EstateId
   title: string
   description: string
   due_date: string
@@ -14,10 +16,12 @@ export interface TaskRecord {
   docIds: string[]
   created_at: string
   updated_at: string
+  seedVersion?: string
 }
 
 export interface DocumentRecord {
   id: string
+  estateId: EstateId
   title: string
   tags: string[]
   taskId: string | null
@@ -29,6 +33,7 @@ export interface DocumentRecord {
 
 export interface JournalEntryRecord {
   id: string
+  estateId: EstateId
   title: string
   body: string
   created_at: string
@@ -53,6 +58,38 @@ class EstateWorkspaceDB extends Dexie {
       documents: 'id, title, contentType, size, created_at, taskId, *tags',
       journalEntries: 'id, created_at, title',
     })
+    this.version(4)
+      .stores({
+        tasks: 'id, estateId, due_date, status, priority, created_at, updated_at, seedVersion, *tags, *docIds',
+        documents: 'id, estateId, title, contentType, size, created_at, taskId, *tags',
+        journalEntries: 'id, estateId, created_at, title',
+      })
+      .upgrade(async (transaction) => {
+        await transaction.table('tasks').toCollection().modify((task: TaskRecord & { estateId?: EstateId }) => {
+          if (!task.estateId) {
+            // eslint-disable-next-line no-param-reassign
+            task.estateId = 'mother'
+          }
+        })
+        await transaction
+          .table('documents')
+          .toCollection()
+          .modify((doc: DocumentRecord & { estateId?: EstateId }) => {
+            if (!doc.estateId) {
+              // eslint-disable-next-line no-param-reassign
+              doc.estateId = 'mother'
+            }
+          })
+        await transaction
+          .table('journalEntries')
+          .toCollection()
+          .modify((entry: JournalEntryRecord & { estateId?: EstateId }) => {
+            if (!entry.estateId) {
+              // eslint-disable-next-line no-param-reassign
+              entry.estateId = 'mother'
+            }
+          })
+      })
   }
 }
 
@@ -111,13 +148,24 @@ export type DocumentInput = {
   file: File
   title: string
   tags: string[]
+  estateId: EstateId
   taskId?: string | null
 }
 
-export const createDocument = async ({ file, title, tags, taskId }: DocumentInput) => {
+export const createDocument = async ({ file, title, tags, taskId, estateId }: DocumentInput) => {
   const id = generateId('doc')
+  let resolvedEstateId: EstateId = estateId
+
+  if (taskId) {
+    const task = await db.tasks.get(taskId)
+    if (task) {
+      resolvedEstateId = task.estateId
+    }
+  }
+
   const record: DocumentRecord = {
     id,
+    estateId: resolvedEstateId,
     title,
     tags,
     taskId: null,
@@ -173,6 +221,10 @@ export const linkDocumentToTask = async (docId: string, taskId: string) => {
       throw new Error('Document or task not found')
     }
 
+    if (doc.estateId !== task.estateId) {
+      await db.documents.update(docId, { estateId: task.estateId })
+    }
+
     if (doc.taskId && doc.taskId !== taskId) {
       const previousTask = await db.tasks.get(doc.taskId)
       if (previousTask) {
@@ -218,13 +270,14 @@ export const unlinkDocumentFromTask = async (docId: string) => {
 
 export type JournalEntryInput = Pick<JournalEntryRecord, 'title' | 'body'>
 
-export const getJournalEntries = async () => {
-  return db.journalEntries.orderBy('created_at').reverse().toArray()
+export const getJournalEntries = async (estateId: EstateId) => {
+  return db.journalEntries.where('estateId').equals(estateId).sortBy('created_at').then((entries) => entries.reverse())
 }
 
-export const createJournalEntry = async ({ title, body }: JournalEntryInput) => {
+export const createJournalEntry = async ({ title, body, estateId }: JournalEntryInput & { estateId: EstateId }) => {
   const record: JournalEntryRecord = {
     id: generateId('journal'),
+    estateId,
     title,
     body,
     created_at: nowISO(),

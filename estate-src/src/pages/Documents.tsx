@@ -18,6 +18,7 @@ import {
   linkDocumentToTask,
   unlinkDocumentFromTask,
 } from '../storage/tasksDB'
+import { useEstate } from '../context/EstateContext'
 
 GlobalWorkerOptions.workerSrc = pdfWorker
 
@@ -237,12 +238,18 @@ const Documents = () => {
   const [searchParams] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const { activeEstateId } = useEstate()
 
   useEffect(() => {
     let isMounted = true
     let subscription: Subscription | undefined
 
-    subscription = liveQuery(() => db.documents.toArray()).subscribe({
+    subscription = liveQuery(() =>
+      db.documents
+        .where('estateId')
+        .equals(activeEstateId)
+        .toArray(),
+    ).subscribe({
       next: (rows) => {
         if (!isMounted) return
         const ordered = [...rows].sort(
@@ -261,13 +268,18 @@ const Documents = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
     let subscription: Subscription | undefined
 
-    subscription = liveQuery(() => db.tasks.toArray()).subscribe({
+    subscription = liveQuery(() =>
+      db.tasks
+        .where('estateId')
+        .equals(activeEstateId)
+        .toArray(),
+    ).subscribe({
       next: (rows) => {
         if (!isMounted) return
         const sorted = [...rows].sort(
@@ -284,7 +296,7 @@ const Documents = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   useEffect(() => {
     const highlight = searchParams.get('highlight')
@@ -390,6 +402,7 @@ const Documents = () => {
         file,
         title: title.trim() || file.name,
         tags: parseTags(tagsInput),
+        estateId: activeEstateId,
         taskId: assignTaskId || null,
       })
       setFile(null)

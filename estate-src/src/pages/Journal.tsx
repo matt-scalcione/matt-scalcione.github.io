@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import {
@@ -8,6 +8,7 @@ import {
   JournalEntryRecord,
   updateJournalEntry,
 } from '../storage/tasksDB'
+import { useEstate } from '../context/EstateContext'
 
 const MAX_ENTRY_LENGTH = 10000
 
@@ -32,18 +33,25 @@ const Journal = () => {
   const titleInputRef = useRef<HTMLInputElement | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
+  const { activeEstateId } = useEstate()
 
   const bodyCharactersRemaining = useMemo(() => MAX_ENTRY_LENGTH - formBody.length, [formBody.length])
 
-  const loadEntries = async () => {
-    const results = await getJournalEntries()
-    setEntries(results)
-    setIsLoading(false)
-  }
+  const loadEntries = useCallback(async () => {
+    try {
+      const results = await getJournalEntries(activeEstateId)
+      setEntries(results)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activeEstateId])
 
   useEffect(() => {
+    setIsLoading(true)
     void loadEntries()
-  }, [])
+  }, [loadEntries])
 
   useEffect(() => {
     const state = location.state as { focusNewEntry?: boolean } | null
@@ -95,6 +103,7 @@ const Journal = () => {
       await createJournalEntry({
         title: trimmedTitle,
         body: trimmedBody,
+        estateId: activeEstateId,
       })
     }
 

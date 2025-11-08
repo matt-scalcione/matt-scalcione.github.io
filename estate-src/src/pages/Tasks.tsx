@@ -14,6 +14,7 @@ import {
   updateTask,
   db,
 } from '../storage/tasksDB'
+import { useEstate } from '../context/EstateContext'
 
 const priorityStyles: Record<TaskPriority, string> = {
   low: 'bg-emerald-100 text-emerald-700',
@@ -119,6 +120,7 @@ const Tasks = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { taskId } = useParams<{ taskId?: string }>()
+  const { activeEstateId } = useEstate()
 
   const selectedTask = tasks.find((task) => task.id === taskId) || null
 
@@ -129,7 +131,12 @@ const Tasks = () => {
     const initialize = async () => {
       try {
         await seedTasksIfEmpty()
-        subscription = liveQuery(() => db.tasks.toArray()).subscribe({
+        subscription = liveQuery(() =>
+          db.tasks
+            .where('estateId')
+            .equals(activeEstateId)
+            .toArray(),
+        ).subscribe({
           next: (rows) => {
             if (!isMounted) return
             const sorted = [...rows].sort((a, b) =>
@@ -159,13 +166,18 @@ const Tasks = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
     let subscription: Subscription | undefined
 
-    subscription = liveQuery(() => db.documents.toArray()).subscribe({
+    subscription = liveQuery(() =>
+      db.documents
+        .where('estateId')
+        .equals(activeEstateId)
+        .toArray(),
+    ).subscribe({
       next: (rows) => {
         if (!isMounted) return
         const sorted = [...rows].sort(
@@ -184,7 +196,7 @@ const Tasks = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   useEffect(() => {
     if (!taskId || tasks.some((task) => task.id === taskId)) return
@@ -258,6 +270,7 @@ const Tasks = () => {
     setFormSubmitting(true)
     try {
       const id = await createTask({
+        estateId: activeEstateId,
         title: formState.title,
         description: formState.description,
         due_date: formState.due_date,
