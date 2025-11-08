@@ -6,10 +6,44 @@
   color-scheme: light;
 }
 
-body {
-  @apply bg-slate-100 text-slate-900 antialiased;
+@layer base {
+  body {
+    @apply min-h-screen bg-slate-100 text-slate-900 antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply text-slate-900 tracking-tight;
+  }
+
+  a {
+    @apply transition-colors;
+  }
+
+  button,
+  [role='button'],
+  [type='button'],
+  [type='reset'],
+  [type='submit'] {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
 }
 
-#root {
-  @apply min-h-screen;
+@layer components {
+  .card-surface {
+    @apply rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-subtle backdrop-blur;
+  }
+}
+
+@layer utilities {
+  .frosted-surface {
+    @apply bg-white/90 shadow-subtle backdrop-blur;
+  }
 }
