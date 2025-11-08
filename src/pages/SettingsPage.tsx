@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useState } from 'react'
 import { FaDownload, FaFileImport, FaListAlt } from 'react-icons/fa'
-import { useDataContext } from '../contexts/DataContext'
+import { useDataContext } from '../contexts/useDataContext'
 import { defaultTasks } from '../utils/constants'
 import { downloadFile } from '../utils/exporters'
 import { calculateDeadlines, formatDate } from '../utils/dates'
@@ -138,7 +138,14 @@ export const SettingsPage = () => {
           </button>
           <label className="btn">
             <FaFileImport /> Import backup
-            <input type="file" accept="application/json" onChange={handleImportBackup} hidden />
+            <input
+              type="file"
+              accept="application/json"
+              onChange={(event) => {
+                void handleImportBackup(event)
+              }}
+              hidden
+            />
           </label>
         </div>
         <p className="help-text">

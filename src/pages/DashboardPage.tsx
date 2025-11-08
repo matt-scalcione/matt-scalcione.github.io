@@ -2,8 +2,9 @@ import dayjs from 'dayjs'
 import { Link } from 'react-router-dom'
 import { SummaryCard } from '../components/SummaryCard'
 import { StatusBadge } from '../components/StatusBadge'
-import { useDataContext } from '../contexts/DataContext'
+import { useDataContext } from '../contexts/useDataContext'
 import { calculateDeadlines, formatDate, isDueSoon } from '../utils/dates'
+import { AutoScheduleKey } from '../types'
 import { getTaskProgress, sortTasksByDueDate } from '../utils/taskHelpers'
 
 export const DashboardPage = () => {
@@ -24,13 +25,21 @@ export const DashboardPage = () => {
     .reduce((sum, expense) => sum + expense.amount, 0)
 
   const deadlines = calculateDeadlines(estateInfo)
-  const deadlineEntries = Object.entries(deadlines)
-    .filter(([, date]) => date)
-    .map(([key, date]) => ({
-      key,
-      date: date as string,
-      label: deadlineLabels[key as keyof typeof deadlineLabels]
-    }))
+  const deadlineEntries = (Object.entries(deadlines) as Array<[
+    AutoScheduleKey,
+    string | undefined
+  ]>).flatMap(([key, date]) => {
+    if (!date) {
+      return []
+    }
+    return [
+      {
+        key,
+        date,
+        label: deadlineLabels[key]
+      }
+    ]
+  })
 
   const upcomingEvents = [...deadlineEntries, ...manualEvents.map((event) => ({ key: event.id, date: event.date, label: event.title }))]
     .filter((entry) => dayjs(entry.date).isAfter(dayjs().subtract(1, 'day')))
@@ -155,7 +164,7 @@ export const DashboardPage = () => {
   )
 }
 
-const deadlineLabels: Record<string, string> = {
+const deadlineLabels: Record<AutoScheduleKey, string> = {
   heirNotice: 'Rule 10.5 heir notices due',
   inventoryDue: 'Inventory filing deadline',
   inheritanceTax: 'Inheritance tax return due',
