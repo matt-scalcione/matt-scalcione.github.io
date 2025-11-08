@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { liveQuery, type Subscription } from 'dexie'
+import { liveQuery } from 'dexie'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker?worker&url'
@@ -242,9 +242,8 @@ const Documents = () => {
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    subscription = liveQuery(() =>
+    const subscription = liveQuery(() =>
       db.documents
         .where('estateId')
         .equals(activeEstateId)
@@ -266,15 +265,14 @@ const Documents = () => {
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    subscription = liveQuery(() =>
+    const subscription = liveQuery(() =>
       db.tasks
         .where('estateId')
         .equals(activeEstateId)
@@ -294,7 +292,7 @@ const Documents = () => {
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
