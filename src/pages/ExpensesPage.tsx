@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { FaDownload, FaPlus } from 'react-icons/fa'
-import { useDataContext } from '../contexts/DataContext'
+import { useDataContext } from '../contexts/useDataContext'
 import { exportExpensesToCsv } from '../utils/exporters'
 import { ExpenseRecord } from '../types'
 import { formatDate } from '../utils/dates'

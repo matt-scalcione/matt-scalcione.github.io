@@ -2,8 +2,9 @@ import { FormEvent, useMemo, useState } from 'react'
 import Calendar from 'react-calendar'
 import dayjs from 'dayjs'
 import { FaPlus } from 'react-icons/fa'
-import { useDataContext } from '../contexts/DataContext'
+import { useDataContext } from '../contexts/useDataContext'
 import { calculateDeadlines, formatDate } from '../utils/dates'
+import { AutoScheduleKey } from '../types'
 
 interface CalendarEvent {
   id: string
@@ -35,23 +36,29 @@ export const CalendarPage = () => {
     tasks
       .filter((task) => task.dueDate)
       .forEach((task) => {
+        if (!task.dueDate) {
+          return
+        }
         items.push({
           id: task.id,
           title: task.title,
-          date: task.dueDate!,
+          date: task.dueDate,
           description: task.description,
           source: 'task',
           link: '/tasks'
         })
       })
 
-    Object.entries(deadlines)
+    ;(Object.entries(deadlines) as Array<[AutoScheduleKey, string | undefined]>)
       .filter(([, date]) => date)
       .forEach(([key, date]) => {
+        if (!date) {
+          return
+        }
         items.push({
           id: `deadline-${key}`,
-          title: deadlineLabels[key as keyof typeof deadlineLabels],
-          date: date as string,
+          title: deadlineLabels[key],
+          date,
           source: 'deadline'
         })
       })
@@ -94,8 +101,8 @@ export const CalendarPage = () => {
         </div>
         <div className="calendar-grid">
           <Calendar
-            value={selectedDate as Value}
-            onChange={(value) => {
+            value={selectedDate}
+            onChange={(value: Value) => {
               const dateValue = Array.isArray(value) ? value[0] : value
               setSelectedDate(dateValue ?? null)
             }}
@@ -193,7 +200,7 @@ export const CalendarPage = () => {
   )
 }
 
-const deadlineLabels: Record<string, string> = {
+const deadlineLabels: Record<AutoScheduleKey, string> = {
   heirNotice: 'Rule 10.5 heir notices due',
   inventoryDue: 'Inventory filing deadline',
   inheritanceTax: 'Inheritance tax return due',

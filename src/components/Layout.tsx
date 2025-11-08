@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaBars, FaTimes } from 'react-icons/fa'
-import { useDataContext } from '../contexts/DataContext'
+import { useDataContext } from '../contexts/useDataContext'
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
