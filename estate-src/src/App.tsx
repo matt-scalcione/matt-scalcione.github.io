@@ -1,4 +1,4 @@
-import { Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom'
+import { Navigate, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Profile from './pages/Profile'
 import Tasks from './pages/Tasks'
+import { useAuth } from './context/AuthContext'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -18,6 +19,14 @@ const navItems = [
 ]
 
 const Layout = () => {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -40,6 +49,13 @@ const Layout = () => {
                 {item.label}
               </NavLink>
             ))}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-sm font-medium text-slate-600 transition hover:text-primary-600"
+            >
+              Logout
+            </button>
           </nav>
         </div>
       </header>
@@ -64,26 +80,47 @@ const Layout = () => {
               {item.label}
             </NavLink>
           ))}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex flex-col items-center gap-1 text-slate-500 transition hover:text-primary-600"
+          >
+            <span className="text-base">⎋</span>
+            Logout
+          </button>
         </div>
       </nav>
     </div>
   )
 }
 
+const RequireAuth = () => {
+  const { isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <Outlet />
+}
+
 const App = () => {
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/documents" element={<Documents />} />
-        <Route path="/calendar" element={<Calendar />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="*" element={<NotFound />} />
+      <Route path="/login" element={<Login />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<Layout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/documents" element={<Documents />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
       </Route>
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }
