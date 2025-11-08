@@ -12,8 +12,8 @@ const DATA_DIR = path.join(__dirname, 'data')
 const DATA_FILE = path.join(DATA_DIR, 'app-data.json')
 const USERS_FILE = path.join(DATA_DIR, 'users.json')
 
-const DEFAULT_ACCOUNT_USERNAME = process.env.DEFAULT_ACCOUNT_USERNAME ?? 'executor'
-const DEFAULT_ACCOUNT_PASSWORD = process.env.DEFAULT_ACCOUNT_PASSWORD ?? 'estate-admin'
+const DEFAULT_ACCOUNT_USERNAME = process.env.DEFAULT_ACCOUNT_USERNAME ?? 'matt'
+const DEFAULT_ACCOUNT_PASSWORD = process.env.DEFAULT_ACCOUNT_PASSWORD ?? 'hippos1'
 
 const parsedSessionTtl = Number(process.env.SESSION_TTL_MS)
 const SESSION_TTL_MS = Number.isFinite(parsedSessionTtl) && parsedSessionTtl > 0 ? parsedSessionTtl : 1000 * 60 * 60 * 12
@@ -81,21 +81,41 @@ const createUserRecord = (username, password) => {
 
 const ensureUsersFile = async () => {
   await ensureDataDir()
+  let users = []
+  let shouldPersist = false
+
   try {
-    const users = await readJsonFile(USERS_FILE)
-    if (Array.isArray(users) && users.length > 0) {
-      return users
+    const stored = await readJsonFile(USERS_FILE)
+    if (Array.isArray(stored)) {
+      users = stored
+    } else {
+      shouldPersist = true
     }
   } catch (error) {
     if (!error || error.code !== 'ENOENT') {
       throw error
     }
+    shouldPersist = true
   }
 
-  const defaultUser = createUserRecord(DEFAULT_ACCOUNT_USERNAME, DEFAULT_ACCOUNT_PASSWORD)
-  await writeJsonFile(USERS_FILE, [defaultUser])
-  console.info(`Created default administrator account for username "${DEFAULT_ACCOUNT_USERNAME}"`)
-  return [defaultUser]
+  const hasDefaultUser = users.some(
+    (user) =>
+      typeof user?.username === 'string' &&
+      user.username.trim().toLowerCase() === DEFAULT_ACCOUNT_USERNAME.trim().toLowerCase()
+  )
+
+  if (!hasDefaultUser) {
+    const defaultUser = createUserRecord(DEFAULT_ACCOUNT_USERNAME, DEFAULT_ACCOUNT_PASSWORD)
+    users = [...users, defaultUser]
+    shouldPersist = true
+    console.info(`Created default administrator account for username "${DEFAULT_ACCOUNT_USERNAME}"`)
+  }
+
+  if (shouldPersist) {
+    await writeJsonFile(USERS_FILE, users)
+  }
+
+  return users
 }
 
 const loadUsers = async () => {
