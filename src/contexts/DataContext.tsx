@@ -59,10 +59,43 @@ type DataContextValue = {
 
 const DataContext = createContext<DataContextValue | undefined>(undefined)
 
+type RuntimeConfig = {
+  apiBaseUrl?: string
+}
+
+const resolveRuntimeConfig = (): RuntimeConfig => {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  const config = (window as typeof window & { __APP_CONFIG__?: RuntimeConfig }).__APP_CONFIG__
+  if (config && typeof config === 'object') {
+    return config
+  }
+
+  return {}
+}
+
 const resolveApiBaseUrl = () => {
   const env = (import.meta as unknown as { env?: Record<string, unknown> }).env
   const value = env?.VITE_API_BASE_URL
-  return typeof value === 'string' ? value : ''
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim()
+  }
+
+  const runtime = resolveRuntimeConfig()
+  if (runtime.apiBaseUrl && runtime.apiBaseUrl.trim().length > 0) {
+    return runtime.apiBaseUrl.trim()
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001'
+    }
+  }
+
+  return ''
 }
 
 const API_BASE_URL = resolveApiBaseUrl()
