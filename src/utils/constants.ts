@@ -2,9 +2,7 @@ import dayjs from 'dayjs'
 import { AutoScheduleKey, Task } from '../types'
 import { generateId } from './id'
 
-export const SESSION_KEY = 'estate-executor-dashboard-session'
-
-export const PASSWORD_HASH = 'd00b620f93cb1618e31a7bc681d476b2aba6c2f6589e382584d34893f4a14b9b'
+export const SESSION_STORAGE_KEY = 'estate-executor-dashboard-session'
 
 interface TemplateTask extends Omit<Task, 'id' | 'createdAt' | 'updatedAt'> {
   autoSchedule?: AutoScheduleKey
