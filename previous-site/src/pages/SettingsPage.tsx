@@ -1,156 +1,298 @@
 import { ChangeEvent, FormEvent, useState } from 'react'
-import { FaDownload, FaFileImport, FaListAlt } from 'react-icons/fa'
-import { useDataContext } from '../contexts/useDataContext'
-import { defaultTasks } from '../utils/constants'
-import { downloadFile } from '../utils/exporters'
-import { calculateDeadlines, formatDate } from '../utils/dates'
-import { AppData } from '../types'
+import dayjs from 'dayjs'
+import { useDataContext } from '../context/DataContext'
+import { useAuth } from '../context/AuthContext'
+import { EstateProfile } from '../types'
+import { formatDateInput } from '../utils/date'
+import { downloadFile } from '../utils/export'
 
-const estateFields = [
-  { key: 'estateName', label: 'Estate name / caption', placeholder: 'Estate of Jane Doe' },
-  { key: 'decedentName', label: 'Decedent name', placeholder: 'Jane Doe' },
-  { key: 'docketNumber', label: 'Docket number', placeholder: '150-23-1234' },
-  { key: 'county', label: 'County', placeholder: 'Chester County, PA' },
-  { key: 'attorneyName', label: 'Attorney', placeholder: 'Counsel name (optional)' }
-] as const
+interface ProfileFormState {
+  decedentFullName: string
+  dateOfDeath: string
+  county: string
+  state: string
+  fileNumber: string
+  lettersGrantedDate: string
+  firstAdvertisementDate: string
+  contactName: string
+  contactEmail: string
+  contactPhone: string
+  contactAddress: string
+}
+
+const toFormState = (profile: EstateProfile | null): ProfileFormState => ({
+  decedentFullName: profile?.decedentFullName ?? '',
+  dateOfDeath: formatDateInput(profile?.dateOfDeath) ?? '',
+  county: profile?.county ?? 'Chester',
+  state: profile?.state ?? 'PA',
+  fileNumber: profile?.fileNumber ?? '',
+  lettersGrantedDate: formatDateInput(profile?.lettersGrantedDate) ?? '',
+  firstAdvertisementDate: formatDateInput(profile?.firstAdvertisementDate) ?? '',
+  contactName: profile?.contactName ?? '',
+  contactEmail: profile?.contactEmail ?? '',
+  contactPhone: profile?.contactPhone ?? '',
+  contactAddress: profile?.contactAddress ?? ''
+})
 
 export const SettingsPage = () => {
-  const { data, updateEstateInfo, replaceTasks, restoreData, markChecklistSeeded } = useDataContext()
+  const { profile, saveProfile, settings, updateSettings, exportBackup, importBackup, clearAll } = useDataContext()
+  const { rememberDevice, setRememberDevice } = useAuth()
+  const [form, setForm] = useState<ProfileFormState>(() => toFormState(profile))
+  const [importError, setImportError] = useState('')
+  const [clearing, setClearing] = useState(false)
 
-  const [notes, setNotes] = useState(data.estateInfo.notes ?? '')
-
-  const deadlines = calculateDeadlines(data.estateInfo)
-
-  const handleFieldChange = (key: typeof estateFields[number]['key'], value: string) => {
-    updateEstateInfo({ [key]: value })
+  const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = event.target
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleDateChange = (key: 'dateOfDeath' | 'lettersGrantedDate' | 'firstAdvertisementDate', value: string) => {
-    updateEstateInfo({ [key]: value || undefined })
-  }
-
-  const handleNotesSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    updateEstateInfo({ notes: notes || undefined })
-  }
-
-  const handleLoadChecklist = () => {
-    const tasks = defaultTasks()
-    replaceTasks(tasks)
-    markChecklistSeeded()
-  }
-
-  const handleExportBackup = () => {
-    const payload: AppData = {
-      ...data,
-      estateInfo: { ...data.estateInfo, notes }
+    const payload: EstateProfile = {
+      decedentFullName: form.decedentFullName.trim(),
+      dateOfDeath: form.dateOfDeath ? dayjs(form.dateOfDeath).toISOString() : '',
+      county: form.county.trim(),
+      state: form.state.trim(),
+      fileNumber: form.fileNumber.trim() || undefined,
+      lettersGrantedDate: form.lettersGrantedDate ? dayjs(form.lettersGrantedDate).toISOString() : '',
+      firstAdvertisementDate: form.firstAdvertisementDate ? dayjs(form.firstAdvertisementDate).toISOString() : undefined,
+      contactName: form.contactName.trim() || undefined,
+      contactEmail: form.contactEmail.trim() || undefined,
+      contactPhone: form.contactPhone.trim() || undefined,
+      contactAddress: form.contactAddress.trim() || undefined
     }
-    downloadFile(JSON.stringify(payload, null, 2), 'estate-dashboard-backup.json', 'application/json')
+    await saveProfile(payload)
   }
 
-  const handleImportBackup = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleThemeChange = async (theme: 'light' | 'dark' | 'system') => {
+    await updateSettings({ theme })
+  }
+
+  const handleRememberChange = async (enabled: boolean) => {
+    await setRememberDevice(enabled)
+    await updateSettings({ rememberDevice: enabled })
+  }
+
+  const handleExport = async () => {
+    const blob = await exportBackup()
+    downloadFile(blob, 'estate-dashboard-backup.zip')
+  }
+
+  const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const text = await file.text()
+    setImportError('')
     try {
-      const parsed = JSON.parse(text) as AppData
-      restoreData(parsed)
-      setNotes(parsed.estateInfo?.notes ?? '')
+      await importBackup(file)
     } catch (error) {
-      alert('Unable to import backup. Please ensure the file is a valid export.')
+      console.error('Failed to import backup', error)
+      setImportError('Unable to import backup. Please ensure you selected a valid archive generated by this app.')
+    } finally {
+      event.target.value = ''
     }
+  }
+
+  const handleClear = async () => {
+    setClearing(true)
+    await clearAll()
+    setForm(toFormState(null))
+    setClearing(false)
   }
 
   return (
-    <div className="page settings">
+    <div className="space-y-6">
       <section className="card">
-        <div className="section-header">
-          <h2>Estate Profile</h2>
+        <div className="card-header">
+          <div>
+            <h2 className="text-lg font-semibold">Estate profile</h2>
+            <p className="text-sm text-slate-500">These dates drive statutory deadlines and task seeding.</p>
+          </div>
         </div>
-        <form className="form grid" onSubmit={handleNotesSubmit}>
-          {estateFields.map((field) => (
-            <label key={field.key}>
-              <span>{field.label}</span>
-              <input
-                value={(data.estateInfo as Record<string, string | undefined>)[field.key] ?? ''}
-                onChange={(event) => handleFieldChange(field.key, event.target.value)}
-                placeholder={field.placeholder}
-              />
+        <form className="card-body grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <div>
+            <label className="label" htmlFor="decedentFullName">
+              Decedent full name
             </label>
-          ))}
-          <label>
-            <span>Date of death</span>
-            <input type="date" value={data.estateInfo.dateOfDeath ?? ''} onChange={(event) => handleDateChange('dateOfDeath', event.target.value)} />
-          </label>
-          <label>
-            <span>Letters granted</span>
-            <input type="date" value={data.estateInfo.lettersGrantedDate ?? ''} onChange={(event) => handleDateChange('lettersGrantedDate', event.target.value)} />
-          </label>
-          <label>
-            <span>First advertisement</span>
-            <input type="date" value={data.estateInfo.firstAdvertisementDate ?? ''} onChange={(event) => handleDateChange('firstAdvertisementDate', event.target.value)} />
-          </label>
-          <label className="full-width">
-            <span>Estate notes</span>
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} placeholder="Court contact information, banking details, reminders" />
-          </label>
-          <div className="form-actions">
-            <button type="submit" className="btn primary">
-              Save profile notes
+            <input
+              id="decedentFullName"
+              name="decedentFullName"
+              className="input"
+              value={form.decedentFullName}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="dateOfDeath">
+              Date of death
+            </label>
+            <input
+              id="dateOfDeath"
+              name="dateOfDeath"
+              type="date"
+              className="input"
+              value={form.dateOfDeath}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="lettersGrantedDate">
+              Letters granted date
+            </label>
+            <input
+              id="lettersGrantedDate"
+              name="lettersGrantedDate"
+              type="date"
+              className="input"
+              value={form.lettersGrantedDate}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="firstAdvertisementDate">
+              First advertisement date
+            </label>
+            <input
+              id="firstAdvertisementDate"
+              name="firstAdvertisementDate"
+              type="date"
+              className="input"
+              value={form.firstAdvertisementDate}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="county">
+              County
+            </label>
+            <input
+              id="county"
+              name="county"
+              className="input"
+              value={form.county}
+              onChange={handleChange}
+              placeholder="Chester"
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="state">
+              State
+            </label>
+            <input id="state" name="state" className="input" value={form.state} onChange={handleChange} placeholder="PA" />
+          </div>
+          <div>
+            <label className="label" htmlFor="fileNumber">
+              File number
+            </label>
+            <input id="fileNumber" name="fileNumber" className="input" value={form.fileNumber} onChange={handleChange} />
+          </div>
+          <div>
+            <label className="label" htmlFor="contactName">
+              Executor contact name
+            </label>
+            <input id="contactName" name="contactName" className="input" value={form.contactName} onChange={handleChange} />
+          </div>
+          <div>
+            <label className="label" htmlFor="contactEmail">
+              Contact email
+            </label>
+            <input id="contactEmail" name="contactEmail" type="email" className="input" value={form.contactEmail} onChange={handleChange} />
+          </div>
+          <div>
+            <label className="label" htmlFor="contactPhone">
+              Contact phone
+            </label>
+            <input id="contactPhone" name="contactPhone" className="input" value={form.contactPhone} onChange={handleChange} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="label" htmlFor="contactAddress">
+              Mailing address for notices
+            </label>
+            <textarea
+              id="contactAddress"
+              name="contactAddress"
+              className="input"
+              rows={3}
+              value={form.contactAddress}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="md:col-span-2 flex items-center gap-3">
+            <button type="submit" className="btn btn-primary">
+              Save profile
             </button>
+            <p className="text-xs text-slate-500">Task deadlines update automatically after saving.</p>
           </div>
         </form>
       </section>
 
       <section className="card">
-        <div className="section-header">
-          <h2>Pennsylvania Statutory Deadlines</h2>
+        <div className="card-header">
+          <h2 className="text-lg font-semibold">Preferences</h2>
         </div>
-        <ul className="deadline-list">
-          <li>
-            <strong>Rule 10.5 notice deadline:</strong> {deadlines.heirNotice ? formatDate(deadlines.heirNotice) : 'Enter letters granted date'}
-          </li>
-          <li>
-            <strong>Inventory filing deadline:</strong> {deadlines.inventoryDue ? formatDate(deadlines.inventoryDue) : 'Enter date of death'}
-          </li>
-          <li>
-            <strong>Inheritance tax return due:</strong> {deadlines.inheritanceTax ? formatDate(deadlines.inheritanceTax) : 'Enter date of death'}
-          </li>
-          <li>
-            <strong>5% tax discount window:</strong> {deadlines.inheritanceTaxDiscount ? formatDate(deadlines.inheritanceTaxDiscount) : 'Enter date of death'}
-          </li>
-          <li>
-            <strong>Creditor claim bar date:</strong> {deadlines.creditorBar ? formatDate(deadlines.creditorBar) : 'Enter advertisement date'}
-          </li>
-        </ul>
+        <div className="card-body space-y-4">
+          <div>
+            <p className="label mb-1">Theme</p>
+            <div className="flex flex-wrap gap-3">
+              {['light', 'dark', 'system'].map((theme) => (
+                <label key={theme} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <input
+                    type="radio"
+                    name="theme"
+                    value={theme}
+                    checked={settings.theme === theme}
+                    onChange={() => handleThemeChange(theme as 'light' | 'dark' | 'system')}
+                  />
+                  {theme === 'system' ? 'Match system' : theme.charAt(0).toUpperCase() + theme.slice(1)}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
+                checked={rememberDevice}
+                onChange={(event) => void handleRememberChange(event.target.checked)}
+              />
+              Remember this device for quicker sign-in
+            </label>
+          </div>
+        </div>
       </section>
 
       <section className="card">
-        <div className="section-header">
-          <h2>Data Management</h2>
+        <div className="card-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Backup & restore</h2>
+            <p className="text-sm text-slate-500">Data stays on this device. Export backups regularly.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" className="btn btn-secondary" onClick={handleExport}>
+              Export backup
+            </button>
+            <label className="btn btn-secondary cursor-pointer">
+              Import backup
+              <input type="file" accept="application/zip" className="hidden" onChange={handleImport} />
+            </label>
+          </div>
         </div>
-        <div className="button-row">
-          <button type="button" className="btn" onClick={handleLoadChecklist}>
-            <FaListAlt /> Load Pennsylvania checklist
-          </button>
-          <button type="button" className="btn" onClick={handleExportBackup}>
-            <FaDownload /> Export backup
-          </button>
-          <label className="btn">
-            <FaFileImport /> Import backup
-            <input
-              type="file"
-              accept="application/json"
-              onChange={(event) => {
-                void handleImportBackup(event)
-              }}
-              hidden
-            />
-          </label>
+        {importError && <p className="px-6 pb-4 text-sm text-rose-500">{importError}</p>}
+      </section>
+
+      <section className="card border border-rose-200 dark:border-rose-500/40">
+        <div className="card-header">
+          <h2 className="text-lg font-semibold text-rose-600 dark:text-rose-300">Danger zone</h2>
         </div>
-        <p className="help-text">
-          Use the backup feature to save a JSON copy of your tasks, documents (metadata), assets, expenses, beneficiaries, and reminders. Your information is saved on the estate dashboard server, but exporting ensures you keep a personal copy before making major changes.
-        </p>
+        <div className="card-body space-y-3">
+          <p className="text-sm text-slate-500">Clearing the workspace removes all local data, including documents. This cannot be undone.</p>
+          <button type="button" className="btn btn-secondary text-rose-600" onClick={() => void handleClear()} disabled={clearing}>
+            {clearing ? 'Clearing…' : 'Clear all data'}
+          </button>
+        </div>
       </section>
     </div>
   )
