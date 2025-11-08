@@ -14,7 +14,13 @@ const navItems = [
   { to: '/settings', label: 'Settings' }
 ]
 
-export const Layout = ({ children }: { children: ReactNode }) => {
+type LayoutProps = {
+  children: ReactNode
+  onLogout: () => void
+  username?: string
+}
+
+export const Layout = ({ children, onLogout, username }: LayoutProps) => {
   const [open, setOpen] = useState(false)
   const { storageError, dismissStorageError } = useDataContext()
 
@@ -47,6 +53,12 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <FaBars />
           </button>
           <h1 className="app-title">Estate Executor Dashboard</h1>
+          <div className="topbar-actions">
+            {username && <span className="topbar-username">Signed in as {username}</span>}
+            <button type="button" className="btn" onClick={onLogout}>
+              Sign out
+            </button>
+          </div>
         </header>
         {storageError && (
           <div className="storage-error-banner" role="alert">
