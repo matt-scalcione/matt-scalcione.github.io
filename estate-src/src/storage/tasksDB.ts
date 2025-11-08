@@ -67,7 +67,6 @@ class EstateWorkspaceDB extends Dexie {
       .upgrade(async (transaction) => {
         await transaction.table('tasks').toCollection().modify((task: TaskRecord & { estateId?: EstateId }) => {
           if (!task.estateId) {
-            // eslint-disable-next-line no-param-reassign
             task.estateId = 'mother'
           }
         })
@@ -76,7 +75,6 @@ class EstateWorkspaceDB extends Dexie {
           .toCollection()
           .modify((doc: DocumentRecord & { estateId?: EstateId }) => {
             if (!doc.estateId) {
-              // eslint-disable-next-line no-param-reassign
               doc.estateId = 'mother'
             }
           })
@@ -85,7 +83,6 @@ class EstateWorkspaceDB extends Dexie {
           .toCollection()
           .modify((entry: JournalEntryRecord & { estateId?: EstateId }) => {
             if (!entry.estateId) {
-              // eslint-disable-next-line no-param-reassign
               entry.estateId = 'mother'
             }
           })

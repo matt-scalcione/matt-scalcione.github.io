@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { liveQuery, type Subscription } from 'dexie'
+import { liveQuery } from 'dexie'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -52,9 +52,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    subscription = liveQuery(() =>
+    const subscription = liveQuery(() =>
       db.tasks
         .where('estateId')
         .equals(activeEstateId)
@@ -74,15 +73,14 @@ const Dashboard = () => {
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    subscription = liveQuery(() =>
+    const subscription = liveQuery(() =>
       db.documents
         .where('estateId')
         .equals(activeEstateId)
@@ -102,15 +100,14 @@ const Dashboard = () => {
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    subscription = liveQuery(() =>
+    const subscription = liveQuery(() =>
       db.journalEntries
         .where('estateId')
         .equals(activeEstateId)
@@ -127,7 +124,7 @@ const Dashboard = () => {
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 

@@ -11,7 +11,7 @@ export interface EstateProfile {
   notes?: string
 }
 
-export type SeedLinkTargetType = 'doc' | 'url' | 'task'
+export type SeedLinkTargetType = 'doc' | 'url' | 'task' | 'guide'
 
 export interface SeedLinkTarget {
   type: SeedLinkTargetType

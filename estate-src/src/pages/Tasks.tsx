@@ -1,5 +1,5 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
-import { liveQuery, type Subscription } from 'dexie'
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { liveQuery } from 'dexie'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   DocumentRecord,
@@ -15,6 +15,9 @@ import {
   db,
 } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
+import { ESTATE_PLAN_UPDATED_EVENT, loadSeedGuidance, loadSeedTasks } from '../storage/estatePlan'
+import type { SeedTask } from '../types/estate'
+import { guidanceAnchorForId, normalizeGuidanceEntries, type NormalizedGuidanceEntry } from '../utils/guidance'
 
 const priorityStyles: Record<TaskPriority, string> = {
   low: 'bg-emerald-100 text-emerald-700',
@@ -73,6 +76,13 @@ const formatBytes = (size: number) => {
   return `${formatted} ${units[exponent]}`
 }
 
+const toDateOnly = (iso?: string | null) => {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.valueOf())) return null
+  return date.toISOString().split('T')[0]
+}
+
 type TaskFormState = {
   title: string
   description: string
@@ -116,6 +126,8 @@ const Tasks = () => {
   const [docToLink, setDocToLink] = useState('')
   const [linking, setLinking] = useState(false)
   const [unlinkingDocId, setUnlinkingDocId] = useState<string | null>(null)
+  const [seedTasks, setSeedTasks] = useState<SeedTask[]>([])
+  const [guidanceEntries, setGuidanceEntries] = useState<NormalizedGuidanceEntry[]>([])
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -124,34 +136,47 @@ const Tasks = () => {
 
   const selectedTask = tasks.find((task) => task.id === taskId) || null
 
+  const refreshSeedData = useCallback(() => {
+    setSeedTasks(loadSeedTasks(activeEstateId))
+    setGuidanceEntries(normalizeGuidanceEntries(loadSeedGuidance(activeEstateId)))
+  }, [activeEstateId])
+
+  useEffect(() => {
+    refreshSeedData()
+
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key) {
+        refreshSeedData()
+        return
+      }
+      if (
+        event.key === 'seedVersion' ||
+        event.key.startsWith('tasks:') ||
+        event.key.startsWith('guidance:')
+      ) {
+        refreshSeedData()
+      }
+    }
+
+    const handlePlanUpdated = () => {
+      refreshSeedData()
+    }
+
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener(ESTATE_PLAN_UPDATED_EVENT, handlePlanUpdated)
+
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener(ESTATE_PLAN_UPDATED_EVENT, handlePlanUpdated)
+    }
+  }, [refreshSeedData])
+
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    const initialize = async () => {
+    const ensureSeedTasks = async () => {
       try {
         await seedTasksIfEmpty()
-        subscription = liveQuery(() =>
-          db.tasks
-            .where('estateId')
-            .equals(activeEstateId)
-            .toArray(),
-        ).subscribe({
-          next: (rows) => {
-            if (!isMounted) return
-            const sorted = [...rows].sort((a, b) =>
-              new Date(a.due_date).getTime() - new Date(b.due_date).getTime(),
-            )
-            setTasks(sorted)
-            setLoading(false)
-          },
-          error: (err) => {
-            console.error(err)
-            if (!isMounted) return
-            setError('Unable to load tasks')
-            setLoading(false)
-          },
-        })
       } catch (err) {
         console.error(err)
         if (!isMounted) return
@@ -160,19 +185,40 @@ const Tasks = () => {
       }
     }
 
-    initialize()
+    void ensureSeedTasks()
+
+    const subscription = liveQuery(() =>
+      db.tasks
+        .where('estateId')
+        .equals(activeEstateId)
+        .toArray(),
+    ).subscribe({
+      next: (rows) => {
+        if (!isMounted) return
+        const sorted = [...rows].sort(
+          (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime(),
+        )
+        setTasks(sorted)
+        setLoading(false)
+      },
+      error: (err) => {
+        console.error(err)
+        if (!isMounted) return
+        setError('Unable to load tasks')
+        setLoading(false)
+      },
+    })
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    subscription = liveQuery(() =>
+    const subscription = liveQuery(() =>
       db.documents
         .where('estateId')
         .equals(activeEstateId)
@@ -194,7 +240,7 @@ const Tasks = () => {
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
@@ -238,6 +284,55 @@ const Tasks = () => {
       (doc) => doc.taskId === selectedTask.id || docIdSet.has(doc.id),
     )
   }, [documents, selectedTask])
+
+  const guidanceById = useMemo(() => {
+    const map = new Map<string, NormalizedGuidanceEntry>()
+    guidanceEntries.forEach((entry) => {
+      map.set(entry.id, entry)
+    })
+    return map
+  }, [guidanceEntries])
+
+  const matchingSeedTask = useMemo(() => {
+    if (!selectedTask) return null
+    const normalizedTitle = selectedTask.title.trim().toLowerCase()
+    const candidates = seedTasks.filter((seed) => seed.title.trim().toLowerCase() === normalizedTitle)
+    if (candidates.length === 0) {
+      return null
+    }
+    const selectedDue = toDateOnly(selectedTask.due_date)
+    if (selectedDue) {
+      const dueMatch = candidates.find((seed) => toDateOnly(seed.dueISO) === selectedDue)
+      if (dueMatch) {
+        return dueMatch
+      }
+    }
+    return candidates[0]
+  }, [selectedTask, seedTasks])
+
+  const planGuidanceLinks = useMemo(() => {
+    if (!matchingSeedTask?.linkTo) return []
+
+    return matchingSeedTask.linkTo
+      .filter((target) => target.type === 'guide')
+      .map((target) => {
+        const entry = guidanceById.get(target.value)
+        if (entry) {
+          return {
+            id: target.value,
+            title: entry.title,
+            summary: entry.summary ?? entry.notes[0],
+            anchor: entry.anchor ?? guidanceAnchorForId(entry.id),
+          }
+        }
+        return {
+          id: target.value,
+          title: target.value,
+          summary: undefined,
+          anchor: guidanceAnchorForId(target.value),
+        }
+      })
+  }, [matchingSeedTask, guidanceById])
 
   const availableDocuments = useMemo(
     () => documents.filter((doc) => !doc.taskId),
@@ -588,6 +683,32 @@ const Tasks = () => {
                     ))}
                   </div>
                 )}
+
+                {planGuidanceLinks.length > 0 ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-slate-700">Guidance</h3>
+                    <ul className="space-y-2">
+                      {planGuidanceLinks.map((link) => (
+                        <li key={link.id}>
+                          <Link
+                            to={`/guidance#${link.anchor}`}
+                            className="flex items-center justify-between rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-700 transition hover:border-primary-300 hover:bg-primary-100"
+                          >
+                            <span className="flex-1 text-left">
+                              {link.title}
+                              {link.summary ? (
+                                <span className="mt-1 block text-xs font-normal text-primary-600/90">{link.summary}</span>
+                              ) : null}
+                            </span>
+                            <span aria-hidden className="ml-3 text-base">
+                              →
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
 
                 {linkedDocuments.length > 0 && (
                   <div className="space-y-2">
