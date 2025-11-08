@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react'
 import { liveQuery, type Subscription } from 'dexie'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker?worker&url'
 import {
@@ -235,6 +235,8 @@ const Documents = () => {
   const [updatingDocId, setUpdatingDocId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     let isMounted = true
@@ -290,6 +292,30 @@ const Documents = () => {
       setHighlightedId(highlight)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    const state = location.state as { startUpload?: boolean } | null
+    if (!state?.startUpload) return
+
+    setUploadError(null)
+
+    const input = fileInputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null
+    if (input) {
+      if (typeof input.showPicker === 'function') {
+        try {
+          input.showPicker()
+        } catch (err) {
+          console.error(err)
+          input.click()
+        }
+      } else {
+        input.click()
+      }
+      input.focus()
+    }
+
+    navigate(location.pathname + location.search, { replace: true })
+  }, [location, navigate])
 
   useEffect(() => {
     if (!highlightedId) return

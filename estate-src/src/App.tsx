@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
+import { liveQuery, type Subscription } from 'dexie'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
@@ -8,6 +10,7 @@ import NotFound from './pages/NotFound'
 import Profile from './pages/Profile'
 import Tasks from './pages/Tasks'
 import { useAuth } from './context/AuthContext'
+import { db } from './storage/tasksDB'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -21,6 +24,37 @@ const navItems = [
 const Layout = () => {
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const [overdueCount, setOverdueCount] = useState(0)
+
+  useEffect(() => {
+    let isMounted = true
+    let subscription: Subscription | undefined
+
+    subscription = liveQuery(() => db.tasks.toArray()).subscribe({
+      next: (rows) => {
+        if (!isMounted) return
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const count = rows.filter((task) => {
+          if (task.status === 'done') return false
+          const due = new Date(task.due_date)
+          if (Number.isNaN(due.valueOf())) return false
+          return due < today
+        }).length
+
+        setOverdueCount(count)
+      },
+      error: (err) => {
+        console.error(err)
+      },
+    })
+
+    return () => {
+      isMounted = false
+      subscription?.unsubscribe()
+    }
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -46,7 +80,14 @@ const Layout = () => {
                   }`
                 }
               >
-                {item.label}
+                <span className="flex items-center gap-2">
+                  {item.label}
+                  {item.to === '/tasks' && overdueCount > 0 ? (
+                    <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
+                      {overdueCount}
+                    </span>
+                  ) : null}
+                </span>
               </NavLink>
             ))}
             <button
@@ -77,7 +118,14 @@ const Layout = () => {
               }
             >
               <span className="text-base">•</span>
-              {item.label}
+              <span className="flex items-center gap-1">
+                {item.label}
+                {item.to === '/tasks' && overdueCount > 0 ? (
+                  <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[0.625rem] font-semibold text-white">
+                    {overdueCount}
+                  </span>
+                ) : null}
+              </span>
             </NavLink>
           ))}
           <button

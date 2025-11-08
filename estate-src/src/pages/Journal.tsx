@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import {
   createJournalEntry,
@@ -28,6 +29,9 @@ const Journal = () => {
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({})
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const bodyCharactersRemaining = useMemo(() => MAX_ENTRY_LENGTH - formBody.length, [formBody.length])
 
@@ -40,6 +44,19 @@ const Journal = () => {
   useEffect(() => {
     void loadEntries()
   }, [])
+
+  useEffect(() => {
+    const state = location.state as { focusNewEntry?: boolean } | null
+    if (!state?.focusNewEntry) return
+
+    setEditingId(null)
+    setFormTitle('')
+    setFormBody('')
+    setError(null)
+    titleInputRef.current?.focus()
+
+    navigate(location.pathname + location.search, { replace: true })
+  }, [location, navigate])
 
   const resetForm = () => {
     setFormTitle('')
@@ -138,6 +155,7 @@ const Journal = () => {
             }}
             maxLength={160}
             required
+            ref={titleInputRef}
           />
         </div>
 
