@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { liveQuery, type Subscription } from 'dexie'
 import { db, seedTasksIfEmpty, type TaskRecord } from '../storage/tasksDB'
+import { useEstate } from '../context/EstateContext'
 
 type CalendarDay = {
   date: Date
@@ -87,6 +88,7 @@ const Calendar = () => {
     return new Date(today.getFullYear(), today.getMonth(), 1)
   })
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
+  const { activeEstateId } = useEstate()
 
   useEffect(() => {
     let isMounted = true
@@ -95,7 +97,12 @@ const Calendar = () => {
     const initialize = async () => {
       try {
         await seedTasksIfEmpty()
-        subscription = liveQuery(() => db.tasks.toArray()).subscribe({
+        subscription = liveQuery(() =>
+          db.tasks
+            .where('estateId')
+            .equals(activeEstateId)
+            .toArray(),
+        ).subscribe({
           next: (rows) => {
             if (!isMounted) return
             const sorted = [...rows].sort(
@@ -118,7 +125,7 @@ const Calendar = () => {
       isMounted = false
       subscription?.unsubscribe()
     }
-  }, [])
+  }, [activeEstateId])
 
   const actionableTasks = useMemo(
     () => tasks.filter((task) => task.due_date && task.status !== 'done'),
