@@ -2,12 +2,15 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
 import { liveQuery, type Subscription } from 'dexie'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
+  DocumentRecord,
   TaskPriority,
   TaskRecord,
   TaskStatus,
   createTask,
   deleteTask,
+  linkDocumentToTask,
   seedTasksIfEmpty,
+  unlinkDocumentFromTask,
   updateTask,
   db,
 } from '../storage/tasksDB'
@@ -60,6 +63,15 @@ const formatDueDate = (iso: string) => {
   })
 }
 
+const formatBytes = (size: number) => {
+  if (!size) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  const exponent = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1)
+  const value = size / 1024 ** exponent
+  const formatted = exponent === 0 ? value.toFixed(0) : value.toFixed(1)
+  return `${formatted} ${units[exponent]}`
+}
+
 type TaskFormState = {
   title: string
   description: string
@@ -67,7 +79,6 @@ type TaskFormState = {
   status: TaskStatus
   priority: TaskPriority
   tags: string
-  docIds: string
 }
 
 const emptyFormState: TaskFormState = {
@@ -77,7 +88,6 @@ const emptyFormState: TaskFormState = {
   status: 'not-started',
   priority: 'med',
   tags: '',
-  docIds: '',
 }
 
 const createFormState = (task?: TaskRecord): TaskFormState =>
@@ -89,7 +99,6 @@ const createFormState = (task?: TaskRecord): TaskFormState =>
         status: task.status,
         priority: task.priority,
         tags: task.tags.join(', '),
-        docIds: task.docIds.join(', '),
       }
     : { ...emptyFormState }
 
@@ -102,6 +111,10 @@ const Tasks = () => {
   const [isCreating, setIsCreating] = useState(false)
   const [formState, setFormState] = useState<TaskFormState>({ ...emptyFormState })
   const [formSubmitting, setFormSubmitting] = useState(false)
+  const [documents, setDocuments] = useState<DocumentRecord[]>([])
+  const [docToLink, setDocToLink] = useState('')
+  const [linking, setLinking] = useState(false)
+  const [unlinkingDocId, setUnlinkingDocId] = useState<string | null>(null)
 
   const navigate = useNavigate()
   const { taskId } = useParams<{ taskId?: string }>()
@@ -148,6 +161,31 @@ const Tasks = () => {
   }, [])
 
   useEffect(() => {
+    let isMounted = true
+    let subscription: Subscription | undefined
+
+    subscription = liveQuery(() => db.documents.toArray()).subscribe({
+      next: (rows) => {
+        if (!isMounted) return
+        const sorted = [...rows].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        setDocuments(sorted)
+      },
+      error: (err) => {
+        console.error(err)
+        if (!isMounted) return
+        setError('Unable to load documents')
+      },
+    })
+
+    return () => {
+      isMounted = false
+      subscription?.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
     if (!taskId || tasks.some((task) => task.id === taskId)) return
     navigate('/tasks', { replace: true })
   }, [taskId, tasks, navigate])
@@ -169,6 +207,19 @@ const Tasks = () => {
       return true
     })
   }, [tasks, showCompleted, tagFilter])
+
+  const linkedDocuments = useMemo(() => {
+    if (!selectedTask) return []
+    const docIdSet = new Set(selectedTask.docIds)
+    return documents.filter(
+      (doc) => doc.taskId === selectedTask.id || docIdSet.has(doc.id),
+    )
+  }, [documents, selectedTask])
+
+  const availableDocuments = useMemo(
+    () => documents.filter((doc) => !doc.taskId),
+    [documents],
+  )
 
   const handleSelectTask = (id: string) => {
     navigate(`/tasks/${id}`)
@@ -202,7 +253,6 @@ const Tasks = () => {
         status: formState.status,
         priority: formState.priority,
         tags: parseList(formState.tags),
-        docIds: parseList(formState.docIds),
       })
       resetForm()
       setIsCreating(false)
@@ -231,7 +281,6 @@ const Tasks = () => {
         status: formState.status,
         priority: formState.priority,
         tags: parseList(formState.tags),
-        docIds: parseList(formState.docIds),
       })
       setFormSubmitting(false)
     } catch (err) {
@@ -264,6 +313,35 @@ const Tasks = () => {
     }
   }
 
+  const handleLinkDocument = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedTask || !docToLink) return
+    setError(null)
+    setLinking(true)
+    try {
+      await linkDocumentToTask(docToLink, selectedTask.id)
+      setDocToLink('')
+    } catch (err) {
+      console.error(err)
+      setError('Unable to link document')
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  const handleUnlinkDocument = async (docId: string) => {
+    setError(null)
+    setUnlinkingDocId(docId)
+    try {
+      await unlinkDocumentFromTask(docId)
+    } catch (err) {
+      console.error(err)
+      setError('Unable to unlink document')
+    } finally {
+      setUnlinkingDocId(null)
+    }
+  }
+
   const handleStartCreate = () => {
     resetForm()
     setIsCreating(true)
@@ -282,6 +360,7 @@ const Tasks = () => {
     } else {
       setFormState({ ...emptyFormState })
     }
+    setDocToLink('')
   }, [selectedTask])
 
   const today = useMemo(() => startOfToday(), [])
@@ -486,20 +565,78 @@ const Tasks = () => {
                   </div>
                 )}
 
-                {selectedTask.docIds.length > 0 && (
+                {linkedDocuments.length > 0 && (
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-slate-700">Linked documents</h3>
-                    <ul className="space-y-1 text-sm text-primary-600">
-                      {selectedTask.docIds.map((docId) => (
-                        <li key={docId}>
-                          <Link to={`/documents?highlight=${encodeURIComponent(docId)}`} className="hover:underline">
-                            {docId}
-                          </Link>
+                    <ul className="space-y-2">
+                      {linkedDocuments.map((doc) => (
+                        <li
+                          key={doc.id}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <Link
+                              to={`/documents?highlight=${encodeURIComponent(doc.id)}`}
+                              className="block truncate text-sm font-medium text-primary-600 hover:underline"
+                            >
+                              {doc.title || 'Untitled document'}
+                            </Link>
+                            <p className="text-xs text-slate-500">
+                              {doc.contentType.includes('pdf')
+                                ? 'PDF'
+                                : doc.contentType.startsWith('image/')
+                                ? 'Image'
+                                : doc.contentType.includes('text')
+                                ? 'Text'
+                                : 'Document'}{' '}
+                              • {formatBytes(doc.size)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleUnlinkDocument(doc.id)}
+                            disabled={unlinkingDocId === doc.id}
+                            className="text-xs font-medium text-rose-600 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {unlinkingDocId === doc.id ? 'Unlinking…' : 'Unlink'}
+                          </button>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-700">Link a document</h3>
+                  {availableDocuments.length > 0 ? (
+                    <form className="flex flex-wrap items-center gap-2" onSubmit={handleLinkDocument}>
+                      <select
+                        value={docToLink}
+                        onChange={(event) => setDocToLink(event.target.value)}
+                        disabled={linking}
+                        className="min-w-[200px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none"
+                      >
+                        <option value="">Select document</option>
+                        {availableDocuments.map((doc) => (
+                          <option key={doc.id} value={doc.id}>
+                            {doc.title || 'Untitled document'} ({formatBytes(doc.size)})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="submit"
+                        disabled={!docToLink || linking}
+                        className="rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {linking ? 'Linking…' : 'Link'}
+                      </button>
+                    </form>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      All documents are currently linked. Manage files from the Documents page.
+                    </p>
+                  )}
+                </div>
 
                 <div className="flex flex-wrap gap-3">
                   {selectedTask.status !== 'done' && (
@@ -670,21 +807,9 @@ const TaskFormFields = ({ formState, submitting, onChange }: TaskFormFieldsProps
           />
         </div>
       </div>
-      <div className="space-y-1">
-        <label htmlFor="docIds" className="text-sm font-medium text-slate-700">
-          Linked documents (IDs, comma separated)
-        </label>
-        <input
-          id="docIds"
-          name="docIds"
-          value={formState.docIds}
-          disabled={submitting}
-          onChange={onChange}
-          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none"
-        />
-      </div>
     </>
   )
 }
+
 
 export default Tasks
