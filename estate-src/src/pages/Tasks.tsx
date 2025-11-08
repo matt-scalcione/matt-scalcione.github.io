@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
 import { liveQuery, type Subscription } from 'dexie'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   DocumentRecord,
   TaskPriority,
@@ -117,6 +117,7 @@ const Tasks = () => {
   const [unlinkingDocId, setUnlinkingDocId] = useState<string | null>(null)
 
   const navigate = useNavigate()
+  const location = useLocation()
   const { taskId } = useParams<{ taskId?: string }>()
 
   const selectedTask = tasks.find((task) => task.id === taskId) || null
@@ -189,6 +190,16 @@ const Tasks = () => {
     if (!taskId || tasks.some((task) => task.id === taskId)) return
     navigate('/tasks', { replace: true })
   }, [taskId, tasks, navigate])
+
+  useEffect(() => {
+    const state = location.state as { startCreate?: boolean } | null
+    if (!state?.startCreate) return
+
+    setError(null)
+    setFormState({ ...emptyFormState })
+    setIsCreating(true)
+    navigate(location.pathname + location.search, { replace: true })
+  }, [location, navigate])
 
   const tags = useMemo(() => {
     const unique = new Set<string>()
