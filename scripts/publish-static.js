@@ -9,6 +9,9 @@ const distIndex = resolve(distDir, 'index.html')
 const distAssets = resolve(distDir, 'assets')
 const distFavicon = resolve(distDir, 'vite.svg')
 const rootFavicon = resolve(root, 'vite.svg')
+const distAppConfig = resolve(distDir, 'app-config.js')
+const rootAppConfig = resolve(root, 'app-config.js')
+const prodAppConfig = resolve(root, 'public', 'app-config.prod.js')
 
 if (!existsSync(distIndex)) {
   console.error('dist/index.html not found. Run `npm run build` first.')
@@ -31,6 +34,14 @@ if (existsSync(distAssets)) {
 
 if (existsSync(distFavicon)) {
   copyFileSync(distFavicon, rootFavicon)
+}
+
+if (existsSync(prodAppConfig)) {
+  copyFileSync(prodAppConfig, distAppConfig)
+  copyFileSync(prodAppConfig, rootAppConfig)
+  console.log('Copied production app config to dist and root directories.')
+} else {
+  console.warn('Production app config file not found; skipped copying app-config.js.')
 }
 
 console.log('Updated root index.html from dist output.')
