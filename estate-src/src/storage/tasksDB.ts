@@ -27,9 +27,17 @@ export interface DocumentRecord {
   created_at: string
 }
 
+export interface JournalEntryRecord {
+  id: string
+  title: string
+  body: string
+  created_at: string
+}
+
 class EstateWorkspaceDB extends Dexie {
   tasks!: Table<TaskRecord, string>
   documents!: Table<DocumentRecord, string>
+  journalEntries!: Table<JournalEntryRecord, string>
 
   constructor() {
     super('estate-workspace')
@@ -39,6 +47,11 @@ class EstateWorkspaceDB extends Dexie {
     this.version(2).stores({
       tasks: 'id, due_date, status, priority, created_at, updated_at, *tags, *docIds',
       documents: 'id, title, contentType, size, created_at, taskId, *tags',
+    })
+    this.version(3).stores({
+      tasks: 'id, due_date, status, priority, created_at, updated_at, *tags, *docIds',
+      documents: 'id, title, contentType, size, created_at, taskId, *tags',
+      journalEntries: 'id, created_at, title',
     })
   }
 }
@@ -201,6 +214,35 @@ export const unlinkDocumentFromTask = async (docId: string) => {
       updated_at: nowISO(),
     })
   })
+}
+
+export type JournalEntryInput = Pick<JournalEntryRecord, 'title' | 'body'>
+
+export const getJournalEntries = async () => {
+  return db.journalEntries.orderBy('created_at').reverse().toArray()
+}
+
+export const createJournalEntry = async ({ title, body }: JournalEntryInput) => {
+  const record: JournalEntryRecord = {
+    id: generateId('journal'),
+    title,
+    body,
+    created_at: nowISO(),
+  }
+
+  await db.journalEntries.add(record)
+  return record.id
+}
+
+export const updateJournalEntry = async (
+  id: string,
+  updates: Partial<Pick<JournalEntryRecord, 'title' | 'body'>>,
+) => {
+  await db.journalEntries.update(id, updates)
+}
+
+export const deleteJournalEntry = async (id: string) => {
+  await db.journalEntries.delete(id)
 }
 
 const generateId = (prefix: string) => {
