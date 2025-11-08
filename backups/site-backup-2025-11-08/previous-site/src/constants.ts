@@ -1,6 +1,0 @@
-export const SESSION_STORAGE_KEY = 'estate_auth'
-export const REMEMBER_STORAGE_KEY = 'estate_remember_token'
-export const THEME_STORAGE_KEY = 'estate_theme_preference'
-export const DEFAULT_COUNTY = 'Chester'
-export const DEFAULT_STATE = 'PA'
-export const BACKUP_FILENAME = 'estate-dashboard-backup.zip'

@@ -1,18 +1,17 @@
 # matt-scalcione.github.io
 
-This repository has been reset to provide a clean foundation for the next version of the site.
+The main branch has been cleared so a brand-new GitHub Pages experience can be built from scratch.
 
-## Current site
+## Current site status
 
-The live content is a simple holding page stored at [`index.html`](index.html). Update or replace this file (and add any supporting assets) as you build the new experience.
+A lightweight holding page lives at [`index.html`](index.html). Replace or expand on this file as you develop the refreshed website.
 
-## Backup of the previous site
+## Previous site backup
 
-A full snapshot of the earlier GitHub Pages site is preserved under [`backups/site-backup-2025-11-08`](backups/site-backup-2025-11-08/). That archive includes the entire project structure, assets, and configuration that existed before this reset.
+The entire legacy site is preserved on the `backup-old-site` branch. Check out that branch locally if you need to reference or restore the prior implementation:
 
-To restore any part of the old site:
+```bash
+git checkout backup-old-site
+```
 
-1. Copy the desired files from the backup directory back into the repository root (or another working location).
-2. Commit the restored files, or use them as reference material for the new build.
-
-> **Note:** Ignored directories such as `node_modules/` are not included in the snapshot. Install dependencies with your package manager of choice if you recreate the previous build.
+From there you can inspect the archived project files or cherry-pick portions into the new build as needed.
