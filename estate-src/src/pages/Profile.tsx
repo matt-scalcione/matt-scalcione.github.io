@@ -1,47 +1,304 @@
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
+import { createTask, db } from '../storage/tasksDB'
+import { EstateSetup, loadEstateSetup, saveEstateSetup } from '../storage/setup'
+import { computeDeadlines, formatDeadlineDate, isSetupComplete } from '../utils/deadlines'
+
+interface SetupFormState {
+  dateOfDeath: string
+  lettersGranted: string
+  firstPublication: string
+  estate1041Required: boolean
+}
+
+const toEstateSetup = (state: SetupFormState): EstateSetup => ({
+  dateOfDeath: state.dateOfDeath,
+  lettersGranted: state.lettersGranted,
+  firstPublication: state.firstPublication ? state.firstPublication : null,
+  estate1041Required: state.estate1041Required,
+})
+
+const defaultFormState: SetupFormState = {
+  dateOfDeath: '',
+  lettersGranted: '',
+  firstPublication: '',
+  estate1041Required: true,
+}
+
 const Profile = () => {
-  const info = {
-    name: 'Alex Morgan',
-    role: 'Family Steward',
-    email: 'alex.morgan@example.com',
-    phone: '(555) 123-4567',
-    advisor: 'Jordan Blake',
+  const [formState, setFormState] = useState<SetupFormState>(defaultFormState)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateMessage, setGenerateMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const stored = loadEstateSetup()
+    if (stored) {
+      setFormState({
+        dateOfDeath: stored.dateOfDeath,
+        lettersGranted: stored.lettersGranted,
+        firstPublication: stored.firstPublication || '',
+        estate1041Required: stored.estate1041Required,
+      })
+    }
+  }, [])
+
+  const setup = useMemo(() => {
+    const candidate = toEstateSetup(formState)
+    return isSetupComplete(candidate) ? candidate : null
+  }, [formState])
+
+  const deadlines = useMemo(() => {
+    if (!setup) return []
+    return computeDeadlines(setup)
+  }, [setup])
+
+  const handleFormChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, type } = event.target
+    const value = type === 'checkbox' ? event.target.checked : event.target.value
+    setFormState((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    setStatusMessage(null)
+    setErrorMessage(null)
+    setGenerateMessage(null)
+  }
+
+  const persistSetup = (payload: EstateSetup) => {
+    saveEstateSetup(payload)
+    setStatusMessage('Saved estate profile settings.')
+    setErrorMessage(null)
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!formState.dateOfDeath || !formState.lettersGranted) {
+      setErrorMessage('Date of death and letters granted date are required.')
+      return
+    }
+    setIsSaving(true)
+    try {
+      persistSetup(toEstateSetup(formState))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleGenerateChecklist = async () => {
+    setGenerateMessage(null)
+    if (!formState.dateOfDeath || !formState.lettersGranted) {
+      setErrorMessage('Provide required dates before generating the checklist.')
+      return
+    }
+
+    const payload = toEstateSetup(formState)
+    persistSetup(payload)
+
+    const computed = computeDeadlines(payload).filter((deadline) => deadline.dueDate)
+
+    if (computed.length === 0) {
+      setGenerateMessage('Nothing to create yet—add more dates above.')
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const existing = await db.tasks.toArray()
+      const existingTitles = new Set(existing.map((task) => task.title.toLowerCase()))
+
+      let created = 0
+      let skipped = 0
+
+      for (const deadline of computed) {
+        if (existingTitles.has(deadline.title.toLowerCase())) {
+          skipped += 1
+          continue
+        }
+
+        if (!deadline.dueDate) {
+          skipped += 1
+          continue
+        }
+
+        await createTask({
+          title: deadline.title,
+          description: deadline.description ?? '',
+          due_date: deadline.dueDate.toISOString(),
+          status: 'not-started',
+          priority: 'med',
+          tags: [deadline.tag],
+          docIds: [],
+        })
+        created += 1
+        existingTitles.add(deadline.title.toLowerCase())
+      }
+
+      setGenerateMessage(
+        created > 0
+          ? `Generated ${created} task${created === 1 ? '' : 's'}${
+              skipped > 0 ? ` (skipped ${skipped} existing reminder${skipped === 1 ? '' : 's'})` : ''
+            }.`
+          : 'All default tasks already exist.',
+      )
+      setErrorMessage(null)
+    } catch (error) {
+      console.error(error)
+      setErrorMessage('Unable to generate checklist tasks.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   return (
     <section className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-900">Profile</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">Estate setup</h1>
         <p className="text-sm text-slate-500">
-          Update your contact details and manage access for your planning team.
+          Capture key docket dates to generate a working checklist for probate administration.
         </p>
       </header>
-      <div className="grid gap-4 md:grid-cols-2">
-        <article className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Primary contact</h2>
-            <p className="mt-2 text-xl font-semibold text-slate-900">{info.name}</p>
-            <p className="text-sm text-slate-500">{info.role}</p>
-          </div>
-          <dl className="space-y-2 text-sm text-slate-600">
-            <div className="flex justify-between gap-4">
-              <dt className="font-medium text-slate-500">Email</dt>
-              <dd>{info.email}</dd>
+
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+        <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <header>
+            <h2 className="text-xl font-semibold text-slate-900">Key dates</h2>
+            <p className="text-sm text-slate-500">
+              Enter court milestone dates. First publication is optional but unlocks the creditor claims reminder.
+            </p>
+          </header>
+
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label htmlFor="dateOfDeath" className="text-sm font-medium text-slate-700">
+                  Date of death
+                </label>
+                <input
+                  id="dateOfDeath"
+                  name="dateOfDeath"
+                  type="date"
+                  required
+                  value={formState.dateOfDeath}
+                  onChange={handleFormChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="lettersGranted" className="text-sm font-medium text-slate-700">
+                  Letters granted
+                </label>
+                <input
+                  id="lettersGranted"
+                  name="lettersGranted"
+                  type="date"
+                  required
+                  value={formState.lettersGranted}
+                  onChange={handleFormChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none"
+                />
+              </div>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="font-medium text-slate-500">Phone</dt>
-              <dd>{info.phone}</dd>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label htmlFor="firstPublication" className="text-sm font-medium text-slate-700">
+                  First publication (optional)
+                </label>
+                <input
+                  id="firstPublication"
+                  name="firstPublication"
+                  type="date"
+                  value={formState.firstPublication}
+                  onChange={handleFormChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-2 rounded-xl border border-slate-200 p-4">
+                <label htmlFor="estate1041Required" className="flex items-start gap-3 text-sm text-slate-700">
+                  <input
+                    id="estate1041Required"
+                    name="estate1041Required"
+                    type="checkbox"
+                    checked={formState.estate1041Required}
+                    onChange={handleFormChange}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span>
+                    Estate expects to file Form 1041
+                    <span className="block text-xs text-slate-500">
+                      Uncheck if the estate has no income tax filing obligation.
+                    </span>
+                  </span>
+                </label>
+              </div>
             </div>
-          </dl>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSaving ? 'Saving…' : 'Save setup'}
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateChecklist}
+                disabled={isGenerating}
+                className="rounded-full border border-primary-200 bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 transition hover:border-primary-300 hover:text-primary-800 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isGenerating ? 'Creating…' : 'Generate default checklist'}
+              </button>
+            </div>
+
+            {statusMessage && <p className="text-sm text-emerald-600">{statusMessage}</p>}
+            {generateMessage && <p className="text-sm text-primary-700">{generateMessage}</p>}
+            {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
+          </form>
         </article>
-        <article className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Lead advisor</h2>
-          <p className="text-lg font-semibold text-slate-900">{info.advisor}</p>
-          <p className="text-sm text-slate-600">
-            Reach out to your advisor to coordinate document updates or schedule a planning session.
-          </p>
-          <button className="w-full rounded-lg border border-primary-200 px-4 py-2 text-sm font-semibold text-primary-600 transition hover:border-primary-300 hover:text-primary-700">
-            Message advisor
-          </button>
+
+        <article className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <header>
+            <h2 className="text-xl font-semibold text-slate-900">Suggested due dates</h2>
+            <p className="text-sm text-slate-500">
+              Deadlines adjust automatically based on the dates provided. Generate the checklist to add them as tasks with
+              tags for Tax, Legal, Inventory, or Administrative workstreams.
+            </p>
+          </header>
+
+          {deadlines.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+              Add the date of death and letters granted to preview recommended deadlines.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {deadlines.map((deadline) => (
+                <li key={deadline.key} className="rounded-xl border border-slate-200 p-4 text-sm shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">{deadline.title}</p>
+                      <p className="text-xs uppercase tracking-wide text-primary-600">{deadline.tag}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        deadline.dueDate ? 'bg-primary-100 text-primary-700' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {formatDeadlineDate(deadline.dueDate)}
+                    </span>
+                  </div>
+                  {deadline.description && (
+                    <p className="mt-2 text-xs text-slate-500">{deadline.description}</p>
+                  )}
+                  {deadline.optional && !deadline.dueDate && (
+                    <p className="mt-2 text-xs font-medium text-amber-600">Marked as not applicable.</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </article>
       </div>
     </section>
