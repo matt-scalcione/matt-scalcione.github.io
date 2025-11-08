@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { liveQuery, type Subscription } from 'dexie'
+import { liveQuery } from 'dexie'
 import { db, seedTasksIfEmpty, type TaskRecord } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
 
@@ -92,38 +92,32 @@ const Calendar = () => {
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
 
-    const initialize = async () => {
-      try {
-        await seedTasksIfEmpty()
-        subscription = liveQuery(() =>
-          db.tasks
-            .where('estateId')
-            .equals(activeEstateId)
-            .toArray(),
-        ).subscribe({
-          next: (rows) => {
-            if (!isMounted) return
-            const sorted = [...rows].sort(
-              (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime(),
-            )
-            setTasks(sorted)
-          },
-          error: (err) => {
-            console.error(err)
-          },
-        })
-      } catch (error) {
-        console.error(error)
-      }
-    }
+    void seedTasksIfEmpty().catch((error) => {
+      console.error(error)
+    })
 
-    void initialize()
+    const subscription = liveQuery(() =>
+      db.tasks
+        .where('estateId')
+        .equals(activeEstateId)
+        .toArray(),
+    ).subscribe({
+      next: (rows) => {
+        if (!isMounted) return
+        const sorted = [...rows].sort(
+          (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime(),
+        )
+        setTasks(sorted)
+      },
+      error: (err) => {
+        console.error(err)
+      },
+    })
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
