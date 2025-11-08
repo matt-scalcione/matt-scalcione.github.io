@@ -1,4 +1,5 @@
 import { type EstateSetup, saveEstateSetup } from './setup'
+import { setActiveEstateId } from './estatePlan'
 import { db, type DocumentRecord, type JournalEntryRecord, type TaskRecord } from './tasksDB'
 
 const addDays = (date: Date, days: number) => {
@@ -21,6 +22,7 @@ const createDemoDataset = () => {
   const tasks: TaskRecord[] = [
     {
       id: 'task-demo-letters',
+      estateId: 'mother',
       title: 'Share letters testamentary with advisors',
       description:
         'Send certified copies of the letters testamentary to the investment advisor and accountant so they can speak with custodians on behalf of the estate.',
@@ -34,6 +36,7 @@ const createDemoDataset = () => {
     },
     {
       id: 'task-demo-inventory',
+      estateId: 'mother',
       title: 'Compile preliminary inventory of assets',
       description:
         'Collect latest statements and valuations for cash accounts, securities, real estate, and personal property to inform the court inventory.',
@@ -47,6 +50,7 @@ const createDemoDataset = () => {
     },
     {
       id: 'task-demo-tax',
+      estateId: 'mother',
       title: 'Schedule estimated tax payments',
       description:
         'Coordinate with the accountant to project fiduciary income tax and ensure estimated payments are calendared ahead of Form 1041 deadlines.',
@@ -60,6 +64,7 @@ const createDemoDataset = () => {
     },
     {
       id: 'task-demo-distributions',
+      estateId: 'mother',
       title: 'Document interim family meeting',
       description:
         'Summarize distribution priorities, questions, and follow-ups after the latest family status meeting.',
@@ -90,6 +95,7 @@ const createDemoDataset = () => {
   const documents: DocumentRecord[] = [
     {
       id: 'doc-demo-letters',
+      estateId: 'mother',
       title: 'Letters testamentary summary',
       tags: ['Legal'],
       taskId: 'task-demo-letters',
@@ -100,6 +106,7 @@ const createDemoDataset = () => {
     },
     {
       id: 'doc-demo-inventory',
+      estateId: 'mother',
       title: 'Inventory working notes',
       tags: ['Inventory'],
       taskId: 'task-demo-inventory',
@@ -113,12 +120,14 @@ const createDemoDataset = () => {
   const journalEntries: JournalEntryRecord[] = [
     {
       id: 'journal-demo-weekly',
+      estateId: 'mother',
       title: 'Weekly status recap',
       body: 'Met with the family to review creditor notices and shared the updated cash flow summary. Need to confirm outstanding medical reimbursements and finalize inventory draft next week.',
       created_at: iso(addDays(today, -6)),
     },
     {
       id: 'journal-demo-notes',
+      estateId: 'mother',
       title: 'Questions for counsel',
       body: 'Clarify whether ancillary probate is required for the Colorado property and confirm plan for distributing specific bequests listed in the memorandum.',
       created_at: iso(addDays(today, -2)),
@@ -139,4 +148,5 @@ export const resetDemoData = async () => {
   })
 
   saveEstateSetup(estateSetup)
+  setActiveEstateId('mother')
 }
