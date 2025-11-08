@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { liveQuery, type Subscription } from 'dexie'
+import { liveQuery } from 'dexie'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
+import Guidance from './pages/Guidance'
 import Journal from './pages/Journal'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
@@ -16,6 +17,7 @@ import { useEstate } from './context/EstateContext'
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/tasks', label: 'Tasks' },
+  { to: '/guidance', label: 'Guidance' },
   { to: '/documents', label: 'Documents' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/journal', label: 'Journal' },
@@ -31,9 +33,7 @@ const Layout = () => {
 
   useEffect(() => {
     let isMounted = true
-    let subscription: Subscription | undefined
-
-    subscription = liveQuery(() => db.tasks.where('estateId').equals(activeEstateId).toArray()).subscribe({
+    const subscription = liveQuery(() => db.tasks.where('estateId').equals(activeEstateId).toArray()).subscribe({
       next: (rows) => {
         if (!isMounted) return
         const today = new Date()
@@ -55,7 +55,7 @@ const Layout = () => {
 
     return () => {
       isMounted = false
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [activeEstateId])
 
@@ -174,6 +174,7 @@ const App = () => {
             <Route index element={<Tasks />} />
             <Route path=":taskId" element={<Tasks />} />
           </Route>
+          <Route path="/guidance" element={<Guidance />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/journal" element={<Journal />} />

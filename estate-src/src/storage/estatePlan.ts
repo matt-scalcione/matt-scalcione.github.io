@@ -17,6 +17,13 @@ const GUIDANCE_KEY_PREFIX = 'guidance:'
 
 export const ESTATE_IDS: EstateId[] = ['mother', 'father']
 
+export const ESTATE_PLAN_UPDATED_EVENT = 'estate-plan-updated'
+
+const dispatchPlanUpdated = () => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(ESTATE_PLAN_UPDATED_EVENT))
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -361,6 +368,8 @@ export const persistEstatePlan = (rawPlan: unknown) => {
   if (!isEstateId(currentActive)) {
     setActiveEstateId('mother')
   }
+
+  dispatchPlanUpdated()
 
   return plan
 }

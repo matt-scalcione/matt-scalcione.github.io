@@ -44,6 +44,7 @@ export const EstateProvider = ({ children }: EstateProviderProps) => {
   return <EstateContext.Provider value={value}>{children}</EstateContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useEstate = () => {
   const context = useContext(EstateContext)
   if (!context) {
@@ -52,6 +53,7 @@ export const useEstate = () => {
   return context
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useEstateProfilesList = () => {
   const { estateProfiles } = useEstate()
   return ESTATE_IDS.map((id) => estateProfiles[id])
