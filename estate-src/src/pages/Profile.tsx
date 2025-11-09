@@ -1,11 +1,20 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createTask, db } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
-import { ESTATE_IDS, loadSeedVersion, persistEstatePlan, reseedFromPlan } from '../storage/estatePlan'
+import {
+  ESTATE_IDS,
+  loadSeedVersion,
+  notifyPlanUpdated,
+  reseedFromPlan,
+  saveEstateProfiles,
+  saveSeedVersion,
+} from '../storage/estatePlan'
 import { EstateSetup, loadEstateSetup, saveEstateSetup } from '../storage/setup'
 import { computeDeadlines, formatDeadlineDate, isSetupComplete } from '../utils/deadlines'
 import { exportWorkspaceData, importWorkspaceData, type WorkspaceExportPayload } from '../storage/dataTransfer'
 import { resetDemoData } from '../storage/demoData'
+import { coercePlan, PlanV2 } from '../features/plan/planSchema'
 
 interface SetupFormState {
   dateOfDeath: string
@@ -28,6 +37,49 @@ const defaultFormState: SetupFormState = {
   estate1041Required: true,
 }
 
+const SAMPLE_PLAN = JSON.stringify(
+  {
+    seedVersion: 'v2',
+    profiles: [
+      {
+        id: 'mother',
+        label: 'Mother Estate',
+        county: 'Wake',
+        decedentName: 'Jane Doe',
+        dodISO: '2024-01-01',
+        lettersISO: null,
+        firstPublicationISO: null,
+      },
+    ],
+    seedTasks: [
+      {
+        estateId: 'mother',
+        title: 'Notify heirs',
+        description: 'Contact heirs within 30 days.',
+        tags: ['communication'],
+        dueISO: null,
+        status: 'not-started',
+        priority: 'med',
+      },
+    ],
+    guidance: [
+      {
+        estateId: 'mother',
+        title: 'Get started',
+        body: 'Review the will and notify key contacts.',
+        links: [
+          {
+            label: 'Clerk of Court',
+            url: 'https://www.nccourts.gov/',
+          },
+        ],
+      },
+    ],
+  },
+  null,
+  2,
+)
+
 const formatPlanDate = (iso?: string) => {
   if (!iso) return 'Not set'
   const parsed = new Date(iso)
@@ -40,6 +92,7 @@ const formatPlanDate = (iso?: string) => {
 }
 
 const Profile = () => {
+  const navigate = useNavigate()
   const [formState, setFormState] = useState<SetupFormState>(defaultFormState)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -288,7 +341,7 @@ const Profile = () => {
     setPlanImportError(null)
   }
 
-  const handlePlanImport = async () => {
+  const handlePlanImport = () => {
     if (!planInput.trim()) {
       setPlanImportError('Paste the plan JSON before importing.')
       return
@@ -298,9 +351,45 @@ const Profile = () => {
     setPlanImportError(null)
 
     try {
-      const parsed = JSON.parse(planInput)
-      const plan = persistEstatePlan(parsed)
-      await reseedFromPlan(plan, { replaceExistingWithSameSeedVersion: true })
+      const coerced = coercePlan(planInput)
+      const parsed = PlanV2.safeParse(coerced)
+      if (!parsed.success) {
+        const details = parsed.error.issues
+          .slice(0, 5)
+          .map((issue) => {
+            const path = issue.path.join('.') || '(root)'
+            return `• ${path} — ${issue.message}`
+          })
+          .join('\n')
+        throw new Error(`Invalid plan JSON:\n${details}`)
+      }
+
+      const plan = parsed.data
+      const profilesRec = Object.fromEntries(plan.profiles.map((profile) => [profile.id, profile]))
+      saveEstateProfiles(profilesRec)
+      saveSeedVersion(plan.seedVersion)
+
+      if (typeof window !== 'undefined') {
+        const guidanceForEstate = (estateId: string) =>
+          plan.guidance.filter((entry) => entry.estateId === estateId)
+        for (const profile of plan.profiles) {
+          const guidanceEntries = guidanceForEstate(profile.id)
+          window.localStorage.setItem(`guidance:${profile.id}`, JSON.stringify(guidanceEntries))
+
+          const seeds = plan.seedTasks
+            .filter((task) => task.estateId === profile.id)
+            .map(({ estateId: _estateId, ...rest }) => rest)
+          window.localStorage.setItem(`seedTasks:${profile.id}`, JSON.stringify(seeds))
+        }
+
+        const currentActive = window.localStorage.getItem('estateActiveId')
+        if (!currentActive) {
+          window.localStorage.setItem('estateActiveId', plan.profiles[0].id)
+        }
+      }
+
+      reseedFromPlan(plan)
+      notifyPlanUpdated()
       refreshEstateProfiles()
       setSeedVersion(plan.seedVersion)
       setStatusMessage(null)
@@ -311,9 +400,12 @@ const Profile = () => {
       setToastMessage('Plan imported')
       setIsPlanModalOpen(false)
       setPlanInput('')
+      setPlanImportError(null)
+      navigate('/tasks')
     } catch (error) {
       console.error(error)
-      setPlanImportError('Unable to import plan. Confirm the JSON matches the expected structure.')
+      const message = error instanceof Error && error.message ? error.message : 'Unable to import plan'
+      setPlanImportError(message)
     } finally {
       setIsPlanImporting(false)
     }
@@ -605,6 +697,19 @@ const Profile = () => {
               </p>
             </header>
             <div className="space-y-4">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-primary-600 transition hover:text-primary-700"
+                  onClick={() => {
+                    setPlanInput(SAMPLE_PLAN)
+                    setPlanImportError(null)
+                  }}
+                  disabled={isPlanImporting}
+                >
+                  Show sample JSON
+                </button>
+              </div>
               <textarea
                 value={planInput}
                 onChange={(event) => {
