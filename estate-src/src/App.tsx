@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { liveQuery } from 'dexie'
+import { MoreHorizontal } from 'lucide-react'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
@@ -11,20 +12,13 @@ import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Profile from './pages/Profile'
 import Tasks from './pages/Tasks'
+import Setup from './pages/Setup'
 import { useAuth } from './context/AuthContext'
 import { db } from './storage/tasksDB'
 import { useEstate } from './context/EstateContext'
-
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/tasks', label: 'Tasks' },
-  { to: '/guidance', label: 'Guidance' },
-  { to: '/documents', label: 'Documents' },
-  { to: '/buyout', label: 'Buyout' },
-  { to: '/calendar', label: 'Calendar' },
-  { to: '/journal', label: 'Journal' },
-  { to: '/profile', label: 'Profile' },
-]
+import FlyoutMenu from './components/FlyoutMenu'
+import BottomBar from './components/BottomBar'
+import { ROUTES } from './routes'
 
 const Layout = () => {
   const navigate = useNavigate()
@@ -32,6 +26,7 @@ const Layout = () => {
   const { logout } = useAuth()
   const { activeEstateId } = useEstate()
   const [overdueCount, setOverdueCount] = useState(0)
+  const [flyoutOpen, setFlyoutOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -68,6 +63,12 @@ const Layout = () => {
 
   return (
     <>
+      <FlyoutMenu
+        open={flyoutOpen}
+        onClose={() => setFlyoutOpen(false)}
+        overdueCount={overdueCount}
+        onLogout={handleLogout}
+      />
       <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
@@ -77,37 +78,47 @@ const Layout = () => {
               <p className="text-lg font-semibold text-slate-900">Administration Workspace</p>
             </div>
           </div>
-          <nav className="hidden items-center gap-2 md:flex">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-offset-0 ${
-                    isActive
-                      ? 'bg-primary-50 text-primary-700 shadow-inner shadow-primary-200/40'
-                      : 'text-slate-600 hover:bg-primary-50/60 hover:text-primary-600'
-                  }`
-                }
+          <div className="flex items-center gap-2">
+            <nav className="hidden items-center gap-2 md:flex">
+              {ROUTES.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-offset-0 ${
+                      isActive
+                        ? 'bg-primary-50 text-primary-700 shadow-inner shadow-primary-200/40'
+                        : 'text-slate-600 hover:bg-primary-50/60 hover:text-primary-600'
+                    }`
+                  }
+                >
+                  <span className="flex items-center gap-2">
+                    {item.label}
+                    {item.path === '/tasks' && overdueCount > 0 ? (
+                      <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
+                        {overdueCount}
+                      </span>
+                    ) : null}
+                  </span>
+                </NavLink>
+              ))}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-offset-0"
               >
-                <span className="flex items-center gap-2">
-                  {item.label}
-                  {item.to === '/tasks' && overdueCount > 0 ? (
-                    <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
-                      {overdueCount}
-                    </span>
-                  ) : null}
-                </span>
-              </NavLink>
-            ))}
+                Logout
+              </button>
+            </nav>
             <button
               type="button"
-              onClick={handleLogout}
-              className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-offset-0"
+              aria-label="Menu"
+              onClick={() => setFlyoutOpen(true)}
+              className="rounded-full border border-slate-200 p-2 text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
             >
-              Logout
+              <MoreHorizontal size={22} />
             </button>
-          </nav>
+          </div>
         </div>
       </header>
       <main className="main-shell">
@@ -117,39 +128,7 @@ const Layout = () => {
           </div>
         </div>
       </main>
-      <nav className="bottom-toolbar md:hidden text-xs font-medium text-slate-500">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            aria-label={item.label}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 rounded-2xl px-3 py-2 transition-colors focus-visible:ring-offset-0 ${
-                isActive ? 'bg-primary-50 text-primary-600' : 'text-slate-500 hover:bg-primary-50/70 hover:text-primary-600'
-              }`
-            }
-          >
-            <span className="text-base">•</span>
-            <span className="flex items-center gap-1">
-              {item.label}
-              {item.to === '/tasks' && overdueCount > 0 ? (
-                <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[0.625rem] font-semibold text-white">
-                  {overdueCount}
-                </span>
-              ) : null}
-            </span>
-          </NavLink>
-        ))}
-        <button
-          type="button"
-          onClick={handleLogout}
-          aria-label="Logout"
-          className="flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-offset-0"
-        >
-          <span className="text-base">⎋</span>
-          Logout
-        </button>
-      </nav>
+      <BottomBar overdueCount={overdueCount} onOpenFlyout={() => setFlyoutOpen(true)} />
     </>
   )
 }
@@ -182,6 +161,7 @@ const App = () => {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/setup" element={<Setup />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>
