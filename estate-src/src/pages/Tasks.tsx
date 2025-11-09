@@ -151,6 +151,7 @@ const Tasks = () => {
       }
       if (
         event.key === 'seedVersion' ||
+        event.key.startsWith('seedTasks:') ||
         event.key.startsWith('tasks:') ||
         event.key.startsWith('guidance:')
       ) {
