@@ -91,10 +91,31 @@ body {
   backdrop-filter: saturate(180%) blur(8px);
   z-index: 50;
   display: grid;
-  grid-auto-flow: column;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
-  justify-content: space-around;
   gap: 8px;
+}
+
+.bottom-toolbar a,
+.bottom-toolbar button {
+  min-width: 0;
+}
+
+.flyout-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.flyout-panel {
+  position: fixed;
+  inset-block: 0;
+  right: 0;
+  width: min(20rem, 90%);
+  background: #fff;
+  padding: 16px;
+  padding-bottom: calc(16px + var(--safe-bottom));
+  overflow-y: auto;
 }
 
 img,
