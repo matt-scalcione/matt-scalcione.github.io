@@ -15,7 +15,7 @@ import Tasks from './pages/Tasks'
 import Setup from './pages/Setup'
 import { useAuth } from './context/AuthContext'
 import { db } from './storage/tasksDB'
-import { syncDocumentsFromCloud, syncTasksFromCloud } from './data/cloud'
+import { syncWorkspaceFromCloud } from './data/cloud'
 import { useEstate } from './context/EstateContext'
 import FlyoutMenu from './components/FlyoutMenu'
 import BottomBar from './components/BottomBar'
@@ -30,13 +30,42 @@ const Layout = () => {
   const [flyoutOpen, setFlyoutOpen] = useState(false)
 
   useEffect(() => {
-    if (authMode !== 'supabase' || !isAuthenticated) return
-    void Promise.all([
-      syncTasksFromCloud(activeEstateId),
-      syncDocumentsFromCloud(activeEstateId),
-    ]).catch((error) => {
-      console.error(error)
-    })
+    if (authMode !== 'supabase' || !isAuthenticated) return undefined
+    if (typeof window === 'undefined') return undefined
+
+    let isMounted = true
+
+    const runSync = async () => {
+      if (!isMounted) return
+      try {
+        await syncWorkspaceFromCloud(activeEstateId)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    void runSync()
+
+    const handleFocus = () => {
+      void runSync()
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void runSync()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibility)
+    const interval = window.setInterval(runSync, 60000)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.clearInterval(interval)
+    }
   }, [activeEstateId, authMode, isAuthenticated])
 
   useEffect(() => {

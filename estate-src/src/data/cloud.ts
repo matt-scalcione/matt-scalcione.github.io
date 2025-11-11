@@ -19,7 +19,10 @@ import {
   updateTask as updateLocalTask,
 } from '../storage/tasksDB'
 import {
+  ESTATE_IDS,
   loadEstateProfiles,
+  loadSeedGuidance,
+  loadSeedVersion,
   saveEstateProfiles,
   saveSeedGuidance,
   saveSeedTasks,
@@ -27,6 +30,7 @@ import {
 } from '../storage/estatePlan'
 import type { EstateId, EstateProfile, SeedGuidancePage, SeedTask } from '../types/estate'
 import type { PlanV2 } from '../features/plan/planSchema'
+import { getWorkspaceSyncTimestamp, setWorkspaceSyncTimestamp } from '../storage/syncState'
 
 interface SupabaseContext {
   client: SupabaseClient
@@ -130,6 +134,29 @@ const mapTaskRowToRecord = (row: SupabaseTaskRow): TaskRecord => ({
   seedVersion: row.seed_version ?? undefined,
 })
 
+const toSupabaseTaskPayload = (task: TaskRecord, userId: string) => ({
+  id: task.id,
+  user_id: userId,
+  estate_id: task.estateId,
+  title: task.title,
+  description: task.description,
+  due_date: task.due_date ? new Date(task.due_date).toISOString() : null,
+  status: task.status,
+  priority: task.priority,
+  tags: task.tags ?? [],
+  doc_ids: task.docIds ?? [],
+  created_at: task.created_at,
+  updated_at: task.updated_at,
+  seed_version: task.seedVersion ?? null,
+})
+
+const isoToMillis = (value: string | null | undefined) => {
+  if (!value) return 0
+  const date = new Date(value)
+  const time = date.getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
 const replaceEstateTasks = async (estateId: EstateId, tasks: TaskRecord[]) => {
   await db.transaction('rw', db.tasks, async () => {
     await db.tasks.where('estateId').equals(estateId).delete()
@@ -153,6 +180,16 @@ const mapJournalRowToRecord = (row: SupabaseJournalRow): JournalEntryRecord => (
   title: row.title,
   body: row.body,
   created_at: row.created_at,
+})
+
+const toSupabaseJournalPayload = (entry: JournalEntryRecord, userId: string) => ({
+  id: entry.id,
+  user_id: userId,
+  estate_id: entry.estateId,
+  title: entry.title,
+  body: entry.body,
+  created_at: entry.created_at,
+  updated_at: entry.created_at,
 })
 
 const replaceJournalEntries = async (estateId: EstateId, entries: JournalEntryRecord[]) => {
@@ -362,19 +399,79 @@ export const getDocumentBlob = async (doc: DocumentRecord): Promise<Blob> => {
   throw new Error('Document data is not available')
 }
 
-export const syncTasksFromCloud = async (estateId: EstateId) => {
+type SyncOptions = { since?: string | null }
+
+export const syncTasksFromCloud = async (estateId: EstateId, options?: SyncOptions) => {
   const context = await getSupabaseContext()
   if (!context) return false
-  const { client } = context
-  const { data, error } = await client
-    .from('tasks')
-    .select('*')
-    .eq('estate_id', estateId)
-    .order('due_date', { ascending: true })
+  const { client, userId } = context
+  const since = options?.since ?? null
+
+  let query = client.from('tasks').select('*').eq('estate_id', estateId)
+  if (since) {
+    query = query.gt('updated_at', since).order('updated_at', { ascending: true })
+  } else {
+    query = query.order('due_date', { ascending: true })
+  }
+
+  const { data, error } = await query
   if (error) throw error
   const rows = (data ?? []) as SupabaseTaskRow[]
-  const tasks = rows.map(mapTaskRowToRecord)
-  await replaceEstateTasks(estateId, tasks)
+
+  if (!since) {
+    const tasks = rows.map(mapTaskRowToRecord)
+    await replaceEstateTasks(estateId, tasks)
+    return true
+  }
+
+  const handledIds = new Set<string>()
+
+  for (const row of rows) {
+    const record = mapTaskRowToRecord(row)
+    const existing = await db.tasks.get(record.id)
+    if (existing && isoToMillis(existing.updated_at) > isoToMillis(record.updated_at)) {
+      const { data: upserted, error: upsertError } = await client
+        .from('tasks')
+        .upsert(toSupabaseTaskPayload(existing, userId), { onConflict: 'id' })
+        .select('*')
+        .single()
+
+      if (upsertError) throw upsertError
+
+      const merged = mapTaskRowToRecord(upserted as SupabaseTaskRow)
+      await db.tasks.put(merged)
+      handledIds.add(merged.id)
+      continue
+    }
+
+    await db.tasks.put(record)
+    handledIds.add(record.id)
+  }
+
+  const localUpdates = await db.tasks
+    .where('updated_at')
+    .above(since)
+    .and((task) => task.estateId === estateId)
+    .toArray()
+
+  const toSync = localUpdates.filter((task) => !handledIds.has(task.id))
+
+  if (toSync.length > 0) {
+    const payload = toSync.map((task) => toSupabaseTaskPayload(task, userId))
+    const { data: upserted, error: upsertError } = await client
+      .from('tasks')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+
+    if (upsertError) throw upsertError
+
+    const upsertedRows = (upserted ?? []) as SupabaseTaskRow[]
+    if (upsertedRows.length > 0) {
+      const mapped = upsertedRows.map(mapTaskRowToRecord)
+      await db.tasks.bulkPut(mapped)
+    }
+  }
+
   return true
 }
 
@@ -548,6 +645,122 @@ export const createDocument = async ({ file, title, tags, taskId, estateId, id, 
   return documentId
 }
 
+export const migrateLocalWorkspaceToCloud = async () => {
+  const context = await getSupabaseContext()
+  if (!context) {
+    throw new Error('Supabase session not available')
+  }
+
+  const { client, userId } = context
+  const now = nowISO()
+
+  const profiles = Object.values(loadEstateProfiles())
+  if (profiles.length > 0) {
+    const estateRows = profiles.map((profile) => ({
+      id: profile.id,
+      user_id: userId,
+      label: profile.label || null,
+      county: profile.county || null,
+      decedent_name: profile.decedentName || null,
+      dod_iso: profile.dodISO || null,
+      letters_iso: profile.lettersISO ?? null,
+      first_publication_iso: profile.firstPublicationISO ?? null,
+      notes: profile.notes ?? null,
+      updated_at: now,
+    }))
+
+    const { error: estateError } = await client.from('estates').upsert(estateRows)
+    if (estateError) throw estateError
+  }
+
+  const seedVersion = loadSeedVersion()
+  const guidanceRows: {
+    id: string
+    estate_id: EstateId
+    title: string
+    summary: string | null
+    body: string | null
+    tags: string[] | null
+    notes: string[] | null
+    steps: { title?: string; detail?: string }[] | null
+    templates: { id: string; title?: string; body?: string }[] | null
+    seed_version: string | null
+    updated_at: string
+  }[] = []
+
+  for (const estateId of ESTATE_IDS) {
+    const entries = loadSeedGuidance(estateId)
+    for (const entry of entries) {
+      const details = entry as Record<string, unknown>
+      const rawId = typeof entry.id === 'string' ? entry.id.trim() : ''
+      const entryId = rawId || `${estateId}:${entry.title}`
+      const summary = typeof details.summary === 'string' ? (details.summary as string) : null
+      const body = typeof details.body === 'string' ? (details.body as string) : null
+      const tags = Array.isArray(details.tags) ? (details.tags as string[]) : null
+      const notes = Array.isArray(details.notes) ? (details.notes as string[]) : null
+      const steps = Array.isArray(details.steps)
+        ? (details.steps as { title?: string; detail?: string }[])
+        : null
+      const templates = Array.isArray(details.templates)
+        ? (details.templates as { id: string; title?: string; body?: string }[])
+        : null
+
+      guidanceRows.push({
+        id: entryId,
+        estate_id: estateId,
+        title: entry.title,
+        summary,
+        body,
+        tags,
+        notes,
+        steps,
+        templates,
+        seed_version: seedVersion,
+        updated_at: now,
+      })
+    }
+  }
+
+  if (guidanceRows.length > 0) {
+    const { error: guidanceError } = await client.from('guidance').upsert(guidanceRows, { onConflict: 'id' })
+    if (guidanceError) throw guidanceError
+  }
+
+  const tasks = await db.tasks.toArray()
+  if (tasks.length > 0) {
+    const payload = tasks.map((task) => toSupabaseTaskPayload(task, userId))
+    const { error: taskError } = await client.from('tasks').upsert(payload, { onConflict: 'id' })
+    if (taskError) throw taskError
+  }
+
+  const journal = await db.journalEntries.toArray()
+  if (journal.length > 0) {
+    const journalPayload = journal.map((entry) => toSupabaseJournalPayload(entry, userId))
+
+    const { error: journalError } = await client.from('journal').upsert(journalPayload, { onConflict: 'id' })
+    if (journalError) throw journalError
+  }
+
+  await syncEstateProfilesFromCloud()
+
+  await Promise.all(
+    ESTATE_IDS.map((estateId) =>
+      Promise.all([
+        syncGuidanceFromCloud(estateId),
+        syncTasksFromCloud(estateId),
+        syncJournalFromCloud(estateId),
+      ]),
+    ),
+  )
+
+  const syncTimestamp = nowISO()
+  for (const estateId of ESTATE_IDS) {
+    setWorkspaceSyncTimestamp(estateId, syncTimestamp)
+  }
+
+  return true
+}
+
 export const migrateLocalDocumentsToCloud = async () => {
   const context = await getSupabaseContext()
   if (!context) {
@@ -592,19 +805,77 @@ export const migrateLocalDocumentsToCloud = async () => {
   )
 }
 
-export const syncJournalFromCloud = async (estateId: EstateId) => {
+export const syncWorkspaceFromCloud = async (estateId: EstateId) => {
   const context = await getSupabaseContext()
   if (!context) return false
-  const { client } = context
-  const { data, error } = await client
-    .from('journal')
-    .select('*')
-    .eq('estate_id', estateId)
-    .order('created_at', { ascending: false })
+
+  const since = getWorkspaceSyncTimestamp(estateId)
+
+  await syncEstateProfilesFromCloud()
+
+  await Promise.all([
+    syncGuidanceFromCloud(estateId, { since }),
+    syncSeedTasksFromCloud(estateId),
+    syncTasksFromCloud(estateId, { since }),
+    syncJournalFromCloud(estateId, { since }),
+    syncDocumentsFromCloud(estateId),
+  ])
+
+  setWorkspaceSyncTimestamp(estateId, nowISO())
+
+  return true
+}
+
+export const syncJournalFromCloud = async (estateId: EstateId, options?: SyncOptions) => {
+  const context = await getSupabaseContext()
+  if (!context) return false
+  const { client, userId } = context
+  const since = options?.since ?? null
+
+  let query = client.from('journal').select('*').eq('estate_id', estateId).order('created_at', { ascending: false })
+  if (since) {
+    query = query.gt('created_at', since)
+  }
+
+  const { data, error } = await query
   if (error) throw error
   const rows = (data ?? []) as SupabaseJournalRow[]
   const entries = rows.map(mapJournalRowToRecord)
-  await replaceJournalEntries(estateId, entries)
+
+  if (!since) {
+    await replaceJournalEntries(estateId, entries)
+    return true
+  }
+
+  if (entries.length > 0) {
+    await db.journalEntries.bulkPut(entries)
+  }
+
+  const remoteIds = new Set(entries.map((entry) => entry.id))
+  const localUpdates = await db.journalEntries
+    .where('created_at')
+    .above(since)
+    .and((entry) => entry.estateId === estateId)
+    .toArray()
+
+  const toPush = localUpdates.filter((entry) => !remoteIds.has(entry.id))
+
+  if (toPush.length > 0) {
+    const payload = toPush.map((entry) => toSupabaseJournalPayload(entry, userId))
+    const { data: upserted, error: upsertError } = await client
+      .from('journal')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+
+    if (upsertError) throw upsertError
+
+    const upsertedRows = (upserted ?? []) as SupabaseJournalRow[]
+    if (upsertedRows.length > 0) {
+      const mapped = upsertedRows.map(mapJournalRowToRecord)
+      await db.journalEntries.bulkPut(mapped)
+    }
+  }
+
   return true
 }
 
@@ -749,19 +1020,44 @@ const mapGuidanceRowToSeed = (row: SupabaseGuidanceRow): SeedGuidancePage => ({
   templates: row.templates ?? undefined,
 }) as SeedGuidancePage
 
-export const syncGuidanceFromCloud = async (estateId: EstateId) => {
+export const syncGuidanceFromCloud = async (estateId: EstateId, options?: SyncOptions) => {
   const context = await getSupabaseContext()
   if (!context) return false
   const { client } = context
-  const { data, error } = await client
-    .from('guidance')
-    .select('*')
-    .eq('estate_id', estateId)
-    .order('updated_at', { ascending: true })
+  const since = options?.since ?? null
+
+  let query = client.from('guidance').select('*').eq('estate_id', estateId).order('updated_at', { ascending: true })
+  if (since) {
+    query = query.gt('updated_at', since)
+  }
+
+  const { data, error } = await query
   if (error) throw error
   const rows = (data ?? []) as SupabaseGuidanceRow[]
   const entries = rows.map(mapGuidanceRowToSeed)
-  saveSeedGuidance(estateId, entries)
+
+  if (!since) {
+    saveSeedGuidance(estateId, entries)
+    return true
+  }
+
+  if (entries.length === 0) {
+    return true
+  }
+
+  const existing = loadSeedGuidance(estateId)
+  const merged = [...existing]
+
+  for (const entry of entries) {
+    const index = merged.findIndex((candidate) => candidate.id === entry.id)
+    if (index >= 0) {
+      merged[index] = entry
+    } else {
+      merged.push(entry)
+    }
+  }
+
+  saveSeedGuidance(estateId, merged)
   return true
 }
 
