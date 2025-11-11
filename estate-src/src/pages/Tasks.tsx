@@ -1,23 +1,22 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { liveQuery } from 'dexie'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import {
-  DocumentRecord,
-  TaskPriority,
-  TaskRecord,
-  TaskStatus,
-  createTask,
-  deleteTask,
-  linkDocumentToTask,
-  seedTasksIfEmpty,
-  unlinkDocumentFromTask,
-  updateTask,
-  db,
-} from '../storage/tasksDB'
+import { DocumentRecord, TaskPriority, TaskRecord, TaskStatus, seedTasksIfEmpty, db } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
 import { ESTATE_PLAN_UPDATED_EVENT, loadSeedGuidance, loadSeedTasks } from '../storage/estatePlan'
 import type { SeedTask } from '../types/estate'
 import { guidanceAnchorForId, normalizeGuidanceEntries, type NormalizedGuidanceEntry } from '../utils/guidance'
+import { useAuth } from '../context/AuthContext'
+import {
+  createTask as createTaskCloud,
+  deleteTask as deleteTaskCloud,
+  linkDocumentToTask as linkDocumentToTaskCloud,
+  syncGuidanceFromCloud,
+  syncSeedTasksFromCloud,
+  syncTasksFromCloud,
+  unlinkDocumentFromTask as unlinkDocumentFromTaskCloud,
+  updateTask as updateTaskCloud,
+} from '../data/cloud'
 
 const priorityStyles: Record<TaskPriority, string> = {
   low: 'bg-emerald-100 text-emerald-700',
@@ -133,6 +132,7 @@ const Tasks = () => {
   const location = useLocation()
   const { taskId } = useParams<{ taskId?: string }>()
   const { activeEstateId } = useEstate()
+  const { mode: authMode, isAuthenticated } = useAuth()
 
   const selectedTask = tasks.find((task) => task.id === taskId) || null
 
@@ -177,7 +177,15 @@ const Tasks = () => {
 
     const ensureSeedTasks = async () => {
       try {
-        await seedTasksIfEmpty()
+        if (authMode === 'supabase' && isAuthenticated) {
+          await Promise.all([
+            syncTasksFromCloud(activeEstateId),
+            syncSeedTasksFromCloud(activeEstateId),
+            syncGuidanceFromCloud(activeEstateId),
+          ])
+        } else {
+          await seedTasksIfEmpty()
+        }
       } catch (err) {
         console.error(err)
         if (!isMounted) return
@@ -214,7 +222,7 @@ const Tasks = () => {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [activeEstateId])
+  }, [activeEstateId, authMode, isAuthenticated])
 
   useEffect(() => {
     let isMounted = true
@@ -365,7 +373,7 @@ const Tasks = () => {
     setError(null)
     setFormSubmitting(true)
     try {
-      const id = await createTask({
+      const id = await createTaskCloud({
         estateId: activeEstateId,
         title: formState.title,
         description: formState.description,
@@ -394,7 +402,7 @@ const Tasks = () => {
     setError(null)
     setFormSubmitting(true)
     try {
-      await updateTask(selectedTask.id, {
+      await updateTaskCloud(selectedTask.id, {
         title: formState.title,
         description: formState.description,
         due_date: formState.due_date,
@@ -413,7 +421,7 @@ const Tasks = () => {
   const handleDelete = async (id: string) => {
     setError(null)
     try {
-      await deleteTask(id)
+      await deleteTaskCloud(id)
       if (taskId === id) {
         navigate('/tasks')
       }
@@ -426,7 +434,7 @@ const Tasks = () => {
   const handleMarkDone = async (task: TaskRecord) => {
     setError(null)
     try {
-      await updateTask(task.id, { status: 'done' })
+      await updateTaskCloud(task.id, { status: 'done' })
     } catch (err) {
       console.error(err)
       setError('Unable to update task status')
@@ -439,7 +447,7 @@ const Tasks = () => {
     setError(null)
     setLinking(true)
     try {
-      await linkDocumentToTask(docToLink, selectedTask.id)
+      await linkDocumentToTaskCloud(docToLink, selectedTask.id)
       setDocToLink('')
     } catch (err) {
       console.error(err)
@@ -453,7 +461,7 @@ const Tasks = () => {
     setError(null)
     setUnlinkingDocId(docId)
     try {
-      await unlinkDocumentFromTask(docId)
+      await unlinkDocumentFromTaskCloud(docId)
     } catch (err) {
       console.error(err)
       setError('Unable to unlink document')
