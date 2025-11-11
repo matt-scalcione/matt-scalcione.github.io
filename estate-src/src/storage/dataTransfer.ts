@@ -5,7 +5,7 @@ import { type EstateSetup, clearEstateSetup, loadEstateSetup, saveEstateSetup } 
 const EXPORT_VERSION = 2
 
 export type ExportedDocumentRecord = Omit<DocumentRecord, 'file'> & {
-  fileData: string
+  fileData: string | null
 }
 
 export interface WorkspaceExportPayload {
@@ -73,7 +73,9 @@ export const exportWorkspaceData = async (): Promise<WorkspaceExportPayload> => 
       contentType: doc.contentType,
       size: doc.size,
       created_at: doc.created_at,
-      fileData: await blobToDataUrl(doc.file),
+      fileName: doc.fileName ?? null,
+      storagePath: doc.storagePath ?? null,
+      fileData: doc.file ? await blobToDataUrl(doc.file) : null,
     })),
   )
 
@@ -103,9 +105,14 @@ export const importWorkspaceData = async (payload: WorkspaceExportPayload) => {
     throw new Error('Unsupported export version')
   }
 
-  const reconstructedDocs: DocumentRecord[] = payload.documents.map((doc) => {
+  const reconstructedDocs: DocumentRecord[] = []
+
+  for (const doc of payload.documents) {
+    if (!doc.fileData) {
+      continue
+    }
     const fileBlob = dataUrlToBlob(doc.fileData)
-    return {
+    reconstructedDocs.push({
       id: doc.id,
       estateId: (doc.estateId as EstateId) ?? 'mother',
       title: doc.title,
@@ -114,9 +121,11 @@ export const importWorkspaceData = async (payload: WorkspaceExportPayload) => {
       contentType: doc.contentType,
       size: fileBlob.size,
       file: fileBlob,
+      fileName: doc.fileName ?? null,
+      storagePath: null,
       created_at: doc.created_at,
-    }
-  })
+    })
+  }
 
   const normalizedTasks = payload.tasks.map((task) => ({
     ...task,

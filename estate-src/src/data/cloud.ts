@@ -2,11 +2,21 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getClient, getSupabaseSession } from '../lib/supabaseClient'
 import {
   db,
+  type DocumentInput,
   type DocumentRecord,
   type JournalEntryInput,
   type JournalEntryRecord,
   type TaskInput,
   type TaskRecord,
+  createDocument as createLocalDocument,
+  createJournalEntry as createLocalJournalEntry,
+  createTask as createLocalTask,
+  deleteJournalEntry as deleteLocalJournalEntry,
+  deleteTask as deleteLocalTask,
+  linkDocumentToTask as linkDocumentToTaskLocal,
+  unlinkDocumentFromTask as unlinkDocumentFromTaskLocal,
+  updateJournalEntry as updateLocalJournalEntry,
+  updateTask as updateLocalTask,
 } from '../storage/tasksDB'
 import {
   loadEstateProfiles,
@@ -16,16 +26,6 @@ import {
   saveSeedVersion,
 } from '../storage/estatePlan'
 import type { EstateId, EstateProfile, SeedGuidancePage, SeedTask } from '../types/estate'
-import {
-  createTask as createLocalTask,
-  deleteTask as deleteLocalTask,
-  updateTask as updateLocalTask,
-  createJournalEntry as createLocalJournalEntry,
-  deleteJournalEntry as deleteLocalJournalEntry,
-  updateJournalEntry as updateLocalJournalEntry,
-  linkDocumentToTask as linkDocumentToTaskLocal,
-  unlinkDocumentFromTask as unlinkDocumentFromTaskLocal,
-} from '../storage/tasksDB'
 import type { PlanV2 } from '../features/plan/planSchema'
 
 interface SupabaseContext {
@@ -42,6 +42,13 @@ const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
 }
 
 export const isCloudSignedIn = async () => Boolean(await getSupabaseContext())
+
+const generateDocumentId = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID()
+  }
+  return `doc-${Math.random().toString(36).slice(2, 11)}`
+}
 
 type SupabaseTaskRow = {
   id: string
@@ -64,6 +71,21 @@ type SupabaseJournalRow = {
   title: string
   body: string
   created_at: string
+}
+
+type SupabaseDocumentMetaRow = {
+  id: string
+  user_id: string
+  estate_id: EstateId
+  title: string | null
+  file_name: string | null
+  storage_path: string | null
+  content_type: string | null
+  size: number | null
+  tags: string[] | null
+  task_id: string | null
+  created_at: string | null
+  updated_at: string | null
 }
 
 type SupabaseEstateRow = {
@@ -143,6 +165,202 @@ const replaceJournalEntries = async (estateId: EstateId, entries: JournalEntryRe
 }
 
 const nowISO = () => new Date().toISOString()
+
+const mapDocumentMetaRowToRecord = (row: SupabaseDocumentMetaRow): DocumentRecord => ({
+  id: row.id,
+  estateId: row.estate_id,
+  title: row.title ?? row.file_name ?? 'Untitled document',
+  tags: row.tags ?? [],
+  taskId: row.task_id ?? null,
+  contentType: row.content_type ?? 'application/octet-stream',
+  size: row.size ?? 0,
+  file: null,
+  fileName: row.file_name ?? null,
+  storagePath: row.storage_path ?? null,
+  created_at: row.created_at ?? nowISO(),
+})
+
+const extensionFromContentType = (contentType: string | null | undefined) => {
+  if (!contentType) return null
+  if (contentType.includes('pdf')) return 'pdf'
+  if (contentType === 'image/png') return 'png'
+  if (contentType === 'image/jpeg' || contentType === 'image/jpg') return 'jpg'
+  if (contentType === 'image/gif') return 'gif'
+  if (contentType === 'image/webp') return 'webp'
+  if (contentType.includes('text/plain')) return 'txt'
+  return null
+}
+
+const ensureFileNameExtension = (fileName: string, contentType: string) => {
+  const extension = extensionFromContentType(contentType)
+  if (!extension) return fileName
+  if (fileName.toLowerCase().endsWith(`.${extension}`)) {
+    return fileName
+  }
+  return `${fileName}.${extension}`
+}
+
+const sanitizeFileName = (fileName: string) => {
+  const invalidChars = /[^a-zA-Z0-9._ -]+/g
+  const spaces = /\s+/g
+  const hyphenRuns = /-+/g
+  const trimHyphens = /^-+|-+$/g
+  const normalized = fileName.normalize('NFKD').replace(invalidChars, '')
+  const collapsed = normalized.replace(spaces, '-').replace(hyphenRuns, '-').replace(trimHyphens, '')
+  return collapsed || 'document'
+}
+
+const buildSafeFileName = (fileName: string, contentType: string) =>
+  ensureFileNameExtension(sanitizeFileName(fileName), contentType)
+
+type UploadDocumentPayload = {
+  id: string
+  estateId: EstateId
+  title: string
+  tags: string[]
+  taskId: string | null
+  file: File
+  fileName?: string | null
+  createdAt?: string
+}
+
+const uploadDocumentToCloud = async (context: SupabaseContext, payload: UploadDocumentPayload) => {
+  const { client, userId } = context
+  const contentType = payload.file.type || 'application/octet-stream'
+  const baseName = payload.fileName ?? payload.file.name ?? `${payload.id}.bin`
+  const safeFileName = buildSafeFileName(baseName, contentType)
+  const storagePath = `${userId}/${payload.estateId}/${payload.id}-${safeFileName}`
+
+  const { error: uploadError } = await client.storage.from('documents').upload(storagePath, payload.file, {
+    contentType,
+    upsert: true,
+  })
+
+  if (uploadError) {
+    throw uploadError
+  }
+
+  const { data: metaData, error: metaError } = await client
+    .from('documents_meta')
+    .upsert(
+      {
+        id: payload.id,
+        user_id: userId,
+        estate_id: payload.estateId,
+        title: payload.title,
+        file_name: safeFileName,
+        storage_path: storagePath,
+        content_type: contentType,
+        size: payload.file.size,
+        tags: payload.tags,
+        task_id: payload.taskId,
+        created_at: payload.createdAt ?? nowISO(),
+        updated_at: nowISO(),
+      },
+      { onConflict: 'id' },
+    )
+    .select('*')
+    .single()
+
+  if (metaError) {
+    await client.storage.from('documents').remove([storagePath])
+    throw metaError
+  }
+
+  const record = mapDocumentMetaRowToRecord(metaData as SupabaseDocumentMetaRow)
+
+  const mergedRecord: DocumentRecord = {
+    ...record,
+    title: payload.title,
+    tags: payload.tags,
+    taskId: payload.taskId,
+    contentType,
+    size: payload.file.size,
+    fileName: safeFileName,
+    storagePath: record.storagePath ?? storagePath,
+    file: null,
+  }
+
+  await db.documents.put(mergedRecord)
+
+  return mergedRecord
+}
+
+const replaceCloudDocuments = async (estateId: EstateId, documents: DocumentRecord[]) => {
+  await db.transaction('rw', db.documents, async () => {
+    const existing = await db.documents.where('estateId').equals(estateId).toArray()
+    const remoteIds = new Set(documents.map((doc) => doc.id))
+    const toDelete = existing
+      .filter((doc) => doc.storagePath && !remoteIds.has(doc.id))
+      .map((doc) => doc.id)
+
+    if (toDelete.length > 0) {
+      await db.documents.bulkDelete(toDelete)
+    }
+
+    if (documents.length > 0) {
+      await db.documents.bulkPut(documents)
+    }
+  })
+}
+
+export const syncDocumentsFromCloud = async (estateId: EstateId) => {
+  const context = await getSupabaseContext()
+  if (!context) return false
+
+  const { client } = context
+  const { data, error } = await client
+    .from('documents_meta')
+    .select('*')
+    .eq('estate_id', estateId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const rows = (data ?? []) as SupabaseDocumentMetaRow[]
+  const records = rows.map(mapDocumentMetaRowToRecord)
+  await replaceCloudDocuments(estateId, records)
+  return true
+}
+
+const getSignedUrlForPath = async (storagePath: string, expiresIn = 60) => {
+  const context = await getSupabaseContext()
+  if (!context) {
+    throw new Error('Supabase session not available')
+  }
+
+  const { client } = context
+  const { data, error } = await client.storage.from('documents').createSignedUrl(storagePath, expiresIn)
+  if (error) throw error
+  if (!data?.signedUrl) {
+    throw new Error('Unable to generate signed URL')
+  }
+  return data.signedUrl
+}
+
+export const getDocumentSignedUrl = async (doc: DocumentRecord, expiresIn = 60) => {
+  if (!doc.storagePath) {
+    throw new Error('Document is not stored in Supabase')
+  }
+  return getSignedUrlForPath(doc.storagePath, expiresIn)
+}
+
+export const getDocumentBlob = async (doc: DocumentRecord): Promise<Blob> => {
+  if (doc.storagePath) {
+    const signedUrl = await getDocumentSignedUrl(doc, 60)
+    const response = await fetch(signedUrl)
+    if (!response.ok) {
+      throw new Error('Unable to fetch document from Supabase')
+    }
+    return response.blob()
+  }
+
+  if (doc.file) {
+    return doc.file
+  }
+
+  throw new Error('Document data is not available')
+}
 
 export const syncTasksFromCloud = async (estateId: EstateId) => {
   const context = await getSupabaseContext()
@@ -253,10 +471,16 @@ export const linkDocumentToTask = async (docId: string, taskId: string) => {
     return
   }
 
+  const { client } = context
   const currentDocIds = await resolveTaskDocIds(taskId)
   const docIds = Array.from(new Set([...currentDocIds, docId]))
 
   await updateTask(taskId, { docIds })
+
+  await client
+    .from('documents_meta')
+    .update({ task_id: taskId, updated_at: nowISO() })
+    .eq('id', docId)
 
   const doc = await db.documents.get(docId)
   if (doc) {
@@ -271,6 +495,7 @@ export const unlinkDocumentFromTask = async (docId: string) => {
     return
   }
 
+  const { client } = context
   const doc = (await db.documents.get(docId)) as DocumentRecord | undefined
   if (doc?.taskId) {
     const currentDocIds = await resolveTaskDocIds(doc.taskId)
@@ -278,6 +503,93 @@ export const unlinkDocumentFromTask = async (docId: string) => {
     await updateTask(doc.taskId, { docIds })
   }
   await db.documents.update(docId, { taskId: null })
+
+  await client
+    .from('documents_meta')
+    .update({ task_id: null, updated_at: nowISO() })
+    .eq('id', docId)
+}
+
+export const createDocument = async ({ file, title, tags, taskId, estateId, id, fileName }: DocumentInput) => {
+  const context = await getSupabaseContext()
+  if (!context) {
+    return createLocalDocument({ file, title, tags, taskId, estateId, id, fileName })
+  }
+
+  const documentId = id ?? generateDocumentId()
+
+  let resolvedEstateId: EstateId = estateId
+  if (taskId) {
+    const relatedTask = await db.tasks.get(taskId)
+    if (relatedTask) {
+      resolvedEstateId = relatedTask.estateId
+    }
+  }
+
+  const resolvedTaskId = taskId ?? null
+
+  await uploadDocumentToCloud(context, {
+    id: documentId,
+    estateId: resolvedEstateId,
+    title,
+    tags,
+    taskId: resolvedTaskId,
+    file,
+    fileName: fileName ?? file.name ?? `${documentId}.bin`,
+    createdAt: nowISO(),
+  })
+
+  if (resolvedTaskId) {
+    await linkDocumentToTask(documentId, resolvedTaskId)
+  } else {
+    await db.documents.update(documentId, { taskId: null })
+  }
+
+  return documentId
+}
+
+export const migrateLocalDocumentsToCloud = async () => {
+  const context = await getSupabaseContext()
+  if (!context) {
+    throw new Error('Supabase session not available')
+  }
+
+  const documents = await db.documents.toArray()
+  const estatesToRefresh = new Set<EstateId>()
+
+  for (const doc of documents) {
+    if (!doc.file || doc.storagePath) continue
+
+    const contentType = doc.contentType || 'application/octet-stream'
+    const baseName = doc.fileName ?? doc.title ?? 'document'
+    const safeFileName = buildSafeFileName(baseName, contentType)
+    const fileForUpload = new File([doc.file], safeFileName, { type: contentType })
+
+    await uploadDocumentToCloud(context, {
+      id: doc.id,
+      estateId: doc.estateId,
+      title: doc.title,
+      tags: doc.tags,
+      taskId: doc.taskId ?? null,
+      file: fileForUpload,
+      fileName: safeFileName,
+      createdAt: doc.created_at,
+    })
+
+    estatesToRefresh.add(doc.estateId)
+
+    if (doc.taskId) {
+      await linkDocumentToTask(doc.id, doc.taskId)
+    }
+  }
+
+  await Promise.all(
+    Array.from(estatesToRefresh).map((estateId) =>
+      syncDocumentsFromCloud(estateId).catch((error) => {
+        console.error(error)
+      }),
+    ),
+  )
 }
 
 export const syncJournalFromCloud = async (estateId: EstateId) => {

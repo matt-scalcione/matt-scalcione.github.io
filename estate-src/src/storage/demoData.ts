@@ -102,6 +102,8 @@ const createDemoDataset = () => {
       contentType: 'text/plain',
       size: lettersBlob.size,
       file: lettersBlob,
+      fileName: 'letters-summary.txt',
+      storagePath: null,
       created_at: iso(addDays(today, -19)),
     },
     {
@@ -113,6 +115,8 @@ const createDemoDataset = () => {
       contentType: 'text/plain',
       size: inventoryBlob.size,
       file: inventoryBlob,
+      fileName: 'inventory-notes.txt',
+      storagePath: null,
       created_at: iso(addDays(today, -15)),
     },
   ]
