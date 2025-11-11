@@ -1,14 +1,15 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import {
-  createJournalEntry,
-  deleteJournalEntry,
-  getJournalEntries,
-  JournalEntryRecord,
-  updateJournalEntry,
-} from '../storage/tasksDB'
+import { getJournalEntries, JournalEntryRecord } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
+import { useAuth } from '../context/AuthContext'
+import {
+  createJournalEntry as createJournalEntryCloud,
+  deleteJournalEntry as deleteJournalEntryCloud,
+  syncJournalFromCloud,
+  updateJournalEntry as updateJournalEntryCloud,
+} from '../data/cloud'
 
 const MAX_ENTRY_LENGTH = 10000
 
@@ -34,11 +35,15 @@ const Journal = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { activeEstateId } = useEstate()
+  const { mode: authMode, isAuthenticated } = useAuth()
 
   const bodyCharactersRemaining = useMemo(() => MAX_ENTRY_LENGTH - formBody.length, [formBody.length])
 
   const loadEntries = useCallback(async () => {
     try {
+      if (authMode === 'supabase' && isAuthenticated) {
+        await syncJournalFromCloud(activeEstateId)
+      }
       const results = await getJournalEntries(activeEstateId)
       setEntries(results)
     } catch (err) {
@@ -46,7 +51,7 @@ const Journal = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [activeEstateId])
+  }, [activeEstateId, authMode, isAuthenticated])
 
   useEffect(() => {
     setIsLoading(true)
@@ -95,12 +100,12 @@ const Journal = () => {
     }
 
     if (editingId) {
-      await updateJournalEntry(editingId, {
+      await updateJournalEntryCloud(editingId, {
         title: trimmedTitle,
         body: trimmedBody,
       })
     } else {
-      await createJournalEntry({
+      await createJournalEntryCloud({
         title: trimmedTitle,
         body: trimmedBody,
         estateId: activeEstateId,
@@ -122,7 +127,7 @@ const Journal = () => {
     const confirmed = window.confirm('Remove this journal entry? This cannot be undone.')
     if (!confirmed) return
 
-    await deleteJournalEntry(id)
+    await deleteJournalEntryCloud(id)
     setExpandedEntries((prev) => {
       const next = { ...prev }
       delete next[id]

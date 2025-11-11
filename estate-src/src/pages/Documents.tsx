@@ -10,14 +10,8 @@ import { liveQuery } from 'dexie'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker?worker&url'
-import {
-  DocumentRecord,
-  TaskRecord,
-  createDocument,
-  db,
-  linkDocumentToTask,
-  unlinkDocumentFromTask,
-} from '../storage/tasksDB'
+import { DocumentRecord, TaskRecord, createDocument, db } from '../storage/tasksDB'
+import { linkDocumentToTask as linkDocumentToTaskCloud, unlinkDocumentFromTask as unlinkDocumentFromTaskCloud } from '../data/cloud'
 import { useEstate } from '../context/EstateContext'
 
 GlobalWorkerOptions.workerSrc = pdfWorker
@@ -434,9 +428,9 @@ const Documents = () => {
     setUpdatingDocId(doc.id)
     try {
       if (taskId) {
-        await linkDocumentToTask(doc.id, taskId)
+        await linkDocumentToTaskCloud(doc.id, taskId)
       } else {
-        await unlinkDocumentFromTask(doc.id)
+        await unlinkDocumentFromTaskCloud(doc.id)
       }
     } catch (err) {
       console.error(err)

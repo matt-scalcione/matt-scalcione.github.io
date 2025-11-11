@@ -2,13 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { liveQuery } from 'dexie'
 import { useNavigate } from 'react-router-dom'
 
-import {
-  DocumentRecord,
-  JournalEntryRecord,
-  TaskRecord,
-  db,
-} from '../storage/tasksDB'
+import { DocumentRecord, JournalEntryRecord, TaskRecord, db } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
+import { useAuth } from '../context/AuthContext'
+import { syncJournalFromCloud, syncTasksFromCloud } from '../data/cloud'
 
 type TaskMetrics = {
   total: number
@@ -49,6 +46,21 @@ const Dashboard = () => {
   const [journalEntries, setJournalEntries] = useState<JournalEntryRecord[]>([])
   const navigate = useNavigate()
   const { activeEstateId } = useEstate()
+  const { mode: authMode, isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isAuthenticated) return
+    void (async () => {
+      try {
+        await Promise.all([
+          syncTasksFromCloud(activeEstateId),
+          syncJournalFromCloud(activeEstateId),
+        ])
+      } catch (error) {
+        console.error(error)
+      }
+    })()
+  }, [activeEstateId, authMode, isAuthenticated])
 
   useEffect(() => {
     let isMounted = true

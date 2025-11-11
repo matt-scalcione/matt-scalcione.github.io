@@ -147,6 +147,14 @@ export const loadSeedDocumentsMeta = (estateId: EstateId): SeedDocumentMetadata[
 export const loadSeedGuidance = (estateId: EstateId): SeedGuidancePage[] =>
   readJson<SeedGuidancePage[]>(guidanceKeyFor(estateId), [])
 
+export const saveSeedTasks = (estateId: EstateId, tasks: SeedTask[]) => {
+  writeJson(seedTasksKeyFor(estateId), tasks)
+}
+
+export const saveSeedGuidance = (estateId: EstateId, entries: SeedGuidancePage[]) => {
+  writeJson(guidanceKeyFor(estateId), entries)
+}
+
 export const loadSeedVersion = (): string | null => {
   if (!storageAvailable()) return null
   return window.localStorage.getItem(SEED_VERSION_KEY)
