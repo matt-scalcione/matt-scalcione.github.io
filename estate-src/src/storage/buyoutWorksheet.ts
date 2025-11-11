@@ -1,9 +1,10 @@
 import type { EstateId } from '../types/estate'
 import type { BuyoutWorksheetData } from '../types/buyout'
+import { isLocalStorageAvailable } from './safeStorage'
 
 const STORAGE_PREFIX = 'estate-buyout-worksheet'
 
-const storageAvailable = () => typeof window !== 'undefined' && !!window.localStorage
+const storageAvailable = () => isLocalStorageAvailable()
 
 const keyFor = (estateId: EstateId) => `${STORAGE_PREFIX}-${estateId}`
 
@@ -24,21 +25,20 @@ export const loadBuyoutWorksheet = (estateId: EstateId): BuyoutWorksheetData => 
     })
   }
 
-  const raw = window.localStorage.getItem(keyFor(estateId))
-  if (!raw) {
-    return cloneData({
-      appraisedValue: '',
-      sharePercent: '50',
-      credits: [],
-      adjustments: [],
-    })
-  }
-
   try {
+    const raw = window.localStorage.getItem(keyFor(estateId))
+    if (!raw) {
+      return cloneData({
+        appraisedValue: '',
+        sharePercent: '50',
+        credits: [],
+        adjustments: [],
+      })
+    }
     const parsed = JSON.parse(raw) as BuyoutWorksheetData
     return cloneData(parsed)
   } catch (error) {
-    console.error('Failed to parse buyout worksheet data', error)
+    console.error('Failed to read buyout worksheet data', error)
     return cloneData({
       appraisedValue: '',
       sharePercent: '50',
