@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createTask, db } from '../storage/tasksDB'
+import { db } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -17,6 +17,14 @@ import { exportWorkspaceData, importWorkspaceData, type WorkspaceExportPayload }
 import { resetDemoData } from '../storage/demoData'
 import { coercePlan, PlanV2 } from '../features/plan/planSchema'
 import { getSupabaseOverrides, saveSupabaseOverrides } from '../lib/supabaseClient'
+import {
+  createTask as createTaskCloud,
+  importPlanToCloud,
+  syncEstateProfilesFromCloud,
+  syncGuidanceFromCloud,
+  syncSeedTasksFromCloud,
+  syncTasksFromCloud,
+} from '../data/cloud'
 
 interface SetupFormState {
   dateOfDeath: string
@@ -114,7 +122,7 @@ const Profile = () => {
   const [isPlanImporting, setIsPlanImporting] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [seedVersion, setSeedVersion] = useState<string | null>(() => loadSeedVersion())
-  const { mode: authMode, userEmail, refreshAuthMode, logout } = useAuth()
+  const { mode: authMode, userEmail, refreshAuthMode, logout, isAuthenticated } = useAuth()
   const [cloudUrl, setCloudUrl] = useState('')
   const [cloudAnonKey, setCloudAnonKey] = useState('')
   const [cloudStatus, setCloudStatus] = useState<string | null>(null)
@@ -152,6 +160,24 @@ const Profile = () => {
     setCloudUrl(overrides.url)
     setCloudAnonKey(overrides.anonKey)
   }, [])
+
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isAuthenticated) return
+    void (async () => {
+      try {
+        await syncEstateProfilesFromCloud()
+        await Promise.all([
+          syncGuidanceFromCloud(activeEstateId),
+          syncSeedTasksFromCloud(activeEstateId),
+          syncTasksFromCloud(activeEstateId),
+        ])
+        refreshEstateProfiles()
+        setSeedVersion(loadSeedVersion())
+      } catch (error) {
+        console.error(error)
+      }
+    })()
+  }, [activeEstateId, authMode, isAuthenticated, refreshEstateProfiles])
 
   const setup = useMemo(() => {
     const candidate = toEstateSetup(formState)
@@ -284,7 +310,7 @@ const Profile = () => {
           continue
         }
 
-        await createTask({
+        await createTaskCloud({
           estateId: activeEstateId,
           title: deadline.title,
           description: deadline.description ?? '',
@@ -407,7 +433,7 @@ const Profile = () => {
     setPlanImportError(null)
   }
 
-  const handlePlanImport = () => {
+  const handlePlanImport = async () => {
     if (!planInput.trim()) {
       setPlanImportError('Paste the plan JSON before importing.')
       return
@@ -431,6 +457,25 @@ const Profile = () => {
       }
 
       const plan = parsed.data
+
+      if (authMode === 'supabase') {
+        await importPlanToCloud(plan)
+        refreshEstateProfiles()
+        notifyPlanUpdated()
+        setSeedVersion(plan.seedVersion)
+        setStatusMessage(null)
+        setGenerateMessage(null)
+        setErrorMessage(null)
+        setDataStatusMessage(null)
+        setDataErrorMessage(null)
+        setToastMessage('Plan imported')
+        setIsPlanModalOpen(false)
+        setPlanInput('')
+        setPlanImportError(null)
+        navigate('/tasks')
+        return
+      }
+
       const profilesRec = Object.fromEntries(plan.profiles.map((profile) => [profile.id, profile]))
       saveEstateProfiles(profilesRec)
       saveSeedVersion(plan.seedVersion)
@@ -444,7 +489,11 @@ const Profile = () => {
 
           const seeds = plan.seedTasks
             .filter((task) => task.estateId === profile.id)
-            .map(({ estateId: _estateId, ...rest }) => rest)
+            .map((task) => {
+              const { estateId, ...rest } = task
+              void estateId
+              return rest
+            })
           window.localStorage.setItem(`seedTasks:${profile.id}`, JSON.stringify(seeds))
         }
 

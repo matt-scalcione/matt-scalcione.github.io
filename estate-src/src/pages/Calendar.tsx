@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { liveQuery } from 'dexie'
 import { db, seedTasksIfEmpty, type TaskRecord } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
+import { useAuth } from '../context/AuthContext'
+import { syncSeedTasksFromCloud, syncTasksFromCloud } from '../data/cloud'
 
 type CalendarDay = {
   date: Date
@@ -89,13 +91,25 @@ const Calendar = () => {
   })
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()))
   const { activeEstateId } = useEstate()
+  const { mode: authMode, isAuthenticated } = useAuth()
 
   useEffect(() => {
     let isMounted = true
 
-    void seedTasksIfEmpty().catch((error) => {
-      console.error(error)
-    })
+    void (async () => {
+      try {
+        if (authMode === 'supabase' && isAuthenticated) {
+          await Promise.all([
+            syncTasksFromCloud(activeEstateId),
+            syncSeedTasksFromCloud(activeEstateId),
+          ])
+        } else {
+          await seedTasksIfEmpty()
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    })()
 
     const subscription = liveQuery(() =>
       db.tasks
@@ -119,7 +133,7 @@ const Calendar = () => {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [activeEstateId])
+  }, [activeEstateId, authMode, isAuthenticated])
 
   const actionableTasks = useMemo(
     () => tasks.filter((task) => task.due_date && task.status !== 'done'),
