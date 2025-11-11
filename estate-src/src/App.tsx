@@ -57,8 +57,15 @@ const Layout = () => {
   }, [activeEstateId])
 
   const handleLogout = () => {
-    logout()
-    navigate('/login', { replace: true })
+    void (async () => {
+      try {
+        await logout()
+      } catch (error) {
+        console.error(error)
+      } finally {
+        navigate('/login', { replace: true })
+      }
+    })()
   }
 
   return (
@@ -134,7 +141,11 @@ const Layout = () => {
 }
 
 const RequireAuth = () => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isReady } = useAuth()
+
+  if (!isReady) {
+    return null
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
