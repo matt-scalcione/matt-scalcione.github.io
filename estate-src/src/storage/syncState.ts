@@ -1,13 +1,14 @@
 import type { EstateId } from '../types/estate'
+import { isLocalStorageAvailable } from './safeStorage'
 
 const STORAGE_PREFIX = 'estate:sync:workspace'
 
-const isBrowser = () => typeof window !== 'undefined' && !!window.localStorage
+const storageAvailable = () => isLocalStorageAvailable()
 
 const keyForEstate = (estateId: EstateId) => `${STORAGE_PREFIX}:${estateId}`
 
 export const getWorkspaceSyncTimestamp = (estateId: EstateId): string | null => {
-  if (!isBrowser()) return null
+  if (!storageAvailable()) return null
   try {
     return window.localStorage.getItem(keyForEstate(estateId))
   } catch (error) {
@@ -17,7 +18,7 @@ export const getWorkspaceSyncTimestamp = (estateId: EstateId): string | null => 
 }
 
 export const setWorkspaceSyncTimestamp = (estateId: EstateId, iso: string | null) => {
-  if (!isBrowser()) return
+  if (!storageAvailable()) return
   try {
     const key = keyForEstate(estateId)
     if (!iso) {
@@ -31,7 +32,7 @@ export const setWorkspaceSyncTimestamp = (estateId: EstateId, iso: string | null
 }
 
 export const clearAllWorkspaceSyncTimestamps = () => {
-  if (!isBrowser()) return
+  if (!storageAvailable()) return
   try {
     const keys: string[] = []
     for (let i = 0; i < window.localStorage.length; i += 1) {
