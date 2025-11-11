@@ -15,7 +15,7 @@ import Tasks from './pages/Tasks'
 import Setup from './pages/Setup'
 import { useAuth } from './context/AuthContext'
 import { db } from './storage/tasksDB'
-import { syncTasksFromCloud } from './data/cloud'
+import { syncDocumentsFromCloud, syncTasksFromCloud } from './data/cloud'
 import { useEstate } from './context/EstateContext'
 import FlyoutMenu from './components/FlyoutMenu'
 import BottomBar from './components/BottomBar'
@@ -31,7 +31,10 @@ const Layout = () => {
 
   useEffect(() => {
     if (authMode !== 'supabase' || !isAuthenticated) return
-    void syncTasksFromCloud(activeEstateId).catch((error) => {
+    void Promise.all([
+      syncTasksFromCloud(activeEstateId),
+      syncDocumentsFromCloud(activeEstateId),
+    ]).catch((error) => {
       console.error(error)
     })
   }, [activeEstateId, authMode, isAuthenticated])

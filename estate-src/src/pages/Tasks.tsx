@@ -12,6 +12,7 @@ import {
   deleteTask as deleteTaskCloud,
   linkDocumentToTask as linkDocumentToTaskCloud,
   syncGuidanceFromCloud,
+  syncDocumentsFromCloud,
   syncSeedTasksFromCloud,
   syncTasksFromCloud,
   unlinkDocumentFromTask as unlinkDocumentFromTaskCloud,
@@ -182,6 +183,7 @@ const Tasks = () => {
             syncTasksFromCloud(activeEstateId),
             syncSeedTasksFromCloud(activeEstateId),
             syncGuidanceFromCloud(activeEstateId),
+            syncDocumentsFromCloud(activeEstateId),
           ])
         } else {
           await seedTasksIfEmpty()

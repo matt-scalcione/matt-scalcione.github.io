@@ -20,8 +20,10 @@ import { getSupabaseOverrides, saveSupabaseOverrides } from '../lib/supabaseClie
 import {
   createTask as createTaskCloud,
   importPlanToCloud,
+  migrateLocalDocumentsToCloud,
   syncEstateProfilesFromCloud,
   syncGuidanceFromCloud,
+  syncDocumentsFromCloud,
   syncSeedTasksFromCloud,
   syncTasksFromCloud,
 } from '../data/cloud'
@@ -129,6 +131,9 @@ const Profile = () => {
   const [cloudError, setCloudError] = useState<string | null>(null)
   const [isCloudSaving, setIsCloudSaving] = useState(false)
   const [isCloudSigningOut, setIsCloudSigningOut] = useState(false)
+  const [isMigratingDocs, setIsMigratingDocs] = useState(false)
+  const [migrationStatus, setMigrationStatus] = useState<string | null>(null)
+  const [migrationError, setMigrationError] = useState<string | null>(null)
 
   const hydrateSetup = useCallback(() => {
     const stored = loadEstateSetup()
@@ -170,6 +175,7 @@ const Profile = () => {
           syncGuidanceFromCloud(activeEstateId),
           syncSeedTasksFromCloud(activeEstateId),
           syncTasksFromCloud(activeEstateId),
+          syncDocumentsFromCloud(activeEstateId),
         ])
         refreshEstateProfiles()
         setSeedVersion(loadSeedVersion())
@@ -213,6 +219,32 @@ const Profile = () => {
     setCloudAnonKey(event.target.value)
     setCloudStatus(null)
     setCloudError(null)
+  }
+
+  const handleMigrateDocuments = () => {
+    setMigrationStatus(null)
+    setMigrationError(null)
+
+    if (authMode !== 'supabase' || !isAuthenticated) {
+      setMigrationError('Sign in with Supabase to migrate documents.')
+      return
+    }
+
+    setIsMigratingDocs(true)
+
+    void (async () => {
+      try {
+        await migrateLocalDocumentsToCloud()
+        setMigrationStatus('Local documents migrated to Supabase Storage.')
+      } catch (error) {
+        console.error(error)
+        const message =
+          error instanceof Error && error.message ? error.message : 'Unable to migrate documents'
+        setMigrationError(message)
+      } finally {
+        setIsMigratingDocs(false)
+      }
+    })()
   }
 
   const handleCloudSave = () => {
@@ -586,6 +618,8 @@ const Profile = () => {
               </div>
               {cloudStatus ? <p className="text-sm text-primary-600">{cloudStatus}</p> : null}
               {cloudError ? <p className="text-sm text-rose-600">{cloudError}</p> : null}
+              {migrationStatus ? <p className="text-sm text-primary-600">{migrationStatus}</p> : null}
+              {migrationError ? <p className="text-sm text-rose-600">{migrationError}</p> : null}
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -609,6 +643,14 @@ const Profile = () => {
                   className="rounded-full border border-rose-200 px-5 py-2 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isCloudSigningOut ? 'Signing out…' : 'Sign out'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMigrateDocuments}
+                  disabled={isMigratingDocs || authMode !== 'supabase' || !isAuthenticated}
+                  className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-primary-300 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isMigratingDocs ? 'Migrating…' : 'Migrate local documents to cloud'}
                 </button>
               </div>
             </div>
