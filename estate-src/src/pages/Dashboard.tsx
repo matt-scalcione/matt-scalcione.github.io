@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { DocumentRecord, JournalEntryRecord, TaskRecord, db } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
 import { useAuth } from '../context/AuthContext'
-import { syncJournalFromCloud, syncTasksFromCloud } from '../data/cloud'
+import { syncDocumentsFromCloud, syncJournalFromCloud, syncTasksFromCloud } from '../data/cloud'
 
 type TaskMetrics = {
   total: number
@@ -55,6 +55,7 @@ const Dashboard = () => {
         await Promise.all([
           syncTasksFromCloud(activeEstateId),
           syncJournalFromCloud(activeEstateId),
+          syncDocumentsFromCloud(activeEstateId),
         ])
       } catch (error) {
         console.error(error)

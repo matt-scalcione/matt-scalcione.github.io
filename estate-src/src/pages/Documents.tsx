@@ -10,9 +10,17 @@ import { liveQuery } from 'dexie'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker?worker&url'
-import { DocumentRecord, TaskRecord, createDocument, db } from '../storage/tasksDB'
-import { linkDocumentToTask as linkDocumentToTaskCloud, unlinkDocumentFromTask as unlinkDocumentFromTaskCloud } from '../data/cloud'
+import { DocumentRecord, TaskRecord, db } from '../storage/tasksDB'
+import {
+  createDocument,
+  getDocumentBlob,
+  getDocumentSignedUrl,
+  linkDocumentToTask as linkDocumentToTaskCloud,
+  syncDocumentsFromCloud,
+  unlinkDocumentFromTask as unlinkDocumentFromTaskCloud,
+} from '../data/cloud'
 import { useEstate } from '../context/EstateContext'
+import { useAuth } from '../context/AuthContext'
 
 GlobalWorkerOptions.workerSrc = pdfWorker
 
@@ -54,7 +62,7 @@ const iconForDocument = (doc: DocumentRecord) => {
 type DocumentPreviewModalProps = {
   doc: DocumentRecord | null
   onClose: () => void
-  onDownload: (doc: DocumentRecord) => void
+  onDownload: (doc: DocumentRecord) => void | Promise<void>
 }
 
 const DocumentPreviewModal = ({ doc, onClose, onDownload }: DocumentPreviewModalProps) => {
@@ -70,20 +78,25 @@ const DocumentPreviewModal = ({ doc, onClose, onDownload }: DocumentPreviewModal
     setImageUrl(null)
     setTextPreview(null)
     setError(null)
-    setLoading(false)
+    setLoading(true)
 
     let objectUrl: string | null = null
     let cancelled = false
     let loadingTask: ReturnType<typeof getDocument> | null = null
 
-    if (doc.contentType.startsWith('image/')) {
-      objectUrl = URL.createObjectURL(doc.file)
-      setImageUrl(objectUrl)
-    } else if (doc.contentType.includes('pdf')) {
-      const render = async () => {
-        setLoading(true)
-        try {
-          const buffer = await doc.file.arrayBuffer()
+    const renderPreview = async () => {
+      try {
+        const blob = await getDocumentBlob(doc)
+        if (cancelled) return
+
+        if (doc.contentType.startsWith('image/')) {
+          objectUrl = URL.createObjectURL(blob)
+          setImageUrl(objectUrl)
+          return
+        }
+
+        if (doc.contentType.includes('pdf')) {
+          const buffer = await blob.arrayBuffer()
           if (cancelled) return
           loadingTask = getDocument({ data: buffer })
           const pdf = await loadingTask.promise
@@ -101,38 +114,31 @@ const DocumentPreviewModal = ({ doc, onClose, onDownload }: DocumentPreviewModal
           canvas.height = scaledViewport.height
           canvas.width = scaledViewport.width
           await page.render({ canvasContext: context, viewport: scaledViewport }).promise
-        } catch (err) {
-          console.error(err)
-          if (!cancelled) {
-            setError('Unable to render PDF preview')
-          }
-        } finally {
-          if (!cancelled) {
-            setLoading(false)
-          }
+          return
         }
-      }
 
-      render()
-    } else if (doc.contentType.includes('text') || doc.contentType === 'text/plain') {
-      const loadText = async () => {
-        try {
-          const content = await doc.file.text()
+        if (doc.contentType.includes('text') || doc.contentType === 'text/plain') {
+          const content = await blob.text()
           if (!cancelled) {
             setTextPreview(content.slice(0, 4000))
           }
-        } catch (err) {
-          console.error(err)
-          if (!cancelled) {
-            setError('Unable to load text preview')
-          }
+          return
+        }
+
+        setError('Preview not available for this file type.')
+      } catch (err) {
+        console.error(err)
+        if (!cancelled) {
+          setError('Unable to load preview')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
         }
       }
-
-      loadText()
-    } else {
-      setError('Preview not available for this file type.')
     }
+
+    void renderPreview()
 
     return () => {
       cancelled = true
@@ -160,7 +166,9 @@ const DocumentPreviewModal = ({ doc, onClose, onDownload }: DocumentPreviewModal
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => onDownload(doc)}
+              onClick={() => {
+                void onDownload(doc)
+              }}
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary-200 hover:text-primary-600"
             >
               Download
@@ -176,12 +184,18 @@ const DocumentPreviewModal = ({ doc, onClose, onDownload }: DocumentPreviewModal
         </header>
 
         <div className="max-h-[70vh] overflow-auto">
-          {doc.contentType.startsWith('image/') && imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={doc.title || 'Document preview'}
-              className="mx-auto max-h-[60vh] rounded-lg object-contain"
-            />
+          {doc.contentType.startsWith('image/') ? (
+            imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={doc.title || 'Document preview'}
+                className="mx-auto max-h-[60vh] rounded-lg object-contain"
+              />
+            ) : loading ? (
+              <p className="text-center text-sm text-slate-500">Loading preview…</p>
+            ) : (
+              <p className="text-sm text-slate-500">{error ?? 'Preview not available for this file type.'}</p>
+            )
           ) : doc.contentType.includes('pdf') ? (
             error ? (
               <p className="text-sm text-rose-600">{error}</p>
@@ -233,6 +247,7 @@ const Documents = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { activeEstateId } = useEstate()
+  const { mode: authMode, isAuthenticated } = useAuth()
 
   useEffect(() => {
     let isMounted = true
@@ -262,6 +277,13 @@ const Documents = () => {
       subscription.unsubscribe()
     }
   }, [activeEstateId])
+
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isAuthenticated) return
+    void syncDocumentsFromCloud(activeEstateId).catch((error) => {
+      console.error(error)
+    })
+  }, [activeEstateId, authMode, isAuthenticated])
 
   useEffect(() => {
     let isMounted = true
@@ -412,15 +434,38 @@ const Documents = () => {
     }
   }
 
-  const handleDownload = (doc: DocumentRecord) => {
-    const objectUrl = URL.createObjectURL(doc.file)
-    const anchor = document.createElement('a')
-    anchor.href = objectUrl
-    anchor.download = doc.title || 'document'
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(objectUrl)
+  const handleDownload = async (doc: DocumentRecord) => {
+    setPageError(null)
+    try {
+      if (doc.storagePath) {
+        const signedUrl = await getDocumentSignedUrl(doc, 60)
+        const anchor = document.createElement('a')
+        anchor.href = signedUrl
+        anchor.download = doc.fileName || doc.title || 'document'
+        anchor.rel = 'noopener'
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+        return
+      }
+
+      if (doc.file) {
+        const objectUrl = URL.createObjectURL(doc.file)
+        const anchor = document.createElement('a')
+        anchor.href = objectUrl
+        anchor.download = doc.title || 'document'
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+        URL.revokeObjectURL(objectUrl)
+        return
+      }
+
+      throw new Error('Document data unavailable')
+    } catch (err) {
+      console.error(err)
+      setPageError('Unable to download document')
+    }
   }
 
   const handleReassign = async (doc: DocumentRecord, taskId: string) => {
@@ -445,7 +490,9 @@ const Documents = () => {
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-900">Documents</h1>
         <p className="text-sm text-slate-500">
-          Upload, organize, and preview estate planning documents. Files are stored locally in your browser for privacy.
+          {authMode === 'supabase'
+            ? 'Upload, organize, and preview estate planning documents. Files are stored securely with Supabase Storage for access across devices.'
+            : 'Upload, organize, and preview estate planning documents. Files are stored locally in your browser for privacy.'}
         </p>
       </header>
 
@@ -622,7 +669,9 @@ const Documents = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDownload(doc)}
+                    onClick={() => {
+                      void handleDownload(doc)
+                    }}
                     className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary-200 hover:text-primary-600"
                   >
                     Download

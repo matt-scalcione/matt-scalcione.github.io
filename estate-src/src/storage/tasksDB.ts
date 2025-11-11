@@ -27,7 +27,9 @@ export interface DocumentRecord {
   taskId: string | null
   contentType: string
   size: number
-  file: Blob
+  file: Blob | null | undefined
+  fileName: string | null | undefined
+  storagePath: string | null | undefined
   created_at: string
 }
 
@@ -84,6 +86,25 @@ class EstateWorkspaceDB extends Dexie {
           .modify((entry: JournalEntryRecord & { estateId?: EstateId }) => {
             if (!entry.estateId) {
               entry.estateId = 'mother'
+          }
+        })
+      })
+    this.version(5)
+      .stores({
+        tasks: 'id, estateId, due_date, status, priority, created_at, updated_at, seedVersion, *tags, *docIds',
+        documents: 'id, estateId, title, contentType, size, created_at, taskId, storagePath, *tags',
+        journalEntries: 'id, estateId, created_at, title',
+      })
+      .upgrade(async (transaction) => {
+        await transaction
+          .table('documents')
+          .toCollection()
+          .modify((doc: any) => {
+            if (doc.fileName === undefined) {
+              doc.fileName = null
+            }
+            if (doc.storagePath === undefined) {
+              doc.storagePath = null
             }
           })
       })
@@ -147,10 +168,12 @@ export type DocumentInput = {
   tags: string[]
   estateId: EstateId
   taskId?: string | null
+  id?: string
+  fileName?: string
 }
 
-export const createDocument = async ({ file, title, tags, taskId, estateId }: DocumentInput) => {
-  const id = generateId('doc')
+export const createDocument = async ({ file, title, tags, taskId, estateId, id: providedId, fileName }: DocumentInput) => {
+  const id = providedId ?? generateId('doc')
   let resolvedEstateId: EstateId = estateId
 
   if (taskId) {
@@ -169,6 +192,8 @@ export const createDocument = async ({ file, title, tags, taskId, estateId }: Do
     contentType: file.type || 'application/octet-stream',
     size: file.size,
     file,
+    fileName: fileName ?? file.name ?? `${id}.bin`,
+    storagePath: null,
     created_at: nowISO(),
   }
 
