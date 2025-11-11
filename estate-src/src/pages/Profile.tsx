@@ -20,12 +20,9 @@ import { getSupabaseOverrides, saveSupabaseOverrides } from '../lib/supabaseClie
 import {
   createTask as createTaskCloud,
   importPlanToCloud,
+  migrateLocalWorkspaceToCloud,
   migrateLocalDocumentsToCloud,
-  syncEstateProfilesFromCloud,
-  syncGuidanceFromCloud,
-  syncDocumentsFromCloud,
-  syncSeedTasksFromCloud,
-  syncTasksFromCloud,
+  syncWorkspaceFromCloud,
 } from '../data/cloud'
 
 interface SetupFormState {
@@ -131,6 +128,9 @@ const Profile = () => {
   const [cloudError, setCloudError] = useState<string | null>(null)
   const [isCloudSaving, setIsCloudSaving] = useState(false)
   const [isCloudSigningOut, setIsCloudSigningOut] = useState(false)
+  const [isMigratingData, setIsMigratingData] = useState(false)
+  const [dataMigrationStatus, setDataMigrationStatus] = useState<string | null>(null)
+  const [dataMigrationError, setDataMigrationError] = useState<string | null>(null)
   const [isMigratingDocs, setIsMigratingDocs] = useState(false)
   const [migrationStatus, setMigrationStatus] = useState<string | null>(null)
   const [migrationError, setMigrationError] = useState<string | null>(null)
@@ -170,13 +170,7 @@ const Profile = () => {
     if (authMode !== 'supabase' || !isAuthenticated) return
     void (async () => {
       try {
-        await syncEstateProfilesFromCloud()
-        await Promise.all([
-          syncGuidanceFromCloud(activeEstateId),
-          syncSeedTasksFromCloud(activeEstateId),
-          syncTasksFromCloud(activeEstateId),
-          syncDocumentsFromCloud(activeEstateId),
-        ])
+        await syncWorkspaceFromCloud(activeEstateId)
         refreshEstateProfiles()
         setSeedVersion(loadSeedVersion())
       } catch (error) {
@@ -219,6 +213,33 @@ const Profile = () => {
     setCloudAnonKey(event.target.value)
     setCloudStatus(null)
     setCloudError(null)
+  }
+
+  const handleMigrateWorkspace = () => {
+    setDataMigrationStatus(null)
+    setDataMigrationError(null)
+
+    if (authMode !== 'supabase' || !isAuthenticated) {
+      setDataMigrationError('Sign in with Supabase to migrate data.')
+      return
+    }
+
+    setIsMigratingData(true)
+
+    void (async () => {
+      try {
+        await migrateLocalWorkspaceToCloud()
+        refreshEstateProfiles()
+        setDataMigrationStatus('Local estates, guidance, tasks, and journal entries migrated to Supabase.')
+      } catch (error) {
+        console.error(error)
+        const message =
+          error instanceof Error && error.message ? error.message : 'Unable to migrate workspace data'
+        setDataMigrationError(message)
+      } finally {
+        setIsMigratingData(false)
+      }
+    })()
   }
 
   const handleMigrateDocuments = () => {
@@ -618,6 +639,8 @@ const Profile = () => {
               </div>
               {cloudStatus ? <p className="text-sm text-primary-600">{cloudStatus}</p> : null}
               {cloudError ? <p className="text-sm text-rose-600">{cloudError}</p> : null}
+              {dataMigrationStatus ? <p className="text-sm text-primary-600">{dataMigrationStatus}</p> : null}
+              {dataMigrationError ? <p className="text-sm text-rose-600">{dataMigrationError}</p> : null}
               {migrationStatus ? <p className="text-sm text-primary-600">{migrationStatus}</p> : null}
               {migrationError ? <p className="text-sm text-rose-600">{migrationError}</p> : null}
               <div className="flex flex-wrap gap-3">
@@ -643,6 +666,14 @@ const Profile = () => {
                   className="rounded-full border border-rose-200 px-5 py-2 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isCloudSigningOut ? 'Signing out…' : 'Sign out'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMigrateWorkspace}
+                  disabled={isMigratingData || authMode !== 'supabase' || !isAuthenticated}
+                  className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-primary-300 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isMigratingData ? 'Migrating…' : 'Migrate local data now'}
                 </button>
                 <button
                   type="button"
