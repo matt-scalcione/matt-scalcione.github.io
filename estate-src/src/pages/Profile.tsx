@@ -2,6 +2,7 @@ import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useSta
 import { useNavigate } from 'react-router-dom'
 import { createTask, db } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
+import { useAuth } from '../context/AuthContext'
 import {
   ESTATE_IDS,
   loadSeedVersion,
@@ -15,6 +16,7 @@ import { computeDeadlines, formatDeadlineDate, isSetupComplete } from '../utils/
 import { exportWorkspaceData, importWorkspaceData, type WorkspaceExportPayload } from '../storage/dataTransfer'
 import { resetDemoData } from '../storage/demoData'
 import { coercePlan, PlanV2 } from '../features/plan/planSchema'
+import { getSupabaseOverrides, saveSupabaseOverrides } from '../lib/supabaseClient'
 
 interface SetupFormState {
   dateOfDeath: string
@@ -112,6 +114,13 @@ const Profile = () => {
   const [isPlanImporting, setIsPlanImporting] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [seedVersion, setSeedVersion] = useState<string | null>(() => loadSeedVersion())
+  const { mode: authMode, userEmail, refreshAuthMode, logout } = useAuth()
+  const [cloudUrl, setCloudUrl] = useState('')
+  const [cloudAnonKey, setCloudAnonKey] = useState('')
+  const [cloudStatus, setCloudStatus] = useState<string | null>(null)
+  const [cloudError, setCloudError] = useState<string | null>(null)
+  const [isCloudSaving, setIsCloudSaving] = useState(false)
+  const [isCloudSigningOut, setIsCloudSigningOut] = useState(false)
 
   const hydrateSetup = useCallback(() => {
     const stored = loadEstateSetup()
@@ -138,6 +147,12 @@ const Profile = () => {
     return () => window.clearTimeout(timeout)
   }, [toastMessage])
 
+  useEffect(() => {
+    const overrides = getSupabaseOverrides()
+    setCloudUrl(overrides.url)
+    setCloudAnonKey(overrides.anonKey)
+  }, [])
+
   const setup = useMemo(() => {
     const candidate = toEstateSetup(formState)
     return isSetupComplete(candidate) ? candidate : null
@@ -160,6 +175,57 @@ const Profile = () => {
     setGenerateMessage(null)
     setDataStatusMessage(null)
     setDataErrorMessage(null)
+  }
+
+  const handleCloudUrlChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setCloudUrl(event.target.value)
+    setCloudStatus(null)
+    setCloudError(null)
+  }
+
+  const handleCloudAnonKeyChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setCloudAnonKey(event.target.value)
+    setCloudStatus(null)
+    setCloudError(null)
+  }
+
+  const handleCloudSave = () => {
+    setCloudStatus(null)
+    setCloudError(null)
+    setIsCloudSaving(true)
+
+    try {
+      saveSupabaseOverrides(cloudUrl, cloudAnonKey)
+      refreshAuthMode()
+      setCloudStatus('Saved Supabase connection settings.')
+    } catch (error) {
+      console.error(error)
+      setCloudError('Unable to save Supabase settings. Check your browser storage permissions.')
+    } finally {
+      setIsCloudSaving(false)
+    }
+  }
+
+  const handleCloudSignIn = () => {
+    setCloudStatus(null)
+    setCloudError(null)
+    navigate('/login')
+  }
+
+  const handleCloudSignOut = async () => {
+    setCloudStatus(null)
+    setCloudError(null)
+    setIsCloudSigningOut(true)
+
+    try {
+      await logout()
+      setCloudStatus('Signed out successfully.')
+    } catch (error) {
+      console.error(error)
+      setCloudError('Unable to sign out. Try again.')
+    } finally {
+      setIsCloudSigningOut(false)
+    }
   }
 
   const persistSetup = (payload: EstateSetup) => {
@@ -423,6 +489,81 @@ const Profile = () => {
 
       <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
         <div className="space-y-6">
+          <article className="card-surface space-y-5">
+            <header className="space-y-1">
+              <h2 className="text-xl font-semibold text-slate-900">Cloud</h2>
+              <p className="text-sm text-slate-500">
+                Configure Supabase credentials to connect your workspace to the cloud and keep data in sync across devices.
+              </p>
+            </header>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="cloudUrl" className="text-sm font-semibold text-slate-700">
+                  Supabase URL
+                </label>
+                <input
+                  id="cloudUrl"
+                  type="url"
+                  placeholder="https://your-project.supabase.co"
+                  value={cloudUrl}
+                  onChange={handleCloudUrlChange}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="cloudAnonKey" className="text-sm font-semibold text-slate-700">
+                  Supabase anon key
+                </label>
+                <textarea
+                  id="cloudAnonKey"
+                  rows={3}
+                  placeholder="eyJhbGciOi..."
+                  value={cloudAnonKey}
+                  onChange={handleCloudAnonKeyChange}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-800 shadow-inner focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                />
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-600">
+                <p className="font-semibold text-slate-700">
+                  {authMode === 'supabase'
+                    ? `Cloud sync enabled${userEmail ? ` · ${userEmail}` : ''}`
+                    : 'Demo mode active'}
+                </p>
+                <p className="mt-1 leading-relaxed">
+                  {authMode === 'supabase'
+                    ? 'Supabase authentication is active. Sign out to switch accounts or update your keys.'
+                    : 'Enter your Supabase project URL and anon key, then save to enable cloud sync and Supabase sign-in.'}
+                </p>
+              </div>
+              {cloudStatus ? <p className="text-sm text-primary-600">{cloudStatus}</p> : null}
+              {cloudError ? <p className="text-sm text-rose-600">{cloudError}</p> : null}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleCloudSave}
+                  disabled={isCloudSaving}
+                  className="rounded-full bg-primary-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isCloudSaving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloudSignIn}
+                  className="rounded-full border border-primary-200 px-5 py-2 text-sm font-semibold text-primary-700 transition hover:border-primary-300 hover:bg-primary-50"
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloudSignOut}
+                  disabled={isCloudSigningOut}
+                  className="rounded-full border border-rose-200 px-5 py-2 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isCloudSigningOut ? 'Signing out…' : 'Sign out'}
+                </button>
+              </div>
+            </div>
+          </article>
           <article className="card-surface space-y-5">
             <header className="flex flex-wrap items-center justify-between gap-3">
               <div>
