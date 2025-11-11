@@ -6,6 +6,8 @@ import {
   guidanceAnchorForId,
   normalizeGuidanceEntries,
 } from '../utils/guidance'
+import { useAuth } from '../context/AuthContext'
+import { syncGuidanceFromCloud } from '../data/cloud'
 
 const storageEventMatchesGuidance = (event: StorageEvent, estateId: string) => {
   if (!event.key) return true
@@ -15,6 +17,7 @@ const storageEventMatchesGuidance = (event: StorageEvent, estateId: string) => {
 
 const Guidance = () => {
   const { activeEstateId, estateProfiles } = useEstate()
+  const { mode: authMode, isAuthenticated } = useAuth()
   const [entries, setEntries] = useState<NormalizedGuidanceEntry[]>([])
   const [copyFeedback, setCopyFeedback] = useState<{ key: string; status: 'success' | 'error'; message: string } | null>(
     null,
@@ -27,6 +30,18 @@ const Guidance = () => {
     const raw = loadSeedGuidance(activeEstateId)
     setEntries(normalizeGuidanceEntries(raw))
   }, [activeEstateId])
+
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isAuthenticated) return
+    void (async () => {
+      try {
+        await syncGuidanceFromCloud(activeEstateId)
+        refreshGuidance()
+      } catch (error) {
+        console.error(error)
+      }
+    })()
+  }, [activeEstateId, authMode, isAuthenticated, refreshGuidance])
 
   useEffect(() => {
     refreshGuidance()

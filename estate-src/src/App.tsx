@@ -15,6 +15,7 @@ import Tasks from './pages/Tasks'
 import Setup from './pages/Setup'
 import { useAuth } from './context/AuthContext'
 import { db } from './storage/tasksDB'
+import { syncTasksFromCloud } from './data/cloud'
 import { useEstate } from './context/EstateContext'
 import FlyoutMenu from './components/FlyoutMenu'
 import BottomBar from './components/BottomBar'
@@ -23,10 +24,17 @@ import { ROUTES } from './routes'
 const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout } = useAuth()
+  const { logout, mode: authMode, isAuthenticated } = useAuth()
   const { activeEstateId } = useEstate()
   const [overdueCount, setOverdueCount] = useState(0)
   const [flyoutOpen, setFlyoutOpen] = useState(false)
+
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isAuthenticated) return
+    void syncTasksFromCloud(activeEstateId).catch((error) => {
+      console.error(error)
+    })
+  }, [activeEstateId, authMode, isAuthenticated])
 
   useEffect(() => {
     let isMounted = true
