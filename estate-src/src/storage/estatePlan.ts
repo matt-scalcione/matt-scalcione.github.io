@@ -6,6 +6,7 @@ import type {
   SeedGuidancePage,
   SeedTask,
 } from '../types/estate'
+import { isLocalStorageAvailable } from './safeStorage'
 
 const ESTATE_PROFILES_KEY = 'estateProfiles'
 const ESTATE_ACTIVE_ID_KEY = 'estateActiveId'
@@ -32,15 +33,19 @@ export const notifyPlanUpdated = () => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const storageAvailable = () => typeof window !== 'undefined' && !!window.localStorage
+const storageAvailable = () => isLocalStorageAvailable()
 
 const writeJson = (key: string, value: unknown) => {
   if (!storageAvailable()) return
-  if (value === undefined) {
-    window.localStorage.removeItem(key)
-    return
+  try {
+    if (value === undefined) {
+      window.localStorage.removeItem(key)
+      return
+    }
+    window.localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    console.warn(`Unable to persist storage key ${key}`, error)
   }
-  window.localStorage.setItem(key, JSON.stringify(value))
 }
 
 const readJson = <T>(key: string, fallback: T): T => {
@@ -157,21 +162,34 @@ export const saveSeedGuidance = (estateId: EstateId, entries: SeedGuidancePage[]
 
 export const loadSeedVersion = (): string | null => {
   if (!storageAvailable()) return null
-  return window.localStorage.getItem(SEED_VERSION_KEY)
+  try {
+    return window.localStorage.getItem(SEED_VERSION_KEY)
+  } catch (error) {
+    console.warn('Unable to read seed version from storage', error)
+    return null
+  }
 }
 
 export const getActiveEstateId = (): EstateId => {
   if (!storageAvailable()) return 'mother'
-  const stored = window.localStorage.getItem(ESTATE_ACTIVE_ID_KEY)
-  if (stored === 'mother' || stored === 'father') {
-    return stored
+  try {
+    const stored = window.localStorage.getItem(ESTATE_ACTIVE_ID_KEY)
+    if (stored === 'mother' || stored === 'father') {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Unable to read active estate id from storage', error)
   }
   return 'mother'
 }
 
 export const setActiveEstateId = (estateId: EstateId) => {
   if (!storageAvailable()) return
-  window.localStorage.setItem(ESTATE_ACTIVE_ID_KEY, estateId)
+  try {
+    window.localStorage.setItem(ESTATE_ACTIVE_ID_KEY, estateId)
+  } catch (error) {
+    console.warn('Unable to persist active estate id', error)
+  }
 }
 
 export function reseedFromPlan(plan: PlanV2) {
