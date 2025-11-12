@@ -202,9 +202,16 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     setToken(null)
   }, [mode])
 
-  const isAuthenticated = mode === 'supabase' ? Boolean(supabaseSession) : Boolean(token)
-  const cloudReady = !SAFE_MODE && cloudStatus.ok
-  const cloudError = SAFE_MODE ? 'Cloud disabled (safe mode)' : cloudStatus.ok ? null : cloudStatus.reason
+  const hasSupabaseSession = Boolean(supabaseSession)
+  const isAuthenticated = mode === 'supabase' ? hasSupabaseSession : Boolean(token)
+  const cloudReady = !SAFE_MODE && cloudStatus.ok && hasSupabaseSession
+  const cloudError = SAFE_MODE
+    ? 'Cloud disabled (safe mode)'
+    : cloudStatus.ok
+      ? hasSupabaseSession
+        ? null
+        : 'Sign in with Supabase to enable cloud sync.'
+      : cloudStatus.reason
 
   const value = useMemo(
     () => ({

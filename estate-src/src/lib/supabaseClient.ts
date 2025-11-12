@@ -69,32 +69,87 @@ export const clearSupabaseOverrides = () => {
   resetCache()
 }
 
-export function getCloud(): CloudStatus {
+const validateCredentials = (url: string, anonKey: string): string | null => {
+  if (!url || !anonKey) {
+    return 'Missing Supabase URL or anon key'
+  }
+
+  if (!/^https?:\/\//i.test(url)) {
+    return 'Supabase URL must start with http(s)://'
+  }
+
+  if (anonKey.length < 40) {
+    return 'Anon key looks too short'
+  }
+
+  return null
+}
+
+const buildClient = (url: string, anonKey: string): SupabaseClient =>
+  createClient(url, anonKey, {
+    auth: { persistSession: true, autoRefreshToken: true },
+  })
+
+export function getClient(): SupabaseClient | null {
+  const url = resolveUrl()
+  const anonKey = resolveAnonKey()
+  const validationError = validateCredentials(url, anonKey)
+
+  if (validationError) {
+    resetCache()
+    return null
+  }
+
+  if (cachedStatus?.ok && cachedUrl === url && cachedAnonKey === anonKey) {
+    return cachedStatus.client
+  }
+
   try {
-    const url = resolveUrl()
-    const anonKey = resolveAnonKey()
+    const client = buildClient(url, anonKey)
+    cachedStatus = { ok: true, client }
+    cachedUrl = url
+    cachedAnonKey = anonKey
+    return client
+  } catch (error) {
+    console.error('Supabase init failed', error)
+    resetCache()
+    return null
+  }
+}
 
-    if (!url || !anonKey) {
-      resetCache()
-      return { ok: false, reason: 'Missing Supabase URL or anon key' }
+export async function getUserId(client?: SupabaseClient): Promise<string | null> {
+  const resolvedClient = client ?? getClient()
+  if (!resolvedClient) return null
+
+  try {
+    const { data, error } = await resolvedClient.auth.getUser()
+    if (error) {
+      console.warn('Unable to read Supabase user', error)
+      return null
     }
+    return data.user?.id ?? null
+  } catch (error) {
+    console.warn('Unexpected Supabase user lookup error', error)
+    return null
+  }
+}
 
-    if (!/^https?:\/\//i.test(url)) {
-      return { ok: false, reason: 'Supabase URL must start with http(s)://' }
-    }
+export function getCloud(): CloudStatus {
+  const url = resolveUrl()
+  const anonKey = resolveAnonKey()
 
-    if (anonKey.length < 40) {
-      return { ok: false, reason: 'Anon key looks too short' }
-    }
+  const validationError = validateCredentials(url, anonKey)
+  if (validationError) {
+    resetCache()
+    return { ok: false, reason: validationError }
+  }
 
-    if (cachedStatus && cachedUrl === url && cachedAnonKey === anonKey) {
-      return cachedStatus
-    }
+  if (cachedStatus?.ok && cachedUrl === url && cachedAnonKey === anonKey) {
+    return cachedStatus
+  }
 
-    const client = createClient(url, anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true },
-    })
-
+  try {
+    const client = buildClient(url, anonKey)
     cachedStatus = { ok: true, client }
     cachedUrl = url
     cachedAnonKey = anonKey
