@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../estate',
+    assetsDir: 'assets',
     emptyOutDir: true,
   },
   define: {
