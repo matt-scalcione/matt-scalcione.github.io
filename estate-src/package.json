@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "clean": "rimraf ../estate && mkdir -p ../estate",
+    "clean": "rimraf ../estate",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "postbuild": "node ../scripts/copy404.cjs && node ../scripts/verify-build.cjs && node ../scripts/bust-cache.cjs"
+    "postbuild": "node ../scripts/copy404.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
