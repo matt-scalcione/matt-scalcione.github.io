@@ -46,6 +46,16 @@
   <body>
     <script id="preboot">
       (function () {
+        try {
+          var back = sessionStorage.getItem('gh:redirect');
+          if (back && back !== '/estate/' && back !== '/estate') {
+            sessionStorage.removeItem('gh:redirect');
+            history.replaceState(null, '', back);
+          }
+        } catch (_) {}
+      })();
+
+      (function () {
         var qs = new URLSearchParams(location.search);
         if (qs.get('safe') === '1' || qs.get('rescue') === '1') {
           try {
@@ -108,7 +118,7 @@
               try {
                 localStorage.setItem('cloud:disabled', '1');
               } catch (_) {}
-              location.replace(location.pathname + '?safe=1');
+              location.replace('/estate/?safe=1');
             };
           }
           var btnReset = document.getElementById('btnReset');
@@ -119,7 +129,7 @@
                 localStorage.clear();
                 sessionStorage.clear();
               } catch (_) {}
-              location.replace(location.pathname + '?rescue=1');
+              location.replace('/estate/?rescue=1');
             };
           }
         }

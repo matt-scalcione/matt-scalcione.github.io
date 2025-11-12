@@ -14,7 +14,7 @@ const Crash = (error: unknown, reset: () => void) => {
     } catch (storageError) {
       console.warn('Unable to persist safe mode flag', storageError)
     }
-    window.location.reload()
+    window.location.replace('/estate/?safe=1')
   }
 
   return (
