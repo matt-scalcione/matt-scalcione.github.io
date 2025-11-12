@@ -8,8 +8,8 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <title>Estate</title>
-    <script type="module" crossorigin src="/estate/assets/index-BIhiPWyn.js"></script>
-    <link rel="stylesheet" crossorigin href="/estate/assets/index-DIdTU7V2.css">
+    <script type="module" crossorigin src="/estate/assets/index-CVu5kf9h.js"></script>
+    <link rel="stylesheet" crossorigin href="/estate/assets/index-DwInz4yn.css">
   </head>
   <body>
     <div id="root"></div>
@@ -29,6 +29,14 @@
         },
         { passive: false }
       );
+    </script>
+    <script>
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('Unhandled promise', event.reason);
+      });
+      window.addEventListener('error', (event) => {
+        console.error('Window error', event.error || event.message);
+      });
     </script>
   </body>
 </html>
