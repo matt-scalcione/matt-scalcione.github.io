@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getCloud } from '../lib/supabaseClient'
+import { getClient, getUserId } from '../lib/supabaseClient'
 import { SAFE_MODE } from '../lib/safeMode'
 import {
   db,
@@ -41,28 +41,17 @@ interface SupabaseContext {
 const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
   if (SAFE_MODE) return null
 
-  const cloud = getCloud()
-  if (!cloud.ok) {
+  const client = getClient()
+  if (!client) {
     return null
   }
 
-  try {
-    const { data, error } = await cloud.client.auth.getSession()
-    if (error) {
-      console.warn('Unable to read Supabase session', error)
-      return null
-    }
-
-    const userId = data.session?.user?.id
-    if (!userId) {
-      return null
-    }
-
-    return { client: cloud.client, userId }
-  } catch (error) {
-    console.warn('Unexpected Supabase session error', error)
+  const userId = await getUserId(client)
+  if (!userId) {
     return null
   }
+
+  return { client, userId }
 }
 
 export const isCloudSignedIn = async () => Boolean(await getSupabaseContext())
@@ -222,6 +211,126 @@ const replaceJournalEntries = async (estateId: EstateId, entries: JournalEntryRe
 }
 
 const nowISO = () => new Date().toISOString()
+
+const DEFAULT_ESTATE_ID: EstateId = ESTATE_IDS[0] ?? ('mother' as EstateId)
+
+const isUuid = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+
+const normStatus = (status: unknown): TaskRecord['status'] => {
+  const normalized = typeof status === 'string' ? status.trim().toLowerCase() : ''
+  if (normalized === 'in-progress' || normalized === 'done') {
+    return normalized
+  }
+  return 'not-started'
+}
+
+const normPriority = (priority: unknown): TaskRecord['priority'] => {
+  const normalized = typeof priority === 'string' ? priority.trim().toLowerCase() : ''
+  if (normalized === 'low' || normalized === 'high') {
+    return normalized
+  }
+  return 'med'
+}
+
+const toDateOnly = (value?: string | null) => {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed
+  }
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.valueOf())) return null
+  return parsed.toISOString().slice(0, 10)
+}
+
+const sanitizeTags = (input: unknown): string[] => {
+  if (!Array.isArray(input)) return []
+  const normalized = input
+    .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+    .filter((tag) => Boolean(tag))
+  return Array.from(new Set(normalized))
+}
+
+const sanitizeDocIds = (input: unknown): string[] => {
+  if (!Array.isArray(input)) return []
+  const normalized = input
+    .map((value) => {
+      if (typeof value === 'string') return value.trim()
+      return typeof value === 'number' ? String(value) : ''
+    })
+    .filter((value) => value && isUuid(value))
+  return Array.from(new Set(normalized))
+}
+
+const toIsoString = (value: string | null | undefined) => {
+  if (!value) return new Date().toISOString()
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.valueOf())) {
+    return new Date().toISOString()
+  }
+  return parsed.toISOString()
+}
+
+const normalizeTaskForLocal = (task: TaskInput & { estateId: EstateId }): TaskInput & { estateId: EstateId } => ({
+  estateId: task.estateId,
+  title: task.title,
+  description: typeof task.description === 'string' ? task.description : '',
+  due_date: toIsoString(task.due_date),
+  status: normStatus(task.status),
+  priority: normPriority(task.priority),
+  tags: sanitizeTags(task.tags),
+  docIds: sanitizeDocIds(task.docIds),
+  seedVersion: task.seedVersion,
+})
+
+const normalizeTaskUpdatesForLocal = (
+  updates: Partial<Omit<TaskRecord, 'id' | 'created_at' | 'updated_at'>>,
+): Partial<Omit<TaskRecord, 'id' | 'created_at' | 'updated_at'>> => {
+  const payload: Partial<Omit<TaskRecord, 'id' | 'created_at' | 'updated_at'>> = {}
+
+  if (updates.title !== undefined) payload.title = updates.title
+  if (updates.description !== undefined)
+    payload.description = typeof updates.description === 'string' ? updates.description : ''
+  if (updates.due_date !== undefined) payload.due_date = toIsoString(updates.due_date)
+  if (updates.status !== undefined) payload.status = normStatus(updates.status)
+  if (updates.priority !== undefined) payload.priority = normPriority(updates.priority)
+  if (updates.tags !== undefined) payload.tags = sanitizeTags(updates.tags)
+  if (updates.docIds !== undefined) payload.docIds = sanitizeDocIds(updates.docIds)
+  if (updates.estateId !== undefined) payload.estateId = updates.estateId
+  if ('seedVersion' in updates) payload.seedVersion = updates.seedVersion
+
+  return payload
+}
+
+export type CloudFallbackError = Error & {
+  cloudFallback: true
+  estateId: EstateId
+  localId?: string
+  taskId?: string
+  originalError?: unknown
+}
+
+const wrapCloudTaskError = (
+  error: unknown,
+  estateId: EstateId,
+  extras: { localId?: string; taskId?: string } = {},
+): CloudFallbackError => {
+  const baseMessage =
+    error instanceof Error && error.message ? error.message : String(error ?? 'Unknown error')
+  const wrapped = new Error(`Cloud save failed: ${baseMessage}`) as CloudFallbackError
+  wrapped.cloudFallback = true
+  wrapped.estateId = estateId
+  if (extras.localId) wrapped.localId = extras.localId
+  if (extras.taskId) wrapped.taskId = extras.taskId
+  wrapped.originalError = error
+  return wrapped
+}
+
+export const isCloudFallbackError = (error: unknown): error is CloudFallbackError =>
+  Boolean(error && (error as Partial<CloudFallbackError>).cloudFallback)
 
 const mapDocumentMetaRowToRecord = (row: SupabaseDocumentMetaRow): DocumentRecord => ({
   id: row.id,
@@ -495,83 +604,158 @@ export const syncTasksFromCloud = async (estateId: EstateId, options?: SyncOptio
   return true
 }
 
-const normalizeTaskInput = (task: TaskInput & { estateId: EstateId }) => ({
-  estate_id: task.estateId,
-  title: task.title,
-  description: task.description,
-  due_date: task.due_date ? new Date(task.due_date).toISOString() : null,
-  status: task.status,
-  priority: task.priority,
-  tags: task.tags ?? [],
-  doc_ids: task.docIds ?? [],
-})
+const resolveDueValue = (task: any) => {
+  if (typeof task?.due_date === 'string') return task.due_date
+  if (typeof task?.dueISO === 'string') return task.dueISO
+  if (typeof task?.dueDate === 'string') return task.dueDate
+  return null
+}
 
-export const createTask = async (task: TaskInput & { estateId: EstateId }) => {
-  const context = await getSupabaseContext()
-  if (!context) {
-    return createLocalTask(task)
+const buildCloudInsertPayload = (task: any, estateId: EstateId, userId: string) => {
+  const timestamp = nowISO()
+
+  const payload: Record<string, unknown> = {
+    user_id: userId,
+    estate_id: estateId,
+    title: typeof task.title === 'string' ? task.title : '',
+    description: typeof task.description === 'string' ? task.description : '',
+    due_date: toDateOnly(resolveDueValue(task)),
+    status: normStatus(task.status),
+    priority: normPriority(task.priority),
+    tags: sanitizeTags(task.tags),
+    doc_ids: sanitizeDocIds(task.docIds ?? task.doc_ids),
+    seed_version: typeof task.seedVersion === 'string' ? task.seedVersion : null,
+    created_at: timestamp,
+    updated_at: timestamp,
   }
 
-  const { client } = context
-  const payload = {
-    ...normalizeTaskInput(task),
-    created_at: nowISO(),
+  if (typeof task.id === 'string' && task.id.trim()) {
+    payload.id = task.id.trim()
+  }
+
+  return payload
+}
+
+const buildCloudUpdatePayload = (task: any, estateId: EstateId) => {
+  const patch: Record<string, unknown> = {
     updated_at: nowISO(),
+    estate_id: estateId,
   }
 
+  if ('title' in task) patch.title = task.title
+  if ('description' in task)
+    patch.description = typeof task.description === 'string' ? task.description : ''
+  if ('status' in task) patch.status = normStatus(task.status)
+  if ('priority' in task) patch.priority = normPriority(task.priority)
+  if ('tags' in task) patch.tags = sanitizeTags(task.tags)
+  if ('docIds' in task || 'doc_ids' in task) patch.doc_ids = sanitizeDocIds(task.docIds ?? task.doc_ids)
+  if ('seedVersion' in task)
+    patch.seed_version = typeof task.seedVersion === 'string' ? task.seedVersion : null
+  if ('due_date' in task || 'dueISO' in task || 'dueDate' in task) {
+    patch.due_date = toDateOnly(resolveDueValue(task))
+  }
+
+  return patch
+}
+
+export const cloudInsertTask = async (task: any, estateId: EstateId) => {
+  const client = getClient()
+  if (!client) throw new Error('Not signed in or cloud disabled')
+  const userId = await getUserId(client)
+  if (!userId) throw new Error('Not signed in or cloud disabled')
+
+  const payload = buildCloudInsertPayload(task, estateId, userId)
+  const { data, error } = await client.from('tasks').insert(payload).select('*').single()
+  if (error) throw new Error(error.message)
+  return data as SupabaseTaskRow
+}
+
+export const cloudUpdateTask = async (task: any, estateId: EstateId) => {
+  if (!task?.id || typeof task.id !== 'string') {
+    throw new Error('Task id is required for updates')
+  }
+
+  const client = getClient()
+  if (!client) throw new Error('Not signed in or cloud disabled')
+  const userId = await getUserId(client)
+  if (!userId) throw new Error('Not signed in or cloud disabled')
+
+  const patch = buildCloudUpdatePayload(task, estateId)
   const { data, error } = await client
     .from('tasks')
-    .insert(payload)
+    .update(patch)
+    .eq('id', task.id)
+    .eq('user_id', userId)
+    .eq('estate_id', estateId)
     .select('*')
     .single()
-  if (error) throw error
-  const record = mapTaskRowToRecord(data as SupabaseTaskRow)
-  await upsertTaskCache(record)
-  return record.id
+  if (error) throw new Error(error.message)
+  return data as SupabaseTaskRow
+}
+
+export const createTask = async (task: TaskInput & { estateId: EstateId }) => {
+  const normalized = normalizeTaskForLocal(task)
+
+  if (SAFE_MODE) {
+    return createLocalTask(normalized)
+  }
+
+  try {
+    const inserted = await cloudInsertTask(normalized, normalized.estateId)
+    const record = mapTaskRowToRecord(inserted)
+    await upsertTaskCache(record)
+    return record.id
+  } catch (error) {
+    const localId = await createLocalTask(normalized)
+    throw wrapCloudTaskError(error, normalized.estateId, { localId })
+  }
 }
 
 export const updateTask = async (
   id: string,
   updates: Partial<Omit<TaskRecord, 'id' | 'created_at' | 'updated_at'>>,
 ) => {
-  const context = await getSupabaseContext()
-  if (!context) {
-    await updateLocalTask(id, updates)
+  const sanitized = normalizeTaskUpdatesForLocal(updates)
+
+  if (SAFE_MODE) {
+    await updateLocalTask(id, sanitized)
     return
   }
-  const { client } = context
-  const payload: Record<string, unknown> = {
-    updated_at: nowISO(),
-  }
-  if (updates.title !== undefined) payload.title = updates.title
-  if (updates.description !== undefined) payload.description = updates.description
-  if (updates.due_date !== undefined) payload.due_date = updates.due_date ? new Date(updates.due_date).toISOString() : null
-  if (updates.status !== undefined) payload.status = updates.status
-  if (updates.priority !== undefined) payload.priority = updates.priority
-  if (updates.tags !== undefined) payload.tags = updates.tags
-  if (updates.docIds !== undefined) payload.doc_ids = updates.docIds
-  if (updates.estateId !== undefined) payload.estate_id = updates.estateId
-  if ('seedVersion' in updates) payload.seed_version = updates.seedVersion ?? null
 
-  const { data, error } = await client
-    .from('tasks')
-    .update(payload)
-    .eq('id', id)
-    .select('*')
-    .single()
-  if (error) throw error
-  const record = mapTaskRowToRecord(data as SupabaseTaskRow)
-  await upsertTaskCache(record)
+  const existing = await db.tasks.get(id)
+  const estateId = (updates.estateId ?? sanitized.estateId ?? existing?.estateId ?? DEFAULT_ESTATE_ID) as EstateId
+
+  try {
+    const updatedRow = await cloudUpdateTask({ id, estateId, ...sanitized }, estateId)
+    const record = mapTaskRowToRecord(updatedRow)
+    await upsertTaskCache(record)
+  } catch (error) {
+    await updateLocalTask(id, sanitized)
+    throw wrapCloudTaskError(error, estateId, { taskId: id })
+  }
 }
 
 export const deleteTask = async (id: string) => {
+  if (SAFE_MODE) {
+    await deleteLocalTask(id)
+    return
+  }
+
   const context = await getSupabaseContext()
   if (!context) {
     await deleteLocalTask(id)
     return
   }
-  const { client } = context
-  const { error } = await client.from('tasks').delete().eq('id', id)
+
+  const existing = await db.tasks.get(id)
+  const estateId = existing?.estateId ?? DEFAULT_ESTATE_ID
+  const { client, userId } = context
+  const { error } = await client
+    .from('tasks')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+    .eq('estate_id', estateId)
   if (error) throw error
   await removeTaskFromCache(id)
 }
