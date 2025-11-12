@@ -1,6 +1,17 @@
 import { z } from 'zod'
 
-const iso = z.string().datetime({ offset: false }).or(z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/))
+const iso = z
+  .string()
+  .datetime({ offset: false })
+  .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+  .or(z.literal('').transform(() => null))
+
+const linkUrl = z
+  .string()
+  .refine(
+    (s) => /^(https?:\/\/|mailto:|tel:|\/)/i.test(String(s || '').trim()),
+    'link must start with http(s)://, mailto:, tel:, or /',
+  )
 
 export const Profile = z.object({
   id: z.string().min(1),
@@ -27,7 +38,15 @@ export const Guidance = z.object({
   estateId: z.string().min(1),
   title: z.string().min(1),
   body: z.string().min(1),
-  links: z.array(z.object({ label: z.string(), url: z.string().url() })).optional(),
+  links: z
+    .array(
+      z.union([
+        z.object({ label: z.string().min(1), url: linkUrl }),
+        z.string().transform((u) => ({ label: u, url: u })),
+      ]),
+    )
+    .optional()
+    .default([]),
 })
 
 export const PlanV2 = z.object({
@@ -81,6 +100,21 @@ export function coercePlan(raw: unknown) {
     ...t,
     dueISO: fix((t as Record<string, unknown>).dueISO ?? null),
   }))
+
+  if ((obj as { guidance?: any[] }).guidance) {
+    ;(obj as { guidance: any[] }).guidance = (obj as { guidance: any[] }).guidance.map((g) => ({
+      ...g,
+      links: ((g as Record<string, unknown>).links || []).map((link: any) =>
+        typeof link === 'string'
+          ? link.trim()
+          : {
+              ...link,
+              label: String((link as Record<string, unknown>).label ?? '').trim(),
+              url: String((link as Record<string, unknown>).url ?? '').trim(),
+            },
+      ),
+    }))
+  }
 
   return obj
 }
