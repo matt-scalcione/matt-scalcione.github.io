@@ -25,6 +25,8 @@ import {
   migrateLocalWorkspaceToCloud,
   migrateLocalDocumentsToCloud,
   syncWorkspaceFromCloud,
+  isCloudFallbackError,
+  type CloudFallbackError,
 } from '../data/cloud'
 
 interface SetupFormState {
@@ -101,6 +103,17 @@ const formatPlanDate = (iso?: string) => {
     year: 'numeric',
   })
 }
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback
+
+const enhanceFallbackMessage = (message: string) =>
+  message.includes('Saved locally')
+    ? message
+    : `${message}. Saved locally; will sync once cloud access is restored.`
+
+const resolveCloudFallbackMessage = (error: CloudFallbackError, fallback: string) =>
+  enhanceFallbackMessage(getErrorMessage(error, fallback))
 
 const Profile = () => {
   const navigate = useNavigate()
@@ -248,8 +261,7 @@ const Profile = () => {
         setDataMigrationStatus('Local estates, guidance, tasks, and journal entries migrated to Supabase.')
       } catch (error) {
         console.error(error)
-        const message =
-          error instanceof Error && error.message ? error.message : 'Unable to migrate workspace data'
+        const message = getErrorMessage(error, 'Unable to migrate workspace data')
         setDataMigrationError(message)
       } finally {
         setIsMigratingData(false)
@@ -274,8 +286,7 @@ const Profile = () => {
         setMigrationStatus('Local documents migrated to Supabase Storage.')
       } catch (error) {
         console.error(error)
-        const message =
-          error instanceof Error && error.message ? error.message : 'Unable to migrate documents'
+        const message = getErrorMessage(error, 'Unable to migrate documents')
         setMigrationError(message)
       } finally {
         setIsMigratingDocs(false)
@@ -386,6 +397,7 @@ const Profile = () => {
 
       let created = 0
       let skipped = 0
+      let fallbackWarning: string | null = null
 
       for (const deadline of computed) {
         if (existingTitles.has(deadline.title.toLowerCase())) {
@@ -398,18 +410,31 @@ const Profile = () => {
           continue
         }
 
-        await createTaskCloud({
-          estateId: activeEstateId,
-          title: deadline.title,
-          description: deadline.description ?? '',
-          due_date: deadline.dueDate.toISOString(),
-          status: 'not-started',
-          priority: 'med',
-          tags: [deadline.tag],
-          docIds: [],
-        })
-        created += 1
-        existingTitles.add(deadline.title.toLowerCase())
+        try {
+          await createTaskCloud({
+            estateId: activeEstateId,
+            title: deadline.title,
+            description: deadline.description ?? '',
+            due_date: deadline.dueDate.toISOString(),
+            status: 'not-started',
+            priority: 'med',
+            tags: [deadline.tag],
+            docIds: [],
+          })
+          created += 1
+          existingTitles.add(deadline.title.toLowerCase())
+        } catch (error) {
+          if (isCloudFallbackError(error)) {
+            created += 1
+            existingTitles.add(deadline.title.toLowerCase())
+            fallbackWarning = resolveCloudFallbackMessage(
+              error,
+              'Unable to generate checklist tasks.',
+            )
+          } else {
+            throw error
+          }
+        }
       }
 
       setGenerateMessage(
@@ -419,10 +444,13 @@ const Profile = () => {
             }.`
           : 'All default tasks already exist.',
       )
-      setErrorMessage(null)
+      setErrorMessage(fallbackWarning)
     } catch (error) {
       console.error(error)
-      setErrorMessage('Unable to generate checklist tasks.')
+      const message = isCloudFallbackError(error)
+        ? resolveCloudFallbackMessage(error, 'Unable to generate checklist tasks.')
+        : getErrorMessage(error, 'Unable to generate checklist tasks.')
+      setErrorMessage(message)
     } finally {
       setIsGenerating(false)
     }
@@ -450,7 +478,7 @@ const Profile = () => {
       setDataStatusMessage('Exported workspace data. Check your downloads folder for the JSON file.')
     } catch (error) {
       console.error(error)
-      setDataErrorMessage('Unable to export workspace data.')
+      setDataErrorMessage(getErrorMessage(error, 'Unable to export workspace data.'))
     } finally {
       setIsExporting(false)
     }
@@ -482,7 +510,9 @@ const Profile = () => {
       setDataStatusMessage('Imported workspace data successfully.')
     } catch (error) {
       console.error(error)
-      setDataErrorMessage('Unable to import data. Confirm the file was exported from Estate.')
+      setDataErrorMessage(
+        getErrorMessage(error, 'Unable to import data. Confirm the file was exported from Estate.'),
+      )
     } finally {
       setIsImporting(false)
     }
@@ -502,7 +532,7 @@ const Profile = () => {
       setDataStatusMessage('Demo data restored. Sample tasks, documents, and journal entries are ready to explore.')
     } catch (error) {
       console.error(error)
-      setDataErrorMessage('Unable to reset demo data.')
+      setDataErrorMessage(getErrorMessage(error, 'Unable to reset demo data.'))
     } finally {
       setIsResetting(false)
     }
@@ -607,7 +637,7 @@ const Profile = () => {
       navigate('/tasks')
     } catch (error) {
       console.error(error)
-      const message = error instanceof Error && error.message ? error.message : 'Unable to import plan'
+      const message = getErrorMessage(error, 'Unable to import plan')
       setPlanImportError(message)
     } finally {
       setIsPlanImporting(false)

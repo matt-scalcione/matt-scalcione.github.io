@@ -18,6 +18,8 @@ import {
   syncTasksFromCloud,
   unlinkDocumentFromTask as unlinkDocumentFromTaskCloud,
   updateTask as updateTaskCloud,
+  isCloudFallbackError,
+  type CloudFallbackError,
 } from '../data/cloud'
 
 const priorityStyles: Record<TaskPriority, string> = {
@@ -76,6 +78,17 @@ const formatBytes = (size: number) => {
   const formatted = exponent === 0 ? value.toFixed(0) : value.toFixed(1)
   return `${formatted} ${units[exponent]}`
 }
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback
+
+const enhanceFallbackMessage = (message: string) =>
+  message.includes('Saved locally')
+    ? message
+    : `${message}. Saved locally; will sync once cloud access is restored.`
+
+const resolveCloudFallbackMessage = (error: CloudFallbackError, fallback: string) =>
+  enhanceFallbackMessage(getErrorMessage(error, fallback))
 
 const toDateOnly = (iso?: string | null) => {
   if (!iso) return null
@@ -189,10 +202,10 @@ const Tasks = () => {
         } else {
           await seedTasksIfEmpty()
         }
-      } catch (err) {
-        console.error(err)
+      } catch (error) {
+        console.error(error)
         if (!isMounted) return
-        setError('Unable to load tasks')
+        setError(getErrorMessage(error, 'Unable to load tasks'))
         setLoading(false)
       }
     }
@@ -213,10 +226,10 @@ const Tasks = () => {
         setTasks(sorted)
         setLoading(false)
       },
-      error: (err) => {
-        console.error(err)
+      error: (error) => {
+        console.error(error)
         if (!isMounted) return
-        setError('Unable to load tasks')
+        setError(getErrorMessage(error, 'Unable to load tasks'))
         setLoading(false)
       },
     })
@@ -243,10 +256,10 @@ const Tasks = () => {
         )
         setDocuments(sorted)
       },
-      error: (err) => {
-        console.error(err)
+      error: (error) => {
+        console.error(error)
         if (!isMounted) return
-        setError('Unable to load documents')
+        setError(getErrorMessage(error, 'Unable to load documents'))
       },
     })
 
@@ -387,10 +400,21 @@ const Tasks = () => {
       })
       resetForm()
       setIsCreating(false)
+      setError(null)
       navigate(`/tasks/${id}`)
-    } catch (err) {
-      console.error(err)
-      setError('Unable to save task')
+    } catch (error) {
+      console.error(error)
+      if (isCloudFallbackError(error)) {
+        const localId = error.localId ?? null
+        resetForm()
+        setIsCreating(false)
+        setError(resolveCloudFallbackMessage(error, 'Unable to save task'))
+        if (localId) {
+          navigate(`/tasks/${localId}`)
+        }
+      } else {
+        setError(getErrorMessage(error, 'Unable to save task'))
+      }
       setFormSubmitting(false)
     }
   }
@@ -413,10 +437,14 @@ const Tasks = () => {
         priority: formState.priority,
         tags: parseList(formState.tags),
       })
+      setError(null)
       setFormSubmitting(false)
-    } catch (err) {
-      console.error(err)
-      setError('Unable to update task')
+    } catch (error) {
+      console.error(error)
+      const message = isCloudFallbackError(error)
+        ? resolveCloudFallbackMessage(error, 'Unable to update task')
+        : getErrorMessage(error, 'Unable to update task')
+      setError(message)
       setFormSubmitting(false)
     }
   }
@@ -428,9 +456,13 @@ const Tasks = () => {
       if (taskId === id) {
         navigate('/tasks')
       }
-    } catch (err) {
-      console.error(err)
-      setError('Unable to delete task')
+      setError(null)
+    } catch (error) {
+      console.error(error)
+      const message = isCloudFallbackError(error)
+        ? resolveCloudFallbackMessage(error, 'Unable to delete task')
+        : getErrorMessage(error, 'Unable to delete task')
+      setError(message)
     }
   }
 
@@ -438,9 +470,12 @@ const Tasks = () => {
     setError(null)
     try {
       await updateTaskCloud(task.id, { status: 'done' })
-    } catch (err) {
-      console.error(err)
-      setError('Unable to update task status')
+    } catch (error) {
+      console.error(error)
+      const message = isCloudFallbackError(error)
+        ? resolveCloudFallbackMessage(error, 'Unable to update task status')
+        : getErrorMessage(error, 'Unable to update task status')
+      setError(message)
     }
   }
 
@@ -452,9 +487,12 @@ const Tasks = () => {
     try {
       await linkDocumentToTaskCloud(docToLink, selectedTask.id)
       setDocToLink('')
-    } catch (err) {
-      console.error(err)
-      setError('Unable to link document')
+    } catch (error) {
+      console.error(error)
+      const message = isCloudFallbackError(error)
+        ? resolveCloudFallbackMessage(error, 'Unable to link document')
+        : getErrorMessage(error, 'Unable to link document')
+      setError(message)
     } finally {
       setLinking(false)
     }
@@ -465,9 +503,12 @@ const Tasks = () => {
     setUnlinkingDocId(docId)
     try {
       await unlinkDocumentFromTaskCloud(docId)
-    } catch (err) {
-      console.error(err)
-      setError('Unable to unlink document')
+    } catch (error) {
+      console.error(error)
+      const message = isCloudFallbackError(error)
+        ? resolveCloudFallbackMessage(error, 'Unable to unlink document')
+        : getErrorMessage(error, 'Unable to unlink document')
+      setError(message)
     } finally {
       setUnlinkingDocId(null)
     }
