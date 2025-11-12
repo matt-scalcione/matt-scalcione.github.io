@@ -1,8 +1,5 @@
-<!doctype html>
-<meta charset="utf-8">
-<title>Redirecting…</title>
+<!doctype html><meta charset="utf-8"><title>Redirecting…</title>
 <script>
-  // Preserve the original path (e.g., /estate/login?x#y) and send the browser to /estate/
-  try { sessionStorage.setItem('gh:redirect', location.pathname + location.search + location.hash); } catch(_) {}
+  try { sessionStorage.setItem('gh:redirect', location.pathname + location.search + location.hash); } catch(e){}
   location.replace('/estate/');
 </script>
