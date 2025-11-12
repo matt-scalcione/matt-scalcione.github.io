@@ -11,7 +11,7 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx?v=__BUILD_ID__"></script>
     <script>
       // Block pinch zoom
       addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
@@ -28,6 +28,14 @@
         },
         { passive: false }
       );
+    </script>
+    <script>
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('Unhandled promise', event.reason);
+      });
+      window.addEventListener('error', (event) => {
+        console.error('Window error', event.error || event.message);
+      });
     </script>
   </body>
 </html>

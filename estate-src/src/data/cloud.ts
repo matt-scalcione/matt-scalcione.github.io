@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getClient, getSupabaseSession } from '../lib/supabaseClient'
+import { getCloud } from '../lib/supabaseClient'
+import { SAFE_MODE } from '../lib/safeMode'
 import {
   db,
   type DocumentInput,
@@ -38,11 +39,30 @@ interface SupabaseContext {
 }
 
 const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
-  const client = getClient()
-  if (!client) return null
-  const session = await getSupabaseSession()
-  if (!session?.user?.id) return null
-  return { client, userId: session.user.id }
+  if (SAFE_MODE) return null
+
+  const cloud = getCloud()
+  if (!cloud.ok) {
+    return null
+  }
+
+  try {
+    const { data, error } = await cloud.client.auth.getSession()
+    if (error) {
+      console.warn('Unable to read Supabase session', error)
+      return null
+    }
+
+    const userId = data.session?.user?.id
+    if (!userId) {
+      return null
+    }
+
+    return { client: cloud.client, userId }
+  } catch (error) {
+    console.warn('Unexpected Supabase session error', error)
+    return null
+  }
 }
 
 export const isCloudSignedIn = async () => Boolean(await getSupabaseContext())
