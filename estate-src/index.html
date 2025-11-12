@@ -8,8 +8,169 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <title>Estate</title>
+    <style>
+      #rescue {
+        position: fixed;
+        inset: 0;
+        background: #fff;
+        font-family: system-ui;
+        padding: 16px;
+        display: none;
+        z-index: 9999;
+      }
+      #rescue.show {
+        display: block;
+      }
+      #rescue h2 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+      }
+      #rescue pre {
+        white-space: pre-wrap;
+        max-height: 40vh;
+        overflow: auto;
+        background: #f6f6f6;
+        padding: 8px;
+      }
+      #rescue .row {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+      }
+      #rescue button {
+        font-size: 16px;
+        padding: 10px 12px;
+      }
+    </style>
   </head>
   <body>
+    <script id="preboot">
+      (function () {
+        var qs = new URLSearchParams(location.search);
+        if (qs.get('safe') === '1' || qs.get('rescue') === '1') {
+          try {
+            localStorage.setItem('cloud:disabled', '1');
+          } catch (_) {}
+        }
+        if (qs.get('reset') === '1') {
+          try {
+            Object.keys(localStorage).forEach(function (k) {
+              if (/^supabase|^cloud:|^estate|^tasks:|^guidance:|^journal:|^documents/i.test(k)) {
+                localStorage.removeItem(k);
+              }
+            });
+            sessionStorage.clear();
+          } catch (_) {}
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker
+            .getRegistrations()
+            .then(function (rs) {
+              return rs.forEach(function (r) {
+                return r.unregister();
+              });
+            })
+            .catch(function () {});
+        }
+        if ('caches' in window) {
+          caches
+            .keys()
+            .then(function (keys) {
+              return keys.forEach(function (k) {
+                return caches.delete(k);
+              });
+            })
+            .catch(function () {});
+        }
+
+        var root = document.createElement('div');
+        root.id = 'rescue';
+        root.innerHTML =
+          '<h2>Startup problem</h2>' +
+          '<div id="rescue-msg">Loading…</div>' +
+          '<div class="row">' +
+          '<button id="btnSafe">Disable Cloud and reload</button>' +
+          '<button id="btnReset">Reset keys and reload</button>' +
+          '</div>' +
+          '<pre id="rescue-log"></pre>';
+
+        function mount() {
+          if (!document.body) {
+            return;
+          }
+          if (!document.body.contains(root)) {
+            document.body.appendChild(root);
+          }
+          var btnSafe = document.getElementById('btnSafe');
+          if (btnSafe && !btnSafe.__rescueBound) {
+            btnSafe.__rescueBound = true;
+            btnSafe.onclick = function () {
+              try {
+                localStorage.setItem('cloud:disabled', '1');
+              } catch (_) {}
+              location.replace(location.pathname + '?safe=1');
+            };
+          }
+          var btnReset = document.getElementById('btnReset');
+          if (btnReset && !btnReset.__rescueBound) {
+            btnReset.__rescueBound = true;
+            btnReset.onclick = function () {
+              try {
+                localStorage.clear();
+                sessionStorage.clear();
+              } catch (_) {}
+              location.replace(location.pathname + '?rescue=1');
+            };
+          }
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', mount);
+        } else {
+          mount();
+        }
+
+        function show(msg) {
+          mount();
+          var m = document.getElementById('rescue-msg');
+          if (m) {
+            m.textContent = String(msg || 'Unknown error');
+          }
+          var r = document.getElementById('rescue');
+          if (r) {
+            r.className = 'show';
+          }
+          var l = document.getElementById('rescue-log');
+          if (l && msg) {
+            l.textContent += String(msg) + '\n';
+          }
+        }
+
+        window.addEventListener(
+          'error',
+          function (e) {
+            var src = e.target && (e.target.src || e.target.href);
+            if (src) {
+              show('Failed to load: ' + src);
+            } else {
+              show(e.message || e.error || 'Unhandled error');
+            }
+          },
+          true,
+        );
+
+        window.addEventListener('unhandledrejection', function (e) {
+          var reason = e.reason && (e.reason.message || e.reason);
+          show(reason || 'Unhandled promise rejection');
+        });
+
+        if (qs.get('rescue') === '1') {
+          show('Rescue mode activated');
+        } else if (qs.get('safe') === '1') {
+          show('Cloud disabled. Reloading will keep local mode.');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx?v=__BUILD_ID__"></script>
     <script>
