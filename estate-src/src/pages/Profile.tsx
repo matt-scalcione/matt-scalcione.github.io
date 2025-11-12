@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { db } from '../storage/tasksDB'
 import { useEstate } from '../context/EstateContext'
 import { useAuth } from '../context/AuthContext'
+import { CloudBanner } from '../components/CloudBanner'
 import {
   ESTATE_IDS,
   loadSeedVersion,
@@ -16,7 +17,8 @@ import { computeDeadlines, formatDeadlineDate, isSetupComplete } from '../utils/
 import { exportWorkspaceData, importWorkspaceData, type WorkspaceExportPayload } from '../storage/dataTransfer'
 import { resetDemoData } from '../storage/demoData'
 import { coercePlan, PlanV2 } from '../features/plan/planSchema'
-import { getSupabaseOverrides, saveSupabaseOverrides } from '../lib/supabaseClient'
+import { clearSupabaseOverrides, getSupabaseOverrides, saveSupabaseOverrides } from '../lib/supabaseClient'
+import { disableCloud, enableCloud } from '../lib/safeMode'
 import {
   createTask as createTaskCloud,
   importPlanToCloud,
@@ -121,11 +123,20 @@ const Profile = () => {
   const [isPlanImporting, setIsPlanImporting] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [seedVersion, setSeedVersion] = useState<string | null>(() => loadSeedVersion())
-  const { mode: authMode, userEmail, refreshAuthMode, logout, isAuthenticated } = useAuth()
+  const {
+    mode: authMode,
+    userEmail,
+    refreshCloudStatus,
+    logout,
+    isAuthenticated,
+    cloudReady,
+    cloudError: cloudValidationError,
+    safeMode,
+  } = useAuth()
   const [cloudUrl, setCloudUrl] = useState('')
   const [cloudAnonKey, setCloudAnonKey] = useState('')
-  const [cloudStatus, setCloudStatus] = useState<string | null>(null)
-  const [cloudError, setCloudError] = useState<string | null>(null)
+  const [cloudFeedback, setCloudFeedback] = useState<string | null>(null)
+  const [cloudFeedbackError, setCloudFeedbackError] = useState<string | null>(null)
   const [isCloudSaving, setIsCloudSaving] = useState(false)
   const [isCloudSigningOut, setIsCloudSigningOut] = useState(false)
   const [isMigratingData, setIsMigratingData] = useState(false)
@@ -189,6 +200,10 @@ const Profile = () => {
     return computeDeadlines(setup)
   }, [setup])
 
+  const cloudValidationMessage = cloudReady
+    ? `✅ Cloud connection ready${userEmail ? ` · ${userEmail}` : ''}`
+    : `❌ ${cloudValidationError ?? 'Cloud not configured'}`
+
   const handleFormChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, type } = event.target
     const value = type === 'checkbox' ? event.target.checked : event.target.value
@@ -205,14 +220,14 @@ const Profile = () => {
 
   const handleCloudUrlChange = (event: ChangeEvent<HTMLInputElement>) => {
     setCloudUrl(event.target.value)
-    setCloudStatus(null)
-    setCloudError(null)
+    setCloudFeedback(null)
+    setCloudFeedbackError(null)
   }
 
   const handleCloudAnonKeyChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setCloudAnonKey(event.target.value)
-    setCloudStatus(null)
-    setCloudError(null)
+    setCloudFeedback(null)
+    setCloudFeedbackError(null)
   }
 
   const handleMigrateWorkspace = () => {
@@ -269,42 +284,62 @@ const Profile = () => {
   }
 
   const handleCloudSave = () => {
-    setCloudStatus(null)
-    setCloudError(null)
+    setCloudFeedback(null)
+    setCloudFeedbackError(null)
     setIsCloudSaving(true)
 
     try {
       saveSupabaseOverrides(cloudUrl, cloudAnonKey)
-      refreshAuthMode()
-      setCloudStatus('Saved Supabase connection settings.')
+      refreshCloudStatus()
+      setCloudFeedback('Saved Supabase connection settings.')
     } catch (error) {
       console.error(error)
-      setCloudError('Unable to save Supabase settings. Check your browser storage permissions.')
+      setCloudFeedbackError('Unable to save Supabase settings. Check your browser storage permissions.')
     } finally {
       setIsCloudSaving(false)
     }
   }
 
   const handleCloudSignIn = () => {
-    setCloudStatus(null)
-    setCloudError(null)
+    setCloudFeedback(null)
+    setCloudFeedbackError(null)
     navigate('/login')
   }
 
   const handleCloudSignOut = async () => {
-    setCloudStatus(null)
-    setCloudError(null)
+    setCloudFeedback(null)
+    setCloudFeedbackError(null)
     setIsCloudSigningOut(true)
 
     try {
       await logout()
-      setCloudStatus('Signed out successfully.')
+      setCloudFeedback('Signed out successfully.')
     } catch (error) {
       console.error(error)
-      setCloudError('Unable to sign out. Try again.')
+      setCloudFeedbackError('Unable to sign out. Try again.')
     } finally {
       setIsCloudSigningOut(false)
     }
+  }
+
+  const reloadApp = () => {
+    if (typeof window === 'undefined') return
+    window.location.reload()
+  }
+
+  const handleDisableCloudSafeMode = () => {
+    disableCloud()
+    reloadApp()
+  }
+
+  const handleEnableCloudMode = () => {
+    enableCloud()
+    reloadApp()
+  }
+
+  const handleClearCloudKeys = () => {
+    clearSupabaseOverrides()
+    reloadApp()
   }
 
   const persistSetup = (payload: EstateSetup) => {
@@ -591,6 +626,7 @@ const Profile = () => {
 
       <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
         <div className="space-y-6">
+          <CloudBanner />
           <article className="card-surface space-y-5">
             <header className="space-y-1">
               <h2 className="text-xl font-semibold text-slate-900">Cloud</h2>
@@ -626,19 +662,17 @@ const Profile = () => {
                 />
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-600">
-                <p className="font-semibold text-slate-700">
-                  {authMode === 'supabase'
-                    ? `Cloud sync enabled${userEmail ? ` · ${userEmail}` : ''}`
-                    : 'Demo mode active'}
-                </p>
+                <p className="font-semibold text-slate-700">{cloudValidationMessage}</p>
                 <p className="mt-1 leading-relaxed">
-                  {authMode === 'supabase'
+                  {safeMode
+                    ? 'Safe mode keeps everything local. Enable cloud to recheck your Supabase keys.'
+                    : cloudReady
                     ? 'Supabase authentication is active. Sign out to switch accounts or update your keys.'
                     : 'Enter your Supabase project URL and anon key, then save to enable cloud sync and Supabase sign-in.'}
                 </p>
               </div>
-              {cloudStatus ? <p className="text-sm text-primary-600">{cloudStatus}</p> : null}
-              {cloudError ? <p className="text-sm text-rose-600">{cloudError}</p> : null}
+              {cloudFeedback ? <p className="text-sm text-primary-600">{cloudFeedback}</p> : null}
+              {cloudFeedbackError ? <p className="text-sm text-rose-600">{cloudFeedbackError}</p> : null}
               {dataMigrationStatus ? <p className="text-sm text-primary-600">{dataMigrationStatus}</p> : null}
               {dataMigrationError ? <p className="text-sm text-rose-600">{dataMigrationError}</p> : null}
               {migrationStatus ? <p className="text-sm text-primary-600">{migrationStatus}</p> : null}
@@ -666,6 +700,29 @@ const Profile = () => {
                   className="rounded-full border border-rose-200 px-5 py-2 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isCloudSigningOut ? 'Signing out…' : 'Sign out'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDisableCloudSafeMode}
+                  disabled={safeMode}
+                  className="rounded-full border border-amber-200 px-5 py-2 text-sm font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Disable Cloud (Safe Mode)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEnableCloudMode}
+                  disabled={!safeMode}
+                  className="rounded-full border border-emerald-200 px-5 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Enable Cloud
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearCloudKeys}
+                  className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  Clear Cloud Keys
                 </button>
                 <button
                   type="button"

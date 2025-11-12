@@ -9,4 +9,7 @@ export default defineConfig({
     outDir: '../estate',
     emptyOutDir: true,
   },
+  define: {
+    __BUILD_ID__: JSON.stringify(Date.now()),
+  },
 })

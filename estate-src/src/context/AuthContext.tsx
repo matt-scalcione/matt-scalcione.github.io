@@ -1,7 +1,8 @@
 import { compareSync } from 'bcryptjs'
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { getClient, hasSupabaseConfig } from '../lib/supabaseClient'
+import { getCloud, type CloudStatus } from '../lib/supabaseClient'
+import { SAFE_MODE } from '../lib/safeMode'
 
 const VALID_USERNAME = 'matt'
 const PASSWORD_HASH = '$2b$12$k06H0pTAlXNVyy3DMhdPU.8tb6ZBiIPIi4iX9/9.Vdg7yQZm2cDce'
@@ -16,7 +17,10 @@ interface AuthContextValue {
   logout: () => Promise<void>
   mode: AuthMode
   userEmail: string | null
-  refreshAuthMode: () => void
+  refreshCloudStatus: () => void
+  cloudReady: boolean
+  cloudError: string | null
+  safeMode: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -30,8 +34,9 @@ const generateSessionToken = () => {
 }
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
-  const [mode, setMode] = useState<AuthMode>(() => (hasSupabaseConfig() ? 'supabase' : 'demo'))
-  const [configVersion, setConfigVersion] = useState(0)
+  const initialCloudStatus: CloudStatus = SAFE_MODE ? { ok: false, reason: 'Cloud disabled (safe mode)' } : getCloud()
+  const [cloudStatus, setCloudStatus] = useState<CloudStatus>(initialCloudStatus)
+  const [mode, setMode] = useState<AuthMode>(() => (!SAFE_MODE && initialCloudStatus.ok ? 'supabase' : 'demo'))
   const [token, setToken] = useState<string | null>(() => {
     try {
       return localStorage.getItem(SESSION_STORAGE_KEY)
@@ -44,10 +49,18 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [isReady, setIsReady] = useState<boolean>(mode !== 'supabase')
 
-  const refreshAuthMode = useCallback(() => {
-    setConfigVersion((previous) => previous + 1)
-    setMode(hasSupabaseConfig() ? 'supabase' : 'demo')
+  const refreshCloudStatus = useCallback(() => {
+    if (SAFE_MODE) {
+      setCloudStatus({ ok: false, reason: 'Cloud disabled (safe mode)' })
+      return
+    }
+
+    setCloudStatus(getCloud())
   }, [])
+
+  useEffect(() => {
+    setMode(!SAFE_MODE && cloudStatus.ok ? 'supabase' : 'demo')
+  }, [cloudStatus])
 
   useEffect(() => {
     if (mode !== 'supabase') {
@@ -57,15 +70,14 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       return
     }
 
-    const client = getClient()
-
-    if (!client) {
-      setMode('demo')
+    if (!cloudStatus.ok) {
       setSupabaseSession(null)
       setUserEmail(null)
       setIsReady(true)
       return
     }
+
+    const client = cloudStatus.client
 
     let isMounted = true
     setIsReady(false)
@@ -101,7 +113,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [mode, configVersion])
+  }, [cloudStatus, mode])
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -109,8 +121,8 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     const handleStorage = (event: StorageEvent) => {
       if (!event.key) return
 
-      if (event.key === 'estate:supabaseUrl' || event.key === 'estate:supabaseAnonKey') {
-        refreshAuthMode()
+      if (event.key === 'supabaseUrl' || event.key === 'supabaseAnon' || event.key === 'cloud:disabled') {
+        refreshCloudStatus()
       }
     }
 
@@ -118,18 +130,18 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     return () => {
       window.removeEventListener('storage', handleStorage)
     }
-  }, [refreshAuthMode])
+  }, [refreshCloudStatus])
 
   const login = useCallback(
     async (identifier: string, password: string) => {
       if (mode === 'supabase') {
-        const client = getClient()
+        const cloud = getCloud()
 
-        if (!client) {
-          throw new Error('Supabase is not configured.')
+        if (!cloud.ok) {
+          throw new Error(cloud.reason)
         }
 
-        const { error } = await client.auth.signInWithPassword({
+        const { error } = await cloud.client.auth.signInWithPassword({
           email: identifier.trim(),
           password,
         })
@@ -168,9 +180,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const logout = useCallback(async () => {
     if (mode === 'supabase') {
-      const client = getClient()
-      if (client) {
-        const { error } = await client.auth.signOut()
+      const cloud = getCloud()
+      if (cloud.ok) {
+        const { error } = await cloud.client.auth.signOut()
         if (error) {
           throw error
         }
@@ -191,6 +203,8 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [mode])
 
   const isAuthenticated = mode === 'supabase' ? Boolean(supabaseSession) : Boolean(token)
+  const cloudReady = !SAFE_MODE && cloudStatus.ok
+  const cloudError = SAFE_MODE ? 'Cloud disabled (safe mode)' : cloudStatus.ok ? null : cloudStatus.reason
 
   const value = useMemo(
     () => ({
@@ -200,9 +214,12 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       logout,
       mode,
       userEmail,
-      refreshAuthMode,
+      refreshCloudStatus,
+      cloudReady,
+      cloudError,
+      safeMode: SAFE_MODE,
     }),
-    [isAuthenticated, isReady, login, logout, mode, refreshAuthMode, userEmail],
+    [cloudError, cloudReady, isAuthenticated, isReady, login, logout, mode, refreshCloudStatus, userEmail],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
