@@ -7,6 +7,7 @@ import { ESTATE_PLAN_UPDATED_EVENT, loadSeedGuidance, loadSeedTasks } from '../s
 import type { SeedTask } from '../types/estate'
 import { guidanceAnchorForId, normalizeGuidanceEntries, type NormalizedGuidanceEntry } from '../utils/guidance'
 import { useAuth } from '../context/AuthContext'
+import { CloudBanner } from '../components/CloudBanner'
 import {
   createTask as createTaskCloud,
   deleteTask as deleteTaskCloud,
@@ -504,6 +505,8 @@ const Tasks = () => {
           Track outstanding deliverables, collaborate with your team, and keep estate planning work moving.
         </p>
       </header>
+
+      <CloudBanner />
 
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="lg:w-1/2">
