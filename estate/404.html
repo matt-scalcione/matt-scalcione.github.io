@@ -42,7 +42,6 @@
         padding: 10px 12px;
       }
     </style>
-    <script type="module" crossorigin src="/estate/assets/index-DIw501iH.js"></script>
     <link rel="stylesheet" crossorigin href="/estate/assets/index-DwInz4yn.css">
   </head>
   <body>
@@ -166,6 +165,31 @@
           show(reason || 'Unhandled promise rejection');
         });
 
+        document.addEventListener('DOMContentLoaded', function () {
+          try {
+            var bad = Array.from(document.scripts)
+              .filter(function (s) {
+                return s.src && /\.css(\?|$)/i.test(s.src);
+              })
+              .map(function (s) {
+                return s.src;
+              });
+            if (bad.length) {
+              show('A <script> is pointing at CSS:\n' + bad.join('\n'));
+            }
+          } catch (_) {}
+        });
+
+        window.addEventListener('error', function (e) {
+          if (e && e.message) {
+            var extra = '';
+            if (typeof e.filename === 'string') extra += '\nFile: ' + e.filename;
+            if (typeof e.lineno === 'number') extra += '\nLine: ' + e.lineno;
+            if (typeof e.colno === 'number') extra += '\nCol: ' + e.colno;
+            show(e.message + extra);
+          }
+        });
+
         if (qs.get('rescue') === '1') {
           show('Rescue mode activated');
         } else if (qs.get('safe') === '1') {
@@ -199,5 +223,32 @@
         console.error('Window error', event.error || event.message);
       });
     </script>
-  </body>
+  
+<script type="module">
+(async () => {
+  const BASE = '/estate/';
+  let res = await fetch(BASE + 'manifest.json', { cache: 'no-store' });
+  if (!res.ok) {
+    res = await fetch(BASE + '.vite/manifest.json', { cache: 'no-store' });
+  }
+  if (!res.ok) throw new Error('Unable to load manifest.json');
+  const m = await res.json();
+  const entry = Object.values(m).find(x => x && x.isEntry) || m['src/main.tsx'] || m['src/main.ts'];
+  if (!entry || !entry.file) throw new Error('No JS entry in manifest');
+  // Load CSS first (if any)
+  (entry.css || []).forEach(href => {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = href.startsWith('/') ? BASE + href.slice(1) : BASE + href;
+    document.head.appendChild(l);
+  });
+  // Load JS entry
+  const s = document.createElement('script');
+  s.type = 'module';
+  s.crossOrigin = '';
+  s.src = entry.file.startsWith('/') ? BASE + entry.file.slice(1) : BASE + entry.file;
+  document.head.appendChild(s);
+})();
+</script>
+</body>
 </html>

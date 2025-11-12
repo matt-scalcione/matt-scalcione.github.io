@@ -164,6 +164,31 @@
           show(reason || 'Unhandled promise rejection');
         });
 
+        document.addEventListener('DOMContentLoaded', function () {
+          try {
+            var bad = Array.from(document.scripts)
+              .filter(function (s) {
+                return s.src && /\.css(\?|$)/i.test(s.src);
+              })
+              .map(function (s) {
+                return s.src;
+              });
+            if (bad.length) {
+              show('A <script> is pointing at CSS:\n' + bad.join('\n'));
+            }
+          } catch (_) {}
+        });
+
+        window.addEventListener('error', function (e) {
+          if (e && e.message) {
+            var extra = '';
+            if (typeof e.filename === 'string') extra += '\nFile: ' + e.filename;
+            if (typeof e.lineno === 'number') extra += '\nLine: ' + e.lineno;
+            if (typeof e.colno === 'number') extra += '\nCol: ' + e.colno;
+            show(e.message + extra);
+          }
+        });
+
         if (qs.get('rescue') === '1') {
           show('Rescue mode activated');
         } else if (qs.get('safe') === '1') {
