@@ -15,6 +15,8 @@ const storageEventMatchesGuidance = (event: StorageEvent, estateId: string) => {
   return event.key === `guidance:${estateId}`
 }
 
+const isPermittedLink = (url: string | undefined) => /^(https?:\/\/|mailto:|tel:|\/)/i.test((url ?? '').trim())
+
 const Guidance = () => {
   const { activeEstateId, estateProfiles } = useEstate()
   const { mode: authMode, isAuthenticated } = useAuth()
@@ -135,6 +137,7 @@ const Guidance = () => {
         <div className="grid gap-4 md:grid-cols-2">
           {guidanceEntries.map((entry) => {
             const feedback = copyFeedback && copyFeedback.key === entry.id ? copyFeedback : null
+            const safeLinks = entry.links.filter((link) => isPermittedLink(link.url))
 
             return (
               <article key={entry.id} id={entry.anchor} className="card-surface flex flex-col gap-4 md:gap-5">
@@ -245,11 +248,11 @@ const Guidance = () => {
                   </div>
                 ) : null}
 
-                {entry.links.length > 0 ? (
+                {safeLinks.length > 0 ? (
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Resources</h3>
                     <ul className="space-y-2">
-                      {entry.links.map((link) => (
+                      {safeLinks.map((link) => (
                         <li key={link.id}>
                           <a
                             href={link.url}
