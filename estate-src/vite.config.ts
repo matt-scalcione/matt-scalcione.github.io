@@ -9,6 +9,7 @@ export default defineConfig({
     outDir: '../estate',
     assetsDir: 'assets',
     emptyOutDir: true,
+    manifest: true,
   },
   define: {
     __BUILD_ID__: JSON.stringify(Date.now()),

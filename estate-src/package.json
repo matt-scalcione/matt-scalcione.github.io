@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "postbuild": "node ../scripts/copy404.cjs"
+    "postbuild": "node ../scripts/copy404.cjs && node ../scripts/patch-index.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
