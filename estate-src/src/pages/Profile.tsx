@@ -50,6 +50,21 @@ const defaultFormState: SetupFormState = {
   estate1041Required: true,
 }
 
+const formatIssuePath = (path: (string | number)[]) => {
+  if (!path || path.length === 0) {
+    return '(root)'
+  }
+
+  return path
+    .map((segment, index) => {
+      if (typeof segment === 'number') {
+        return `[${segment}]`
+      }
+      return index === 0 ? segment : `.${segment}`
+    })
+    .join('')
+}
+
 const SAMPLE_PLAN = JSON.stringify(
   {
     seedVersion: 'v2',
@@ -561,13 +576,14 @@ const Profile = () => {
     setPlanImportError(null)
 
     try {
-      const coerced = coercePlan(planInput)
+      const raw = planInput.replace(/\uFEFF/g, '')
+      const coerced = coercePlan(raw)
       const parsed = PlanV2.safeParse(coerced)
       if (!parsed.success) {
         const details = parsed.error.issues
-          .slice(0, 5)
+          .slice(0, 8)
           .map((issue) => {
-            const path = issue.path.join('.') || '(root)'
+            const path = formatIssuePath(issue.path)
             return `• ${path} — ${issue.message}`
           })
           .join('\n')
@@ -621,7 +637,7 @@ const Profile = () => {
         }
       }
 
-      reseedFromPlan(plan)
+      reseedFromPlan(plan, { replaceExistingWithSameSeedVersion: true })
       notifyPlanUpdated()
       refreshEstateProfiles()
       setSeedVersion(plan.seedVersion)
@@ -636,8 +652,8 @@ const Profile = () => {
       setPlanImportError(null)
       navigate('/tasks')
     } catch (error) {
-      console.error(error)
-      const message = getErrorMessage(error, 'Unable to import plan')
+      console.error('Plan import failed:', error)
+      const message = (error as Error)?.message || 'Unable to import plan'
       setPlanImportError(message)
     } finally {
       setIsPlanImporting(false)
