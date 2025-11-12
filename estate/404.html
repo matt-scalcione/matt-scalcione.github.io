@@ -42,6 +42,7 @@
         padding: 10px 12px;
       }
     </style>
+    <script type="module" crossorigin src="/estate/assets/index-DIw501iH.js"></script>
     <link rel="stylesheet" crossorigin href="/estate/assets/index-DwInz4yn.css">
   </head>
   <body>
@@ -223,32 +224,5 @@
         console.error('Window error', event.error || event.message);
       });
     </script>
-  
-<script type="module">
-(async () => {
-  const BASE = '/estate/';
-  let res = await fetch(BASE + 'manifest.json', { cache: 'no-store' });
-  if (!res.ok) {
-    res = await fetch(BASE + '.vite/manifest.json', { cache: 'no-store' });
-  }
-  if (!res.ok) throw new Error('Unable to load manifest.json');
-  const m = await res.json();
-  const entry = Object.values(m).find(x => x && x.isEntry) || m['src/main.tsx'] || m['src/main.ts'];
-  if (!entry || !entry.file) throw new Error('No JS entry in manifest');
-  // Load CSS first (if any)
-  (entry.css || []).forEach(href => {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = href.startsWith('/') ? BASE + href.slice(1) : BASE + href;
-    document.head.appendChild(l);
-  });
-  // Load JS entry
-  const s = document.createElement('script');
-  s.type = 'module';
-  s.crossOrigin = '';
-  s.src = entry.file.startsWith('/') ? BASE + entry.file.slice(1) : BASE + entry.file;
-  document.head.appendChild(s);
-})();
-</script>
-</body>
+  </body>
 </html>
