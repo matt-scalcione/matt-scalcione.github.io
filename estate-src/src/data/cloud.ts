@@ -246,6 +246,43 @@ const toDateOnly = (value?: string | null) => {
   return parsed.toISOString().slice(0, 10)
 }
 
+const toDate = (value?: string | null) => toDateOnly(value)
+
+const toOptionalString = (value?: string | null) => {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
+const normalizeEstateProfile = (profile: EstateProfile): EstateProfile => ({
+  ...profile,
+  label: profile.label.trim(),
+  county: profile.county.trim(),
+  decedentName: profile.decedentName.trim(),
+  dodISO: profile.dodISO.trim(),
+  lettersISO: toOptionalString(profile.lettersISO) ?? undefined,
+  firstPublicationISO: toOptionalString(profile.firstPublicationISO) ?? undefined,
+  notes: toOptionalString(profile.notes) ?? undefined,
+})
+
+const mapEstateProfileToRow = (profile: EstateProfile, userId: string, updatedAt: string) => ({
+  id: profile.id,
+  user_id: userId,
+  label: toOptionalString(profile.label) ?? null,
+  county: toOptionalString(profile.county) ?? null,
+  decedent_name: toOptionalString(profile.decedentName) ?? null,
+  dod: toDateOnly(profile.dodISO),
+  letters: toDateOnly(profile.lettersISO),
+  first_publication: toDateOnly(profile.firstPublicationISO),
+  notes: toOptionalString(profile.notes) ?? null,
+  updated_at: updatedAt,
+})
+
+const resolveSeedTaskDueDate = (task: SeedTask) => {
+  const legacy = (task as SeedTask & { due_date?: string | null }).due_date ?? null
+  return toDate(task.dueISO ?? legacy ?? null)
+}
+
 const sanitizeTags = (input: unknown): string[] => {
   if (!Array.isArray(input)) return []
   const normalized = input
@@ -859,24 +896,8 @@ export const migrateLocalWorkspaceToCloud = async () => {
   const now = nowISO()
 
   const profiles = Object.values(loadEstateProfiles())
-  if (profiles.length > 0) {
-    const estateRows = profiles.map((profile) => ({
-      id: profile.id,
-      user_id: userId,
-      label: profile.label || null,
-      county: profile.county || null,
-      decedent_name: profile.decedentName?.trim() || null,
-      dod: toDateOnly(profile.dodISO),
-      letters: toDateOnly(profile.lettersISO),
-      first_publication: toDateOnly(profile.firstPublicationISO),
-      notes: profile.notes ?? null,
-      updated_at: now,
-    }))
-
-    const { error: estateError } = await client
-      .from('estates')
-      .upsert(estateRows, { onConflict: 'user_id,id' })
-    if (estateError) throw estateError
+  for (const profile of profiles) {
+    await upsertEstate(profile)
   }
 
   const seedVersion = loadSeedVersion()
@@ -1146,75 +1167,76 @@ export const deleteJournalEntry = async (id: string) => {
   await db.journalEntries.delete(id)
 }
 
-const mapEstateRowToProfile = (
-  row: SupabaseEstateRow,
-  fallback: Record<EstateId, EstateProfile>,
-): EstateProfile | null => {
-  if (!row.id) return null
-  const estateId = row.id as EstateId
-  if (!(estateId in fallback)) return null
-  const profile = fallback[estateId]
+const mapEstateRowToProfile = (row: SupabaseEstateRow, fallback?: EstateProfile): EstateProfile => {
+  const base: EstateProfile = fallback
+    ? { ...fallback }
+    : {
+        id: row.id,
+        label: toOptionalString(row.label) ?? '',
+        county: toOptionalString(row.county) ?? '',
+        decedentName: toOptionalString(row.decedent_name) ?? '',
+        dodISO: toOptionalString(row.dod) ?? '',
+        lettersISO: toOptionalString(row.letters) ?? undefined,
+        firstPublicationISO: toOptionalString(row.first_publication) ?? undefined,
+        notes: toOptionalString(row.notes) ?? undefined,
+      }
+
   return {
-    ...profile,
-    label: row.label ?? profile.label,
-    county: row.county ?? profile.county,
-    decedentName: row.decedent_name ?? profile.decedentName,
-    dodISO: row.dod ?? profile.dodISO,
-    lettersISO: row.letters ?? undefined,
-    firstPublicationISO: row.first_publication ?? undefined,
-    notes: row.notes ?? undefined,
+    ...base,
+    label: toOptionalString(row.label) ?? base.label,
+    county: toOptionalString(row.county) ?? base.county,
+    decedentName: toOptionalString(row.decedent_name) ?? base.decedentName,
+    dodISO: toOptionalString(row.dod) ?? base.dodISO,
+    lettersISO: toOptionalString(row.letters) ?? base.lettersISO,
+    firstPublicationISO: toOptionalString(row.first_publication) ?? base.firstPublicationISO,
+    notes: toOptionalString(row.notes) ?? base.notes,
   }
 }
 
-export const syncEstateProfilesFromCloud = async () => {
+export const listEstates = async (): Promise<EstateProfile[] | null> => {
   const context = await getSupabaseContext()
-  if (!context) return false
+  if (!context) return null
   const { client } = context
   const fallback = loadEstateProfiles()
   const { data, error } = await client.from('estates').select('*')
   if (error) throw error
-  const next = { ...fallback }
   const rows = (data ?? []) as SupabaseEstateRow[]
-  for (const row of rows) {
-    const profile = mapEstateRowToProfile(row, fallback)
-    if (profile) {
-      const estateId = row.id as EstateId
-      next[estateId] = profile
-    }
+  return rows.map((row) => mapEstateRowToProfile(row, fallback[row.id]))
+}
+
+export const syncEstateProfilesFromCloud = async () => {
+  const estates = await listEstates()
+  if (!estates) return false
+  const current = loadEstateProfiles()
+  const next = { ...current }
+  for (const profile of estates) {
+    next[profile.id] = profile
   }
   saveEstateProfiles(next)
   return true
 }
 
-export const updateEstateProfile = async (profile: EstateProfile) => {
+export const upsertEstate = async (profile: EstateProfile) => {
+  const normalized = normalizeEstateProfile(profile)
   const context = await getSupabaseContext()
   if (!context) {
     const current = loadEstateProfiles()
-    saveEstateProfiles({ ...current, [profile.id]: profile })
-    return
+    saveEstateProfiles({ ...current, [normalized.id]: normalized })
+    return normalized
   }
 
   const { client, userId } = context
-  const payload = {
-    id: profile.id,
-    user_id: userId,
-    label: profile.label,
-    county: profile.county,
-    decedent_name: profile.decedentName?.trim() || null,
-    dod: toDateOnly(profile.dodISO),
-    letters: toDateOnly(profile.lettersISO),
-    first_publication: toDateOnly(profile.firstPublicationISO),
-    notes: profile.notes ?? null,
-    updated_at: nowISO(),
-  }
-
-  const { error } = await client
-    .from('estates')
-    .upsert(payload, { onConflict: 'user_id,id' })
+  const payload = mapEstateProfileToRow(normalized, userId, nowISO())
+  const { error } = await client.from('estates').upsert(payload, { onConflict: 'user_id,id' })
   if (error) throw error
 
   const current = loadEstateProfiles()
-  saveEstateProfiles({ ...current, [profile.id]: profile })
+  saveEstateProfiles({ ...current, [normalized.id]: normalized })
+  return normalized
+}
+
+export const updateEstateProfile = async (profile: EstateProfile) => {
+  await upsertEstate(profile)
 }
 
 const mapGuidanceRowToSeed = (row: SupabaseGuidanceRow): SeedGuidancePage => ({
@@ -1300,24 +1322,8 @@ export const importPlanToCloud = async (plan: PlanV2) => {
 
   const now = nowISO()
 
-  const estateRows = plan.profiles.map((profile) => ({
-    id: profile.id,
-    user_id: userId,
-    label: profile.label,
-    county: profile.county,
-    decedent_name: profile.decedentName?.trim() || null,
-    dod: toDateOnly(profile.dodISO),
-    letters: toDateOnly(profile.lettersISO),
-    first_publication: toDateOnly(profile.firstPublicationISO),
-    notes: profile.notes ?? null,
-    updated_at: now,
-  }))
-
-  if (estateRows.length > 0) {
-    const { error } = await client
-      .from('estates')
-      .upsert(estateRows, { onConflict: 'user_id,id' })
-    if (error) throw error
+  for (const profile of plan.profiles) {
+    await upsertEstate(profile)
   }
 
   const guidanceRows = plan.guidance.map((entry) => {
@@ -1357,7 +1363,7 @@ export const importPlanToCloud = async (plan: PlanV2) => {
     estate_id: task.estateId,
     title: task.title,
     description: task.description ?? '',
-    due_date: task.dueISO ?? null,
+    due_date: resolveSeedTaskDueDate(task),
     status: task.status ?? 'not-started',
     priority: task.priority ?? 'med',
     tags: task.tags ?? [],
