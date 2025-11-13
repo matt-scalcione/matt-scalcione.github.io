@@ -653,7 +653,12 @@ const Profile = () => {
       navigate('/tasks')
     } catch (error) {
       console.error('Plan import failed:', error)
-      const message = (error as Error)?.message || 'Unable to import plan'
+      let message = 'Unable to import plan'
+      if (error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string') {
+        message = (error as { message: string }).message
+      } else if (error instanceof Error && error.message) {
+        message = error.message
+      }
       setPlanImportError(message)
     } finally {
       setIsPlanImporting(false)
