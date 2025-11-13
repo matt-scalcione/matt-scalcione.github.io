@@ -107,9 +107,9 @@ type SupabaseEstateRow = {
   label: string | null
   county: string | null
   decedent_name: string | null
-  dod_iso: string | null
-  letters_iso: string | null
-  first_publication_iso: string | null
+  dod: string | null
+  letters: string | null
+  first_publication: string | null
   notes: string | null
   updated_at: string | null
 }
@@ -865,15 +865,17 @@ export const migrateLocalWorkspaceToCloud = async () => {
       user_id: userId,
       label: profile.label || null,
       county: profile.county || null,
-      decedent_name: profile.decedentName || null,
-      dod_iso: profile.dodISO || null,
-      letters_iso: profile.lettersISO ?? null,
-      first_publication_iso: profile.firstPublicationISO ?? null,
+      decedent_name: profile.decedentName?.trim() || null,
+      dod: toDateOnly(profile.dodISO),
+      letters: toDateOnly(profile.lettersISO),
+      first_publication: toDateOnly(profile.firstPublicationISO),
       notes: profile.notes ?? null,
       updated_at: now,
     }))
 
-    const { error: estateError } = await client.from('estates').upsert(estateRows)
+    const { error: estateError } = await client
+      .from('estates')
+      .upsert(estateRows, { onConflict: 'user_id,id' })
     if (estateError) throw estateError
   }
 
@@ -1157,9 +1159,9 @@ const mapEstateRowToProfile = (
     label: row.label ?? profile.label,
     county: row.county ?? profile.county,
     decedentName: row.decedent_name ?? profile.decedentName,
-    dodISO: row.dod_iso ?? profile.dodISO,
-    lettersISO: row.letters_iso ?? undefined,
-    firstPublicationISO: row.first_publication_iso ?? undefined,
+    dodISO: row.dod ?? profile.dodISO,
+    lettersISO: row.letters ?? undefined,
+    firstPublicationISO: row.first_publication ?? undefined,
     notes: row.notes ?? undefined,
   }
 }
@@ -1198,15 +1200,17 @@ export const updateEstateProfile = async (profile: EstateProfile) => {
     user_id: userId,
     label: profile.label,
     county: profile.county,
-    decedent_name: profile.decedentName,
-    dod_iso: profile.dodISO,
-    letters_iso: profile.lettersISO ?? null,
-    first_publication_iso: profile.firstPublicationISO ?? null,
+    decedent_name: profile.decedentName?.trim() || null,
+    dod: toDateOnly(profile.dodISO),
+    letters: toDateOnly(profile.lettersISO),
+    first_publication: toDateOnly(profile.firstPublicationISO),
     notes: profile.notes ?? null,
     updated_at: nowISO(),
   }
 
-  const { error } = await client.from('estates').upsert(payload)
+  const { error } = await client
+    .from('estates')
+    .upsert(payload, { onConflict: 'user_id,id' })
   if (error) throw error
 
   const current = loadEstateProfiles()
@@ -1301,16 +1305,18 @@ export const importPlanToCloud = async (plan: PlanV2) => {
     user_id: userId,
     label: profile.label,
     county: profile.county,
-    decedent_name: profile.decedentName,
-    dod_iso: profile.dodISO,
-    letters_iso: profile.lettersISO ?? null,
-    first_publication_iso: profile.firstPublicationISO ?? null,
+    decedent_name: profile.decedentName?.trim() || null,
+    dod: toDateOnly(profile.dodISO),
+    letters: toDateOnly(profile.lettersISO),
+    first_publication: toDateOnly(profile.firstPublicationISO),
     notes: profile.notes ?? null,
     updated_at: now,
   }))
 
   if (estateRows.length > 0) {
-    const { error } = await client.from('estates').upsert(estateRows)
+    const { error } = await client
+      .from('estates')
+      .upsert(estateRows, { onConflict: 'user_id,id' })
     if (error) throw error
   }
 
