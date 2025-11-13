@@ -28,7 +28,12 @@ import {
   saveSeedTasks,
   saveSeedVersion,
 } from '../storage/estatePlan'
-import type { EstateId, EstateProfile, SeedGuidancePage, SeedTask } from '../types/estate'
+import type {
+  EstateId,
+  EstateProfile as LocalEstateProfile,
+  SeedGuidancePage,
+  SeedTask,
+} from '../types/estate'
 import type { PlanV2 } from '../features/plan/planSchema'
 import { getWorkspaceSyncTimestamp, setWorkspaceSyncTimestamp } from '../storage/syncState'
 
@@ -55,6 +60,130 @@ const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
 
 export const isCloudSignedIn = async () => Boolean(await getSupabaseContext())
 
+const toPlanDate = (value?: string | null) => (value ? String(value).slice(0, 10) : null)
+
+type InsertOrUpdateOptions = {
+  client?: SupabaseClient | null
+  userId?: string | null
+  select?: string
+}
+
+async function insertOrUpdate<T = { id: string }>(
+  table: string,
+  match: Record<string, any>,
+  row: any,
+  patch?: any,
+  options?: InsertOrUpdateOptions,
+): Promise<{ status: 'inserted' | 'updated'; data: T[] }> {
+  const client = options?.client ?? getClient()
+  const resolvedUserId =
+    options?.userId !== undefined ? options.userId : client ? await getUserId(client) : await getUserId()
+
+  if (!client || !resolvedUserId) {
+    throw new Error('Not signed in or cloud disabled')
+  }
+
+  const select = options?.select ?? 'id'
+
+  const update = await client.from(table).update(patch ?? row).match(match).select(select)
+  if (update.error && update.error.code && update.error.code !== 'PGRST116') throw update.error
+  if (update.data && update.data.length > 0) {
+    return { status: 'updated', data: (update.data ?? []) as T[] }
+  }
+
+  const insert = await client.from(table).insert(row).select(select)
+  if (insert.error) throw insert.error
+  return { status: 'inserted', data: (insert.data ?? []) as T[] }
+}
+
+export type EstateProfile = {
+  id: string
+  label: string
+  county?: string
+  notes?: string
+  decedentName?: string
+  decedent_name?: string
+  dodISO?: string | null
+  dod?: string | null
+  lettersISO?: string | null
+  letters?: string | null
+  firstPublicationISO?: string | null
+  first_publication?: string | null
+}
+
+function profileToRow(profile: EstateProfile, userId: string) {
+  return {
+    user_id: userId,
+    id: profile.id,
+    label: profile.label,
+    county: profile.county ?? null,
+    decedent_name: (profile.decedentName ?? profile.decedent_name ?? '').trim(),
+    dod: toPlanDate(profile.dodISO ?? profile.dod ?? null),
+    letters: toPlanDate(profile.lettersISO ?? profile.letters ?? null),
+    first_publication: toPlanDate(profile.firstPublicationISO ?? profile.first_publication ?? null),
+    notes: profile.notes ?? null,
+    updated_at: new Date().toISOString(),
+  }
+}
+
+export async function saveEstate(profile: EstateProfile, options?: InsertOrUpdateOptions) {
+  const client = options?.client ?? getClient()
+  const uid =
+    options?.userId !== undefined ? options.userId : client ? await getUserId(client) : await getUserId()
+
+  if (!client || !uid) {
+    throw new Error('Not signed in or cloud disabled')
+  }
+
+  const row = profileToRow(profile, uid)
+  await insertOrUpdate('estates', { user_id: uid, id: row.id }, row, row, { client, userId: uid })
+}
+
+export async function saveSeedTask(
+  task: any,
+  estateId: string,
+  seedKey: string,
+  seedVersion: string,
+  options?: InsertOrUpdateOptions,
+) {
+  const client = options?.client ?? getClient()
+  const uid =
+    options?.userId !== undefined ? options.userId : client ? await getUserId(client) : await getUserId()
+
+  if (!client || !uid) {
+    throw new Error('Not signed in or cloud disabled')
+  }
+
+  const row: Record<string, any> = {
+    user_id: uid,
+    estate_id: estateId,
+    title: task.title,
+    description: task.description ?? '',
+    due_date: toPlanDate(task.dueISO ?? task.due_date ?? null),
+    status: ['not-started', 'in-progress', 'done'].includes(task.status) ? task.status : 'not-started',
+    priority: ['low', 'med', 'high'].includes(task.priority) ? task.priority : 'med',
+    tags: Array.isArray(task.tags) ? task.tags : [],
+    doc_ids: [],
+    seed_version: seedVersion,
+    seed_key: seedKey,
+    updated_at: new Date().toISOString(),
+  }
+
+  let match: Record<string, any> = { user_id: uid, estate_id: estateId, seed_key: seedKey }
+  const test = await client
+    .from('tasks')
+    .select('id,seed_key')
+    .eq('user_id', uid)
+    .eq('estate_id', estateId)
+    .limit(1)
+
+  if (test.error && test.error.code === '42703') {
+    match = { user_id: uid, estate_id: estateId, title: task.title }
+  }
+
+  await insertOrUpdate('tasks', match, row, row, { client, userId: uid })
+}
+
 const normLinks = (arr: unknown) => {
   if (!Array.isArray(arr)) return [] as { label: string; url: string }[]
   return arr
@@ -79,21 +208,22 @@ const normLinks = (arr: unknown) => {
 export async function replaceGuidance(
   estateId: string,
   items: Array<{ title: string; body: string; links?: unknown[] }>,
-  context?: { client: SupabaseClient; userId: string },
+  options?: InsertOrUpdateOptions,
 ) {
-  const client = context?.client ?? getClient()
-  const uid = context?.userId ?? (client ? await getUserId(client) : await getUserId())
+  const client = options?.client ?? getClient()
+  const uid =
+    options?.userId !== undefined ? options.userId : client ? await getUserId(client) : await getUserId()
 
   if (!client || !uid) {
     throw new Error('Not signed in or cloud disabled')
   }
 
-  const { error: delErr } = await client
-    .from('guidance')
-    .delete()
-    .eq('user_id', uid)
-    .eq('estate_id', estateId)
-  if (delErr) throw delErr
+  const del = await client.from('guidance').delete().eq('user_id', uid).eq('estate_id', estateId)
+  if (del.error) throw del.error
+
+  if (items.length === 0) {
+    return
+  }
 
   const rows = items.map((item) => ({
     user_id: uid,
@@ -103,10 +233,8 @@ export async function replaceGuidance(
     links: normLinks(item.links ?? []),
   }))
 
-  if (rows.length > 0) {
-    const { error: insErr } = await client.from('guidance').insert(rows)
-    if (insErr) throw insErr
-  }
+  const ins = await client.from('guidance').insert(rows)
+  if (ins.error) throw ins.error
 }
 
 const generateDocumentId = () => {
@@ -303,7 +431,7 @@ const toOptionalString = (value?: string | null) => {
   return trimmed ? trimmed : undefined
 }
 
-const normalizeEstateProfile = (profile: EstateProfile): EstateProfile => ({
+const normalizeEstateProfile = (profile: LocalEstateProfile): LocalEstateProfile => ({
   ...profile,
   label: profile.label.trim(),
   county: profile.county.trim(),
@@ -314,7 +442,7 @@ const normalizeEstateProfile = (profile: EstateProfile): EstateProfile => ({
   notes: toOptionalString(profile.notes) ?? undefined,
 })
 
-const mapEstateProfileToRow = (profile: EstateProfile, userId: string, updatedAt: string) => ({
+const mapEstateProfileToRow = (profile: LocalEstateProfile, userId: string, updatedAt: string) => ({
   id: profile.id,
   user_id: userId,
   label: toOptionalString(profile.label) ?? null,
@@ -326,11 +454,6 @@ const mapEstateProfileToRow = (profile: EstateProfile, userId: string, updatedAt
   notes: toOptionalString(profile.notes) ?? null,
   updated_at: updatedAt,
 })
-
-const resolveSeedTaskDueDate = (task: SeedTask) => {
-  const legacy = (task as SeedTask & { due_date?: string | null }).due_date ?? null
-  return toDate(task.dueISO ?? legacy ?? null)
-}
 
 const sanitizeTags = (input: unknown): string[] => {
   if (!Array.isArray(input)) return []
@@ -492,34 +615,37 @@ const uploadDocumentToCloud = async (context: SupabaseContext, payload: UploadDo
     throw uploadError
   }
 
-  const { data: metaData, error: metaError } = await client
-    .from('documents_meta')
-    .upsert(
-      {
-        id: payload.id,
-        user_id: userId,
-        estate_id: payload.estateId,
-        title: payload.title,
-        file_name: safeFileName,
-        storage_path: storagePath,
-        content_type: contentType,
-        size: payload.file.size,
-        tags: payload.tags,
-        task_id: payload.taskId,
-        created_at: payload.createdAt ?? nowISO(),
-        updated_at: nowISO(),
-      },
-      { onConflict: 'id' },
-    )
-    .select('*')
-    .single()
-
-  if (metaError) {
-    await client.storage.from('documents').remove([storagePath])
-    throw metaError
+  const metaRow = {
+    id: payload.id,
+    user_id: userId,
+    estate_id: payload.estateId,
+    title: payload.title,
+    file_name: safeFileName,
+    storage_path: storagePath,
+    content_type: contentType,
+    size: payload.file.size,
+    tags: payload.tags,
+    task_id: payload.taskId,
+    created_at: payload.createdAt ?? nowISO(),
+    updated_at: nowISO(),
   }
 
-  const record = mapDocumentMetaRowToRecord(metaData as SupabaseDocumentMetaRow)
+  let metaData: SupabaseDocumentMetaRow | null = null
+  try {
+    const { data } = await insertOrUpdate<SupabaseDocumentMetaRow>(
+      'documents_meta',
+      { id: payload.id },
+      metaRow,
+      metaRow,
+      { client, userId, select: '*' },
+    )
+    metaData = (data && data.length > 0 ? data[0] : null) ?? null
+  } catch (error) {
+    await client.storage.from('documents').remove([storagePath])
+    throw error
+  }
+
+  const record = mapDocumentMetaRowToRecord((metaData ?? metaRow) as SupabaseDocumentMetaRow)
 
   const mergedRecord: DocumentRecord = {
     ...record,
@@ -645,15 +771,27 @@ export const syncTasksFromCloud = async (estateId: EstateId, options?: SyncOptio
     const record = mapTaskRowToRecord(row)
     const existing = await db.tasks.get(record.id)
     if (existing && isoToMillis(existing.updated_at) > isoToMillis(record.updated_at)) {
-      const { data: upserted, error: upsertError } = await client
-        .from('tasks')
-        .upsert(toSupabaseTaskPayload(existing, userId), { onConflict: 'id' })
-        .select('*')
-        .single()
+      const payload = toSupabaseTaskPayload(existing, userId)
+      const { data } = await insertOrUpdate<SupabaseTaskRow>(
+        'tasks',
+        { id: payload.id },
+        payload,
+        payload,
+        { client, userId, select: '*' },
+      )
 
-      if (upsertError) throw upsertError
+      let upsertedRow = data[0] ?? null
+      if (!upsertedRow) {
+        const { data: fetched, error: fetchError } = await client
+          .from('tasks')
+          .select('*')
+          .eq('id', payload.id)
+          .single()
+        if (fetchError) throw fetchError
+        upsertedRow = fetched as SupabaseTaskRow
+      }
 
-      const merged = mapTaskRowToRecord(upserted as SupabaseTaskRow)
+      const merged = mapTaskRowToRecord(upsertedRow)
       await db.tasks.put(merged)
       handledIds.add(merged.id)
       continue
@@ -672,17 +810,36 @@ export const syncTasksFromCloud = async (estateId: EstateId, options?: SyncOptio
   const toSync = localUpdates.filter((task) => !handledIds.has(task.id))
 
   if (toSync.length > 0) {
-    const payload = toSync.map((task) => toSupabaseTaskPayload(task, userId))
-    const { data: upserted, error: upsertError } = await client
-      .from('tasks')
-      .upsert(payload, { onConflict: 'id' })
-      .select('*')
+    const updatedRows: SupabaseTaskRow[] = []
 
-    if (upsertError) throw upsertError
+    for (const task of toSync) {
+      const payload = toSupabaseTaskPayload(task, userId)
+      const { data } = await insertOrUpdate<SupabaseTaskRow>(
+        'tasks',
+        { id: payload.id },
+        payload,
+        payload,
+        { client, userId, select: '*' },
+      )
 
-    const upsertedRows = (upserted ?? []) as SupabaseTaskRow[]
-    if (upsertedRows.length > 0) {
-      const mapped = upsertedRows.map(mapTaskRowToRecord)
+      if (data[0]) {
+        updatedRows.push(data[0])
+        continue
+      }
+
+      const { data: fetched, error: fetchError } = await client
+        .from('tasks')
+        .select('*')
+        .eq('id', payload.id)
+        .single()
+      if (fetchError) throw fetchError
+      if (fetched) {
+        updatedRows.push(fetched as SupabaseTaskRow)
+      }
+    }
+
+    if (updatedRows.length > 0) {
+      const mapped = updatedRows.map(mapTaskRowToRecord)
       await db.tasks.bulkPut(mapped)
     }
   }
@@ -961,22 +1118,23 @@ export const migrateLocalWorkspaceToCloud = async () => {
       const links = Array.isArray(details.links) ? details.links : []
       return { title: entry.title, body, links }
     })
-    await replaceGuidance(estateId, items, context)
+    await replaceGuidance(estateId, items, { client, userId })
   }
 
   const tasks = await db.tasks.toArray()
   if (tasks.length > 0) {
-    const payload = tasks.map((task) => toSupabaseTaskPayload(task, userId))
-    const { error: taskError } = await client.from('tasks').upsert(payload, { onConflict: 'id' })
-    if (taskError) throw taskError
+    for (const task of tasks) {
+      const payload = toSupabaseTaskPayload(task, userId)
+      await insertOrUpdate('tasks', { id: payload.id }, payload, payload, { client, userId })
+    }
   }
 
   const journal = await db.journalEntries.toArray()
   if (journal.length > 0) {
-    const journalPayload = journal.map((entry) => toSupabaseJournalPayload(entry, userId))
-
-    const { error: journalError } = await client.from('journal').upsert(journalPayload, { onConflict: 'id' })
-    if (journalError) throw journalError
+    for (const entry of journal) {
+      const payload = toSupabaseJournalPayload(entry, userId)
+      await insertOrUpdate('journal', { id: payload.id }, payload, payload, { client, userId })
+    }
   }
 
   await syncEstateProfilesFromCloud()
@@ -1099,17 +1257,36 @@ export const syncJournalFromCloud = async (estateId: EstateId, options?: SyncOpt
   const toPush = localUpdates.filter((entry) => !remoteIds.has(entry.id))
 
   if (toPush.length > 0) {
-    const payload = toPush.map((entry) => toSupabaseJournalPayload(entry, userId))
-    const { data: upserted, error: upsertError } = await client
-      .from('journal')
-      .upsert(payload, { onConflict: 'id' })
-      .select('*')
+    const updatedRows: SupabaseJournalRow[] = []
 
-    if (upsertError) throw upsertError
+    for (const entry of toPush) {
+      const payload = toSupabaseJournalPayload(entry, userId)
+      const { data } = await insertOrUpdate<SupabaseJournalRow>(
+        'journal',
+        { id: payload.id },
+        payload,
+        payload,
+        { client, userId, select: '*' },
+      )
 
-    const upsertedRows = (upserted ?? []) as SupabaseJournalRow[]
-    if (upsertedRows.length > 0) {
-      const mapped = upsertedRows.map(mapJournalRowToRecord)
+      if (data[0]) {
+        updatedRows.push(data[0])
+        continue
+      }
+
+      const { data: fetched, error: fetchError } = await client
+        .from('journal')
+        .select('*')
+        .eq('id', payload.id)
+        .single()
+      if (fetchError) throw fetchError
+      if (fetched) {
+        updatedRows.push(fetched as SupabaseJournalRow)
+      }
+    }
+
+    if (updatedRows.length > 0) {
+      const mapped = updatedRows.map(mapJournalRowToRecord)
       await db.journalEntries.bulkPut(mapped)
     }
   }
@@ -1178,8 +1355,8 @@ export const deleteJournalEntry = async (id: string) => {
   await db.journalEntries.delete(id)
 }
 
-const mapEstateRowToProfile = (row: SupabaseEstateRow, fallback?: EstateProfile): EstateProfile => {
-  const base: EstateProfile = fallback
+const mapEstateRowToProfile = (row: SupabaseEstateRow, fallback?: LocalEstateProfile): LocalEstateProfile => {
+  const base: LocalEstateProfile = fallback
     ? { ...fallback }
     : {
         id: row.id,
@@ -1204,7 +1381,7 @@ const mapEstateRowToProfile = (row: SupabaseEstateRow, fallback?: EstateProfile)
   }
 }
 
-export const listEstates = async (): Promise<EstateProfile[] | null> => {
+export const listEstates = async (): Promise<LocalEstateProfile[] | null> => {
   const context = await getSupabaseContext()
   if (!context) return null
   const { client } = context
@@ -1227,7 +1404,7 @@ export const syncEstateProfilesFromCloud = async () => {
   return true
 }
 
-export const upsertEstate = async (profile: EstateProfile) => {
+export const upsertEstate = async (profile: LocalEstateProfile) => {
   const normalized = normalizeEstateProfile(profile)
   const context = await getSupabaseContext()
   if (!context) {
@@ -1238,15 +1415,14 @@ export const upsertEstate = async (profile: EstateProfile) => {
 
   const { client, userId } = context
   const payload = mapEstateProfileToRow(normalized, userId, nowISO())
-  const { error } = await client.from('estates').upsert(payload, { onConflict: 'user_id,id' })
-  if (error) throw error
+  await insertOrUpdate('estates', { user_id: userId, id: payload.id }, payload, payload, { client, userId })
 
   const current = loadEstateProfiles()
   saveEstateProfiles({ ...current, [normalized.id]: normalized })
   return normalized
 }
 
-export const updateEstateProfile = async (profile: EstateProfile) => {
+export const updateEstateProfile = async (profile: LocalEstateProfile) => {
   await upsertEstate(profile)
 }
 
@@ -1334,91 +1510,19 @@ export const importPlanToCloud = async (plan: PlanV2) => {
   if (!context) return false
   const { client, userId } = context
 
-  const now = nowISO()
-
   for (const profile of plan.profiles) {
-    await upsertEstate(profile)
-  }
+    await saveEstate(profile, { client, userId })
 
-  const guidanceByEstate = new Map<string, Array<{ title: string; body: string; links?: unknown[] }>>()
-  for (const entry of plan.guidance) {
-    const estateEntries = guidanceByEstate.get(entry.estateId) ?? []
-    estateEntries.push({ title: entry.title, body: entry.body, links: entry.links ?? [] })
-    guidanceByEstate.set(entry.estateId, estateEntries)
-  }
-
-  for (const profile of plan.profiles) {
-    const items = guidanceByEstate.get(profile.id) ?? []
-    await replaceGuidance(profile.id, items, context)
-  }
-
-  const taskRows = plan.seedTasks.map((task) => ({
-    estate_id: task.estateId,
-    title: task.title,
-    description: task.description ?? '',
-    due_date: resolveSeedTaskDueDate(task),
-    status: task.status ?? 'not-started',
-    priority: task.priority ?? 'med',
-    tags: task.tags ?? [],
-    doc_ids: [],
-    seed_version: plan.seedVersion,
-    seed_key: `${plan.seedVersion}:${task.estateId}:${task.title}`,
-    user_id: userId,
-    created_at: now,
-    updated_at: now,
-  }))
-
-  if (taskRows.length > 0) {
-    const seedKeys = Array.from(new Set(taskRows.map((row) => row.seed_key).filter((key): key is string => Boolean(key))))
-    const { data: existingRows, error: existingError } =
-      seedKeys.length === 0
-        ? { data: [], error: null }
-        : await client
-            .from('tasks')
-            .select('id, seed_key, created_at')
-            .eq('user_id', userId)
-            .in('seed_key', seedKeys)
-
-    if (existingError) throw existingError
-
-    type SeedKeyLookupRow = { id: string; seed_key: string | null; created_at: string | null }
-    const typedExistingRows = (existingRows ?? []) as SeedKeyLookupRow[]
-
-    const existingBySeedKey = new Map<string, { id: string; created_at: string | null }>()
-    for (const row of typedExistingRows) {
-      if (row.seed_key) {
-        existingBySeedKey.set(row.seed_key, { id: row.id, created_at: row.created_at })
-      }
+    const tasks = plan.seedTasks.filter((task) => task.estateId === profile.id)
+    for (const task of tasks) {
+      const seedKey = `${profile.id}:${task.title}`
+      await saveSeedTask(task, profile.id, seedKey, plan.seedVersion, { client, userId })
     }
 
-    type SeedTaskRow = (typeof taskRows)[number]
-
-    const inserts: SeedTaskRow[] = []
-    const updates: Array<SeedTaskRow & { id: string; created_at: string | null }> = []
-
-    for (const row of taskRows) {
-      const existing = row.seed_key ? existingBySeedKey.get(row.seed_key) : undefined
-      if (existing) {
-        updates.push({ ...row, id: existing.id, created_at: existing.created_at })
-      } else {
-        inserts.push(row)
-      }
-    }
-
-    if (inserts.length > 0) {
-      const { error } = await client.from('tasks').insert(inserts)
-      if (error) throw error
-    }
-
-    if (updates.length > 0) {
-      const payload = updates.map(({ id, created_at, ...rest }) => ({
-        id,
-        ...rest,
-        created_at: created_at ?? rest.updated_at,
-      }))
-      const { error } = await client.from('tasks').upsert(payload, { onConflict: 'id' })
-      if (error) throw error
-    }
+    const guides = plan.guidance
+      .filter((guide) => guide.estateId === profile.id)
+      .map((guide) => ({ title: guide.title, body: guide.body, links: guide.links ?? [] }))
+    await replaceGuidance(profile.id, guides, { client, userId })
   }
 
   saveSeedVersion(plan.seedVersion)
