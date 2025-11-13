@@ -23,7 +23,6 @@ import {
   ESTATE_IDS,
   loadEstateProfiles,
   loadSeedGuidance,
-  loadSeedVersion,
   saveEstateProfiles,
   saveSeedGuidance,
   saveSeedTasks,
@@ -55,6 +54,60 @@ const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
 }
 
 export const isCloudSignedIn = async () => Boolean(await getSupabaseContext())
+
+const normLinks = (arr: unknown) => {
+  if (!Array.isArray(arr)) return [] as { label: string; url: string }[]
+  return arr
+    .map((link) => {
+      if (typeof link === 'string') {
+        const trimmed = link.trim()
+        return { label: trimmed, url: trimmed }
+      }
+
+      const record = link as Record<string, unknown>
+      const label = typeof record.label === 'string' ? record.label : typeof record.url === 'string' ? record.url : 'Link'
+      const url = typeof record.url === 'string' ? record.url : ''
+
+      return {
+        label: String(label ?? 'Link').trim(),
+        url: String(url ?? '').trim(),
+      }
+    })
+    .filter((link) => link.url.length > 0)
+}
+
+export async function replaceGuidance(
+  estateId: string,
+  items: Array<{ title: string; body: string; links?: unknown[] }>,
+  context?: { client: SupabaseClient; userId: string },
+) {
+  const client = context?.client ?? getClient()
+  const uid = context?.userId ?? (client ? await getUserId(client) : await getUserId())
+
+  if (!client || !uid) {
+    throw new Error('Not signed in or cloud disabled')
+  }
+
+  const { error: delErr } = await client
+    .from('guidance')
+    .delete()
+    .eq('user_id', uid)
+    .eq('estate_id', estateId)
+  if (delErr) throw delErr
+
+  const rows = items.map((item) => ({
+    user_id: uid,
+    estate_id: estateId,
+    title: item.title,
+    body: item.body,
+    links: normLinks(item.links ?? []),
+  }))
+
+  if (rows.length > 0) {
+    const { error: insErr } = await client.from('guidance').insert(rows)
+    if (insErr) throw insErr
+  }
+}
 
 const generateDocumentId = () => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -118,13 +171,9 @@ type SupabaseGuidanceRow = {
   id: string
   estate_id: EstateId
   title: string
-  summary: string | null
   body: string | null
-  tags: string[] | null
-  notes: string[] | null
-  steps: { title?: string; detail?: string }[] | null
-  templates: { id: string; title?: string; body?: string }[] | null
-  seed_version: string | null
+  links: { label: string; url: string }[] | null
+  created_at: string | null
   updated_at: string | null
 }
 
@@ -893,64 +942,26 @@ export const migrateLocalWorkspaceToCloud = async () => {
   }
 
   const { client, userId } = context
-  const now = nowISO()
 
   const profiles = Object.values(loadEstateProfiles())
   for (const profile of profiles) {
     await upsertEstate(profile)
   }
 
-  const seedVersion = loadSeedVersion()
-  const guidanceRows: {
-    id: string
-    estate_id: EstateId
-    title: string
-    summary: string | null
-    body: string | null
-    tags: string[] | null
-    notes: string[] | null
-    steps: { title?: string; detail?: string }[] | null
-    templates: { id: string; title?: string; body?: string }[] | null
-    seed_version: string | null
-    updated_at: string
-  }[] = []
-
   for (const estateId of ESTATE_IDS) {
     const entries = loadSeedGuidance(estateId)
-    for (const entry of entries) {
+    const items = entries.map((entry) => {
       const details = entry as Record<string, unknown>
-      const rawId = typeof entry.id === 'string' ? entry.id.trim() : ''
-      const entryId = rawId || `${estateId}:${entry.title}`
-      const summary = typeof details.summary === 'string' ? (details.summary as string) : null
-      const body = typeof details.body === 'string' ? (details.body as string) : null
-      const tags = Array.isArray(details.tags) ? (details.tags as string[]) : null
-      const notes = Array.isArray(details.notes) ? (details.notes as string[]) : null
-      const steps = Array.isArray(details.steps)
-        ? (details.steps as { title?: string; detail?: string }[])
-        : null
-      const templates = Array.isArray(details.templates)
-        ? (details.templates as { id: string; title?: string; body?: string }[])
-        : null
-
-      guidanceRows.push({
-        id: entryId,
-        estate_id: estateId,
-        title: entry.title,
-        summary,
-        body,
-        tags,
-        notes,
-        steps,
-        templates,
-        seed_version: seedVersion,
-        updated_at: now,
-      })
-    }
-  }
-
-  if (guidanceRows.length > 0) {
-    const { error: guidanceError } = await client.from('guidance').upsert(guidanceRows, { onConflict: 'id' })
-    if (guidanceError) throw guidanceError
+      const body =
+        typeof entry.body === 'string'
+          ? entry.body
+          : typeof details.body === 'string'
+          ? (details.body as string)
+          : ''
+      const links = Array.isArray(details.links) ? details.links : []
+      return { title: entry.title, body, links }
+    })
+    await replaceGuidance(estateId, items, context)
   }
 
   const tasks = await db.tasks.toArray()
@@ -1239,16 +1250,19 @@ export const updateEstateProfile = async (profile: EstateProfile) => {
   await upsertEstate(profile)
 }
 
-const mapGuidanceRowToSeed = (row: SupabaseGuidanceRow): SeedGuidancePage => ({
-  id: row.id,
-  title: row.title,
-  summary: row.summary ?? undefined,
-  body: row.body ?? undefined,
-  tags: row.tags ?? undefined,
-  steps: row.steps ?? undefined,
-  notes: row.notes ?? undefined,
-  templates: row.templates ?? undefined,
-}) as SeedGuidancePage
+const mapGuidanceRowToSeed = (row: SupabaseGuidanceRow): SeedGuidancePage => {
+  const entry: SeedGuidancePage = {
+    id: row.id,
+    title: row.title,
+    body: row.body ?? undefined,
+  }
+
+  if (row.links && row.links.length > 0) {
+    ;(entry as Record<string, unknown>).links = row.links
+  }
+
+  return entry
+}
 
 export const syncGuidanceFromCloud = async (estateId: EstateId, options?: SyncOptions) => {
   const context = await getSupabaseContext()
@@ -1326,37 +1340,16 @@ export const importPlanToCloud = async (plan: PlanV2) => {
     await upsertEstate(profile)
   }
 
-  const guidanceRows = plan.guidance.map((entry) => {
-    const details = entry as Record<string, unknown>
-    const rawId = typeof details.id === 'string' ? (details.id as string).trim() : ''
-    const entryId = rawId || `${plan.seedVersion}:${entry.estateId}:${entry.title}`
-    const summary = typeof details.summary === 'string' ? (details.summary as string) : null
-    const body = typeof details.body === 'string' ? (details.body as string) : null
-    const tags = Array.isArray(details.tags) ? (details.tags as string[]) : null
-    const notes = Array.isArray(details.notes) ? (details.notes as string[]) : null
-    const steps = Array.isArray(details.steps) ? (details.steps as { title?: string; detail?: string }[]) : null
-    const templates = Array.isArray(details.templates)
-      ? (details.templates as { id: string; title?: string; body?: string }[])
-      : null
+  const guidanceByEstate = new Map<string, Array<{ title: string; body: string; links?: unknown[] }>>()
+  for (const entry of plan.guidance) {
+    const estateEntries = guidanceByEstate.get(entry.estateId) ?? []
+    estateEntries.push({ title: entry.title, body: entry.body, links: entry.links ?? [] })
+    guidanceByEstate.set(entry.estateId, estateEntries)
+  }
 
-    return {
-      id: entryId,
-      estate_id: entry.estateId,
-      title: entry.title,
-      summary,
-      body,
-      tags,
-      notes,
-      steps,
-      templates,
-      seed_version: plan.seedVersion,
-      updated_at: now,
-    }
-  })
-
-  if (guidanceRows.length > 0) {
-    const { error } = await client.from('guidance').upsert(guidanceRows, { onConflict: 'id' })
-    if (error) throw error
+  for (const profile of plan.profiles) {
+    const items = guidanceByEstate.get(profile.id) ?? []
+    await replaceGuidance(profile.id, items, context)
   }
 
   const taskRows = plan.seedTasks.map((task) => ({
