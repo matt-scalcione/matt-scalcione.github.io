@@ -1369,8 +1369,56 @@ export const importPlanToCloud = async (plan: PlanV2) => {
   }))
 
   if (taskRows.length > 0) {
-    const { error } = await client.from('tasks').upsert(taskRows, { onConflict: 'seed_key' })
-    if (error) throw error
+    const seedKeys = Array.from(new Set(taskRows.map((row) => row.seed_key).filter((key): key is string => Boolean(key))))
+    const { data: existingRows, error: existingError } =
+      seedKeys.length === 0
+        ? { data: [], error: null }
+        : await client
+            .from('tasks')
+            .select('id, seed_key, created_at')
+            .eq('user_id', userId)
+            .in('seed_key', seedKeys)
+
+    if (existingError) throw existingError
+
+    type SeedKeyLookupRow = { id: string; seed_key: string | null; created_at: string | null }
+    const typedExistingRows = (existingRows ?? []) as SeedKeyLookupRow[]
+
+    const existingBySeedKey = new Map<string, { id: string; created_at: string | null }>()
+    for (const row of typedExistingRows) {
+      if (row.seed_key) {
+        existingBySeedKey.set(row.seed_key, { id: row.id, created_at: row.created_at })
+      }
+    }
+
+    type SeedTaskRow = (typeof taskRows)[number]
+
+    const inserts: SeedTaskRow[] = []
+    const updates: Array<SeedTaskRow & { id: string; created_at: string | null }> = []
+
+    for (const row of taskRows) {
+      const existing = row.seed_key ? existingBySeedKey.get(row.seed_key) : undefined
+      if (existing) {
+        updates.push({ ...row, id: existing.id, created_at: existing.created_at })
+      } else {
+        inserts.push(row)
+      }
+    }
+
+    if (inserts.length > 0) {
+      const { error } = await client.from('tasks').insert(inserts)
+      if (error) throw error
+    }
+
+    if (updates.length > 0) {
+      const payload = updates.map(({ id, created_at, ...rest }) => ({
+        id,
+        ...rest,
+        created_at: created_at ?? rest.updated_at,
+      }))
+      const { error } = await client.from('tasks').upsert(payload, { onConflict: 'id' })
+      if (error) throw error
+    }
   }
 
   saveSeedVersion(plan.seedVersion)
