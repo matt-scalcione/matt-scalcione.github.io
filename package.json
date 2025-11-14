@@ -5,5 +5,8 @@
   "scripts": {
     "build": "pnpm --filter estate-src run build",
     "postbuild": "node scripts/copy404.cjs"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^4.1.1"
   }
 }
