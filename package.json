@@ -3,10 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "clean": "pnpm --filter estate-src run clean",
     "build": "pnpm --filter estate-src run build",
-    "postbuild": "node scripts/copy404.cjs"
+    "postbuild": "node scripts/copy404.cjs",
+    "typecheck": "pnpm --filter estate-src exec tsc --noEmit",
+    "lint": "pnpm --filter estate-src run lint",
+    "escheck": "pnpm exec es-check es2015 'estate/assets/*.js' || exit 1",
+    "verify": "pnpm typecheck && pnpm lint && pnpm escheck"
   },
   "devDependencies": {
-    "@vitejs/plugin-legacy": "^4.1.1"
+    "@vitejs/plugin-legacy": "^4.1.1",
+    "es-check": "^7.1.1",
+    "rimraf": "^5.0.5"
   }
 }

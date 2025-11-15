@@ -7,10 +7,10 @@ export default defineConfig({
   plugins: [
     react(),
     legacy({
-      targets: ['defaults', 'not IE 11', 'iOS >= 12', 'Safari >= 12'],
+      targets: ['defaults','not IE 11','iOS >= 12','Safari >= 12'],
       modernPolyfills: true,
-      renderLegacyChunks: true,
-    }),
+      renderLegacyChunks: true
+    })
   ],
   build: {
     outDir: '../estate',
@@ -19,6 +19,6 @@ export default defineConfig({
     cssTarget: 'safari14',
     minify: 'terser',
     terserOptions: { safari10: true, ecma: 2015 },
-    sourcemap: false,
-  },
+    sourcemap: false
+  }
 });
