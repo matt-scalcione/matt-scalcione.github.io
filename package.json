@@ -6,6 +6,7 @@
     "clean": "rimraf estate",
     "build": "vite build",
     "postbuild": "node scripts/copy404.cjs",
+    "prepare:pages": "node scripts/preparePages.cjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --ext .ts,.tsx estate-src",
     "escheck": "es-check es2015 'estate/assets/*.js' || exit 1",
