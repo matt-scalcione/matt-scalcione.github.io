@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     legacy({
-      targets: ['defaults','not IE 11','iOS >= 12','Safari >= 12'],
+      targets: ['iOS >= 12', 'Safari >= 12'],
       modernPolyfills: true,
       renderLegacyChunks: true
     })
@@ -18,7 +18,7 @@ export default defineConfig({
     target: ['es2015'],
     cssTarget: 'safari14',
     minify: 'terser',
-    terserOptions: { safari10: true, ecma: 2015 },
+    terserOptions: { safari10: true },
     sourcemap: false
   }
 });

@@ -1,0 +1,3 @@
+{
+  "extends": "./estate-src/tsconfig.json"
+}
