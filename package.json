@@ -3,17 +3,24 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "clean": "pnpm --filter estate-src run clean",
-    "build": "pnpm --filter estate-src run build",
+    "clean": "rimraf estate",
+    "build": "vite build",
     "postbuild": "node scripts/copy404.cjs",
-    "typecheck": "pnpm --filter estate-src exec tsc --noEmit",
-    "lint": "pnpm --filter estate-src run lint",
-    "escheck": "pnpm exec es-check es2015 'estate/assets/*.js' || exit 1",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --ext .ts,.tsx estate-src",
+    "escheck": "es-check es2015 'estate/assets/*.js' || exit 1",
     "verify": "pnpm typecheck && pnpm lint && pnpm escheck"
   },
   "devDependencies": {
     "@vitejs/plugin-legacy": "^4.1.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "es-check": "^7.1.1",
-    "rimraf": "^5.0.5"
+    "eslint": "^8.56.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.0"
   }
 }
