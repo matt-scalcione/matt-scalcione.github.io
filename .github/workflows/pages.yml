@@ -1,9 +1,8 @@
 name: Deploy Estate to Pages
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main ]
+  workflow_dispatch: {}
 permissions:
   contents: read
   pages: write
@@ -17,17 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+        with: { version: 9 }
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
+        with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install
       - run: pnpm build && pnpm postbuild
       - uses: actions/upload-pages-artifact@v3
-        with:
-          path: estate
+        with: { path: estate }
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -35,5 +30,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
