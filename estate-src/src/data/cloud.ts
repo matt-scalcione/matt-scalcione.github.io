@@ -68,11 +68,35 @@ type InsertOrUpdateOptions = {
   select?: string
 }
 
-async function insertOrUpdate<T = { id: string }>(
+type SupabaseMatch = Record<string, unknown>
+
+type SeedTaskInput = {
+  title: string
+  description?: string | null
+  dueISO?: string | null
+  due_date?: string | null
+  status?: unknown
+  priority?: unknown
+  tags?: unknown
+}
+
+type TaskLike =
+  Partial<
+    Pick<
+      TaskRecord,
+      'id' | 'title' | 'description' | 'due_date' | 'status' | 'priority' | 'tags' | 'docIds' | 'seedVersion'
+    >
+  > & {
+    dueISO?: string | null
+    dueDate?: string | null
+    doc_ids?: unknown
+  }
+
+async function insertOrUpdate<T extends Record<string, unknown> = { id: string }>(
   table: string,
-  match: Record<string, any>,
-  row: any,
-  patch?: any,
+  match: SupabaseMatch,
+  row: T,
+  patch?: Partial<T>,
   options?: InsertOrUpdateOptions,
 ): Promise<{ status: 'inserted' | 'updated'; data: T[] }> {
   const client = options?.client ?? getClient()
@@ -85,15 +109,17 @@ async function insertOrUpdate<T = { id: string }>(
 
   const select = options?.select ?? 'id'
 
-  const update = await client.from(table).update(patch ?? row).match(match).select(select)
+  const update = await client.from(table).update((patch ?? row) as Partial<T>).match(match).select(select)
   if (update.error && update.error.code && update.error.code !== 'PGRST116') throw update.error
   if (update.data && update.data.length > 0) {
-    return { status: 'updated', data: (update.data ?? []) as T[] }
+    const updatedRows = ((update.data ?? []) as unknown) as T[]
+    return { status: 'updated', data: updatedRows }
   }
 
   const insert = await client.from(table).insert(row).select(select)
   if (insert.error) throw insert.error
-  return { status: 'inserted', data: (insert.data ?? []) as T[] }
+  const insertedRows = ((insert.data ?? []) as unknown) as T[]
+  return { status: 'inserted', data: insertedRows }
 }
 
 export type EstateProfile = {
@@ -140,7 +166,7 @@ export async function saveEstate(profile: EstateProfile, options?: InsertOrUpdat
 }
 
 export async function saveSeedTask(
-  task: any,
+  task: SeedTaskInput,
   estateId: string,
   seedKey: string,
   seedVersion: string,
@@ -154,22 +180,22 @@ export async function saveSeedTask(
     throw new Error('Not signed in or cloud disabled')
   }
 
-  const row: Record<string, any> = {
+  const row: Record<string, unknown> = {
     user_id: uid,
     estate_id: estateId,
     title: task.title,
     description: task.description ?? '',
     due_date: toPlanDate(task.dueISO ?? task.due_date ?? null),
-    status: ['not-started', 'in-progress', 'done'].includes(task.status) ? task.status : 'not-started',
-    priority: ['low', 'med', 'high'].includes(task.priority) ? task.priority : 'med',
-    tags: Array.isArray(task.tags) ? task.tags : [],
+    status: normStatus(task.status),
+    priority: normPriority(task.priority),
+    tags: sanitizeTags(task.tags),
     doc_ids: [],
     seed_version: seedVersion,
     seed_key: seedKey,
     updated_at: new Date().toISOString(),
   }
 
-  let match: Record<string, any> = { user_id: uid, estate_id: estateId, seed_key: seedKey }
+  let match: Record<string, string> = { user_id: uid, estate_id: estateId, seed_key: seedKey }
   const test = await client
     .from('tasks')
     .select('id,seed_key')
@@ -422,8 +448,6 @@ const toDateOnly = (value?: string | null) => {
   if (Number.isNaN(parsed.valueOf())) return null
   return parsed.toISOString().slice(0, 10)
 }
-
-const toDate = (value?: string | null) => toDateOnly(value)
 
 const toOptionalString = (value?: string | null) => {
   if (typeof value !== 'string') return undefined
@@ -847,14 +871,14 @@ export const syncTasksFromCloud = async (estateId: EstateId, options?: SyncOptio
   return true
 }
 
-const resolveDueValue = (task: any) => {
+const resolveDueValue = (task: TaskLike) => {
   if (typeof task?.due_date === 'string') return task.due_date
   if (typeof task?.dueISO === 'string') return task.dueISO
   if (typeof task?.dueDate === 'string') return task.dueDate
   return null
 }
 
-const buildCloudInsertPayload = (task: any, estateId: EstateId, userId: string) => {
+const buildCloudInsertPayload = (task: TaskLike, estateId: EstateId, userId: string) => {
   const timestamp = nowISO()
 
   const payload: Record<string, unknown> = {
@@ -879,7 +903,7 @@ const buildCloudInsertPayload = (task: any, estateId: EstateId, userId: string) 
   return payload
 }
 
-const buildCloudUpdatePayload = (task: any, estateId: EstateId) => {
+const buildCloudUpdatePayload = (task: TaskLike, estateId: EstateId) => {
   const patch: Record<string, unknown> = {
     updated_at: nowISO(),
     estate_id: estateId,
@@ -901,7 +925,7 @@ const buildCloudUpdatePayload = (task: any, estateId: EstateId) => {
   return patch
 }
 
-export const cloudInsertTask = async (task: any, estateId: EstateId) => {
+export const cloudInsertTask = async (task: TaskLike, estateId: EstateId) => {
   const client = getClient()
   if (!client) throw new Error('Not signed in or cloud disabled')
   const userId = await getUserId(client)
@@ -913,7 +937,7 @@ export const cloudInsertTask = async (task: any, estateId: EstateId) => {
   return data as SupabaseTaskRow
 }
 
-export const cloudUpdateTask = async (task: any, estateId: EstateId) => {
+export const cloudUpdateTask = async (task: TaskLike, estateId: EstateId) => {
   if (!task?.id || typeof task.id !== 'string') {
     throw new Error('Task id is required for updates')
   }
@@ -1433,9 +1457,9 @@ const mapGuidanceRowToSeed = (row: SupabaseGuidanceRow): SeedGuidancePage => {
     body: row.body ?? undefined,
   }
 
-  if (row.links && row.links.length > 0) {
-    ;(entry as Record<string, unknown>).links = row.links
-  }
+    if (row.links && row.links.length > 0) {
+      entry.links = row.links
+    }
 
   return entry
 }

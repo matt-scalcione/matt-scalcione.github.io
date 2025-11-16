@@ -99,7 +99,7 @@ class EstateWorkspaceDB extends Dexie {
         await transaction
           .table('documents')
           .toCollection()
-          .modify((doc: any) => {
+          .modify((doc: DocumentRecord & { fileName?: string | null; storagePath?: string | null }) => {
             if (doc.fileName === undefined) {
               doc.fileName = null
             }

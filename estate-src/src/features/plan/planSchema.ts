@@ -59,6 +59,17 @@ export const PlanV2 = z.object({
 export type PlanV2 = z.infer<typeof PlanV2>
 
 // Accept older/alternate keys and normalize to PlanV2
+type MutablePlan = {
+  profiles?: unknown
+  estateProfiles?: Record<string, Record<string, unknown>>
+  seedTasks?: unknown
+  tasks?: unknown
+  guidance?: unknown
+  guidancePages?: unknown
+}
+
+type UnknownRecord = Record<string, unknown>
+
 export function coercePlan(raw: unknown) {
   const obj = typeof raw === 'string' ? JSON.parse(raw) : raw
 
@@ -66,55 +77,70 @@ export function coercePlan(raw: unknown) {
     return obj
   }
 
+  const plan = obj as MutablePlan
+
   // synonyms
-  if ((obj as Record<string, unknown>).estateProfiles && !(obj as Record<string, unknown>).profiles) {
-    const rec = (obj as { estateProfiles: Record<string, any> }).estateProfiles
-    ;(obj as { profiles: any[] }).profiles = Object.keys(rec).map((id) => ({ id, ...rec[id] }))
+  if (plan.estateProfiles && !plan.profiles) {
+    const rec = plan.estateProfiles
+    plan.profiles = (Object.keys(rec) as string[]).map((id) => ({ id, ...rec[id] }))
   }
-  if ((obj as Record<string, unknown>).tasks && !(obj as Record<string, unknown>).seedTasks) {
-    ;(obj as { seedTasks: unknown[] }).seedTasks = (obj as { tasks: unknown[] }).tasks
+  if (plan.tasks && !plan.seedTasks) {
+    plan.seedTasks = plan.tasks
   }
-  if ((obj as Record<string, unknown>).guidancePages && !(obj as Record<string, unknown>).guidance) {
-    ;(obj as { guidance: unknown[] }).guidance = (obj as { guidancePages: unknown[] }).guidancePages
+  if (plan.guidancePages && !plan.guidance) {
+    plan.guidance = plan.guidancePages
   }
 
-  // ensure required arrays exist
-  if (!(obj as Record<string, unknown>).profiles) {
-    ;(obj as { profiles: unknown[] }).profiles = []
-  }
-  if (!(obj as Record<string, unknown>).seedTasks) {
-    ;(obj as { seedTasks: unknown[] }).seedTasks = []
-  }
-  if (!(obj as Record<string, unknown>).guidance) {
-    ;(obj as { guidance: unknown[] }).guidance = []
-  }
+  const profilesArray = Array.isArray(plan.profiles) ? (plan.profiles as UnknownRecord[]) : []
+  const seedTasksArray = Array.isArray(plan.seedTasks) ? (plan.seedTasks as UnknownRecord[]) : []
+  const guidanceArray = Array.isArray(plan.guidance) ? (plan.guidance as UnknownRecord[]) : []
+
+  plan.profiles = profilesArray
+  plan.seedTasks = seedTasksArray
+  plan.guidance = guidanceArray
 
   // coerce null/empty strings on date fields
   const fix = (v: unknown) => (v === '' ? null : v)
-  ;(obj as { profiles: any[] }).profiles = (obj as { profiles: any[] }).profiles.map((p) => ({
-    ...p,
-    lettersISO: fix((p as Record<string, unknown>).lettersISO ?? null),
-    firstPublicationISO: fix((p as Record<string, unknown>).firstPublicationISO ?? null),
-  }))
-  ;(obj as { seedTasks: any[] }).seedTasks = (obj as { seedTasks: any[] }).seedTasks.map((t) => ({
-    ...t,
-    dueISO: fix((t as Record<string, unknown>).dueISO ?? null),
-  }))
+  plan.profiles = profilesArray.map((profile) => {
+    const record = profile ?? {}
+    const source = record as UnknownRecord
+    return {
+      ...profile,
+      lettersISO: fix(source.lettersISO ?? null),
+      firstPublicationISO: fix(source.firstPublicationISO ?? null),
+    }
+  })
+  plan.seedTasks = seedTasksArray.map((task) => {
+    const record = task ?? {}
+    const source = record as UnknownRecord
+    return {
+      ...task,
+      dueISO: fix(source.dueISO ?? null),
+    }
+  })
 
-  if ((obj as { guidance?: any[] }).guidance) {
-    ;(obj as { guidance: any[] }).guidance = (obj as { guidance: any[] }).guidance.map((g) => ({
-      ...g,
-      links: ((g as Record<string, unknown>).links || []).map((link: any) =>
-        typeof link === 'string'
-          ? link.trim()
-          : {
-              ...link,
-              label: String((link as Record<string, unknown>).label ?? '').trim(),
-              url: String((link as Record<string, unknown>).url ?? '').trim(),
-            },
-      ),
-    }))
-  }
+  plan.guidance = guidanceArray.map((entry) => {
+    const record = entry ?? {}
+    const source = record as UnknownRecord & { links?: unknown }
+    const linksSource = Array.isArray(source.links) ? source.links : []
+
+    return {
+      ...entry,
+      links: linksSource.map((link) => {
+        if (typeof link === 'string') {
+          return link.trim()
+        }
+
+        const linkRecord = link && typeof link === 'object' ? (link as UnknownRecord) : {}
+
+        return {
+          ...linkRecord,
+          label: String(linkRecord.label ?? '').trim(),
+          url: String(linkRecord.url ?? '').trim(),
+        }
+      }),
+    }
+  })
 
   return obj
 }
