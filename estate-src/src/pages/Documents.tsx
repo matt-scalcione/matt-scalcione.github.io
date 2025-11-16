@@ -98,8 +98,9 @@ const DocumentPreviewModal = ({ doc, onClose, onDownload }: DocumentPreviewModal
         if (doc.contentType.includes('pdf')) {
           const buffer = await blob.arrayBuffer()
           if (cancelled) return
-          loadingTask = getDocument({ data: buffer })
-          const pdf = await loadingTask.promise
+          const pdfTask = getDocument({ data: buffer })
+          loadingTask = pdfTask
+          const pdf = await pdfTask.promise
           if (cancelled) return
           const page = await pdf.getPage(1)
           if (cancelled) return
@@ -145,9 +146,7 @@ const DocumentPreviewModal = ({ doc, onClose, onDownload }: DocumentPreviewModal
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl)
       }
-      if (loadingTask) {
-        loadingTask.destroy()
-      }
+      loadingTask?.destroy()
     }
   }, [doc])
 

@@ -82,7 +82,7 @@ const toEstateProfile = (value: unknown, id: EstateId): EstateProfile => {
     label: data.label,
     county: data.county,
     decedentName: data.decedentName,
-    dodISO: data.dodISO,
+    dodISO: data.dodISO ?? '',
     lettersISO: data.lettersISO ?? undefined,
     firstPublicationISO: data.firstPublicationISO ?? undefined,
     notes: data.notes ?? undefined,
@@ -195,9 +195,17 @@ export const setActiveEstateId = (estateId: EstateId) => {
 export function reseedFromPlan(plan: PlanV2) {
   if (!storageAvailable()) return
 
+  const extractSeedVersion = (task: unknown): string | null => {
+    if (!isRecord(task)) return null
+    const seed = (task as { _seed?: unknown })._seed
+    if (!isRecord(seed)) return null
+    const version = (seed as { v?: unknown }).v
+    return typeof version === 'string' ? version : null
+  }
+
   for (const profile of plan.profiles) {
     const key = tasksKeyFor(profile.id)
-    let existing: any[] = []
+    let existing: unknown[] = []
 
     try {
       const raw = window.localStorage.getItem(key)
@@ -211,8 +219,7 @@ export function reseedFromPlan(plan: PlanV2) {
       console.warn(`Unable to parse existing tasks for ${profile.id}`, error)
     }
 
-    const isSeed = (task: any) => isRecord(task) && isRecord(task._seed) && task._seed.v === plan.seedVersion
-    const keep = existing.filter((task) => !isSeed(task))
+    const keep = existing.filter((task) => extractSeedVersion(task) !== plan.seedVersion)
 
     const now = new Date().toISOString()
     const seeded = plan.seedTasks

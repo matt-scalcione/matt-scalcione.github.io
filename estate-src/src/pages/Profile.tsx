@@ -50,7 +50,7 @@ const defaultFormState: SetupFormState = {
   estate1041Required: true,
 }
 
-const formatIssuePath = (path: (string | number)[]) => {
+const formatIssuePath = (path: PropertyKey[]) => {
   if (!path || path.length === 0) {
     return '(root)'
   }
@@ -59,6 +59,9 @@ const formatIssuePath = (path: (string | number)[]) => {
     .map((segment, index) => {
       if (typeof segment === 'number') {
         return `[${segment}]`
+      }
+      if (typeof segment === 'symbol') {
+        return `[${segment.description ?? segment.toString()}]`
       }
       return index === 0 ? segment : `.${segment}`
     })
@@ -637,7 +640,7 @@ const Profile = () => {
         }
       }
 
-      reseedFromPlan(plan, { replaceExistingWithSameSeedVersion: true })
+      reseedFromPlan(plan)
       notifyPlanUpdated()
       refreshEstateProfiles()
       setSeedVersion(plan.seedVersion)
