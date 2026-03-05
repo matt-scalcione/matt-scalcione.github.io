@@ -1596,6 +1596,21 @@ button.ghost,
   gap: 0.32rem;
 }
 
+.minimap-card.fight-left {
+  border-color: rgba(31, 123, 194, 0.5);
+  box-shadow: 0 0 0 1px rgba(31, 123, 194, 0.18);
+}
+
+.minimap-card.fight-right {
+  border-color: rgba(183, 70, 50, 0.5);
+  box-shadow: 0 0 0 1px rgba(183, 70, 50, 0.18);
+}
+
+.minimap-card.fight-both {
+  border-color: rgba(170, 107, 26, 0.5);
+  box-shadow: 0 0 0 1px rgba(170, 107, 26, 0.16);
+}
+
 .minimap-title {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
@@ -1660,6 +1675,54 @@ button.ghost,
   opacity: 0.34;
 }
 
+.minimap-dot.pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: minimap-pulse 1.15s ease-in-out infinite;
+}
+
+.objective-marker .objective-ring {
+  fill: rgba(210, 220, 237, 0.2);
+  stroke: rgba(210, 220, 237, 0.45);
+  stroke-width: 0.55;
+}
+
+.objective-marker .objective-core {
+  fill: rgba(14, 23, 38, 0.95);
+  stroke: rgba(210, 220, 237, 0.38);
+  stroke-width: 0.45;
+}
+
+.objective-marker .objective-text {
+  fill: rgba(245, 247, 251, 0.9);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 2px;
+  letter-spacing: 0.02em;
+  paint-order: stroke;
+  stroke: rgba(12, 25, 42, 0.9);
+  stroke-width: 0.22;
+}
+
+.objective-marker.available .objective-core {
+  fill: rgba(19, 125, 79, 0.9);
+  stroke: rgba(19, 125, 79, 0.95);
+}
+
+.objective-marker.countdown .objective-core {
+  fill: rgba(168, 93, 20, 0.88);
+  stroke: rgba(168, 93, 20, 0.95);
+}
+
+.objective-marker.captured.owned-left .objective-core {
+  fill: rgba(31, 123, 194, 0.92);
+  stroke: rgba(31, 123, 194, 0.96);
+}
+
+.objective-marker.captured.owned-right .objective-core {
+  fill: rgba(183, 70, 50, 0.92);
+  stroke: rgba(183, 70, 50, 0.96);
+}
+
 .minimap-legend {
   display: flex;
   gap: 0.26rem;
@@ -1693,6 +1756,90 @@ button.ghost,
   margin: 0;
   font-size: 0.64rem;
   color: var(--muted);
+}
+
+.minimap-objectives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.objective-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.08rem 0.36rem 0.08rem 0.16rem;
+  background: #fff;
+  color: var(--muted);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.01em;
+}
+
+.objective-chip-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 45, 66, 0.18);
+  background: rgba(12, 45, 66, 0.06);
+}
+
+.objective-chip-meta {
+  font-weight: 600;
+}
+
+.objective-chip.available {
+  border-color: rgba(19, 125, 79, 0.38);
+  background: rgba(19, 125, 79, 0.09);
+  color: #0f6942;
+}
+
+.objective-chip.available .objective-chip-key {
+  border-color: rgba(19, 125, 79, 0.42);
+  background: rgba(19, 125, 79, 0.18);
+}
+
+.objective-chip.countdown {
+  border-color: rgba(168, 93, 20, 0.38);
+  background: rgba(168, 93, 20, 0.09);
+  color: #8c4d10;
+}
+
+.objective-chip.countdown .objective-chip-key {
+  border-color: rgba(168, 93, 20, 0.42);
+  background: rgba(168, 93, 20, 0.18);
+}
+
+.objective-chip.captured.owned-left {
+  border-color: rgba(31, 123, 194, 0.38);
+  background: rgba(31, 123, 194, 0.08);
+  color: #1b639b;
+}
+
+.objective-chip.captured.owned-right {
+  border-color: rgba(183, 70, 50, 0.38);
+  background: rgba(183, 70, 50, 0.08);
+  color: #8f382a;
+}
+
+@keyframes minimap-pulse {
+  0% {
+    opacity: 1;
+    stroke-width: 0.8;
+  }
+  50% {
+    opacity: 0.58;
+    stroke-width: 1.35;
+  }
+  100% {
+    opacity: 1;
+    stroke-width: 0.8;
+  }
 }
 
 .trend-headline {
