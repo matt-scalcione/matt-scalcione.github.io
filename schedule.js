@@ -1,6 +1,61 @@
 import { resolveInitialApiBase } from "./api-config.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
+const TEAM_SHORT_NAMES = {
+  "cloud9 kia": "Cloud9",
+  "cloud9": "Cloud9",
+  "team liquid honda": "Liquid",
+  "team liquid": "Liquid",
+  "gen.g esports": "Gen.G",
+  "hanwha life esports": "HLE",
+  "dplus kia": "DK",
+  "kt rolster": "KT",
+  "nongshim redforce": "NS",
+  "liiv sandbox": "LSB",
+  "g2 esports": "G2",
+  "karmine corp": "KC",
+  "mad lions koi": "MAD",
+  "movistar koi": "KOI",
+  "team bds": "BDS",
+  "team vitality": "VIT",
+  "th team heretics": "TH",
+  "bilibili gaming": "BLG",
+  "top esports": "TES",
+  "jd gaming": "JDG",
+  "lng esports": "LNG",
+  "weibo gaming": "WBG",
+  "edward gaming": "EDG",
+  "invictus gaming": "iG",
+  "funplus phoenix": "FPX",
+  "anyone's legend": "AL",
+  "ninjas in pyjamas": "NIP",
+  "royal never give up": "RNG",
+  "team we": "WE",
+  "ultra prime": "UP",
+  "lgd gaming": "LGD",
+  "rare atom": "RA",
+  "thundertalk gaming": "TT",
+  "gaimin gladiators": "GG",
+  "team spirit": "Spirit",
+  "team falcons": "Falcons",
+  "betboom team": "BetBoom",
+  "tundra esports": "Tundra",
+  "shopify rebellion": "SR",
+  "aurora gaming": "Aurora",
+  "nouns esports": "Nouns",
+  "psg.quest": "Quest",
+  "xtreme gaming": "XG",
+  "azure ray": "AR",
+  entity: "Entity",
+  "nigma galaxy": "Nigma",
+  "virtus.pro": "VP",
+  "team secret": "Secret",
+  "evil geniuses": "EG",
+  "boom esports": "BOOM",
+  "blacklist international": "BLCK",
+  "talon esports": "Talon",
+  "natus vincere": "NAVI"
+};
 
 const elements = {
   apiBaseInput: document.querySelector("#apiBaseInput"),
@@ -40,6 +95,80 @@ function dateTimeLabel(iso) {
   } catch {
     return iso;
   }
+}
+
+function dateTimeCompact(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(iso || "");
+    }
+
+    return parsed.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function seriesScoreLabel(row, type) {
+  const left = Number(row?.seriesScore?.left ?? 0);
+  const right = Number(row?.seriesScore?.right ?? 0);
+  const status = String(row?.status || "").toLowerCase();
+  const hasPlayed = left > 0 || right > 0;
+
+  if (type === "scheduled" && !hasPlayed && status !== "live") {
+    return "—";
+  }
+
+  return `${left}-${right}`;
+}
+
+function normalizeTeamKey(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function shortTeamName(name) {
+  const raw = String(name || "").trim();
+  if (!raw) {
+    return "TBD";
+  }
+
+  const mapped = TEAM_SHORT_NAMES[normalizeTeamKey(raw)];
+  if (mapped) {
+    return mapped;
+  }
+
+  const stripped = raw
+    .replace(/\b(Esports?|E-Sports?|Gaming|Club|Kia|Honda)\b/gi, "")
+    .replace(/\bTeam\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (stripped.length >= 3) {
+    return stripped;
+  }
+
+  return raw;
+}
+
+function gameChipMarkup(game) {
+  const normalized = String(game || "").toLowerCase();
+  if (normalized === "lol") {
+    return `<span class="game-chip lol" title="League of Legends">L</span>`;
+  }
+
+  if (normalized === "dota2") {
+    return `<span class="game-chip dota2" title="Dota 2">D</span>`;
+  }
+
+  return `<span class="game-chip">${String(game || "?").slice(0, 1).toUpperCase()}</span>`;
 }
 
 function toLocalInputValue(date) {
@@ -83,6 +212,7 @@ function rowLink(id, apiBase) {
 function teamLink({
   teamId,
   teamName,
+  label = null,
   game,
   apiBase,
   matchId = null,
@@ -108,7 +238,7 @@ function teamLink({
     url.searchParams.set("team_name", teamName);
   }
 
-  return `<a class="team-link" href="${url.toString()}">${teamName || teamId}</a>`;
+  return `<a class="team-link" href="${url.toString()}">${label || teamName || teamId}</a>`;
 }
 
 function updateNav(apiBase) {
@@ -135,17 +265,23 @@ function renderTable(container, rows, apiBase, type) {
     return;
   }
 
-  const body = rows
+  const desktopBody = rows
     .map((row) => {
-      const winner =
+      const detailUrl = rowLink(row.id, apiBase);
+      const winnerLong =
         row.winnerTeamId === row.teams.left.id
           ? row.teams.left.name
           : row.winnerTeamId === row.teams.right.id
             ? row.teams.right.name
-            : "-";
+            : "TBD";
+      const leftShort = shortTeamName(row.teams.left.name);
+      const rightShort = shortTeamName(row.teams.right.name);
+      const winnerShort = winnerLong === "TBD" ? "—" : shortTeamName(winnerLong);
+      const scoreLabel = seriesScoreLabel(row, type);
       const leftTeam = teamLink({
         teamId: row.teams.left.id,
         teamName: row.teams.left.name,
+        label: leftShort,
         game: row.game,
         apiBase,
         matchId: row.id,
@@ -154,6 +290,7 @@ function renderTable(container, rows, apiBase, type) {
       const rightTeam = teamLink({
         teamId: row.teams.right.id,
         teamName: row.teams.right.name,
+        label: rightShort,
         game: row.game,
         apiBase,
         matchId: row.id,
@@ -161,33 +298,100 @@ function renderTable(container, rows, apiBase, type) {
       });
 
       return `
-        <tr>
-          <td>${dateTimeLabel(row.startAt)}</td>
-          <td>${row.game.toUpperCase()} / ${row.region.toUpperCase()}</td>
-          <td>${leftTeam} vs ${rightTeam}</td>
-          <td>${row.seriesScore.left}-${row.seriesScore.right}</td>
-          <td>${winner}</td>
-          <td><a class="table-link" href="${rowLink(row.id, apiBase)}">Open</a></td>
+        <tr class="schedule-row" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftShort} vs ${rightShort}">
+          <td class="schedule-time-cell">${dateTimeCompact(row.startAt)}</td>
+          <td class="schedule-game-cell">${gameChipMarkup(row.game)}</td>
+          <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
+          <td class="schedule-score-cell">${scoreLabel}</td>
+          <td class="schedule-winner-cell">${type === "result" ? winnerShort : "—"}</td>
         </tr>
       `;
     })
     .join("");
 
+  const mobileCards = rows
+    .map((row) => {
+      const detailUrl = rowLink(row.id, apiBase);
+      const leftShort = shortTeamName(row.teams.left.name);
+      const rightShort = shortTeamName(row.teams.right.name);
+      const winnerLong =
+        row.winnerTeamId === row.teams.left.id
+          ? row.teams.left.name
+          : row.winnerTeamId === row.teams.right.id
+            ? row.teams.right.name
+            : null;
+      const winnerShort = winnerLong ? shortTeamName(winnerLong) : "—";
+      const scoreLabel = seriesScoreLabel(row, type);
+
+      return `
+        <a class="schedule-row-card" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
+          <div class="schedule-card-top">
+            <div class="schedule-card-game">${gameChipMarkup(row.game)} <span>${dateTimeCompact(row.startAt)}</span></div>
+            <p class="schedule-card-score">${scoreLabel}</p>
+          </div>
+          <p class="schedule-card-match">${leftShort} <span>vs</span> ${rightShort}</p>
+          <p class="schedule-card-meta">${type === "result" ? `Winner: ${winnerShort}` : "Tap for full match details"}</p>
+        </a>
+      `;
+    })
+    .join("");
+
   container.innerHTML = `
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Start</th>
-          <th>Game / Region</th>
-          <th>Match</th>
-          <th>Score</th>
-          <th>Winner</th>
-          <th>Detail</th>
-        </tr>
-      </thead>
-      <tbody>${body}</tbody>
-    </table>
+    <div class="table-wrap schedule-desktop-wrap">
+      <table class="data-table schedule-table">
+        <thead>
+          <tr>
+            <th>Start</th>
+            <th>Game</th>
+            <th>Match</th>
+            <th>Score</th>
+            <th>Winner</th>
+          </tr>
+        </thead>
+        <tbody>${desktopBody}</tbody>
+      </table>
+    </div>
+    <div class="schedule-mobile-list">${mobileCards}</div>
   `;
+}
+
+function wireRowNavigation(container) {
+  if (!container) {
+    return;
+  }
+
+  container.addEventListener("click", (event) => {
+    if (event.target.closest("a")) {
+      return;
+    }
+
+    const row = event.target.closest("tr.schedule-row");
+    if (!row) {
+      return;
+    }
+
+    const href = row.getAttribute("data-href");
+    if (href) {
+      window.location.href = href;
+    }
+  });
+
+  container.addEventListener("keydown", (event) => {
+    const row = event.target.closest("tr.schedule-row");
+    if (!row) {
+      return;
+    }
+
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    const href = row.getAttribute("data-href");
+    if (href) {
+      window.location.href = href;
+    }
+  });
 }
 
 async function fetchCollection(apiBase, endpoint, query) {
@@ -227,6 +431,9 @@ async function loadCollections() {
 }
 
 function installEvents() {
+  wireRowNavigation(elements.scheduleTableWrap);
+  wireRowNavigation(elements.resultsTableWrap);
+
   elements.refreshButton.addEventListener("click", loadCollections);
   elements.saveButton.addEventListener("click", () => {
     const value = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
