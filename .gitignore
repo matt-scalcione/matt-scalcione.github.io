@@ -1,5 +1,6 @@
 # Dependency directories
 node_modules
+api/node_modules
 
 # Build output
 .dist
@@ -12,4 +13,10 @@ dist
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Local env files
+api/.env
+api/.env.*
+
+# Legacy folder
 /estate

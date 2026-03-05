@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulseboard Team Detail</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <header class="hero compact">
+      <p class="kicker">Pulseboard</p>
+      <h1>Team Detail</h1>
+      <p class="subtitle" id="teamTitle">Loading team...</p>
+      <nav class="page-nav">
+        <a id="liveDeskNav" href="./index.html">Live Desk</a>
+        <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
+        <a id="followsNav" href="./follows.html">Follows & Alerts</a>
+      </nav>
+      <a id="backLink" href="./schedule.html" class="link-btn">Back</a>
+    </header>
+
+    <main class="layout detail">
+      <section class="panel controls">
+        <h2>Team Filters</h2>
+        <div class="controls-grid">
+          <label>
+            API Base
+            <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
+          </label>
+          <label>
+            Game
+            <select id="gameSelect">
+              <option value="lol">League of Legends</option>
+              <option value="dota2">Dota 2</option>
+            </select>
+          </label>
+          <label>
+            History Size
+            <select id="limitSelect">
+              <option value="5">Last 5</option>
+              <option value="10">Last 10</option>
+              <option value="15">Last 15</option>
+              <option value="20">Last 20</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="refreshButton" type="button">Refresh</button>
+          <button id="saveButton" type="button" class="ghost">Save API Base</button>
+          <p id="statusText" class="status-text">Waiting for data...</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Team Snapshot</h2>
+          <p id="teamMetaText" class="meta-text"></p>
+        </div>
+        <div id="teamSummaryWrap" class="upcoming-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Performance Insights</h2>
+          <p id="performanceMetaText" class="meta-text"></p>
+        </div>
+        <div id="performanceInsightsWrap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Form Timeline</h2>
+          <p id="formTimelineMeta" class="meta-text"></p>
+        </div>
+        <div id="formTimelineWrap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Last Games</h2>
+          <p class="meta-text">Opponent, result, score, date, and tournament.</p>
+        </div>
+        <div id="recentMatchesWrap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Upcoming Matches</h2>
+          <p class="meta-text">Next scheduled matches for this team.</p>
+        </div>
+        <div id="upcomingMatchesWrap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Past Matches</h2>
+          <p class="meta-text">Past opponents with result, date, and score.</p>
+        </div>
+        <div class="past-toolbar">
+          <label>
+            Result
+            <select id="pastResultFilter">
+              <option value="all">All</option>
+              <option value="win">Wins</option>
+              <option value="loss">Losses</option>
+              <option value="draw">Draws</option>
+            </select>
+          </label>
+          <label>
+            Sort
+            <select id="pastSortFilter">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </label>
+          <label>
+            Opponent Search
+            <input id="pastOpponentSearch" type="text" placeholder="type opponent name" />
+          </label>
+          <label>
+            Tournament
+            <select id="pastTournamentFilter">
+              <option value="all">All</option>
+            </select>
+          </label>
+          <div class="past-toolbar-actions">
+            <button id="exportPastCsvButton" type="button" class="ghost">Export CSV</button>
+          </div>
+        </div>
+        <p id="pastMatchesMeta" class="meta-text"></p>
+        <div id="opponentBreakdownWrap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Head-To-Head</h2>
+          <p class="meta-text">Pick an opponent to load direct history.</p>
+        </div>
+        <div class="feed-controls">
+          <label>
+            Opponent
+            <select id="opponentSelect">
+              <option value="">All opponents</option>
+            </select>
+          </label>
+        </div>
+        <div id="headToHeadWrap"></div>
+      </section>
+    </main>
+
+    <script src="./site-config.js"></script>
+    <script type="module" src="./team.js"></script>
+  </body>
+</html>

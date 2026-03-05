@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: pulseboard-api
+    runtime: node
+    plan: free
+    rootDir: api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ESPORTS_DATA_MODE
+        value: hybrid
+      - key: PROVIDER_CACHE_MS
+        value: 30000
+      - key: PROVIDER_TIMEOUT_MS
+        value: 6000

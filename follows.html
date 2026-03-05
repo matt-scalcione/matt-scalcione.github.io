@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulseboard Follows & Alerts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <header class="hero">
+      <p class="kicker">Pulseboard</p>
+      <h1>Follows & Alerts</h1>
+      <p class="subtitle">
+        Manage teams/players/tournaments you follow and set notification behavior.
+      </p>
+      <nav class="page-nav">
+        <a id="liveDeskNav" href="./index.html">Live Desk</a>
+        <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
+        <a id="followsNav" href="./follows.html" aria-current="page">Follows & Alerts</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="panel controls">
+        <h2>Account Context</h2>
+        <div class="controls-grid">
+          <label>
+            API Base
+            <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
+          </label>
+          <label>
+            User ID
+            <input id="userIdInput" type="text" placeholder="demo-user" />
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="refreshButton" type="button">Reload</button>
+          <button id="saveApiButton" type="button" class="ghost">Save API Base</button>
+          <p id="statusText" class="status-text">Ready.</p>
+        </div>
+
+        <h2 class="top-space">Add Follow</h2>
+        <div class="controls-grid">
+          <label>
+            Entity Type
+            <select id="entityTypeSelect">
+              <option value="team">Team</option>
+              <option value="player">Player</option>
+              <option value="tournament">Tournament</option>
+            </select>
+          </label>
+          <label>
+            Entity ID
+            <input id="entityIdInput" type="text" placeholder="team_t1" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="addFollowButton" type="button">Add Follow</button>
+        </div>
+      </section>
+
+      <section class="panel stack">
+        <div>
+          <div class="section-head">
+            <h2>Current Follows</h2>
+            <p id="followsMeta" class="meta-text">Waiting for data...</p>
+          </div>
+          <div id="followsList" class="follow-list"></div>
+        </div>
+
+        <div>
+          <div class="section-head top-space">
+            <h2>Notification Preferences</h2>
+            <p class="meta-text">Saved per user ID.</p>
+          </div>
+          <form id="prefsForm" class="prefs-grid">
+            <label class="check">
+              <input id="webPushInput" type="checkbox" />
+              Web push alerts
+            </label>
+            <label class="check">
+              <input id="emailDigestInput" type="checkbox" />
+              Email digest
+            </label>
+            <label class="check">
+              <input id="swingAlertsInput" type="checkbox" />
+              Swing alerts
+            </label>
+            <label class="check">
+              <input id="matchStartInput" type="checkbox" />
+              Match start alerts
+            </label>
+            <label class="check">
+              <input id="matchFinalInput" type="checkbox" />
+              Match final alerts
+            </label>
+          </form>
+
+          <div class="actions">
+            <button id="savePrefsButton" type="button">Save Preferences</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./site-config.js"></script>
+    <script type="module" src="./follows.js"></script>
+  </body>
+</html>

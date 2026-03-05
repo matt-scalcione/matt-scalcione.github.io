@@ -1,0 +1,15 @@
+{
+  "name": "esports-live-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Live scores API scaffold for LoL and Dota 2.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "ESPORTS_DATA_MODE=mock node --test"
+  }
+}
