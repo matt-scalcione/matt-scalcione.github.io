@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pulseboard Live Desk</title>
+    <title>Pulseboard Schedule & Results</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,13 +16,13 @@
     <div class="noise"></div>
     <header class="hero">
       <p class="kicker">Pulseboard</p>
-      <h1>Live Esports Desk</h1>
+      <h1>Schedule & Results</h1>
       <p class="subtitle">
-        League of Legends and Dota 2 live scores with instant context, not just raw events.
+        Filter by game, region, and date range to track upcoming matches and completed series.
       </p>
       <nav class="page-nav">
-        <a id="liveDeskNav" href="./index.html" aria-current="page">Live Desk</a>
-        <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
+        <a id="liveDeskNav" href="./index.html">Live Desk</a>
+        <a id="scheduleNav" href="./schedule.html" aria-current="page">Schedule & Results</a>
         <a id="followsNav" href="./follows.html">Follows & Alerts</a>
       </nav>
     </header>
@@ -52,32 +52,38 @@
             <input id="dotaTiersInput" type="text" placeholder="1,2,3,4" value="1,2,3,4" />
           </label>
           <label>
-            User ID
-            <input id="userIdInput" type="text" placeholder="demo-user" />
+            Date From
+            <input id="dateFromInput" type="datetime-local" />
           </label>
-          <label class="check">
-            <input id="followedOnlyInput" type="checkbox" />
-            Followed teams only
+          <label>
+            Date To
+            <input id="dateToInput" type="datetime-local" />
           </label>
         </div>
 
         <div class="actions">
-          <button id="refreshButton" type="button">Refresh Now</button>
+          <button id="refreshButton" type="button">Refresh</button>
           <button id="saveButton" type="button" class="ghost">Save API Base</button>
           <p id="statusText" class="status-text">Ready.</p>
         </div>
       </section>
 
-      <section class="panel live-desk">
+      <section class="panel">
         <div class="section-head">
-          <h2>Live and Upcoming</h2>
-          <p id="metaText" class="meta-text">Waiting for data...</p>
+          <h2>Schedule</h2>
+          <p id="scheduleMeta" class="meta-text">Waiting for data...</p>
         </div>
-        <div id="cardGrid" class="card-grid"></div>
+        <div id="scheduleTableWrap" class="table-wrap"></div>
+
+        <div class="section-head top-space">
+          <h2>Results</h2>
+          <p id="resultsMeta" class="meta-text">Waiting for data...</p>
+        </div>
+        <div id="resultsTableWrap" class="table-wrap"></div>
       </section>
     </main>
 
     <script src="./site-config.js"></script>
-    <script type="module" src="./main.js"></script>
+    <script type="module" src="./schedule.js"></script>
   </body>
 </html>

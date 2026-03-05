@@ -1,0 +1,4068 @@
+import { resolveInitialApiBase } from "./api-config.js";
+
+const DEFAULT_API_BASE = resolveInitialApiBase();
+const DEFAULT_REFRESH_SECONDS = 15;
+const LEAD_TREND_MIN_ABS_GOLD = 7000;
+const LEAD_TREND_SCALE_HEADROOM = 1.15;
+
+const elements = {
+  matchTitle: document.querySelector("#matchTitle"),
+  backLink: document.querySelector("#backLink"),
+  liveDeskNav: document.querySelector("#liveDeskNav"),
+  scheduleNav: document.querySelector("#scheduleNav"),
+  followsNav: document.querySelector("#followsNav"),
+  freshnessText: document.querySelector("#freshnessText"),
+  scoreboard: document.querySelector("#scoreboard"),
+  streamStatusWrap: document.querySelector("#streamStatusWrap"),
+  seriesHeaderSubhead: document.querySelector("#seriesHeaderSubhead"),
+  seriesHeaderWrap: document.querySelector("#seriesHeaderWrap"),
+  gameNavWrap: document.querySelector("#gameNavWrap"),
+  gameContextWrap: document.querySelector("#gameContextWrap"),
+  gameCommandWrap: document.querySelector("#gameCommandWrap"),
+  teamCompareWrap: document.querySelector("#teamCompareWrap"),
+  playerTrackerWrap: document.querySelector("#playerTrackerWrap"),
+  trackerSort: document.querySelector("#trackerSort"),
+  liveFeedList: document.querySelector("#liveFeedList"),
+  combatBurstsList: document.querySelector("#combatBurstsList"),
+  goldMilestonesList: document.querySelector("#goldMilestonesList"),
+  liveAlertsList: document.querySelector("#liveAlertsList"),
+  feedTypeFilter: document.querySelector("#feedTypeFilter"),
+  feedTeamFilter: document.querySelector("#feedTeamFilter"),
+  feedImportanceFilter: document.querySelector("#feedImportanceFilter"),
+  feedWindowFilter: document.querySelector("#feedWindowFilter"),
+  statusSummary: document.querySelector("#statusSummary"),
+  matchupMetaText: document.querySelector("#matchupMetaText"),
+  matchupH2hLimit: document.querySelector("#matchupH2hLimit"),
+  matchupConsoleWrap: document.querySelector("#matchupConsoleWrap"),
+  seriesLineupsWrap: document.querySelector("#seriesLineupsWrap"),
+  upcomingEssentialsWrap: document.querySelector("#upcomingEssentialsWrap"),
+  upcomingWatchWrap: document.querySelector("#upcomingWatchWrap"),
+  upcomingFormWrap: document.querySelector("#upcomingFormWrap"),
+  upcomingH2hWrap: document.querySelector("#upcomingH2hWrap"),
+  upcomingPredictionWrap: document.querySelector("#upcomingPredictionWrap"),
+  dataConfidenceWrap: document.querySelector("#dataConfidenceWrap"),
+  pulseCard: document.querySelector("#pulseCard"),
+  edgeMeterWrap: document.querySelector("#edgeMeterWrap"),
+  tempoSnapshotWrap: document.querySelector("#tempoSnapshotWrap"),
+  tacticalChecklistWrap: document.querySelector("#tacticalChecklistWrap"),
+  storylinesList: document.querySelector("#storylinesList"),
+  seriesProgressWrap: document.querySelector("#seriesProgressWrap"),
+  seriesMomentsList: document.querySelector("#seriesMomentsList"),
+  leadTrendWrap: document.querySelector("#leadTrendWrap"),
+  objectiveControlWrap: document.querySelector("#objectiveControlWrap"),
+  objectiveBreakdownWrap: document.querySelector("#objectiveBreakdownWrap"),
+  draftBoardWrap: document.querySelector("#draftBoardWrap"),
+  draftDeltaWrap: document.querySelector("#draftDeltaWrap"),
+  economyBoardWrap: document.querySelector("#economyBoardWrap"),
+  laneMatchupsWrap: document.querySelector("#laneMatchupsWrap"),
+  objectiveRunsWrap: document.querySelector("#objectiveRunsWrap"),
+  seriesGamesWrap: document.querySelector("#seriesGamesWrap"),
+  seriesCompareWrap: document.querySelector("#seriesCompareWrap"),
+  seriesPlayerTrendsWrap: document.querySelector("#seriesPlayerTrendsWrap"),
+  selectedGameRecapWrap: document.querySelector("#selectedGameRecapWrap"),
+  preMatchPlanner: document.querySelector("#preMatchPlanner"),
+  performersWrap: document.querySelector("#performersWrap"),
+  liveTickerList: document.querySelector("#liveTickerList"),
+  objectiveTimelineList: document.querySelector("#objectiveTimelineList"),
+  objectiveForecastWrap: document.querySelector("#objectiveForecastWrap"),
+  deltaWindowText: document.querySelector("#deltaWindowText"),
+  playerDeltaWrap: document.querySelector("#playerDeltaWrap"),
+  roleDeltaWrap: document.querySelector("#roleDeltaWrap"),
+  momentsList: document.querySelector("#momentsList"),
+  timelineList: document.querySelector("#timelineList"),
+  gamePanels: Array.from(document.querySelectorAll("section[data-scope=\"game\"]")),
+  upcomingPanels: Array.from(document.querySelectorAll("section[data-scope=\"upcoming\"]")),
+  seriesPanels: Array.from(document.querySelectorAll("section[data-scope=\"series\"]"))
+};
+
+let refreshTimer = null;
+let respawnTicker = null;
+const uiState = {
+  match: null,
+  apiBase: DEFAULT_API_BASE,
+  requestedGameNumber: null,
+  requestedGameFallback: null,
+  activeGameNumber: null,
+  viewMode: "series",
+  feedType: "all",
+  feedTeam: "all",
+  feedImportance: "all",
+  feedWindowMinutes: null,
+  trackerSort: "role",
+  matchupH2hLimit: 5,
+  matchup: {
+    key: null,
+    loading: false,
+    error: null,
+    leftProfile: null,
+    rightProfile: null
+  },
+  matchupRequestToken: 0,
+  stream: {
+    key: null,
+    source: "polling",
+    connected: false,
+    reconnectAttempt: 0,
+    lastSnapshotAt: null,
+    lastErrorAt: null,
+    eventSource: null,
+    reconnectTimer: null
+  },
+  controlsBound: false,
+  leadTrendScaleByContext: {}
+};
+
+function clearRefreshTimer() {
+  clearTimeout(refreshTimer);
+  refreshTimer = null;
+}
+
+function clearRespawnTicker() {
+  clearInterval(respawnTicker);
+  respawnTicker = null;
+}
+
+function scheduleRefresh(seconds = DEFAULT_REFRESH_SECONDS) {
+  const safeSeconds = Number.isFinite(Number(seconds)) ? Math.max(8, Number(seconds)) : DEFAULT_REFRESH_SECONDS;
+  clearRefreshTimer();
+  refreshTimer = setTimeout(loadMatch, safeSeconds * 1000);
+}
+
+function dateTimeLabel(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(iso || "");
+    }
+
+    return parsed.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function signed(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num === 0) {
+    return "0";
+  }
+
+  return `${num > 0 ? "+" : ""}${num}`;
+}
+
+function shortDuration(seconds) {
+  const total = Number(seconds);
+  if (!Number.isFinite(total) || total <= 0) {
+    return "0m";
+  }
+
+  const day = Math.floor(total / 86400);
+  const hour = Math.floor((total % 86400) / 3600);
+  const minute = Math.floor((total % 3600) / 60);
+
+  if (day > 0) {
+    return `${day}d ${hour}h`;
+  }
+
+  if (hour > 0) {
+    return `${hour}h ${minute}m`;
+  }
+
+  return `${Math.max(1, minute)}m`;
+}
+
+function parseIsoTimestamp(value) {
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatGameClock(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function resolveFeedTimelineAnchor(match, rows) {
+  const selectedStart = parseIsoTimestamp(match?.selectedGame?.startedAt);
+  if (selectedStart !== null) {
+    return { startTs: selectedStart, estimated: false };
+  }
+
+  const selectedNumber = Number(match?.selectedGame?.number || 0);
+  const selectedSeriesGame = Array.isArray(match?.seriesGames)
+    ? match.seriesGames.find((row) => Number(row?.number || 0) === selectedNumber)
+    : null;
+  const selectedSeriesStart = parseIsoTimestamp(selectedSeriesGame?.startedAt);
+  if (selectedSeriesStart !== null) {
+    return { startTs: selectedSeriesStart, estimated: true };
+  }
+
+  const updatedTs = parseIsoTimestamp(match?.playerEconomy?.updatedAt);
+  const elapsedSeconds = Number(match?.playerEconomy?.elapsedSeconds || 0);
+  if (updatedTs !== null && Number.isFinite(elapsedSeconds) && elapsedSeconds > 0) {
+    return {
+      startTs: updatedTs - Math.round(elapsedSeconds * 1000),
+      estimated: true
+    };
+  }
+
+  const eventTimes = rows
+    .map((row) => parseIsoTimestamp(row?.at))
+    .filter((value) => value !== null)
+    .sort((left, right) => left - right);
+  if (eventTimes.length > 0) {
+    return { startTs: eventTimes[0], estimated: true };
+  }
+
+  return { startTs: null, estimated: true };
+}
+
+function formatNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "0";
+  }
+
+  return num.toLocaleString();
+}
+
+function statList(team) {
+  const rows = [];
+  if (typeof team.kills === "number") rows.push({ label: "Kills", value: String(team.kills) });
+  if (typeof team.gold === "number") rows.push({ label: "Gold", value: formatNumber(team.gold) });
+  if (typeof team.netWorth === "number") rows.push({ label: "Net Worth", value: formatNumber(team.netWorth) });
+  if (typeof team.towers === "number") rows.push({ label: "Towers", value: String(team.towers) });
+  if (typeof team.dragons === "number") rows.push({ label: "Dragons", value: String(team.dragons) });
+  if (typeof team.barons === "number") rows.push({ label: "Barons", value: String(team.barons) });
+  if (typeof team.inhibitors === "number") rows.push({ label: "Inhibitors", value: String(team.inhibitors) });
+  return rows;
+}
+
+function winnerTeamName(match) {
+  if (!match?.teams?.left || !match?.teams?.right) {
+    return null;
+  }
+
+  if (match.winnerTeamId === match.teams.left.id) {
+    return match.teams.left.name;
+  }
+
+  if (match.winnerTeamId === match.teams.right.id) {
+    return match.teams.right.name;
+  }
+
+  if (match.status === "completed") {
+    if (match.seriesScore.left > match.seriesScore.right) {
+      return match.teams.left.name;
+    }
+
+    if (match.seriesScore.right > match.seriesScore.left) {
+      return match.teams.right.name;
+    }
+  }
+
+  return null;
+}
+
+function renderScoreboard(match) {
+  const leftStats = statList(match.teams.left);
+  const rightStats = statList(match.teams.right);
+  const winner = winnerTeamName(match);
+  const selectedGameNumber = contextGameNumber();
+  const leftTeamUrl = teamDetailUrl(match.teams.left.id, match.game, uiState.apiBase, {
+    matchId: match.id,
+    gameNumber: selectedGameNumber,
+    opponentId: match.teams.right.id,
+    teamName: match.teams.left.name
+  });
+  const rightTeamUrl = teamDetailUrl(match.teams.right.id, match.game, uiState.apiBase, {
+    matchId: match.id,
+    gameNumber: selectedGameNumber,
+    opponentId: match.teams.left.id,
+    teamName: match.teams.right.name
+  });
+
+  elements.scoreboard.innerHTML = `
+    <article class="team-box">
+      <h3><a class="team-link" href="${leftTeamUrl}">${match.teams.left.name}</a></h3>
+      ${leftStats.map((line) => `<p class="stat-line"><span>${line.label}</span><span>${line.value}</span></p>`).join("")}
+    </article>
+    <article class="series">
+      <p class="meta-text">Series Score</p>
+      <p class="series-score">${match.seriesScore.left} : ${match.seriesScore.right}</p>
+      <p class="meta-text">${match.status.toUpperCase()}</p>
+      ${winner ? `<p class="meta-text strong">Winner: ${winner}</p>` : ""}
+    </article>
+    <article class="team-box">
+      <h3><a class="team-link" href="${rightTeamUrl}">${match.teams.right.name}</a></h3>
+      ${rightStats.map((line) => `<p class="stat-line"><span>${line.label}</span><span>${line.value}</span></p>`).join("")}
+    </article>
+  `;
+}
+
+function streamKeyForMatch({ matchId, apiBase, gameNumber }) {
+  const normalizedGame = Number.isInteger(gameNumber) ? String(gameNumber) : "auto";
+  return `${apiBase}::${matchId}::${normalizedGame}`;
+}
+
+function closeMatchStream() {
+  if (uiState.stream.eventSource) {
+    uiState.stream.eventSource.close();
+    uiState.stream.eventSource = null;
+  }
+
+  if (uiState.stream.reconnectTimer) {
+    clearTimeout(uiState.stream.reconnectTimer);
+    uiState.stream.reconnectTimer = null;
+  }
+}
+
+function streamBadge(status) {
+  if (status === "connected") return "connected";
+  if (status === "reconnecting") return "reconnecting";
+  return "polling";
+}
+
+function streamStatusText(match) {
+  const refreshSeconds = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
+  if (uiState.stream.source === "sse") {
+    if (uiState.stream.connected) {
+      return "Realtime stream connected";
+    }
+
+    if (uiState.stream.eventSource && uiState.stream.reconnectAttempt === 0) {
+      return "Realtime stream connecting";
+    }
+
+    if (uiState.stream.reconnectAttempt > 0) {
+      return `Realtime stream reconnecting (attempt ${uiState.stream.reconnectAttempt})`;
+    }
+
+    return "Realtime stream unavailable";
+  }
+
+  return `Polling every ${refreshSeconds}s`;
+}
+
+function streamStatusDetail() {
+  const updatedAt = Number(uiState.stream.lastSnapshotAt || 0);
+  if (!updatedAt) {
+    return "Waiting for snapshot...";
+  }
+
+  const ageSeconds = Math.max(0, Math.round((Date.now() - updatedAt) / 1000));
+  return `Last snapshot ${ageSeconds}s ago`;
+}
+
+function renderStreamStatus(match) {
+  if (!elements.streamStatusWrap) {
+    return;
+  }
+
+  const badge = streamBadge(uiState.stream.connected ? "connected" : uiState.stream.source === "sse" ? "reconnecting" : "polling");
+  const errorText = uiState.stream.lastErrorAt
+    ? ` · Last stream error ${dateTimeLabel(uiState.stream.lastErrorAt)}`
+    : "";
+  elements.streamStatusWrap.innerHTML = `
+    <article class="stream-card ${badge}">
+      <p class="stream-title">${streamStatusText(match)}</p>
+      <p class="meta-text">${streamStatusDetail()}${errorText}</p>
+    </article>
+  `;
+}
+
+function parseRequestedGameNumber(raw) {
+  const parsed = Number.parseInt(String(raw ?? ""), 10);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 9) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function firstInProgressGameNumber(match) {
+  const seriesGames = Array.isArray(match?.seriesGames) ? match.seriesGames : [];
+  const liveSeriesGame = seriesGames.find((game) => game?.state === "inProgress");
+  const liveSeriesNumber = Number(liveSeriesGame?.number);
+  if (Number.isInteger(liveSeriesNumber) && liveSeriesNumber > 0) {
+    return liveSeriesNumber;
+  }
+
+  const availableGames = Array.isArray(match?.gameNavigation?.availableGames) ? match.gameNavigation.availableGames : [];
+  const liveAvailableGame = availableGames.find((game) => game?.state === "inProgress");
+  const liveAvailableNumber = Number(liveAvailableGame?.number);
+  if (Number.isInteger(liveAvailableNumber) && liveAvailableNumber > 0) {
+    return liveAvailableNumber;
+  }
+
+  return null;
+}
+
+function resolveMatchFocus(match) {
+  const status = String(match?.status || "unknown");
+  const requested = uiState.requestedGameNumber;
+  const selectedFromNav = Number(match?.gameNavigation?.selectedGameNumber);
+  const selectedFromPayload = Number(match?.selectedGame?.number);
+
+  if (status === "upcoming") {
+    return {
+      viewMode: "series",
+      activeGameNumber: null
+    };
+  }
+
+  if (Number.isInteger(requested)) {
+    const activeGameNumber =
+      (Number.isInteger(selectedFromNav) && selectedFromNav > 0 && selectedFromNav) ||
+      (Number.isInteger(selectedFromPayload) && selectedFromPayload > 0 && selectedFromPayload) ||
+      requested;
+    return {
+      viewMode: "game",
+      activeGameNumber
+    };
+  }
+
+  return {
+    viewMode: "series",
+    activeGameNumber: null
+  };
+}
+
+function contextGameNumber() {
+  if (uiState.viewMode !== "game") {
+    return null;
+  }
+
+  const active = Number(uiState.activeGameNumber);
+  return Number.isInteger(active) && active > 0 ? active : null;
+}
+
+function isLoopbackHost(host) {
+  const normalized = String(host || "").toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+}
+
+function normalizeApiBase(base) {
+  const raw = String(base || "").trim();
+  const fallback = DEFAULT_API_BASE;
+  const candidate = raw || fallback;
+
+  try {
+    const parsed = new URL(candidate);
+    const pageHost = String(window.location.hostname || "").trim();
+    if (isLoopbackHost(parsed.hostname) && isLoopbackHost(pageHost) && parsed.hostname !== pageHost) {
+      parsed.hostname = pageHost;
+    }
+    parsed.hash = "";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
+function detailUrlForGame(matchId, apiBase, gameNumber = null) {
+  const url = new URL("./match.html", window.location.href);
+  url.searchParams.set("id", matchId);
+  url.searchParams.set("api", apiBase);
+
+  if (Number.isInteger(gameNumber) && gameNumber > 0) {
+    url.searchParams.set("game", String(gameNumber));
+  } else {
+    url.searchParams.delete("game");
+  }
+
+  return url.toString();
+}
+
+function teamDetailUrl(
+  teamId,
+  game,
+  apiBase,
+  { matchId = null, gameNumber = null, opponentId = null, teamName = null } = {}
+) {
+  const url = new URL("./team.html", window.location.href);
+  url.searchParams.set("id", teamId);
+  url.searchParams.set("api", apiBase);
+  if (game) {
+    url.searchParams.set("game", game);
+  }
+  if (matchId) {
+    url.searchParams.set("match", matchId);
+  }
+  if (Number.isInteger(gameNumber) && gameNumber > 0) {
+    url.searchParams.set("game_number", String(gameNumber));
+  }
+  if (opponentId) {
+    url.searchParams.set("opponent", opponentId);
+  }
+  if (teamName) {
+    url.searchParams.set("team_name", teamName);
+  }
+
+  return url.toString();
+}
+
+function normalizeMatchupLimit(value) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isInteger(parsed)) {
+    return 5;
+  }
+
+  if ([3, 5, 10, 15, 20].includes(parsed)) {
+    return parsed;
+  }
+
+  return 5;
+}
+
+function setMatchupLimitInUrl(limit) {
+  const normalized = normalizeMatchupLimit(limit);
+  const url = new URL(window.location.href);
+  if (normalized === 5) {
+    url.searchParams.delete("h2h_limit");
+  } else {
+    url.searchParams.set("h2h_limit", String(normalized));
+  }
+  window.history.replaceState({}, "", url.toString());
+}
+
+function resetMatchupState() {
+  uiState.matchup = {
+    key: null,
+    loading: false,
+    error: null,
+    leftProfile: null,
+    rightProfile: null
+  };
+}
+
+function formatRatePct(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "n/a";
+  }
+
+  return `${num.toFixed(1)}%`;
+}
+
+function formMomentumScore(formLabel) {
+  const tokens = String(formLabel || "")
+    .toUpperCase()
+    .split("");
+  let score = 0;
+  for (const token of tokens) {
+    if (token === "W") score += 1;
+    if (token === "L") score -= 1;
+  }
+  return score;
+}
+
+function clampValue(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function matchupEdgeModel(leftProfile, rightProfile, fallbackLeftName, fallbackRightName) {
+  const leftSummary = leftProfile?.summary || {};
+  const rightSummary = rightProfile?.summary || {};
+  const leftName = leftProfile?.name || fallbackLeftName || "Left Team";
+  const rightName = rightProfile?.name || fallbackRightName || "Right Team";
+  const leftSeries = Number(leftSummary.seriesWinRatePct || 0);
+  const rightSeries = Number(rightSummary.seriesWinRatePct || 0);
+  const leftMap = Number(leftSummary.mapWinRatePct || 0);
+  const rightMap = Number(rightSummary.mapWinRatePct || 0);
+  const leftForm = formMomentumScore(leftSummary.formLast5);
+  const rightForm = formMomentumScore(rightSummary.formLast5);
+
+  const raw = 50 + (leftSeries - rightSeries) * 0.32 + (leftMap - rightMap) * 0.18 + (leftForm - rightForm) * 2.1;
+  const leftEdgePct = clampValue(raw, 8, 92);
+  const rightEdgePct = 100 - leftEdgePct;
+
+  const drivers = [];
+  if (Math.abs(leftSeries - rightSeries) >= 8) {
+    drivers.push(
+      leftSeries > rightSeries
+        ? `${leftName} has stronger recent series conversion.`
+        : `${rightName} has stronger recent series conversion.`
+    );
+  }
+  if (Math.abs(leftMap - rightMap) >= 6) {
+    drivers.push(
+      leftMap > rightMap
+        ? `${leftName} shows better map-level consistency.`
+        : `${rightName} shows better map-level consistency.`
+    );
+  }
+  if (Math.abs(leftForm - rightForm) >= 2) {
+    drivers.push(
+      leftForm > rightForm
+        ? `${leftName} has stronger recent momentum.`
+        : `${rightName} has stronger recent momentum.`
+    );
+  }
+  if (!drivers.length) {
+    drivers.push("Both teams are close on recent form and conversion rates.");
+  }
+
+  const favoriteName = leftEdgePct >= rightEdgePct ? leftName : rightName;
+  const confidence = Math.abs(leftEdgePct - rightEdgePct) >= 18 ? "high" : Math.abs(leftEdgePct - rightEdgePct) >= 9 ? "medium" : "low";
+
+  return {
+    leftEdgePct,
+    rightEdgePct,
+    favoriteName,
+    confidence,
+    drivers
+  };
+}
+
+async function fetchTeamProfileForMatchup({
+  teamId,
+  teamName,
+  opponentId,
+  game,
+  matchId,
+  apiBase,
+  limit
+}) {
+  const requestUrl = new URL(`/v1/teams/${encodeURIComponent(teamId)}`, apiBase);
+  requestUrl.searchParams.set("game", String(game || "lol"));
+  requestUrl.searchParams.set("limit", String(normalizeMatchupLimit(limit)));
+  if (opponentId) {
+    requestUrl.searchParams.set("opponent_id", String(opponentId));
+  }
+  if (matchId) {
+    requestUrl.searchParams.set("seed_match_id", String(matchId));
+  }
+  if (teamName) {
+    requestUrl.searchParams.set("team_name", String(teamName));
+  }
+
+  const response = await fetch(requestUrl.toString());
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || `Unable to load team profile for ${teamName || teamId}.`);
+  }
+
+  return payload?.data || null;
+}
+
+function matchupRequestKey(match, apiBase) {
+  return [
+    apiBase,
+    match?.id || "match",
+    match?.game || "game",
+    match?.teams?.left?.id || "left",
+    match?.teams?.right?.id || "right",
+    String(uiState.matchupH2hLimit)
+  ].join("::");
+}
+
+async function ensureMatchupData(match, apiBase) {
+  if (!match?.teams?.left?.id || !match?.teams?.right?.id) {
+    resetMatchupState();
+    renderMatchupConsole(match);
+    return;
+  }
+
+  const key = matchupRequestKey(match, apiBase);
+  if (uiState.matchup.loading && uiState.matchup.key === key) {
+    return;
+  }
+  if (uiState.matchup.key === key && (uiState.matchup.leftProfile || uiState.matchup.error)) {
+    return;
+  }
+
+  const token = uiState.matchupRequestToken + 1;
+  uiState.matchupRequestToken = token;
+  uiState.matchup = {
+    key,
+    loading: true,
+    error: null,
+    leftProfile: null,
+    rightProfile: null
+  };
+  renderMatchupConsole(match);
+
+  try {
+    const [leftProfile, rightProfile] = await Promise.all([
+      fetchTeamProfileForMatchup({
+        teamId: match.teams.left.id,
+        teamName: match.teams.left.name,
+        opponentId: match.teams.right.id,
+        game: match.game,
+        matchId: match.id,
+        apiBase,
+        limit: uiState.matchupH2hLimit
+      }),
+      fetchTeamProfileForMatchup({
+        teamId: match.teams.right.id,
+        teamName: match.teams.right.name,
+        opponentId: match.teams.left.id,
+        game: match.game,
+        matchId: match.id,
+        apiBase,
+        limit: uiState.matchupH2hLimit
+      })
+    ]);
+
+    if (token !== uiState.matchupRequestToken) {
+      return;
+    }
+
+    uiState.matchup = {
+      key,
+      loading: false,
+      error: null,
+      leftProfile,
+      rightProfile
+    };
+    renderMatchupConsole(uiState.match || match);
+  } catch (error) {
+    if (token !== uiState.matchupRequestToken) {
+      return;
+    }
+
+    uiState.matchup = {
+      key,
+      loading: false,
+      error: error?.message || "Unable to load matchup data.",
+      leftProfile: null,
+      rightProfile: null
+    };
+    renderMatchupConsole(uiState.match || match);
+  }
+}
+
+function seriesRecordLabel(summary = {}) {
+  const wins = Number(summary.wins || 0);
+  const losses = Number(summary.losses || 0);
+  const draws = Number(summary.draws || 0);
+  return draws > 0 ? `${wins}-${losses}-${draws}` : `${wins}-${losses}`;
+}
+
+function renderMatchupTeamCard({ teamName, teamId, opponentId, profile, match, toneClass }) {
+  const selectedGameNumber = contextGameNumber() || 0;
+  const teamUrl = teamDetailUrl(teamId, match?.game, uiState.apiBase, {
+    matchId: match?.id || null,
+    gameNumber: Number.isInteger(selectedGameNumber) && selectedGameNumber > 0 ? selectedGameNumber : null,
+    opponentId,
+    teamName
+  });
+  const heading = teamUrl ? `<a class="team-link" href="${teamUrl}">${teamName}</a>` : teamName;
+  const summary = profile?.summary || {};
+
+  return `
+    <article class="form-card ${toneClass}">
+      <h3>${heading}</h3>
+      <p class="meta-text">Series ${seriesRecordLabel(summary)} · WR ${formatRatePct(summary.seriesWinRatePct)}</p>
+      <p class="meta-text">Maps ${summary.mapWins ?? 0}-${summary.mapLosses ?? 0} · WR ${formatRatePct(summary.mapWinRatePct)}</p>
+      <p class="meta-text">Form ${summary.formLast5 || "n/a"} · Streak ${summary.streakLabel || "n/a"}</p>
+    </article>
+  `;
+}
+
+function winnerLabelForH2hRow(row, match) {
+  const result = String(row?.result || "").toLowerCase();
+  if (result === "win") return match?.teams?.left?.name || "Left Team";
+  if (result === "loss") return match?.teams?.right?.name || "Right Team";
+  if (result === "draw") return "Draw";
+  return "n/a";
+}
+
+function h2hResultClass(result) {
+  const normalized = String(result || "").toLowerCase();
+  if (normalized === "win") return "win-left";
+  if (normalized === "loss") return "win-right";
+  return "even";
+}
+
+function h2hResultLabel(result) {
+  const normalized = String(result || "").toLowerCase();
+  if (normalized === "win") return "W";
+  if (normalized === "loss") return "L";
+  if (normalized === "draw") return "D";
+  return "n/a";
+}
+
+function renderMatchupConsole(match) {
+  if (!elements.matchupConsoleWrap || !elements.matchupMetaText) {
+    return;
+  }
+
+  if (!match?.teams?.left || !match?.teams?.right) {
+    elements.matchupMetaText.textContent = "Matchup console unavailable.";
+    elements.matchupConsoleWrap.innerHTML = `<div class="empty">Load a valid match to view head-to-head and matchup compare.</div>`;
+    return;
+  }
+
+  const leftName = match?.teams?.left?.name || "Left Team";
+  const rightName = match?.teams?.right?.name || "Right Team";
+  const matchupState = uiState.matchup;
+  const expectedKey = matchupRequestKey(match, uiState.apiBase);
+
+  if (matchupState.key && matchupState.key !== expectedKey && !matchupState.loading) {
+    elements.matchupMetaText.textContent = "Loading matchup compare...";
+    elements.matchupConsoleWrap.innerHTML = `<div class="empty">Loading team profile and head-to-head data.</div>`;
+    return;
+  }
+
+  if (matchupState.loading) {
+    elements.matchupMetaText.textContent = "Loading matchup compare...";
+    elements.matchupConsoleWrap.innerHTML = `<div class="empty">Loading team profile and head-to-head data.</div>`;
+    return;
+  }
+
+  if (matchupState.error) {
+    elements.matchupMetaText.textContent = "Matchup compare unavailable.";
+    elements.matchupConsoleWrap.innerHTML = `<div class="empty">Unable to load matchup data: ${matchupState.error}</div>`;
+    return;
+  }
+
+  const leftProfile = matchupState.leftProfile;
+  const rightProfile = matchupState.rightProfile;
+  if (!leftProfile || !rightProfile) {
+    elements.matchupMetaText.textContent = "Matchup compare waiting for data.";
+    elements.matchupConsoleWrap.innerHTML = `<div class="empty">Waiting for matchup dataset.</div>`;
+    return;
+  }
+
+  const edge = matchupEdgeModel(leftProfile, rightProfile, leftName, rightName);
+  const h2h = leftProfile?.headToHead || null;
+  const h2hRows = Array.isArray(h2h?.recentMatches) ? h2h.recentMatches : [];
+  const leftWins = Number(h2h?.wins || 0);
+  const rightWins = Number(h2h?.losses || 0);
+  const draws = Number(h2h?.draws || 0);
+  const total = Number(h2h?.matches || h2hRows.length || 0);
+
+  elements.matchupMetaText.textContent = `Model favorite: ${edge.favoriteName} · Confidence ${edge.confidence.toUpperCase()} · H2H sample ${total}`;
+
+  const h2hTable = h2hRows.length
+    ? `
+      <div class="lane-table-wrap">
+        <table class="lane-table upcoming-h2h-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Winner</th>
+              <th>Result (${leftName})</th>
+              <th>Score</th>
+              <th>Tournament</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${h2hRows
+              .map((row) => `
+                <tr>
+                  <td>${dateTimeLabel(row.startAt)}</td>
+                  <td>${winnerLabelForH2hRow(row, match)}</td>
+                  <td class="${h2hResultClass(row.result)}">${h2hResultLabel(row.result)}</td>
+                  <td>${row.scoreLabel || "n/a"}</td>
+                  <td>${row.tournament || "Unknown"}</td>
+                  <td>${row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.matchId, uiState.apiBase)}">Open</a>` : `<span class="meta-text">-</span>`}</td>
+                </tr>
+              `)
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : `<div class="empty">No direct meetings found in the selected sample window.</div>`;
+
+  elements.matchupConsoleWrap.innerHTML = `
+    <div class="matchup-grid">
+      ${renderMatchupTeamCard({
+        teamName: leftName,
+        teamId: match?.teams?.left?.id,
+        opponentId: match?.teams?.right?.id,
+        profile: leftProfile,
+        match,
+        toneClass: "left"
+      })}
+      <article class="prediction-card">
+        <div class="edge-head">
+          <p class="meta-text">${leftName}</p>
+          <p class="meta-text">${rightName}</p>
+        </div>
+        <div class="edge-bars">
+          <div class="edge-side left" style="width:${edge.leftEdgePct.toFixed(1)}%"></div>
+          <div class="edge-side right" style="width:${edge.rightEdgePct.toFixed(1)}%"></div>
+        </div>
+        <div class="edge-head">
+          <p class="edge-score">${edge.leftEdgePct.toFixed(1)}%</p>
+          <p class="edge-score">${edge.rightEdgePct.toFixed(1)}%</p>
+        </div>
+        <p class="meta-text">H2H: ${leftWins}-${rightWins}${draws ? `-${draws}` : ""} (${total} meetings)</p>
+        <ul class="confidence-notes">${edge.drivers.map((driver) => `<li>${driver}</li>`).join("")}</ul>
+      </article>
+      ${renderMatchupTeamCard({
+        teamName: rightName,
+        teamId: match?.teams?.right?.id,
+        opponentId: match?.teams?.left?.id,
+        profile: rightProfile,
+        match,
+        toneClass: "right"
+      })}
+    </div>
+    ${h2hTable}
+  `;
+}
+
+function renderSeriesHeader(match) {
+  const header = match.seriesHeader;
+  if (!header) {
+    elements.seriesHeaderSubhead.textContent = "";
+    elements.seriesHeaderWrap.innerHTML = `<div class="empty">Series overview unavailable.</div>`;
+    return;
+  }
+
+  elements.seriesHeaderSubhead.textContent = header.subhead || "";
+  elements.seriesHeaderWrap.innerHTML = `
+    <article class="series-header-card">
+      <p class="series-headline">${header.headline || "Series in progress"}</p>
+      ${header.winnerName ? `<p class="meta-text strong">Winner: ${header.winnerName}</p>` : ""}
+    </article>
+  `;
+}
+
+function gameNavPillClass(state, selected) {
+  const base =
+    state === "completed" ? "complete" : state === "inProgress" ? "live" : state === "unneeded" ? "skip" : "upcoming";
+  return `${base}${selected ? " selected" : ""}`;
+}
+
+function renderGameExplorer(match, apiBase) {
+  const nav = match.gameNavigation;
+  const selected = match.selectedGame;
+  const isGameMode = uiState.viewMode === "game";
+  const activeGameNumber = contextGameNumber();
+
+  if (!nav || !Array.isArray(nav.availableGames) || !nav.availableGames.length) {
+    elements.gameNavWrap.innerHTML = `<div class="empty">No per-game navigation available for this match.</div>`;
+    elements.gameContextWrap.innerHTML = "";
+    return;
+  }
+
+  const seriesHref = detailUrlForGame(match.id, apiBase, null);
+  const seriesPill = `<a class="game-pill complete${!isGameMode ? " selected" : ""}" href="${seriesHref}">Series</a>`;
+  const liveGameNumber = firstInProgressGameNumber(match);
+  const currentLiveCallout = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
+    ? `<article class="live-now-banner"><p class="meta-text strong">Current game live now: Game ${liveGameNumber}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">Open Live Game ${liveGameNumber}</a></article>`
+    : "";
+  const navPills = [
+    seriesPill,
+    ...nav.availableGames.map((game) => {
+      const href = detailUrlForGame(match.id, apiBase, game.number);
+      const selectedGamePill = isGameMode && activeGameNumber === game.number;
+      const isCurrentLiveGame =
+        match.status === "live" &&
+        Number.isInteger(liveGameNumber) &&
+        liveGameNumber === game.number;
+      const liveLabel = isCurrentLiveGame ? `Game ${game.number} · LIVE` : `Game ${game.number}`;
+      return `<a class="game-pill ${gameNavPillClass(game.state, selectedGamePill)}${isCurrentLiveGame ? " current-live" : ""}" href="${href}">${liveLabel}</a>`;
+    })
+  ].join("");
+
+  const prevLink = isGameMode && Number.isInteger(nav.previousGameNumber)
+    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">Previous Game</a>`
+    : `<span class="meta-text">${isGameMode ? "No previous game" : "Series view active"}</span>`;
+  const nextLink = isGameMode && Number.isInteger(nav.nextGameNumber)
+    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">Next Game</a>`
+    : `<span class="meta-text">${isGameMode ? "No next game" : "Choose a game tab to inspect map-level data"}</span>`;
+  const liveJumpLink = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
+    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">Jump to Live Game ${liveGameNumber}</a>`
+    : "";
+  const modeNote = isGameMode
+    ? `<p class="meta-text">Game mode active${activeGameNumber ? ` · Game ${activeGameNumber}` : ""}. Switch to Series to review full-match context.</p>`
+    : `<p class="meta-text">${match.status === "completed"
+        ? "Series mode active. Review overall result and open any game for map-level detail."
+        : match.status === "upcoming"
+          ? "Series mode active. Focused on match setup, timing, and matchup context."
+          : "Series mode active. Open the live game for real-time map tracking."
+      }</p>`;
+
+  elements.gameNavWrap.innerHTML = `
+    <div class="game-nav-head">
+      <p class="meta-text">Completed ${nav.counts?.completed || 0} · Live ${nav.counts?.inProgress || 0} · Upcoming ${nav.counts?.upcoming || 0}</p>
+      <div class="game-nav-links">${liveJumpLink}${prevLink}${nextLink}</div>
+    </div>
+    ${currentLiveCallout}
+    ${modeNote}
+    ${Number.isInteger(uiState.requestedGameFallback) ? `<p class="meta-text">Requested Game ${uiState.requestedGameFallback} could not be loaded. Showing default map context.</p>` : ""}
+    ${nav.requestedMissing ? `<p class="meta-text">Requested Game ${nav.requestedGameNumber} not found. Showing nearest available map.</p>` : ""}
+    <div class="game-pill-row">${navPills}</div>
+  `;
+
+  if (elements.feedTeamFilter) {
+    const leftOption = elements.feedTeamFilter.querySelector("option[value='left']");
+    const rightOption = elements.feedTeamFilter.querySelector("option[value='right']");
+    if (leftOption) {
+      leftOption.textContent = match.teams.left.name;
+    }
+    if (rightOption) {
+      rightOption.textContent = match.teams.right.name;
+    }
+  }
+
+  if (!isGameMode) {
+    const winner = winnerTeamName(match);
+    if (match.status === "upcoming") {
+      elements.gameContextWrap.innerHTML = `
+        <article class="game-context-card none">
+          <div class="game-context-top">
+            <p class="game-context-title">Series Context · UPCOMING</p>
+            <span class="pill upcoming">series mode</span>
+          </div>
+          <p class="meta-text">Kickoff: ${match.startAt ? dateTimeLabel(match.startAt) : "TBD"} · Format BO${match.bestOf || 1}</p>
+          <p class="meta-text">${match.teams.left.name} vs ${match.teams.right.name} · ${match.tournament || "Tournament TBD"}</p>
+        </article>
+      `;
+      return;
+    }
+
+    if (match.status === "completed") {
+      elements.gameContextWrap.innerHTML = `
+        <article class="game-context-card none">
+          <div class="game-context-top">
+            <p class="game-context-title">Series Context · COMPLETED</p>
+            <span class="pill complete">series mode</span>
+          </div>
+          <p class="meta-text">Final: ${match.seriesScore.left} - ${match.seriesScore.right}${winner ? ` · Winner ${winner}` : ""}</p>
+          <p class="meta-text">${match.teams.left.name} vs ${match.teams.right.name} · ${match.tournament || "Tournament"}</p>
+        </article>
+      `;
+      return;
+    }
+
+    elements.gameContextWrap.innerHTML = `
+      <article class="game-context-card none">
+        <div class="game-context-top">
+          <p class="game-context-title">Series Context</p>
+          <span class="pill complete">series mode</span>
+        </div>
+        <p class="meta-text">Open a game tab for map-level telemetry.</p>
+      </article>
+    `;
+    return;
+  }
+
+  if (!selected) {
+    elements.gameContextWrap.innerHTML = `<div class="empty">Choose a game to load context.</div>`;
+    return;
+  }
+
+  const sideSummary = Array.isArray(selected.sideSummary) ? selected.sideSummary : [];
+  const tips = Array.isArray(selected.tips) ? selected.tips : [];
+  const watchOptions = Array.isArray(selected.watchOptions) ? selected.watchOptions : [];
+
+  elements.gameContextWrap.innerHTML = `
+    <article class="game-context-card ${selected.telemetryStatus || "none"}">
+      <div class="game-context-top">
+        <p class="game-context-title">Game ${selected.number} · ${String(selected.state || "unstarted").toUpperCase()}</p>
+        <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
+      </div>
+      <p class="meta-text">${selected.label || "No game label."}</p>
+      ${selected.startedAt ? `<p class="meta-text">Started: ${dateTimeLabel(selected.startedAt)}</p>` : ""}
+      ${sideSummary.length ? `<p class="meta-text">${sideSummary.join(" · ")}</p>` : ""}
+      <p class="meta-text">Ticker ${selected.telemetryCounts?.tickerEvents || 0} · Objective ${selected.telemetryCounts?.objectiveEvents || 0} · Bursts ${selected.telemetryCounts?.combatBursts || 0} · Milestones ${selected.telemetryCounts?.goldMilestones || 0}</p>
+      ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Primary VOD</a>` : `<span class="meta-text">No primary VOD link.</span>`}
+      ${watchOptions.length
+        ? `<div class="vod-options">${watchOptions
+            .map((option) => `<a class="vod-link" href="${option.watchUrl}" target="_blank" rel="noreferrer">${option.label}</a>`)
+            .join("")}</div>`
+        : ""}
+      ${tips.length ? `<ul class="confidence-notes">${tips.map((tip) => `<li>${tip}</li>`).join("")}</ul>` : ""}
+    </article>
+  `;
+}
+
+function setPanelVisibility(panelElement, visible) {
+  if (!panelElement) {
+    return;
+  }
+
+  panelElement.classList.toggle("hidden-panel", !visible);
+}
+
+function applyGamePanelVisibility(match) {
+  const isGameMode = uiState.viewMode === "game";
+  if (!isGameMode) {
+    for (const panel of elements.gamePanels) {
+      setPanelVisibility(panel, false);
+    }
+    return;
+  }
+
+  const selected = match.selectedGame;
+  const telemetryStatus = selected?.telemetryStatus || "none";
+  const selectedState = selected?.state || "unstarted";
+  const hasRichTelemetry = telemetryStatus === "rich";
+
+  for (const panel of elements.gamePanels) {
+    setPanelVisibility(panel, true);
+  }
+
+  const telemetryPanels = [
+    elements.dataConfidenceWrap,
+    elements.pulseCard,
+    elements.edgeMeterWrap,
+    elements.tempoSnapshotWrap,
+    elements.tacticalChecklistWrap,
+    elements.storylinesList,
+    elements.leadTrendWrap,
+    elements.objectiveControlWrap,
+    elements.objectiveBreakdownWrap,
+    elements.draftBoardWrap,
+    elements.draftDeltaWrap,
+    elements.economyBoardWrap,
+    elements.laneMatchupsWrap,
+    elements.objectiveRunsWrap,
+    elements.roleDeltaWrap,
+    elements.performersWrap,
+    elements.liveTickerList,
+    elements.objectiveTimelineList,
+    elements.objectiveForecastWrap,
+    elements.playerDeltaWrap,
+    elements.teamCompareWrap,
+    elements.playerTrackerWrap,
+    elements.liveFeedList,
+    elements.combatBurstsList,
+    elements.goldMilestonesList,
+    elements.liveAlertsList
+  ]
+    .map((element) => element?.closest("section.panel"))
+    .filter(Boolean);
+
+  if (selectedState === "unstarted") {
+    for (const panel of telemetryPanels) {
+      setPanelVisibility(panel, false);
+    }
+    return;
+  }
+
+  if (!hasRichTelemetry) {
+    for (const panel of telemetryPanels) {
+      setPanelVisibility(panel, false);
+    }
+  }
+}
+
+function applySeriesPanelVisibility() {
+  const showSeriesPanels = uiState.viewMode === "series";
+  for (const panel of elements.seriesPanels) {
+    setPanelVisibility(panel, showSeriesPanels);
+  }
+}
+
+function applyUpcomingPanelVisibility(match) {
+  const isUpcoming = match?.status === "upcoming";
+  for (const panel of elements.upcomingPanels) {
+    setPanelVisibility(panel, isUpcoming);
+  }
+}
+
+function commandCard(label, value, hint) {
+  return `
+    <article class="command-card">
+      <p class="tempo-label">${label}</p>
+      <p class="tempo-value">${value}</p>
+      ${hint ? `<p class="meta-text">${hint}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderGameCommandCenter(match) {
+  const selected = match.selectedGame;
+  if (!selected) {
+    elements.gameCommandWrap.innerHTML = `<div class="empty">Game command metrics unavailable.</div>`;
+    return;
+  }
+
+  const leftName = match.teams?.left?.name || "Left Team";
+  const rightName = match.teams?.right?.name || "Right Team";
+  const elapsedSeconds = Number(match?.playerEconomy?.elapsedSeconds || 0);
+  const elapsedMinutes = elapsedSeconds > 0 ? elapsedSeconds / 60 : 0;
+  const leftKills = Number(selected?.snapshot?.left?.kills || 0);
+  const rightKills = Number(selected?.snapshot?.right?.kills || 0);
+  const totalKills = leftKills + rightKills;
+  const killPace = elapsedMinutes > 0 ? `${((totalKills / elapsedMinutes) * 10).toFixed(2)} / 10m` : "n/a";
+  const objectiveEvents = Number(selected?.telemetryCounts?.objectiveEvents || 0);
+  const tickerEvents = Number(selected?.telemetryCounts?.tickerEvents || 0);
+  const bursts = Number(selected?.telemetryCounts?.combatBursts || 0);
+  const milestones = Number(selected?.telemetryCounts?.goldMilestones || 0);
+  const refreshSeconds = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
+
+  elements.gameCommandWrap.innerHTML = [
+    commandCard("Selected Map", `Game ${selected.number}`, selected.label),
+    commandCard("Game State", String(selected.state || "unstarted").toUpperCase(), `${selected.telemetryStatus || "none"} telemetry`),
+    commandCard("Live Clock", elapsedSeconds > 0 ? shortDuration(elapsedSeconds) : "n/a", "Derived from player economy window"),
+    commandCard("Kill Pace", killPace, `${leftName} ${leftKills} · ${rightKills} ${rightName}`),
+    commandCard("Event Throughput", `${tickerEvents} ticker · ${objectiveEvents} objective`, "Higher values indicate frequent map swings"),
+    commandCard("Burst Windows", `${bursts} detected`, "Multi-kill combat windows from frame deltas"),
+    commandCard("Gold Milestones", `${milestones} reached`, "Team economy thresholds crossed in this map"),
+    commandCard("Refresh Cadence", `Every ${refreshSeconds}s`, "Auto-refresh remains active while this tab is open")
+  ].join("");
+}
+
+function toMetricNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatMetricValue(metric, value) {
+  if (value === null) {
+    return "n/a";
+  }
+
+  if (metric === "gold") {
+    return formatNumber(value);
+  }
+
+  return String(Math.round(value));
+}
+
+function renderTeamComparison(match) {
+  const selected = match.selectedGame;
+  const snapshot = selected?.snapshot;
+  if (!snapshot) {
+    elements.teamCompareWrap.innerHTML = `<div class="empty">Team comparison unavailable for this game.</div>`;
+    return;
+  }
+
+  const rows = [
+    { key: "gold", label: "Gold" },
+    { key: "kills", label: "Kills" },
+    { key: "towers", label: "Towers" },
+    { key: "dragons", label: "Dragons" },
+    { key: "barons", label: "Barons" },
+    { key: "inhibitors", label: "Inhibitors" }
+  ]
+    .map((metric) => {
+      const left = toMetricNumber(snapshot.left?.[metric.key]);
+      const right = toMetricNumber(snapshot.right?.[metric.key]);
+      if (left === null && right === null) {
+        return null;
+      }
+
+      const diff = left !== null && right !== null ? left - right : null;
+      return {
+        ...metric,
+        left,
+        right,
+        diff
+      };
+    })
+    .filter(Boolean);
+
+  if (!rows.length) {
+    elements.teamCompareWrap.innerHTML = `<div class="empty">Not enough team metrics to compare this map.</div>`;
+    return;
+  }
+
+  elements.teamCompareWrap.innerHTML = `
+    <div class="lane-table-wrap">
+      <table class="lane-table compare-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>${match.teams.left.name}</th>
+            <th>Diff</th>
+            <th>${match.teams.right.name}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map((row) => {
+              const diff = row.diff === null ? "n/a" : signed(Math.round(row.diff));
+              const diffClass = row.diff === null ? "" : row.diff > 0 ? "win-left" : row.diff < 0 ? "win-right" : "even";
+              return `
+                <tr>
+                  <td>${row.label}</td>
+                  <td>${formatMetricValue(row.key, row.left)}</td>
+                  <td class="${diffClass}">${diff}</td>
+                  <td>${formatMetricValue(row.key, row.right)}</td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function trackerRoleOrder(role) {
+  const value = String(role || "").toLowerCase();
+  if (value === "top") return 1;
+  if (value === "jungle") return 2;
+  if (value === "mid") return 3;
+  if (value === "bottom" || value === "adc" || value === "bot") return 4;
+  if (value === "support" || value === "sup") return 5;
+  return 99;
+}
+
+function toPercent(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "n/a";
+  }
+
+  return `${num.toFixed(1)}%`;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function healthPctForRow(row) {
+  const pctFromPayload = Number(row?.healthPct);
+  if (Number.isFinite(pctFromPayload)) {
+    return clamp(pctFromPayload, 0, 100);
+  }
+
+  const current = Number(row?.currentHealth);
+  const max = Number(row?.maxHealth);
+  if (Number.isFinite(current) && Number.isFinite(max) && max > 0) {
+    return clamp((current / max) * 100, 0, 100);
+  }
+
+  return null;
+}
+
+function healthLabelForRow(row, isLiveMap, isDead) {
+  if (!isLiveMap) {
+    return "N/A";
+  }
+
+  if (isDead) {
+    return "0 HP";
+  }
+
+  const current = Number(row?.currentHealth);
+  const max = Number(row?.maxHealth);
+  if (Number.isFinite(current) && Number.isFinite(max) && max > 0) {
+    return `${formatNumber(Math.round(current))} / ${formatNumber(Math.round(max))}`;
+  }
+
+  return "n/a";
+}
+
+function healthToneClass(pct, isDead) {
+  if (isDead) return "dead";
+  if (!Number.isFinite(pct)) return "unknown";
+  if (pct <= 25) return "critical";
+  if (pct <= 55) return "warn";
+  return "good";
+}
+
+function formatRespawnLabel(row, isDead) {
+  if (!isDead) {
+    return "Alive";
+  }
+
+  const respawnAtTs = Date.parse(String(row?.respawnAt || ""));
+  if (Number.isFinite(respawnAtTs)) {
+    const secondsLeft = Math.max(0, Math.round((respawnAtTs - Date.now()) / 1000));
+    return `${secondsLeft}s${row?.respawnEstimated ? " est" : ""}`;
+  }
+
+  const respawnSeconds = Number(row?.respawnSeconds);
+  if (Number.isFinite(respawnSeconds)) {
+    return `${Math.max(0, Math.round(respawnSeconds))}s${row?.respawnEstimated ? " est" : ""}`;
+  }
+
+  const deadForSeconds = Number(row?.deadForSeconds);
+  if (Number.isFinite(deadForSeconds) && deadForSeconds >= 0) {
+    return `Dead ${Math.round(deadForSeconds)}s`;
+  }
+
+  return "n/a";
+}
+
+function tickRespawnCountdownCells() {
+  const cells = Array.from(document.querySelectorAll("[data-respawn-at]"));
+  if (!cells.length) {
+    clearRespawnTicker();
+    return;
+  }
+
+  const now = Date.now();
+  for (const cell of cells) {
+    const respawnAt = Number(cell.getAttribute("data-respawn-at"));
+    if (!Number.isFinite(respawnAt)) {
+      continue;
+    }
+
+    const secondsLeft = Math.max(0, Math.round((respawnAt - now) / 1000));
+    const estimated = cell.getAttribute("data-respawn-est") === "1";
+    cell.textContent = `${secondsLeft}s${estimated ? " est" : ""}`;
+  }
+}
+
+function startRespawnTicker() {
+  clearRespawnTicker();
+  const hasRespawnCells = document.querySelector("[data-respawn-at]");
+  if (!hasRespawnCells) {
+    return;
+  }
+
+  tickRespawnCountdownCells();
+  respawnTicker = setInterval(tickRespawnCountdownCells, 1000);
+}
+
+function renderPlayerTracker(match) {
+  const economy = match.playerEconomy;
+  if (!economy || (!Array.isArray(economy.left) && !Array.isArray(economy.right))) {
+    clearRespawnTicker();
+    elements.playerTrackerWrap.innerHTML = `<div class="empty">Player tracker appears once economy telemetry is available.</div>`;
+    return;
+  }
+
+  const leftRows = Array.isArray(economy.left) ? economy.left : [];
+  const rightRows = Array.isArray(economy.right) ? economy.right : [];
+  const isLiveMap = String(match?.selectedGame?.state || "") === "inProgress";
+  const teamKills = {
+    left: Number(match?.selectedGame?.snapshot?.left?.kills || match?.teams?.left?.kills || 0),
+    right: Number(match?.selectedGame?.snapshot?.right?.kills || match?.teams?.right?.kills || 0)
+  };
+  const teamGold = {
+    left: Number(match?.teamEconomyTotals?.left?.totalGold || 0),
+    right: Number(match?.teamEconomyTotals?.right?.totalGold || 0)
+  };
+
+  const deltaByKey = new Map(
+    (match?.playerDeltaPanel?.players || []).map((player) => [
+      `${player.team}::${String(player.name || "").toLowerCase()}`,
+      Number(player?.delta?.goldEarned || 0)
+    ])
+  );
+  const impactByKey = new Map(
+    (match?.topPerformers || []).map((player) => [
+      `${player.team}::${String(player.name || "").toLowerCase()}`,
+      Number(player?.impactScore || 0)
+    ])
+  );
+
+  const rows = [...leftRows.map((row) => ({ ...row, team: "left" })), ...rightRows.map((row) => ({ ...row, team: "right" }))]
+    .map((row) => {
+      const key = `${row.team}::${String(row.name || "").toLowerCase()}`;
+      const kp =
+        teamKills[row.team] > 0 ? ((Number(row.kills || 0) + Number(row.assists || 0)) / teamKills[row.team]) * 100 : null;
+      const goldShare = teamGold[row.team] > 0 ? (Number(row.goldEarned || 0) / teamGold[row.team]) * 100 : null;
+
+      return {
+        ...row,
+        kp,
+        goldShare,
+        deltaGold: deltaByKey.get(key),
+        impact: impactByKey.get(key)
+      };
+    });
+
+  const teamOrder = (team) => (team === "left" ? 0 : 1);
+  const sortMode = uiState.trackerSort || "role";
+  rows.sort((a, b) => {
+    if (sortMode === "gold") {
+      const delta = Number(b.goldEarned || 0) - Number(a.goldEarned || 0);
+      if (delta !== 0) return delta;
+      return teamOrder(a.team) - teamOrder(b.team);
+    }
+
+    if (sortMode === "kp") {
+      const leftValue = Number.isFinite(a.kp) ? a.kp : -1;
+      const rightValue = Number.isFinite(b.kp) ? b.kp : -1;
+      const delta = rightValue - leftValue;
+      if (delta !== 0) return delta;
+      return teamOrder(a.team) - teamOrder(b.team);
+    }
+
+    if (sortMode === "impact") {
+      const leftValue = Number.isFinite(a.impact) ? a.impact : -1;
+      const rightValue = Number.isFinite(b.impact) ? b.impact : -1;
+      const delta = rightValue - leftValue;
+      if (delta !== 0) return delta;
+      return teamOrder(a.team) - teamOrder(b.team);
+    }
+
+    if (a.team !== b.team) {
+      return teamOrder(a.team) - teamOrder(b.team);
+    }
+
+    const roleDelta = trackerRoleOrder(a.role) - trackerRoleOrder(b.role);
+    if (roleDelta !== 0) {
+      return roleDelta;
+    }
+
+    return Number(b.goldEarned || 0) - Number(a.goldEarned || 0);
+  });
+
+  elements.playerTrackerWrap.innerHTML = `
+    <div class="lane-table-wrap">
+      <table class="lane-table tracker-table">
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Player</th>
+            <th>Role</th>
+            <th>Champion</th>
+            <th>HP</th>
+            <th>Status</th>
+            <th>Respawn</th>
+            <th>KDA</th>
+            <th>CS</th>
+            <th>Gold</th>
+            <th>GPM</th>
+            <th>KP</th>
+            <th>Gold Share</th>
+            <th>Items</th>
+            <th>Δ Gold</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map((row) => {
+              const teamName = row.team === "left" ? match.teams.left.name : match.teams.right.name;
+              const teamClass = row.team === "left" ? "win-left" : "win-right";
+              const deltaLabel = Number.isFinite(row.deltaGold) ? signed(Math.round(row.deltaGold)) : "n/a";
+              const impactLabel = Number.isFinite(row.impact) ? row.impact.toFixed(1) : "n/a";
+              const isDead = isLiveMap && row.isDead === true;
+              const hpPct = healthPctForRow(row);
+              const hpTone = healthToneClass(hpPct, isDead);
+              const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
+              const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
+              const statusLabel = isLiveMap ? (isDead ? "DEAD \u2620" : "ALIVE") : "N/A";
+              const statusClass = isLiveMap ? (isDead ? "dead" : "alive") : "neutral";
+              const respawnLabel = isLiveMap ? formatRespawnLabel(row, isDead) : "N/A";
+              const respawnAtTs = isDead ? Date.parse(String(row?.respawnAt || "")) : Number.NaN;
+              const respawnAttrs = Number.isFinite(respawnAtTs)
+                ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}"`
+                : "";
+
+              return `
+                <tr class="${isDead ? "tracker-row-dead" : ""}">
+                  <td class="${teamClass}">${teamName}</td>
+                  <td>${row.name || "Player"}</td>
+                  <td>${String(row.role || "flex").toUpperCase()}</td>
+                  <td>${row.champion || "Unknown"}</td>
+                  <td>
+                    <div class="tracker-hp-cell">
+                      <div class="hp-track ${hpTone}">
+                        <div class="hp-fill ${hpTone}" style="width:${hpWidth}%"></div>
+                      </div>
+                      <span class="tracker-hp-label">${hpLabel}</span>
+                    </div>
+                  </td>
+                  <td><span class="tracker-status-badge ${statusClass}">${statusLabel}</span></td>
+                  <td class="tracker-respawn ${statusClass}"${respawnAttrs}>${respawnLabel}</td>
+                  <td>${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}</td>
+                  <td>${row.cs ?? "n/a"}</td>
+                  <td>${formatNumber(row.goldEarned || 0)}</td>
+                  <td>${formatNumber(row.gpm || 0)}</td>
+                  <td>${toPercent(row.kp)}</td>
+                  <td>${toPercent(row.goldShare)}</td>
+                  <td>${row.itemCount ?? "n/a"}</td>
+                  <td>${deltaLabel}</td>
+                  <td>${impactLabel}</td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  startRespawnTicker();
+}
+
+function feedBucketForTickerType(type) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized === "kills") return "combat";
+  if (normalized === "player_kill") return "combat";
+  if (normalized === "player_death") return "combat";
+  if (normalized === "gold_swing") return "swing";
+  if (normalized === "player_gold_spike") return "swing";
+  if (normalized === "item_spike") return "swing";
+  if (normalized === "level_spike") return "moment";
+  if (normalized === "tower" || normalized === "dragon" || normalized === "baron" || normalized === "inhibitor") {
+    return "objective";
+  }
+  return "moment";
+}
+
+function importanceRank(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized === "critical") return 4;
+  if (normalized === "high") return 3;
+  if (normalized === "medium") return 2;
+  if (normalized === "low") return 1;
+  return 1;
+}
+
+function feedBucketLabel(bucket) {
+  const normalized = String(bucket || "").toLowerCase();
+  if (normalized === "combat") return "Combat";
+  if (normalized === "objective") return "Objective";
+  if (normalized === "swing") return "Swing";
+  if (normalized === "moment") return "Moment";
+  return "Event";
+}
+
+function feedRowContentFingerprint(row) {
+  const title = String(row?.title || "").trim().toLowerCase();
+  const team = String(row?.team || "none").trim().toLowerCase();
+  const parsedAt = Date.parse(String(row?.at || ""));
+  const atKey = Number.isFinite(parsedAt)
+    ? String(Math.floor(parsedAt / 1000))
+    : String(row?.at || "").trim();
+
+  return `${team}|${title}|${atKey}`;
+}
+
+function dedupeUnifiedFeedRows(rows) {
+  const deduped = [];
+  const seenIds = new Set();
+  const seenContent = new Set();
+
+  for (const row of rows) {
+    const rowId = String(row?.id || "").trim();
+    const contentFingerprint = feedRowContentFingerprint(row);
+    if (rowId && seenIds.has(rowId)) {
+      continue;
+    }
+
+    if (contentFingerprint && seenContent.has(contentFingerprint)) {
+      if (rowId) {
+        seenIds.add(rowId);
+      }
+      continue;
+    }
+
+    if (rowId) {
+      seenIds.add(rowId);
+    }
+    if (contentFingerprint) {
+      seenContent.add(contentFingerprint);
+    }
+    deduped.push(row);
+  }
+
+  return deduped;
+}
+
+function buildUnifiedFeed(match) {
+  const tickerRows = Array.isArray(match.liveTicker)
+    ? match.liveTicker.map((row) => ({
+        id: row.id,
+        at: row.occurredAt,
+        bucket: feedBucketForTickerType(row.type),
+        title: row.title,
+        summary: row.summary,
+        importance: String(row.importance || row.type || "low").toLowerCase(),
+        team: row.team || null
+      }))
+    : [];
+
+  const objectiveRows = Array.isArray(match.objectiveTimeline)
+    ? match.objectiveTimeline.map((row) => ({
+        id: row.id,
+        at: row.at,
+        bucket: "objective",
+        title: row.label,
+        summary: "Objective timeline event.",
+        importance: String(row.type || "medium").toLowerCase(),
+        team: row.team || null
+      }))
+    : [];
+
+  const momentRows = Array.isArray(match.keyMoments)
+    ? match.keyMoments.map((row) => ({
+        id: row.id,
+        at: row.occurredAt,
+        bucket: "moment",
+        title: row.title,
+        summary: row.summary,
+        importance: String(row.importance || "medium").toLowerCase(),
+        team: row.team || null
+      }))
+    : [];
+
+  const burstRows = Array.isArray(match.combatBursts)
+    ? match.combatBursts.map((row) => ({
+        id: row.id,
+        at: row.occurredAt,
+        bucket: "combat",
+        title: row.title || "Combat burst",
+        summary: row.summary || "Multi-kill combat window detected.",
+        importance: String(row.importance || "medium").toLowerCase(),
+        team: row.winnerSide || null
+      }))
+    : [];
+
+  const milestoneRows = Array.isArray(match.goldMilestones)
+    ? match.goldMilestones.map((row) => ({
+        id: row.id,
+        at: row.occurredAt,
+        bucket: "swing",
+        title: row.title || "Gold milestone",
+        summary: row.summary || "Team crossed an economy threshold.",
+        importance: String(row.importance || "medium").toLowerCase(),
+        team: row.team || null
+      }))
+    : [];
+
+  const combined = [...tickerRows, ...objectiveRows, ...momentRows, ...burstRows, ...milestoneRows]
+    .filter((row) => row.at && row.title)
+    .sort((left, right) => Date.parse(String(right.at || "")) - Date.parse(String(left.at || "")));
+
+  return dedupeUnifiedFeedRows(combined).slice(0, 60);
+}
+
+function renderUnifiedLiveFeed(match) {
+  const rows = buildUnifiedFeed(match);
+  const nowMs = Date.now();
+  const windowMinutes = Number.isFinite(uiState.feedWindowMinutes) ? uiState.feedWindowMinutes : null;
+  const timelineAnchor = resolveFeedTimelineAnchor(match, rows);
+  const filtered = rows.filter((row) => {
+    if (uiState.feedType !== "all" && row.bucket !== uiState.feedType) {
+      return false;
+    }
+
+    if (uiState.feedTeam !== "all" && row.team !== uiState.feedTeam) {
+      return false;
+    }
+
+    if (uiState.feedImportance !== "all" && importanceRank(row.importance) < importanceRank(uiState.feedImportance)) {
+      return false;
+    }
+
+    if (windowMinutes !== null) {
+      const eventTs = Date.parse(String(row.at || ""));
+      if (Number.isFinite(eventTs)) {
+        const ageMs = nowMs - eventTs;
+        if (ageMs > windowMinutes * 60 * 1000) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
+  if (!filtered.length) {
+    elements.liveFeedList.innerHTML = `<li>No events match the current feed filters.</li>`;
+    return;
+  }
+
+  const anchoredRows = filtered.map((row) => {
+    const eventTs = parseIsoTimestamp(row.at);
+    const gameClockSeconds =
+      timelineAnchor.startTs !== null && eventTs !== null
+        ? Math.max(0, Math.round((eventTs - timelineAnchor.startTs) / 1000))
+        : null;
+
+    return {
+      ...row,
+      gameClockSeconds
+    };
+  });
+
+  elements.liveFeedList.innerHTML = anchoredRows
+    .map(
+      (row) => `
+      <li class="live-feed-item ${row.team === "left" ? "team-left" : row.team === "right" ? "team-right" : "team-neutral"}">
+        <div class="live-feed-row">
+          <span class="feed-game-time">${row.gameClockSeconds === null ? "--:--" : formatGameClock(row.gameClockSeconds)}</span>
+          <div class="live-feed-main">
+            <p class="live-feed-title">
+              <span class="feed-bucket-tag">${feedBucketLabel(row.bucket)}</span>
+              <span>${row.title}</span>
+            </p>
+            <p class="live-feed-meta">${timelineAnchor.estimated ? "Game time (est.)" : "Game time"} · ${dateTimeLabel(row.at)}${row.team ? ` · ${row.team === "left" ? match.teams.left.name : match.teams.right.name}` : ""}</p>
+          </div>
+        </div>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function bindFeedControls() {
+  if (uiState.controlsBound) {
+    return;
+  }
+
+  if (elements.feedTypeFilter) {
+    elements.feedTypeFilter.value = uiState.feedType;
+    elements.feedTypeFilter.addEventListener("change", () => {
+      uiState.feedType = elements.feedTypeFilter.value || "all";
+      if (uiState.match) {
+        renderUnifiedLiveFeed(uiState.match);
+      }
+    });
+  }
+
+  if (elements.feedTeamFilter) {
+    elements.feedTeamFilter.value = uiState.feedTeam;
+    elements.feedTeamFilter.addEventListener("change", () => {
+      uiState.feedTeam = elements.feedTeamFilter.value || "all";
+      if (uiState.match) {
+        renderUnifiedLiveFeed(uiState.match);
+      }
+    });
+  }
+
+  if (elements.feedImportanceFilter) {
+    elements.feedImportanceFilter.value = uiState.feedImportance;
+    elements.feedImportanceFilter.addEventListener("change", () => {
+      uiState.feedImportance = elements.feedImportanceFilter.value || "all";
+      if (uiState.match) {
+        renderUnifiedLiveFeed(uiState.match);
+      }
+    });
+  }
+
+  if (elements.feedWindowFilter) {
+    elements.feedWindowFilter.value = uiState.feedWindowMinutes === null ? "all" : String(uiState.feedWindowMinutes);
+    elements.feedWindowFilter.addEventListener("change", () => {
+      const raw = elements.feedWindowFilter.value;
+      if (raw === "all") {
+        uiState.feedWindowMinutes = null;
+      } else {
+        const parsed = Number.parseInt(raw, 10);
+        uiState.feedWindowMinutes = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+      }
+
+      if (uiState.match) {
+        renderUnifiedLiveFeed(uiState.match);
+      }
+    });
+  }
+
+  if (elements.trackerSort) {
+    elements.trackerSort.value = uiState.trackerSort;
+    elements.trackerSort.addEventListener("change", () => {
+      uiState.trackerSort = elements.trackerSort.value || "role";
+      if (uiState.match) {
+        renderPlayerTracker(uiState.match);
+      }
+    });
+  }
+
+  if (elements.matchupH2hLimit) {
+    elements.matchupH2hLimit.value = String(uiState.matchupH2hLimit);
+    elements.matchupH2hLimit.addEventListener("change", () => {
+      uiState.matchupH2hLimit = normalizeMatchupLimit(elements.matchupH2hLimit.value);
+      elements.matchupH2hLimit.value = String(uiState.matchupH2hLimit);
+      setMatchupLimitInUrl(uiState.matchupH2hLimit);
+      resetMatchupState();
+      if (uiState.match) {
+        renderMatchupConsole(uiState.match);
+        ensureMatchupData(uiState.match, uiState.apiBase);
+      }
+    });
+  }
+
+  uiState.controlsBound = true;
+}
+
+function snapshotItem(label, value, tone = "neutral") {
+  return `
+    <article class="snapshot-item ${tone}">
+      <p class="snapshot-label">${label}</p>
+      <p class="snapshot-value">${value}</p>
+    </article>
+  `;
+}
+
+function renderStatusSummary(match) {
+  const items = [];
+  const bestOf = Number(match?.bestOf || match?.seriesProgress?.bestOf || 1);
+  const projectionCountdown = Number(match?.seriesProjection?.countdownSeconds);
+  const selectedGameNumber = contextGameNumber();
+  const fallbackCountdown = Number.isFinite(Date.parse(match.startAt))
+    ? Math.max(0, Math.round((Date.parse(match.startAt) - Date.now()) / 1000))
+    : null;
+  const countdown = Number.isFinite(projectionCountdown) ? projectionCountdown : fallbackCountdown;
+  const refreshAfter = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
+
+  items.push(snapshotItem("Status", String(match.status || "unknown").toUpperCase(), match.status === "live" ? "good" : "neutral"));
+  items.push(snapshotItem("Format", `BO${bestOf}`));
+  items.push(snapshotItem("Patch", match.patch || "unknown"));
+  items.push(snapshotItem("Refresh", `Every ${refreshAfter}s`));
+  if (uiState.viewMode === "series") {
+    items.push(snapshotItem("View", "Series"));
+  } else if (Number.isInteger(selectedGameNumber) && selectedGameNumber > 0) {
+    items.push(snapshotItem("Focused Game", `Game ${selectedGameNumber}`));
+  }
+
+  if (match.status === "upcoming") {
+    const startLabel = match.startAt ? dateTimeLabel(match.startAt) : "TBD";
+    items.push(snapshotItem("Starts", startLabel, "warn"));
+    items.push(snapshotItem("Countdown", countdown !== null ? shortDuration(countdown) : "TBD", "warn"));
+  } else if (match.status === "live") {
+    const liveGame = (match.seriesGames || []).find((game) => game.state === "inProgress");
+    const gameLabel = liveGame ? `Game ${liveGame.number}` : "Game in progress";
+    items.push(snapshotItem("Current Game", gameLabel, "good"));
+
+    if (match.momentum) {
+      items.push(snapshotItem("Gold Lead", signed(match.momentum.goldLead), "good"));
+      items.push(snapshotItem("Kill Diff", signed(match.momentum.killDiff)));
+      items.push(snapshotItem("Tower Diff", signed(match.momentum.towerDiff)));
+      items.push(snapshotItem("Lead Shift", signed(match.momentum.goldLeadDeltaWindow)));
+    }
+  } else if (match.status === "completed") {
+    const winner = winnerTeamName(match);
+    items.push(snapshotItem("Final", `${match.seriesScore.left} : ${match.seriesScore.right}`));
+    items.push(snapshotItem("Winner", winner || "TBD", "good"));
+  }
+
+  elements.statusSummary.innerHTML = items.join("");
+}
+
+function upcomingIntel(match) {
+  return match?.preMatchInsights || null;
+}
+
+function upcomingCard(label, value, note = null) {
+  return `
+    <article class="upcoming-card">
+      <p class="tempo-label">${label}</p>
+      <p class="tempo-value">${value}</p>
+      ${note ? `<p class="meta-text">${note}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderUpcomingEssentials(match) {
+  if (match.status !== "upcoming") {
+    elements.upcomingEssentialsWrap.innerHTML = `<div class="empty">Upcoming essentials appear for scheduled matches.</div>`;
+    return;
+  }
+
+  const intel = upcomingIntel(match);
+  const essentials = intel?.essentials || {};
+  const scheduledAt = essentials.scheduledAt || match.startAt;
+  const countdownSeconds = Number.isFinite(essentials.countdownSeconds)
+    ? essentials.countdownSeconds
+    : Number.isFinite(match?.seriesProjection?.countdownSeconds)
+      ? match.seriesProjection.countdownSeconds
+      : null;
+  const estimatedEndAt = essentials.estimatedEndAt || match?.seriesProjection?.estimatedEndAt || null;
+  const cards = [
+    upcomingCard("Kickoff", scheduledAt ? dateTimeLabel(scheduledAt) : "TBD"),
+    upcomingCard("Countdown", countdownSeconds !== null ? shortDuration(Math.max(0, countdownSeconds)) : "TBD"),
+    upcomingCard("Format", `BO${match.bestOf || 1}`),
+    upcomingCard("Tournament", match.tournament || "Unknown"),
+    upcomingCard("Patch", match.patch || "unknown"),
+    upcomingCard("Region", String(match.region || "global").toUpperCase())
+  ];
+
+  if (estimatedEndAt) {
+    cards.push(upcomingCard("Estimated End", dateTimeLabel(estimatedEndAt)));
+  }
+
+  elements.upcomingEssentialsWrap.innerHTML = `
+    <div class="upcoming-grid">${cards.join("")}</div>
+    <article class="upcoming-note">
+      <p class="meta-text">${match.teams.left.name} vs ${match.teams.right.name}</p>
+      <p class="meta-text">Selected map: Game ${match?.selectedGame?.number || 1}</p>
+    </article>
+  `;
+}
+
+function renderUpcomingWatchGuide(match) {
+  if (match.status !== "upcoming") {
+    elements.upcomingWatchWrap.innerHTML = `<div class="empty">Watch guide appears for scheduled matches.</div>`;
+    return;
+  }
+
+  const intel = upcomingIntel(match);
+  const options = Array.isArray(intel?.watchOptions) ? intel.watchOptions : [];
+  if (!options.length) {
+    elements.upcomingWatchWrap.innerHTML = `
+      <div class="empty">
+        Broadcast links not published yet. Check official channels closer to match start.
+      </div>
+    `;
+    return;
+  }
+
+  elements.upcomingWatchWrap.innerHTML = options
+    .map(
+      (option) => `
+      <article class="watch-row">
+        <a class="table-link" href="${option.url}" target="_blank" rel="noreferrer">${option.label || "Watch"}</a>
+        ${option.note ? `<p class="meta-text">${option.note}</p>` : ""}
+      </article>
+    `
+    )
+    .join("");
+}
+
+function formatRecentFormRow(row, apiBase) {
+  if (!row) {
+    return `<li class="meta-text">No recent result.</li>`;
+  }
+
+  const resultClass = row.result === "win" ? "win-left" : row.result === "loss" ? "win-right" : "even";
+  const detailLink = row.id
+    ? `<a class="table-link" href="${detailUrlForGame(row.id, apiBase)}">Open</a>`
+    : `<span class="meta-text">-</span>`;
+  return `
+    <li>
+      <span class="${resultClass}">${String(row.result || "unknown").toUpperCase()}</span>
+      <span>${row.scoreLabel || "n/a"}</span>
+      <span>${row.opponentName || "Unknown"}</span>
+      <span>${dateTimeLabel(row.startAt)}</span>
+      <span>${detailLink}</span>
+    </li>
+  `;
+}
+
+function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, match }) {
+  const selectedGameNumber = contextGameNumber();
+  const teamLink = teamId
+    ? teamDetailUrl(teamId, match?.game, uiState.apiBase, {
+        matchId: match?.id || null,
+        gameNumber: selectedGameNumber,
+        opponentId,
+        teamName
+      })
+    : null;
+  const headerText = teamLink ? `<a class="team-link" href="${teamLink}">${teamName}</a>` : teamName;
+
+  if (!profile) {
+    return `
+      <article class="form-card ${toneClass}">
+        <h3>${headerText}</h3>
+        <p class="meta-text">No recent form data available.</p>
+      </article>
+    `;
+  }
+
+  const recentRows = Array.isArray(profile.recentMatches) ? profile.recentMatches.slice(0, 5) : [];
+  return `
+    <article class="form-card ${toneClass}">
+      <h3>${headerText}</h3>
+      <p class="meta-text">Series: ${profile.wins ?? 0}-${profile.losses ?? 0} · Win Rate ${Number(profile.seriesWinRatePct || 0).toFixed(1)}%</p>
+      <p class="meta-text">Maps: ${profile.gameWins ?? 0}-${profile.gameLosses ?? 0} · Win Rate ${Number(profile.gameWinRatePct || 0).toFixed(1)}%</p>
+      <p class="meta-text">Streak: ${profile.streakLabel || "n/a"} · Recent Form ${profile.formLabel || "n/a"}</p>
+      <ul class="mini-list form-list">
+        ${recentRows.length ? recentRows.map((row) => formatRecentFormRow(row, uiState.apiBase)).join("") : `<li class="meta-text">No recent matches.</li>`}
+      </ul>
+    </article>
+  `;
+}
+
+function renderUpcomingForm(match) {
+  if (match.status !== "upcoming") {
+    elements.upcomingFormWrap.innerHTML = `<div class="empty">Team form appears for scheduled matches.</div>`;
+    return;
+  }
+
+  const intel = upcomingIntel(match);
+  const teamForm = intel?.teamForm || {};
+  elements.upcomingFormWrap.innerHTML = `
+    ${renderTeamFormCard({
+      teamName: match.teams.left.name,
+      teamId: match.teams.left.id,
+      opponentId: match.teams.right.id,
+      profile: teamForm.left,
+      toneClass: "left",
+      match
+    })}
+    ${renderTeamFormCard({
+      teamName: match.teams.right.name,
+      teamId: match.teams.right.id,
+      opponentId: match.teams.left.id,
+      profile: teamForm.right,
+      toneClass: "right",
+      match
+    })}
+  `;
+}
+
+function renderUpcomingHeadToHead(match) {
+  if (match.status !== "upcoming") {
+    elements.upcomingH2hWrap.innerHTML = `<div class="empty">Head-to-head appears for scheduled matches.</div>`;
+    return;
+  }
+
+  const intel = upcomingIntel(match);
+  const h2h = intel?.headToHead;
+  if (!h2h || !Array.isArray(h2h.lastMeetings) || !h2h.lastMeetings.length) {
+    elements.upcomingH2hWrap.innerHTML = `<div class="empty">No recent direct meetings found.</div>`;
+    return;
+  }
+
+  const rows = h2h.lastMeetings
+    .map(
+      (row) => `
+        <tr>
+          <td>${dateTimeLabel(row.startAt)}</td>
+          <td>${row.winnerName || "TBD"}</td>
+          <td>${row.scoreLabel || "n/a"}</td>
+          <td>${row.tournament || "Unknown"}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  elements.upcomingH2hWrap.innerHTML = `
+    <article class="upcoming-note">
+      <p class="meta-text">Meetings: ${h2h.total || 0} · ${match.teams.left.name} wins ${h2h.leftWins || 0} · ${match.teams.right.name} wins ${h2h.rightWins || 0}</p>
+    </article>
+    <div class="lane-table-wrap">
+      <table class="lane-table upcoming-h2h-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Winner</th>
+            <th>Score</th>
+            <th>Tournament</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderUpcomingPrediction(match) {
+  if (match.status !== "upcoming") {
+    elements.upcomingPredictionWrap.innerHTML = `<div class="empty">Prediction model appears for scheduled matches.</div>`;
+    return;
+  }
+
+  const intel = upcomingIntel(match);
+  const prediction = intel?.prediction;
+  if (!prediction) {
+    elements.upcomingPredictionWrap.innerHTML = `<div class="empty">Prediction model needs more recent data.</div>`;
+    return;
+  }
+
+  const leftPct = Math.max(0, Math.min(100, Number(prediction.leftWinPct || 0)));
+  const rightPct = Math.max(0, Math.min(100, Number(prediction.rightWinPct || 0)));
+  const drivers = Array.isArray(prediction.drivers) ? prediction.drivers : [];
+
+  elements.upcomingPredictionWrap.innerHTML = `
+    <article class="prediction-card">
+      <div class="edge-head">
+        <p class="meta-text">${match.teams.left.name}</p>
+        <p class="meta-text">${match.teams.right.name}</p>
+      </div>
+      <div class="edge-bars">
+        <div class="edge-side left" style="width:${leftPct}%"></div>
+        <div class="edge-side right" style="width:${rightPct}%"></div>
+      </div>
+      <div class="edge-head">
+        <p class="edge-score">${leftPct.toFixed(1)}%</p>
+        <p class="edge-score">${rightPct.toFixed(1)}%</p>
+      </div>
+      <p class="meta-text">Favorite: ${prediction.favoriteTeamName || "Even"} · Confidence ${String(prediction.confidence || "low").toUpperCase()}</p>
+      <p class="meta-text">Model: ${prediction.modelVersion || "heuristic-v1"} (form + map-rate + H2H + streak)</p>
+      ${drivers.length ? `<ul class="confidence-notes">${drivers.map((driver) => `<li>${driver}</li>`).join("")}</ul>` : ""}
+    </article>
+  `;
+}
+
+function renderDataConfidence(match) {
+  const confidence = match.dataConfidence;
+  if (!confidence) {
+    elements.dataConfidenceWrap.innerHTML = `<div class="empty">Confidence metrics unavailable.</div>`;
+    return;
+  }
+
+  const notes = Array.isArray(confidence.notes) ? confidence.notes : [];
+
+  elements.dataConfidenceWrap.innerHTML = `
+    <article class="confidence-card ${confidence.grade || "medium"}">
+      <p class="confidence-title">Coverage ${String(confidence.grade || "medium").toUpperCase()}</p>
+      <p class="confidence-score">Score ${formatNumber(confidence.score)} / 100</p>
+      <p class="meta-text">Telemetry: ${confidence.telemetry || "unknown"}</p>
+      ${notes.length ? `<ul class="confidence-notes">${notes.map((note) => `<li>${note}</li>`).join("")}</ul>` : ""}
+    </article>
+  `;
+}
+
+function renderPulseCard(match) {
+  const pulse = match.pulseCard;
+  if (!pulse) {
+    elements.pulseCard.innerHTML = `<div class="empty">No pulse signal available.</div>`;
+    return;
+  }
+
+  elements.pulseCard.innerHTML = `
+    <article class="pulse ${pulse.tone || "neutral"}">
+      <p class="pulse-title">${pulse.title || "Match Pulse"}</p>
+      <p class="pulse-body">${pulse.summary || "Signal unavailable."}</p>
+    </article>
+  `;
+}
+
+function renderEdgeMeter(match) {
+  const edge = match.edgeMeter;
+  if (!edge?.left || !edge?.right) {
+    elements.edgeMeterWrap.innerHTML = `<div class="empty">Edge signal unavailable.</div>`;
+    return;
+  }
+
+  const leftScore = Math.max(0, Math.min(100, Number(edge.left.score || 0)));
+  const rightScore = Math.max(0, Math.min(100, Number(edge.right.score || 0)));
+  const total = Math.max(1, leftScore + rightScore);
+  const leftWidth = (leftScore / total) * 100;
+  const rightWidth = (rightScore / total) * 100;
+  const leftDrivers = Array.isArray(edge.left.drivers) ? edge.left.drivers : [];
+  const rightDrivers = Array.isArray(edge.right.drivers) ? edge.right.drivers : [];
+
+  elements.edgeMeterWrap.innerHTML = `
+    <article class="edge-card">
+      <div class="edge-head">
+        <p class="meta-text">${edge.left.team}</p>
+        <p class="meta-text">${edge.right.team}</p>
+      </div>
+      <div class="edge-bars">
+        <div class="edge-side left" style="width:${leftWidth}%"></div>
+        <div class="edge-side right" style="width:${rightWidth}%"></div>
+      </div>
+      <div class="edge-head">
+        <p class="edge-score">${leftScore}</p>
+        <p class="edge-score">${rightScore}</p>
+      </div>
+      <p class="meta-text">${edge.verdict || "Pressure balance is even."}</p>
+      <div class="edge-drivers">
+        <p class="meta-text">${leftDrivers.length ? `${edge.left.team}: ${leftDrivers.join(" · ")}` : `${edge.left.team}: no clear edge driver`}</p>
+        <p class="meta-text">${rightDrivers.length ? `${edge.right.team}: ${rightDrivers.join(" · ")}` : `${edge.right.team}: no clear edge driver`}</p>
+      </div>
+    </article>
+  `;
+}
+
+function tempoCard(label, value, subtext) {
+  return `
+    <article class="tempo-card">
+      <p class="tempo-label">${label}</p>
+      <p class="tempo-value">${value}</p>
+      ${subtext ? `<p class="meta-text">${subtext}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderTempoSnapshot(match) {
+  const tempo = match.tempoSnapshot;
+  if (!tempo) {
+    elements.tempoSnapshotWrap.innerHTML = `<div class="empty">Tempo profile unavailable.</div>`;
+    return;
+  }
+
+  const cards = [];
+  cards.push(tempoCard("Completed Games", String(tempo.completedGames ?? 0), "Series pace baseline"));
+  cards.push(
+    tempoCard(
+      "Avg Game Length",
+      Number.isFinite(tempo.averageDurationMinutes) ? `${tempo.averageDurationMinutes.toFixed(1)}m` : "n/a",
+      Number.isFinite(tempo.shortestDurationMinutes) && Number.isFinite(tempo.longestDurationMinutes)
+        ? `Low ${tempo.shortestDurationMinutes.toFixed(1)}m · High ${tempo.longestDurationMinutes.toFixed(1)}m`
+        : "Waiting for completed VOD duration data"
+    )
+  );
+  cards.push(
+    tempoCard(
+      "Current Game",
+      Number.isFinite(tempo.currentGameMinutes) ? `${tempo.currentGameMinutes.toFixed(1)}m` : "n/a",
+      "Live elapsed from frame window"
+    )
+  );
+  cards.push(
+    tempoCard(
+      "Objective Pace",
+      Number.isFinite(tempo.objectivePer10Minutes) ? `${tempo.objectivePer10Minutes.toFixed(2)} / 10m` : "n/a",
+      `${tempo.objectiveEvents || 0} tracked objective events`
+    )
+  );
+
+  elements.tempoSnapshotWrap.innerHTML = cards.join("");
+}
+
+function checklistClass(tone) {
+  if (tone === "good") return "good";
+  if (tone === "warn") return "warn";
+  return "neutral";
+}
+
+function renderTacticalChecklist(match) {
+  const rows = Array.isArray(match.tacticalChecklist) ? match.tacticalChecklist : [];
+  if (!rows.length) {
+    elements.tacticalChecklistWrap.innerHTML = `<div class="empty">No tactical notes generated for this state.</div>`;
+    return;
+  }
+
+  elements.tacticalChecklistWrap.innerHTML = rows
+    .map(
+      (row) => `
+      <article class="check-item ${checklistClass(row.tone)}">
+        <p class="check-title">${row.title || "Signal"}</p>
+        <p class="meta-text">${row.detail || "No details provided."}</p>
+      </article>
+    `
+    )
+    .join("");
+}
+
+function renderStorylines(match) {
+  const rows = Array.isArray(match.storylines) ? match.storylines : [];
+  if (!rows.length) {
+    elements.storylinesList.innerHTML = "<li>No storyline signals yet.</li>";
+    return;
+  }
+
+  elements.storylinesList.innerHTML = rows.map((row) => `<li>${row}</li>`).join("");
+}
+
+function renderSeriesProgress(match) {
+  const progress = match.seriesProgress;
+  if (!progress) {
+    elements.seriesProgressWrap.innerHTML = `<div class="empty">No series progress available.</div>`;
+    return;
+  }
+
+  const leftPct = Math.min(100, (progress.leftWins / Math.max(1, progress.winsNeeded)) * 100);
+  const rightPct = Math.min(100, (progress.rightWins / Math.max(1, progress.winsNeeded)) * 100);
+
+  elements.seriesProgressWrap.innerHTML = `
+    <article class="progress-card">
+      <p class="meta-text">First to ${progress.winsNeeded} wins</p>
+      <p class="progress-score">${match.teams.left.name} ${progress.leftWins} - ${progress.rightWins} ${match.teams.right.name}</p>
+      <div class="progress-split">
+        <div class="bar left" style="width:${leftPct}%"></div>
+        <div class="bar right" style="width:${rightPct}%"></div>
+      </div>
+      <p class="meta-text">Completed ${progress.completedGames} · Live ${progress.inProgressGames} · Skipped ${progress.skippedGames}</p>
+      <p class="meta-text">${match.teams.left.name} needs ${progress.leftToWin} · ${match.teams.right.name} needs ${progress.rightToWin}</p>
+    </article>
+  `;
+}
+
+function sparklinePoints(values) {
+  if (!values.length) {
+    return "";
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(1, max - min);
+
+  return values
+    .map((value, index) => {
+      const x = values.length === 1 ? 0 : (index / (values.length - 1)) * 100;
+      const y = ((max - value) / range) * 100;
+      return `${x},${y}`;
+    })
+    .join(" ");
+}
+
+function compactGold(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "0";
+  }
+
+  const abs = Math.abs(num);
+  if (abs >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M`;
+  }
+
+  if (abs >= 1000) {
+    return `${(num / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`;
+  }
+
+  return String(Math.round(num));
+}
+
+function shortTimeLabel(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return "n/a";
+    }
+
+    return parsed.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  } catch {
+    return "n/a";
+  }
+}
+
+function trendLeadCallout(match, lead) {
+  if (!Number.isFinite(lead) || lead === 0) {
+    return {
+      tone: "even",
+      headline: "Gold is even",
+      detail: `${match.teams.left.name} and ${match.teams.right.name} are tied on gold right now.`
+    };
+  }
+
+  const leftLeading = lead > 0;
+  const teamName = leftLeading ? match.teams.left.name : match.teams.right.name;
+  const amount = formatNumber(Math.abs(Math.round(lead)));
+  return {
+    tone: leftLeading ? "left" : "right",
+    headline: `${teamName} lead by ${amount} gold`,
+    detail: leftLeading
+      ? `Above zero line means ${match.teams.left.name} are ahead.`
+      : `Below zero line means ${match.teams.right.name} are ahead.`
+  };
+}
+
+function buildLeadTrendChart(series, options = {}) {
+  const rows = series
+    .map((row) => ({
+      at: Date.parse(String(row?.at || "")),
+      lead: Number(row?.lead || 0)
+    }))
+    .filter((row) => Number.isFinite(row.at) && Number.isFinite(row.lead))
+    .sort((left, right) => left.at - right.at);
+
+  if (!rows.length) {
+    return null;
+  }
+
+  const roundLeadScale = (value) => {
+    const safe = Math.max(1000, Number(value) || 0);
+    if (safe <= 6000) {
+      return Math.ceil(safe / 1000) * 1000;
+    }
+    if (safe <= 20000) {
+      return Math.ceil(safe / 2500) * 2500;
+    }
+    return Math.ceil(safe / 5000) * 5000;
+  };
+
+  const chart = {
+    left: 4,
+    right: 96,
+    top: 8,
+    bottom: 86
+  };
+  const lockedAbsLead = Number(options.lockedAbsLead || 0);
+  const rawMinLead = Math.min(0, ...rows.map((row) => row.lead));
+  const rawMaxLead = Math.max(0, ...rows.map((row) => row.lead));
+  const peakAbsLead = Math.max(Math.abs(rawMinLead), Math.abs(rawMaxLead));
+  const computedAbsLead = roundLeadScale(Math.max(LEAD_TREND_MIN_ABS_GOLD, peakAbsLead * LEAD_TREND_SCALE_HEADROOM));
+  const lockCeilingAbsLead = roundLeadScale(Math.max(LEAD_TREND_MIN_ABS_GOLD, peakAbsLead * (LEAD_TREND_SCALE_HEADROOM + 0.25)));
+  const displayAbsLead = Math.max(computedAbsLead, Math.min(lockedAbsLead, lockCeilingAbsLead));
+  const minLead = -displayAbsLead;
+  const maxLead = displayAbsLead;
+  const leadRange = Math.max(1, maxLead - minLead);
+  const minAt = rows[0].at;
+  const maxAt = rows[rows.length - 1].at;
+  const timeRange = Math.max(1, maxAt - minAt);
+  const mapX = (at) => chart.left + ((at - minAt) / timeRange) * (chart.right - chart.left);
+  const mapY = (lead) => chart.top + ((maxLead - lead) / leadRange) * (chart.bottom - chart.top);
+  const clampY = (value) => Math.max(chart.top, Math.min(chart.bottom, value));
+  const zeroY = clampY(mapY(0));
+  const points = rows.map((row) => ({
+    x: mapX(row.at),
+    y: mapY(row.lead),
+    lead: row.lead,
+    at: row.at
+  }));
+
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)},${point.y.toFixed(2)}`)
+    .join(" ");
+  const areaPath = points.length
+    ? `M${points[0].x.toFixed(2)},${zeroY.toFixed(2)} ` +
+      points.map((point) => `L${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ") +
+      ` L${points[points.length - 1].x.toFixed(2)},${zeroY.toFixed(2)} Z`
+    : "";
+
+  const gridValuesRaw = [maxLead, maxLead * 0.5, 0, minLead * 0.5, minLead];
+  const seen = new Set();
+  const gridRows = gridValuesRaw
+    .map((value) => Number(value.toFixed(2)))
+    .filter((value) => {
+      const key = String(value);
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .map((value) => ({
+      value,
+      y: clampY(mapY(value))
+    }));
+
+  return {
+    rows,
+    points,
+    linePath,
+    areaPath,
+    zeroY,
+    minAt,
+    maxAt,
+    rawMinLead,
+    rawMaxLead,
+    minLead,
+    maxLead,
+    displayAbsLead,
+    gridRows,
+    chartBounds: chart
+  };
+}
+
+function renderLeadTrend(match) {
+  const series = Array.isArray(match.goldLeadSeries) ? match.goldLeadSeries : [];
+  const trend = match.leadTrend;
+  if (!series.length || !trend) {
+    elements.leadTrendWrap.innerHTML = `<div class="empty">Lead trend appears once enough frames are tracked.</div>`;
+    return;
+  }
+
+  const selectedGameNumber = contextGameNumber();
+  const trendScaleKey = `${String(match?.id || "match")}::${Number.isInteger(selectedGameNumber) ? selectedGameNumber : "series"}`;
+  const previousAbsScale = Number(uiState.leadTrendScaleByContext[trendScaleKey] || 0);
+  const chart = buildLeadTrendChart(series, { lockedAbsLead: previousAbsScale });
+  if (!chart) {
+    elements.leadTrendWrap.innerHTML = `<div class="empty">Lead trend appears once enough frames are tracked.</div>`;
+    return;
+  }
+  uiState.leadTrendScaleByContext[trendScaleKey] = chart.displayAbsLead;
+
+  const leadCallout = trendLeadCallout(match, Number(trend.finalLead || 0));
+  const coverageSeconds = Math.max(0, Math.round((chart.maxAt - chart.minAt) / 1000));
+  const coverageLabel = coverageSeconds > 0 ? shortDuration(coverageSeconds) : "<1m";
+  const leftPeakLead = Math.max(0, Math.round(chart.rawMaxLead));
+  const rightPeakLead = Math.max(0, Math.round(Math.abs(chart.rawMinLead)));
+  const finalPoint = chart.points[chart.points.length - 1];
+  const finalToneClass = leadCallout.tone === "left" ? "left" : leadCallout.tone === "right" ? "right" : "even";
+  const zeroLineLabel = `0 (${match.teams.left.name} above · ${match.teams.right.name} below)`;
+  const currentLead = Number(trend.finalLead || 0);
+  const currentLeadLabel =
+    !Number.isFinite(currentLead) || currentLead === 0
+      ? "0"
+      : `${currentLead > 0 ? "+" : "-"}${compactGold(Math.abs(currentLead))}`;
+  const currentLabelX = Math.max(
+    chart.chartBounds.left + 1.4,
+    Math.min(chart.chartBounds.right - 12, finalPoint.x + 1.2)
+  );
+  const currentLabelY = Math.max(
+    chart.chartBounds.top + 2.2,
+    Math.min(chart.chartBounds.bottom - 1.3, finalPoint.y - 1.2)
+  );
+  const limitedWindowNote =
+    match.status === "live" && coverageSeconds < 120
+      ? "Live feed currently exposes a short window; timeline will expand as additional frames are collected."
+      : null;
+
+  elements.leadTrendWrap.innerHTML = `
+    <article class="trend-card">
+      <p class="trend-headline ${finalToneClass}">${leadCallout.headline}</p>
+      <p class="meta-text">${leadCallout.detail}</p>
+      <div class="trend-legend">
+        <span class="chip left">${match.teams.left.name} Advantage</span>
+        <span class="chip right">${match.teams.right.name} Advantage</span>
+      </div>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="trend-chart" aria-label="Gold lead trend over time">
+        <rect x="${chart.chartBounds.left}" y="${chart.chartBounds.top}" width="${chart.chartBounds.right - chart.chartBounds.left}" height="${Math.max(0, chart.zeroY - chart.chartBounds.top)}" class="trend-zone-left"></rect>
+        <rect x="${chart.chartBounds.left}" y="${chart.zeroY}" width="${chart.chartBounds.right - chart.chartBounds.left}" height="${Math.max(0, chart.chartBounds.bottom - chart.zeroY)}" class="trend-zone-right"></rect>
+        ${chart.gridRows
+          .map((row) => `<line x1="${chart.chartBounds.left}" x2="${chart.chartBounds.right}" y1="${row.y.toFixed(2)}" y2="${row.y.toFixed(2)}" class="trend-grid"></line>`)
+          .join("")}
+        ${chart.gridRows
+          .map((row) => `<text x="${(chart.chartBounds.left + 0.7).toFixed(2)}" y="${(row.y - 0.8).toFixed(2)}" class="trend-grid-label">${row.value === 0 ? "0" : `${row.value > 0 ? "+" : "-"}${compactGold(Math.abs(row.value))}`}</text>`)
+          .join("")}
+        <line x1="${chart.chartBounds.left}" x2="${chart.chartBounds.right}" y1="${chart.zeroY.toFixed(2)}" y2="${chart.zeroY.toFixed(2)}" class="trend-zero"></line>
+        <line x1="${finalPoint.x.toFixed(2)}" x2="${finalPoint.x.toFixed(2)}" y1="${chart.zeroY.toFixed(2)}" y2="${finalPoint.y.toFixed(2)}" class="trend-current-guide ${finalToneClass}"></line>
+        <path d="${chart.areaPath}" class="trend-area"></path>
+        <path d="${chart.linePath}" class="trend-line"></path>
+        <circle cx="${finalPoint.x.toFixed(2)}" cy="${finalPoint.y.toFixed(2)}" r="1.2" class="trend-dot ${finalToneClass}"></circle>
+        <text x="${currentLabelX.toFixed(2)}" y="${currentLabelY.toFixed(2)}" class="trend-current-label ${finalToneClass}">${currentLeadLabel}</text>
+      </svg>
+      <div class="trend-axis">
+        <span>${shortTimeLabel(new Date(chart.minAt).toISOString())}</span>
+        <span>${coverageLabel} full-game timeline · ${chart.rows.length} samples</span>
+        <span>${shortTimeLabel(new Date(chart.maxAt).toISOString())}</span>
+      </div>
+      <div class="trend-stats">
+        <p class="meta-text">Peak ${match.teams.left.name}: +${compactGold(leftPeakLead)} · Peak ${match.teams.right.name}: +${compactGold(rightPeakLead)}</p>
+        <p class="meta-text">Fixed scale: ±${compactGold(chart.displayAbsLead)} around center 0</p>
+        <p class="meta-text">Largest swing: ${formatNumber(Math.abs(Math.round(trend.largestSwing || 0)))} gold</p>
+        <p class="meta-text">${zeroLineLabel}</p>
+        ${limitedWindowNote ? `<p class="meta-text">${limitedWindowNote}</p>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+function renderObjectiveControl(match) {
+  const control = match.objectiveControl;
+  if (!control) {
+    elements.objectiveControlWrap.innerHTML = `<div class="empty">Objective control data unavailable.</div>`;
+    return;
+  }
+
+  const leftPct = Math.max(0, Math.min(100, Number(control.left?.controlPct || 0)));
+  const rightPct = Math.max(0, Math.min(100, Number(control.right?.controlPct || 0)));
+
+  elements.objectiveControlWrap.innerHTML = `
+    <article class="control-card">
+      <div class="control-bar">
+        <div class="left" style="width:${leftPct}%"></div>
+        <div class="right" style="width:${rightPct}%"></div>
+      </div>
+      <p class="meta-text">${match.teams.left.name} ${leftPct.toFixed(1)}% · ${rightPct.toFixed(1)}% ${match.teams.right.name}</p>
+      <div class="control-rows">
+        <p class="meta-text">Towers ${control.left.towers} - ${control.right.towers}</p>
+        <p class="meta-text">Dragons ${control.left.dragons} - ${control.right.dragons}</p>
+        <p class="meta-text">Barons ${control.left.barons} - ${control.right.barons}</p>
+        <p class="meta-text">Inhibitors ${control.left.inhibitors} - ${control.right.inhibitors}</p>
+      </div>
+    </article>
+  `;
+}
+
+function renderObjectiveBreakdown(match) {
+  const breakdown = match.objectiveBreakdown;
+  if (!breakdown?.left || !breakdown?.right) {
+    elements.objectiveBreakdownWrap.innerHTML = `<div class="empty">Objective-type totals unavailable.</div>`;
+    return;
+  }
+
+  const renderSide = (teamName, sideRows) => `
+    <article class="objective-side">
+      <h3>${teamName}</h3>
+      <p class="meta-text">Total ${sideRows.total || 0}</p>
+      <div class="objective-stats">
+        <p><span>Dragons</span><span>${sideRows.dragon || 0}</span></p>
+        <p><span>Barons</span><span>${sideRows.baron || 0}</span></p>
+        <p><span>Towers</span><span>${sideRows.tower || 0}</span></p>
+        <p><span>Inhibitors</span><span>${sideRows.inhibitor || 0}</span></p>
+        ${(sideRows.other || 0) > 0 ? `<p><span>Other</span><span>${sideRows.other}</span></p>` : ""}
+      </div>
+    </article>
+  `;
+
+  elements.objectiveBreakdownWrap.innerHTML = `
+    ${renderSide(match.teams.left.name, breakdown.left)}
+    ${renderSide(match.teams.right.name, breakdown.right)}
+  `;
+}
+
+function renderDraftTeam(title, rows) {
+  return `
+    <section class="draft-team">
+      <h3>${title}</h3>
+      ${rows.length
+        ? rows
+            .map(
+              (row) => `
+                <article class="draft-row">
+                  <p>${String(row.role || "flex").toUpperCase()}</p>
+                  <p>${row.champion || "Unknown"}</p>
+                  <p class="meta-text">${row.name || "Player"}</p>
+                </article>
+              `
+            )
+            .join("")
+        : `<div class="empty">No draft rows.</div>`}
+    </section>
+  `;
+}
+
+function normalizeLineupRows(rows = []) {
+  return rows
+    .map((row) => ({
+      role: String(row?.role || "flex").toLowerCase(),
+      champion:
+        row?.champion ||
+        (Array.isArray(row?.champions) && row.champions.length ? row.champions[0] : "Unknown"),
+      name: row?.name || row?.player || "Player"
+    }))
+    .filter((row) => row.name || row.champion)
+    .sort((left, right) => {
+      const roleDelta = trackerRoleOrder(left.role) - trackerRoleOrder(right.role);
+      if (roleDelta !== 0) {
+        return roleDelta;
+      }
+      return String(left.name).localeCompare(String(right.name));
+    });
+}
+
+function lineupRowsFromSeriesTrends(seriesPlayerTrends = [], teamSide = "left") {
+  const rows = Array.isArray(seriesPlayerTrends) ? seriesPlayerTrends : [];
+  const candidates = rows
+    .filter((row) => row?.team === teamSide)
+    .map((row) => ({
+      role: String(row?.role || "flex").toLowerCase(),
+      champion: Array.isArray(row?.champions) && row.champions.length ? row.champions[0] : "Unknown",
+      name: row?.name || "Player",
+      mapsPlayed: Number(row?.mapsPlayed || 0)
+    }));
+
+  const byRole = new Map();
+  for (const row of candidates) {
+    const key = row.role;
+    const existing = byRole.get(key);
+    if (!existing || row.mapsPlayed > existing.mapsPlayed) {
+      byRole.set(key, row);
+    }
+  }
+
+  return normalizeLineupRows(Array.from(byRole.values()));
+}
+
+function resolveSeriesLineup(match, teamSide = "left") {
+  const draftRows = Array.isArray(match?.teamDraft?.[teamSide]) ? match.teamDraft[teamSide] : [];
+  if (draftRows.length) {
+    return {
+      rows: normalizeLineupRows(draftRows),
+      source: "Latest draft metadata"
+    };
+  }
+
+  const economyRows = Array.isArray(match?.playerEconomy?.[teamSide]) ? match.playerEconomy[teamSide] : [];
+  if (economyRows.length) {
+    return {
+      rows: normalizeLineupRows(economyRows),
+      source: "Latest live player telemetry"
+    };
+  }
+
+  const trendRows = lineupRowsFromSeriesTrends(match?.seriesPlayerTrends, teamSide);
+  if (trendRows.length) {
+    return {
+      rows: trendRows,
+      source: "Series player trend sample"
+    };
+  }
+
+  return {
+    rows: [],
+    source: "Unavailable"
+  };
+}
+
+function renderSeriesLineups(match) {
+  if (!elements.seriesLineupsWrap) {
+    return;
+  }
+
+  const left = resolveSeriesLineup(match, "left");
+  const right = resolveSeriesLineup(match, "right");
+  if (!left.rows.length && !right.rows.length) {
+    elements.seriesLineupsWrap.innerHTML = `<div class="empty">Lineup data appears once draft/player metadata is available.</div>`;
+    return;
+  }
+
+  const sources = Array.from(
+    new Set([left.source, right.source].filter((value) => value && value !== "Unavailable"))
+  );
+  const sourceText = sources.length ? sources.join(" · ") : "Unavailable";
+
+  elements.seriesLineupsWrap.innerHTML = `
+    ${renderDraftTeam(`${match.teams.left.name} Lineup`, left.rows)}
+    ${renderDraftTeam(`${match.teams.right.name} Lineup`, right.rows)}
+    <article class="recap-note">
+      <p class="meta-text">Lineup Source: ${sourceText}</p>
+      <p class="meta-text">Series tab highlights team context; open a game tab for map-specific live stats.</p>
+    </article>
+  `;
+}
+
+function renderDraftBoard(match) {
+  const draft = match.teamDraft;
+  if (!draft) {
+    elements.draftBoardWrap.innerHTML = `<div class="empty">Draft data appears once game metadata is available.</div>`;
+    return;
+  }
+
+  elements.draftBoardWrap.innerHTML = `
+    ${renderDraftTeam(match.teams.left.name, draft.left || [])}
+    ${renderDraftTeam(match.teams.right.name, draft.right || [])}
+  `;
+}
+
+function renderEconomyTeam(title, rows) {
+  return `
+    <section class="economy-team">
+      <h3>${title}</h3>
+      ${rows.length
+        ? rows
+            .map(
+              (row) => `
+                <article class="economy-row">
+                  <p class="name">${row.name} · ${row.champion}</p>
+                  <p class="meta-text">${String(row.role || "flex").toUpperCase()} · KDA ${row.kills}/${row.deaths}/${row.assists} · CS ${row.cs}</p>
+                  <p class="meta-text">Gold ${formatNumber(row.goldEarned)} · GPM ${formatNumber(row.gpm)} · Items ${row.itemCount}</p>
+                </article>
+              `
+            )
+            .join("")
+        : `<div class="empty">No player rows.</div>`}
+    </section>
+  `;
+}
+
+function renderEconomyBoard(match) {
+  const economy = match.playerEconomy;
+  const totals = match.teamEconomyTotals;
+  if (!economy) {
+    elements.economyBoardWrap.innerHTML = `<div class="empty">Economy board available during active/recent games.</div>`;
+    return;
+  }
+
+  elements.economyBoardWrap.innerHTML = `
+    ${totals ? `<article class="totals-strip">
+      <p class="meta-text">${match.teams.left.name}: Gold ${formatNumber(totals.left.totalGold)} · Avg GPM ${formatNumber(totals.left.avgGpm)}</p>
+      <p class="meta-text">${match.teams.right.name}: Gold ${formatNumber(totals.right.totalGold)} · Avg GPM ${formatNumber(totals.right.avgGpm)}</p>
+    </article>` : ""}
+    ${renderEconomyTeam(match.teams.left.name, economy.left || [])}
+    ${renderEconomyTeam(match.teams.right.name, economy.right || [])}
+    <p class="meta-text">Window ${shortDuration(economy.elapsedSeconds)} · Updated ${dateTimeLabel(economy.updatedAt)}</p>
+  `;
+}
+
+function renderLaneMatchups(match) {
+  const rows = Array.isArray(match.laneMatchups) ? match.laneMatchups : [];
+  if (!rows.length) {
+    elements.laneMatchupsWrap.innerHTML = `<div class="empty">Lane matchup data requires draft + economy feeds.</div>`;
+    return;
+  }
+
+  elements.laneMatchupsWrap.innerHTML = `
+    <div class="lane-table-wrap">
+      <table class="lane-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>${match.teams.left.name}</th>
+            <th>Gold Diff</th>
+            <th>${match.teams.right.name}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map(
+              (row) => `
+                <tr>
+                  <td>${String(row.role || "flex").toUpperCase()}</td>
+                  <td>${row.left.player} · ${row.left.champion}<br /><span class="meta-text">${row.left.kda || "n/a"} · CS ${row.left.cs ?? "n/a"} · ${row.left.gold ? formatNumber(row.left.gold) : "n/a"}</span></td>
+                  <td>${signed(row.goldDiff)}</td>
+                  <td>${row.right.player} · ${row.right.champion}<br /><span class="meta-text">${row.right.kda || "n/a"} · CS ${row.right.cs ?? "n/a"} · ${row.right.gold ? formatNumber(row.right.gold) : "n/a"}</span></td>
+                </tr>
+              `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderObjectiveRuns(match) {
+  const runs = Array.isArray(match.objectiveRuns) ? match.objectiveRuns : [];
+  if (!runs.length) {
+    elements.objectiveRunsWrap.innerHTML = `<div class="empty">No streaks detected in objective flow yet.</div>`;
+    return;
+  }
+
+  elements.objectiveRunsWrap.innerHTML = runs
+    .map(
+      (run) => `
+      <article class="run-card ${run.team === "right" ? "right" : "left"}">
+        <p class="run-title">${run.teamName} · ${run.count} objective${run.count === 1 ? "" : "s"}</p>
+        <p class="meta-text">${(run.types || []).join(", ")}</p>
+        <p class="meta-text">${dateTimeLabel(run.startedAt)} to ${dateTimeLabel(run.endedAt)}</p>
+      </article>
+    `
+    )
+    .join("");
+}
+
+function stateClass(state) {
+  if (state === "completed") return "complete";
+  if (state === "inProgress") return "live";
+  if (state === "unneeded") return "skip";
+  return "upcoming";
+}
+
+function stateLabel(state) {
+  if (state === "inProgress") return "LIVE";
+  if (state === "completed") return "COMPLETED";
+  if (state === "unneeded") return "SKIPPED";
+  return "UPCOMING";
+}
+
+function renderSeriesGames(match, apiBase) {
+  const games = Array.isArray(match.seriesGames) ? match.seriesGames : [];
+  if (!games.length) {
+    elements.seriesGamesWrap.innerHTML = `<div class="empty">No game breakdown available.</div>`;
+    return;
+  }
+
+  elements.seriesGamesWrap.innerHTML = games
+    .map((game) => {
+      const primaryWatch = game.watchUrl
+        ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">Watch VOD</a>`
+        : `<span class="meta-text">No VOD</span>`;
+      const options = Array.isArray(game.watchOptions) ? game.watchOptions : [];
+      const openGameHref = detailUrlForGame(match.id, apiBase, game.number);
+      const sideInfo = game?.sideInfo || {};
+      const sideText = sideInfo.leftSide && sideInfo.rightSide
+        ? `${match.teams.left.name} ${String(sideInfo.leftSide).toUpperCase()} · ${match.teams.right.name} ${String(sideInfo.rightSide).toUpperCase()}`
+        : null;
+
+      return `
+        <article class="game-card ${game.selected ? "selected" : ""}">
+          <div class="game-head">
+            <p class="game-title">Game ${game.number}</p>
+            <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
+          </div>
+          ${game.selected ? `<p class="meta-text strong">Currently selected</p>` : `<a class="table-link" href="${openGameHref}">Open game detail</a>`}
+          <p class="meta-text">${game.label || "Match game details."}</p>
+          ${sideText ? `<p class="meta-text">${sideText}</p>` : ""}
+          ${game.startedAt ? `<p class="meta-text">Start: ${dateTimeLabel(game.startedAt)}</p>` : ""}
+          ${primaryWatch}
+          ${options.length
+            ? `<div class="vod-options">${options
+                .map((opt) => `<a class="vod-link" href="${opt.watchUrl}" target="_blank" rel="noreferrer">${opt.label}</a>`)
+                .join("")}</div>`
+            : ""}
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function durationLabelFromMinutes(minutes) {
+  const value = Number(minutes);
+  if (!Number.isFinite(value) || value <= 0) {
+    return "n/a";
+  }
+
+  const totalSeconds = Math.round(value * 60);
+  return shortDuration(totalSeconds);
+}
+
+function resolveSeriesGameWinnerName(game, match) {
+  if (!game || game.state !== "completed") {
+    return null;
+  }
+
+  if (game.winnerTeamId === match?.teams?.left?.id) {
+    return match.teams.left.name;
+  }
+
+  if (game.winnerTeamId === match?.teams?.right?.id) {
+    return match.teams.right.name;
+  }
+
+  return null;
+}
+
+function sideSummaryFromSeriesGame(game, match) {
+  const sideInfo = game?.sideInfo || {};
+  if (!sideInfo.leftSide || !sideInfo.rightSide) {
+    return "n/a";
+  }
+
+  return `${match.teams.left.name} ${String(sideInfo.leftSide).toUpperCase()} · ${match.teams.right.name} ${String(sideInfo.rightSide).toUpperCase()}`;
+}
+
+function renderSeriesComparison(match, apiBase) {
+  const games = Array.isArray(match.seriesGames) ? match.seriesGames : [];
+  if (!games.length) {
+    elements.seriesCompareWrap.innerHTML = `<div class="empty">Series comparison appears once game breakdown is available.</div>`;
+    return;
+  }
+
+  const completedGames = games.filter((game) => game.state === "completed");
+  const durations = completedGames
+    .map((game) => Number(game.durationMinutes))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const leftWins = completedGames.filter((game) => game.winnerTeamId === match.teams.left.id).length;
+  const rightWins = completedGames.filter((game) => game.winnerTeamId === match.teams.right.id).length;
+  const avgDuration = durations.length
+    ? durationLabelFromMinutes(durations.reduce((sum, value) => sum + value, 0) / durations.length)
+    : "n/a";
+  const fastest = durations.length ? durationLabelFromMinutes(Math.min(...durations)) : "n/a";
+  const slowest = durations.length ? durationLabelFromMinutes(Math.max(...durations)) : "n/a";
+
+  const summaryCards = [
+    { label: "Completed Maps", value: String(completedGames.length) },
+    { label: `${match.teams.left.name} Wins`, value: String(leftWins) },
+    { label: `${match.teams.right.name} Wins`, value: String(rightWins) },
+    { label: "Avg Map Length", value: avgDuration },
+    { label: "Fastest Map", value: fastest },
+    { label: "Slowest Map", value: slowest }
+  ];
+
+  const rows = games
+    .map((game) => {
+      const openHref = detailUrlForGame(match.id, apiBase, game.number);
+      const winner = resolveSeriesGameWinnerName(game, match);
+      const winnerText =
+        winner ||
+        (game.state === "inProgress"
+          ? "Live"
+          : game.state === "unneeded"
+            ? "Not played"
+            : "TBD");
+      const durationText = durationLabelFromMinutes(game.durationMinutes);
+      const sideText = sideSummaryFromSeriesGame(game, match);
+      const watchLink = game.watchUrl
+        ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>`
+        : `<span class="meta-text">n/a</span>`;
+      const openText = game.selected
+        ? `<span class="meta-text strong">Focused</span>`
+        : `<a class="table-link" href="${openHref}">Open</a>`;
+
+      return `
+        <tr>
+          <td>Game ${game.number}</td>
+          <td><span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span></td>
+          <td>${winnerText}</td>
+          <td>${durationText}</td>
+          <td>${sideText}</td>
+          <td>${watchLink}</td>
+          <td>${openText}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  elements.seriesCompareWrap.innerHTML = `
+    <div class="series-compare-summary">
+      ${summaryCards
+        .map(
+          (card) => `
+            <article class="series-compare-card">
+              <p class="tempo-label">${card.label}</p>
+              <p class="tempo-value">${card.value}</p>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+    <div class="lane-table-wrap">
+      <table class="lane-table series-compare-table">
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>State</th>
+            <th>Winner</th>
+            <th>Duration</th>
+            <th>Sides</th>
+            <th>VOD</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function selectedGameWinnerName(match, selectedSeriesGame, selectedGame) {
+  if (selectedSeriesGame?.winnerTeamId === match.teams.left.id) {
+    return match.teams.left.name;
+  }
+
+  if (selectedSeriesGame?.winnerTeamId === match.teams.right.id) {
+    return match.teams.right.name;
+  }
+
+  if (selectedGame?.state !== "completed") {
+    return selectedGame?.state === "inProgress" ? "Live" : "TBD";
+  }
+
+  const leftKills = Number(selectedGame?.snapshot?.left?.kills);
+  const rightKills = Number(selectedGame?.snapshot?.right?.kills);
+  if (Number.isFinite(leftKills) && Number.isFinite(rightKills)) {
+    if (leftKills > rightKills) return match.teams.left.name;
+    if (rightKills > leftKills) return match.teams.right.name;
+  }
+
+  return "TBD";
+}
+
+function selectedGameEstimatedStart(match, gameNumber) {
+  const projections = Array.isArray(match?.seriesProjection?.games) ? match.seriesProjection.games : [];
+  const found = projections.find((row) => Number(row.number) === Number(gameNumber));
+  return found?.estimatedStartAt || null;
+}
+
+function recapCard(label, value, note = null) {
+  return `
+    <article class="recap-card">
+      <p class="tempo-label">${label}</p>
+      <p class="tempo-value">${value}</p>
+      ${note ? `<p class="meta-text">${note}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderSelectedGameRecap(match) {
+  const selectedGame = match.selectedGame;
+  if (!selectedGame) {
+    elements.selectedGameRecapWrap.innerHTML = `<div class="empty">Select a game to load map-level recap.</div>`;
+    return;
+  }
+
+  const selectedSeriesGame = (Array.isArray(match.seriesGames) ? match.seriesGames : []).find((game) => game.selected) || null;
+  const winnerName = selectedGameWinnerName(match, selectedSeriesGame, selectedGame);
+  const duration = durationLabelFromMinutes(selectedSeriesGame?.durationMinutes);
+  const sideSummary = Array.isArray(selectedGame.sideSummary) ? selectedGame.sideSummary : [];
+  const cards = [
+    recapCard("Map", `Game ${selectedGame.number}`),
+    recapCard("State", stateLabel(selectedGame.state)),
+    recapCard("Winner", winnerName || "TBD"),
+    recapCard("Duration", duration),
+    recapCard("Telemetry", String(selectedGame.telemetryStatus || "none").toUpperCase())
+  ];
+
+  if (selectedGame.state === "unstarted") {
+    const estimatedStart = selectedGameEstimatedStart(match, selectedGame.number);
+    if (estimatedStart) {
+      cards.push(recapCard("Estimated Start", dateTimeLabel(estimatedStart)));
+    }
+
+    elements.selectedGameRecapWrap.innerHTML = `
+      <div class="recap-grid">${cards.join("")}</div>
+      <article class="recap-note">
+        <p class="meta-text">${sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available yet."}</p>
+      </article>
+    `;
+    return;
+  }
+
+  const snapshot = selectedGame.snapshot || {};
+  const left = snapshot.left || {};
+  const right = snapshot.right || {};
+  const killDiff = Number(left.kills || 0) - Number(right.kills || 0);
+  const towerDiff = Number(left.towers || 0) - Number(right.towers || 0);
+  const dragonDiff = Number(left.dragons || 0) - Number(right.dragons || 0);
+  const baronDiff = Number(left.barons || 0) - Number(right.barons || 0);
+  const inhibDiff = Number(left.inhibitors || 0) - Number(right.inhibitors || 0);
+  const leftGold = Number(left.gold);
+  const rightGold = Number(right.gold);
+  const hasGold = Number.isFinite(leftGold) && Number.isFinite(rightGold);
+  const goldDiff = hasGold ? leftGold - rightGold : null;
+
+  cards.push(recapCard("Kills", `${left.kills ?? 0} : ${right.kills ?? 0}`, `Diff ${signed(killDiff)}`));
+  cards.push(recapCard("Towers", `${left.towers ?? 0} : ${right.towers ?? 0}`, `Diff ${signed(towerDiff)}`));
+  cards.push(recapCard("Dragons", `${left.dragons ?? 0} : ${right.dragons ?? 0}`, `Diff ${signed(dragonDiff)}`));
+  cards.push(recapCard("Barons", `${left.barons ?? 0} : ${right.barons ?? 0}`, `Diff ${signed(baronDiff)}`));
+  cards.push(recapCard("Inhibitors", `${left.inhibitors ?? 0} : ${right.inhibitors ?? 0}`, `Diff ${signed(inhibDiff)}`));
+  cards.push(recapCard("Gold", hasGold ? `${formatNumber(leftGold)} : ${formatNumber(rightGold)}` : "n/a", hasGold ? `Diff ${signed(Math.round(goldDiff))}` : "No gold totals"));
+
+  const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, 3) : [];
+  const performerText = topRows.length
+    ? topRows.map((player) => `${player.name} (${player.kills}/${player.deaths}/${player.assists})`).join(" · ")
+    : "No top performer snapshot for this map.";
+  const tips = Array.isArray(selectedGame.tips) ? selectedGame.tips : [];
+
+  elements.selectedGameRecapWrap.innerHTML = `
+    <div class="recap-grid">${cards.join("")}</div>
+    <article class="recap-note">
+      <p class="meta-text">${sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available."}</p>
+      <p class="meta-text">${performerText}</p>
+      ${tips.length ? `<p class="meta-text">${tips.join(" · ")}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderDraftDelta(match) {
+  const delta = match.draftDelta;
+  if (!delta || !Array.isArray(delta.rows) || !delta.rows.length) {
+    elements.draftDeltaWrap.innerHTML = `<div class="empty">Draft delta appears when at least two completed drafts are available.</div>`;
+    return;
+  }
+
+  const leftName = match.teams.left.name;
+  const rightName = match.teams.right.name;
+  const rows = delta.rows
+    .map((row) => {
+      const leftChange = row.leftChanged ? "changed" : "same";
+      const rightChange = row.rightChanged ? "changed" : "same";
+      return `
+        <tr>
+          <td>${String(row.role || "flex").toUpperCase()}</td>
+          <td>${row.leftReferenceChampion || "n/a"} → ${row.leftSelectedChampion || "n/a"}</td>
+          <td class="${row.leftChanged ? "win-left" : "even"}">${leftChange}</td>
+          <td>${row.rightReferenceChampion || "n/a"} → ${row.rightSelectedChampion || "n/a"}</td>
+          <td class="${row.rightChanged ? "win-right" : "even"}">${rightChange}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  elements.draftDeltaWrap.innerHTML = `
+    <article class="draft-delta-summary">
+      <p class="meta-text">Game ${delta.selectedGameNumber} vs Game ${delta.referenceGameNumber}</p>
+      <p class="meta-text">${leftName} changes: ${delta.leftChanges} · ${rightName} changes: ${delta.rightChanges} · Total: ${delta.totalChanges}</p>
+    </article>
+    <div class="lane-table-wrap">
+      <table class="lane-table draft-delta-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>${leftName}</th>
+            <th>${leftName} Change</th>
+            <th>${rightName}</th>
+            <th>${rightName} Change</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function trendSparkline(points = []) {
+  const values = points
+    .map((point) => Number(point?.gpm))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  if (values.length < 2) {
+    return `<span class="meta-text">Need 2+ maps</span>`;
+  }
+
+  const pointsValue = sparklinePoints(values);
+  return `
+    <svg viewBox="0 0 100 32" preserveAspectRatio="none" class="trend-mini" aria-label="Player trend sparkline">
+      <polyline points="${pointsValue}" class="trend-mini-line"></polyline>
+    </svg>
+  `;
+}
+
+function renderSeriesPlayerTrends(match) {
+  const rows = Array.isArray(match.seriesPlayerTrends) ? match.seriesPlayerTrends : [];
+  if (!rows.length) {
+    elements.seriesPlayerTrendsWrap.innerHTML = `<div class="empty">Cross-map player trends appear when multiple map snapshots are available.</div>`;
+    return;
+  }
+
+  const topRows = rows.slice(0, 16);
+  const tableRows = topRows
+    .map((row) => {
+      const teamName = row.team === "right" ? match.teams.right.name : match.teams.left.name;
+      const winRate = Number.isFinite(row.winRatePct) ? `${row.winRatePct.toFixed(1)}%` : "n/a";
+      const kda = Number.isFinite(row.avgKda) ? row.avgKda.toFixed(2) : "n/a";
+      const avgGold = Number.isFinite(row.avgGold) ? formatNumber(Math.round(row.avgGold)) : "n/a";
+      const avgGpm = Number.isFinite(row.avgGpm) ? formatNumber(Math.round(row.avgGpm)) : "n/a";
+      const avgKp = Number.isFinite(row.avgKillParticipationPct) ? `${row.avgKillParticipationPct.toFixed(1)}%` : "n/a";
+      const champions = Array.isArray(row.champions) ? row.champions.slice(0, 3).join(", ") : "n/a";
+
+      return `
+        <tr>
+          <td>${row.name}</td>
+          <td>${teamName}</td>
+          <td>${String(row.role || "flex").toUpperCase()}</td>
+          <td>${row.mapsPlayed}</td>
+          <td>${row.mapWins}</td>
+          <td>${winRate}</td>
+          <td>${kda}</td>
+          <td>${avgKp}</td>
+          <td>${avgGold}</td>
+          <td>${avgGpm}</td>
+          <td>${champions}</td>
+          <td>${trendSparkline(row.mapPoints || [])}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  elements.seriesPlayerTrendsWrap.innerHTML = `
+    <div class="lane-table-wrap">
+      <table class="lane-table trends-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Team</th>
+            <th>Role</th>
+            <th>Maps</th>
+            <th>Wins</th>
+            <th>Win%</th>
+            <th>Avg KDA</th>
+            <th>Avg KP</th>
+            <th>Avg Gold</th>
+            <th>Avg GPM</th>
+            <th>Champions</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPreMatchPlanner(match) {
+  if (match.status !== "upcoming") {
+    elements.preMatchPlanner.innerHTML = `<div class="empty">Pre-match planner appears only for upcoming series.</div>`;
+    return;
+  }
+
+  const games = Array.isArray(match?.seriesProjection?.games) ? match.seriesProjection.games : [];
+  if (!games.length) {
+    elements.preMatchPlanner.innerHTML = `<div class="empty">No schedule projection available.</div>`;
+    return;
+  }
+
+  const rows = games
+    .map((row) => `<li><span>Game ${row.number}</span><span>${dateTimeLabel(row.estimatedStartAt)}</span></li>`)
+    .join("");
+
+  elements.preMatchPlanner.innerHTML = `
+    <ul class="planner-rows">${rows}</ul>
+    <p class="meta-text">Estimate uses ~45 minute games with ~8 minute breaks.</p>
+  `;
+}
+
+function teamNameBySide(match, side) {
+  if (side === "right") return match.teams.right.name;
+  return match.teams.left.name;
+}
+
+function renderTopPerformers(match) {
+  const rows = Array.isArray(match.topPerformers) ? match.topPerformers : [];
+  if (!rows.length) {
+    elements.performersWrap.innerHTML = `<div class="empty">No player performance snapshot yet.</div>`;
+    return;
+  }
+
+  elements.performersWrap.innerHTML = rows
+    .map(
+      (player) => `
+      <article class="performer-row">
+        <p class="performer-name">${player.name} · ${player.champion || "Unknown"}</p>
+        <p class="meta-text">${teamNameBySide(match, player.team)} · ${String(player.role || "flex").toUpperCase()}</p>
+        <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · CS ${player.cs} · Gold ${formatNumber(player.goldEarned)}</p>
+        <p class="meta-text">KP ${typeof player.killParticipationPct === "number" ? `${player.killParticipationPct.toFixed(1)}%` : "n/a"} · Score ${typeof player.impactScore === "number" ? player.impactScore.toFixed(1) : "n/a"}</p>
+      </article>
+    `
+    )
+    .join("");
+}
+
+function renderLiveTicker(rows, status) {
+  if (!rows.length) {
+    elements.liveTickerList.innerHTML =
+      status === "live"
+        ? "<li>Waiting for ticker events from live frames...</li>"
+        : "<li>Live ticker appears during active games.</li>";
+    return;
+  }
+
+  elements.liveTickerList.innerHTML = rows
+    .map(
+      (row) => `
+      <li>
+        <div class="moment-head">
+          <strong>${row.title}</strong>
+          <span class="importance">${row.importance || row.type || "info"}</span>
+        </div>
+        <p class="meta-text">${row.summary || "Live-derived update."}</p>
+        <p class="meta-text">${dateTimeLabel(row.occurredAt)}</p>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function renderCombatBursts(rows, match) {
+  if (!rows.length) {
+    elements.combatBurstsList.innerHTML =
+      match.status === "live"
+        ? "<li>Waiting for combat burst windows from kill deltas...</li>"
+        : "<li>Combat bursts appear when multi-kill windows are detected.</li>";
+    return;
+  }
+
+  elements.combatBurstsList.innerHTML = rows
+    .map(
+      (row) => `
+      <li>
+        <div class="moment-head">
+          <strong>${row.title || "Combat burst"}</strong>
+          <span class="importance">${String(row.importance || "medium").toUpperCase()}</span>
+        </div>
+        <p class="meta-text">${row.summary || "Burst event from kill deltas."}</p>
+        <p class="meta-text">${dateTimeLabel(row.occurredAt)}${row.winnerTeamName ? ` · Winner: ${row.winnerTeamName}` : ""}</p>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function renderGoldMilestones(rows, match) {
+  if (!rows.length) {
+    elements.goldMilestonesList.innerHTML =
+      match.status === "live"
+        ? "<li>Gold milestones appear as team economy thresholds are crossed.</li>"
+        : "<li>No gold milestone telemetry for this game.</li>";
+    return;
+  }
+
+  elements.goldMilestonesList.innerHTML = rows
+    .map(
+      (row) => `
+      <li>
+        <div class="moment-head">
+          <strong>${row.title || "Gold milestone"}</strong>
+          <span class="importance">${String(row.importance || "medium").toUpperCase()}</span>
+        </div>
+        <p class="meta-text">${row.summary || "Team crossed a major gold threshold."}</p>
+        <p class="meta-text">${dateTimeLabel(row.occurredAt)}${row.teamName ? ` · ${row.teamName}` : ""}</p>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function buildLiveAlerts(match) {
+  const alerts = [];
+  const selected = match.selectedGame;
+  const leftName = match.teams?.left?.name || "Left Team";
+  const rightName = match.teams?.right?.name || "Right Team";
+  const leftSnapshot = selected?.snapshot?.left || {};
+  const rightSnapshot = selected?.snapshot?.right || {};
+  const leftGold = Number(leftSnapshot.gold || 0);
+  const rightGold = Number(rightSnapshot.gold || 0);
+  const goldDiff = leftGold - rightGold;
+
+  if (Math.abs(goldDiff) >= 5000) {
+    alerts.push({
+      id: "gold-gap",
+      importance: "high",
+      title: "Large Gold Gap",
+      summary: `${goldDiff > 0 ? leftName : rightName} leads by ${formatNumber(Math.abs(goldDiff))} gold.`
+    });
+  }
+
+  const towerDiff = Number(leftSnapshot.towers || 0) - Number(rightSnapshot.towers || 0);
+  if (Math.abs(towerDiff) >= 4) {
+    alerts.push({
+      id: "tower-gap",
+      importance: "high",
+      title: "Tower Pressure",
+      summary: `${towerDiff > 0 ? leftName : rightName} is up ${Math.abs(towerDiff)} towers.`
+    });
+  }
+
+  const objectiveDelta = (Number(leftSnapshot.dragons || 0) + Number(leftSnapshot.barons || 0)) -
+    (Number(rightSnapshot.dragons || 0) + Number(rightSnapshot.barons || 0));
+  if (Math.abs(objectiveDelta) >= 2) {
+    alerts.push({
+      id: "objective-gap",
+      importance: "medium",
+      title: "Objective Advantage",
+      summary: `${objectiveDelta > 0 ? leftName : rightName} has objective control momentum.`
+    });
+  }
+
+  const recentBursts = Array.isArray(match.combatBursts) ? match.combatBursts.slice(0, 3) : [];
+  if (recentBursts.some((row) => Number(row.totalKills || 0) >= 4)) {
+    alerts.push({
+      id: "burst-risk",
+      importance: "critical",
+      title: "High Volatility Fight Windows",
+      summary: "Recent 4+ kill bursts detected. Fight outcomes may flip map pressure rapidly."
+    });
+  }
+
+  if (!alerts.length) {
+    alerts.push({
+      id: "stable",
+      importance: "low",
+      title: "Stable State",
+      summary: "No major pressure alerts right now. Track next objective spawn and side setup."
+    });
+  }
+
+  return alerts.slice(0, 5);
+}
+
+function renderLiveAlerts(match) {
+  const alerts = buildLiveAlerts(match);
+  elements.liveAlertsList.innerHTML = alerts
+    .map(
+      (alert) => `
+      <li>
+        <div class="moment-head">
+          <strong>${alert.title}</strong>
+          <span class="importance">${String(alert.importance || "low").toUpperCase()}</span>
+        </div>
+        <p class="meta-text">${alert.summary}</p>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function renderObjectiveTimeline(rows, status) {
+  if (!rows.length) {
+    elements.objectiveTimelineList.innerHTML =
+      status === "live"
+        ? "<li>No objective changes in this frame window yet.</li>"
+        : "<li>Objective timeline appears during active games.</li>";
+    return;
+  }
+
+  elements.objectiveTimelineList.innerHTML = rows
+    .map((row) => `<li><span>${dateTimeLabel(row.at)}</span><span>${row.label}</span></li>`)
+    .join("");
+}
+
+function etaLabel(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+
+  if (value <= 0) {
+    return "Now";
+  }
+
+  return shortDuration(value);
+}
+
+function renderObjectiveForecast(match) {
+  const rows = Array.isArray(match.objectiveForecast) ? match.objectiveForecast : [];
+  const selectedState = match?.selectedGame?.state;
+  if (!rows.length) {
+    if (match.status === "live" && selectedState === "inProgress") {
+      elements.objectiveForecastWrap.innerHTML = `<div class="empty">Forecast appears once objective cadence is detected.</div>`;
+    } else if (selectedState === "completed") {
+      elements.objectiveForecastWrap.innerHTML = `<div class="empty">Map is complete. No upcoming objective windows.</div>`;
+    } else {
+      elements.objectiveForecastWrap.innerHTML = `<div class="empty">Objective forecast is available for live maps.</div>`;
+    }
+    return;
+  }
+
+  elements.objectiveForecastWrap.innerHTML = rows
+    .map(
+      (row) => `
+      <article class="forecast-card ${row.state === "available" ? "available" : "countdown"}">
+        <p class="forecast-title">${row.label || "Objective Window"}</p>
+        <p class="forecast-eta">${etaLabel(row.etaSeconds)}</p>
+        <p class="meta-text">Expected ${dateTimeLabel(row.nextAt)}</p>
+        ${row.note ? `<p class="meta-text">${row.note}</p>` : ""}
+        <p class="meta-text">Confidence: ${String(row.confidence || "estimated").toUpperCase()}</p>
+      </article>
+    `
+    )
+    .join("");
+}
+
+function roleDiffClass(diff) {
+  const value = Number(diff);
+  if (!Number.isFinite(value) || value === 0) return "even";
+  return value > 0 ? "win-left" : "win-right";
+}
+
+function roleTrendSparkline(trend = []) {
+  const values = trend
+    .map((row) => Number(row?.diff))
+    .filter((value) => Number.isFinite(value));
+  if (values.length < 2) {
+    return `<span class="meta-text">n/a</span>`;
+  }
+
+  const points = sparklinePoints(values);
+  return `
+    <svg viewBox="0 0 100 32" preserveAspectRatio="none" class="trend-mini" aria-label="Role trend sparkline">
+      <polyline points="${points}" class="trend-mini-line"></polyline>
+    </svg>
+  `;
+}
+
+function renderRoleMatchupDeltas(match) {
+  const rows = Array.isArray(match.roleMatchupDeltas) ? match.roleMatchupDeltas : [];
+  if (!rows.length) {
+    elements.roleDeltaWrap.innerHTML = `<div class="empty">Role deltas appear when multiple game economies are available.</div>`;
+    return;
+  }
+
+  const renderedRows = rows
+    .map((row) => {
+      const selectedDiff = Number.isFinite(row.selectedDiff) ? signed(Math.round(row.selectedDiff)) : "n/a";
+      const avgDiff = Number.isFinite(row.avgDiff) ? signed(Math.round(row.avgDiff)) : "n/a";
+      const leadConversion = Number.isFinite(row.leadConversionPct) ? `${row.leadConversionPct.toFixed(1)}%` : "n/a";
+      const selectedClass = roleDiffClass(row.selectedDiff);
+      const avgClass = roleDiffClass(row.avgDiff);
+      return `
+        <tr>
+          <td>${String(row.role || "flex").toUpperCase()}</td>
+          <td class="${selectedClass}">${selectedDiff}</td>
+          <td class="${avgClass}">${avgDiff}</td>
+          <td>${leadConversion}</td>
+          <td>${row.leftLeadMaps ?? 0}</td>
+          <td>${row.rightLeadMaps ?? 0}</td>
+          <td>${row.evenMaps ?? 0}</td>
+          <td>${roleTrendSparkline(row.trend || [])}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  elements.roleDeltaWrap.innerHTML = `
+    <div class="lane-table-wrap">
+      <table class="lane-table role-delta-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Selected Diff</th>
+            <th>Avg Diff</th>
+            <th>Lead Conversion</th>
+            <th>${match.teams.left.name} Lead Maps</th>
+            <th>${match.teams.right.name} Lead Maps</th>
+            <th>Even Maps</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>${renderedRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function kdaLabel(now) {
+  return `${now.kills}/${now.deaths}/${now.assists}`;
+}
+
+function renderPlayerDeltaPanel(panel, match) {
+  if (!panel || !Array.isArray(panel.players) || !panel.players.length) {
+    elements.deltaWindowText.textContent =
+      match.status === "live" ? "Collecting enough frames for deltas..." : "Recent deltas unavailable.";
+    elements.playerDeltaWrap.innerHTML = `<div class="empty">No recent player deltas available.</div>`;
+    return;
+  }
+
+  const windowSeconds = Number(panel.windowSeconds || 0);
+  const windowLabel = windowSeconds < 60 ? `${windowSeconds}s` : shortDuration(windowSeconds);
+  elements.deltaWindowText.textContent = `Last ${windowLabel} · Updated ${dateTimeLabel(panel.updatedAt)}`;
+
+  const leftPlayers = panel.players.filter((player) => player.team === "left");
+  const rightPlayers = panel.players.filter((player) => player.team === "right");
+
+  const renderTeam = (title, rows) => `
+    <section class="delta-team">
+      <h3>${title}</h3>
+      ${rows.length
+        ? rows
+            .map(
+              (player) => `
+                <article class="delta-player">
+                  <p class="delta-name">${player.name}</p>
+                  <p class="delta-sub">${String(player.role || "flex").toUpperCase()} · ${player.champion || "Unknown"}</p>
+                  <p class="delta-now">Now: KDA ${kdaLabel(player.now)} · L${player.now.level} · CS ${player.now.cs}</p>
+                  <p class="delta-now">Gold ${formatNumber(player.now.goldEarned)} · Items ${player.now.itemCount}</p>
+                  <p class="delta-shift">
+                    Δ K ${signed(player.delta.kills)} · D ${signed(player.delta.deaths)} · A ${signed(player.delta.assists)} ·
+                    CS ${signed(player.delta.cs)} · Gold ${signed(player.delta.goldEarned)} · Lvl ${signed(player.delta.level)} · Items ${signed(player.delta.itemCount)}
+                  </p>
+                </article>
+              `
+            )
+            .join("")
+        : `<div class="empty">No player deltas.</div>`}
+    </section>
+  `;
+
+  elements.playerDeltaWrap.innerHTML = `
+    ${renderTeam(match.teams.left.name, leftPlayers)}
+    ${renderTeam(match.teams.right.name, rightPlayers)}
+  `;
+}
+
+function renderMoments(rows) {
+  if (!rows.length) {
+    elements.momentsList.innerHTML = "<li>No key moments yet.</li>";
+    return;
+  }
+
+  elements.momentsList.innerHTML = rows
+    .map(
+      (moment) => `
+      <li>
+        <div class="moment-head">
+          <strong>${moment.title}</strong>
+          <span class="importance">${moment.importance}</span>
+        </div>
+        <p class="meta-text">${moment.summary}</p>
+        <p class="meta-text">${dateTimeLabel(moment.occurredAt)}</p>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function renderSeriesMoments(rows) {
+  if (!rows.length) {
+    elements.seriesMomentsList.innerHTML = "<li>No series-wide moments yet.</li>";
+    return;
+  }
+
+  elements.seriesMomentsList.innerHTML = rows
+    .map(
+      (moment) => `
+      <li>
+        <div class="moment-head">
+          <strong>${moment.gameNumber ? `Game ${moment.gameNumber} · ` : ""}${moment.title}</strong>
+          <span class="importance">${moment.importance || "info"}</span>
+        </div>
+        <p class="meta-text">${moment.summary || "Series moment."}</p>
+        <p class="meta-text">${dateTimeLabel(moment.occurredAt)}</p>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function renderTimeline(rows) {
+  if (!rows.length) {
+    elements.timelineList.innerHTML = "<li>No timeline events yet.</li>";
+    return;
+  }
+
+  elements.timelineList.innerHTML = rows
+    .map((row) => {
+      const label = row.watchUrl
+        ? `<a class="table-link" href="${row.watchUrl}" target="_blank" rel="noreferrer">${row.label}</a>`
+        : row.label;
+      return `<li><span>${dateTimeLabel(row.at)}</span><span>${label}</span></li>`;
+    })
+    .join("");
+}
+
+function applyNavigationLinks(apiBase) {
+  const backUrl = new URL("./index.html", window.location.href);
+  backUrl.searchParams.set("api", apiBase);
+  elements.backLink.href = backUrl.toString();
+  elements.liveDeskNav.href = backUrl.toString();
+
+  const scheduleUrl = new URL("./schedule.html", window.location.href);
+  scheduleUrl.searchParams.set("api", apiBase);
+  elements.scheduleNav.href = scheduleUrl.toString();
+
+  const followsUrl = new URL("./follows.html", window.location.href);
+  followsUrl.searchParams.set("api", apiBase);
+  elements.followsNav.href = followsUrl.toString();
+}
+
+async function fetchMatchSnapshot({ matchId, requestedGameNumber, apiBase }) {
+  const detailUrl = new URL(`/v1/matches/${encodeURIComponent(matchId)}`, apiBase);
+  if (Number.isInteger(requestedGameNumber)) {
+    detailUrl.searchParams.set("game", String(requestedGameNumber));
+  }
+
+  const response = await fetch(detailUrl.toString());
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || "API request failed.");
+  }
+
+  return payload.data;
+}
+
+function renderMatchPayload(match, apiBase, source = "polling") {
+  if (uiState.match?.id && uiState.match.id !== match.id) {
+    uiState.leadTrendScaleByContext = {};
+  }
+
+  uiState.match = match;
+  uiState.stream.lastSnapshotAt = Date.now();
+  const focus = resolveMatchFocus(match);
+  uiState.viewMode = focus.viewMode;
+  uiState.activeGameNumber = focus.activeGameNumber;
+
+  if (source === "sse") {
+    uiState.stream.source = "sse";
+    uiState.stream.connected = true;
+  } else if (!uiState.stream.eventSource) {
+    uiState.stream.source = "polling";
+    uiState.stream.connected = false;
+  }
+
+  const focusedLabel = Number.isInteger(uiState.activeGameNumber) && uiState.viewMode === "game"
+    ? ` · Game ${uiState.activeGameNumber}`
+    : "";
+  elements.matchTitle.textContent = `${match.teams.left.name} vs ${match.teams.right.name} · ${match.tournament}${focusedLabel}`;
+  elements.freshnessText.textContent = `Source: ${match.freshness.source} · ${match.freshness.status} · Updated ${dateTimeLabel(match.freshness.updatedAt)}`;
+  document.title = `${match.teams.left.name} vs ${match.teams.right.name}${focusedLabel} | Pulseboard`;
+
+  renderScoreboard(match);
+  renderStreamStatus(match);
+  renderSeriesHeader(match);
+  renderGameExplorer(match, apiBase);
+  renderStatusSummary(match);
+  renderMatchupConsole(match);
+  renderSeriesLineups(match);
+  ensureMatchupData(match, apiBase);
+  renderUpcomingEssentials(match);
+  renderUpcomingWatchGuide(match);
+  renderUpcomingForm(match);
+  renderUpcomingHeadToHead(match);
+  renderUpcomingPrediction(match);
+  renderGameCommandCenter(match);
+  renderTeamComparison(match);
+  renderPlayerTracker(match);
+  renderUnifiedLiveFeed(match);
+  renderLiveAlerts(match);
+  renderDataConfidence(match);
+  renderPulseCard(match);
+  renderEdgeMeter(match);
+  renderTempoSnapshot(match);
+  renderTacticalChecklist(match);
+  renderStorylines(match);
+  renderSeriesProgress(match);
+  renderSeriesMoments(match.seriesMoments || []);
+  renderLeadTrend(match);
+  renderObjectiveControl(match);
+  renderObjectiveBreakdown(match);
+  renderDraftBoard(match);
+  renderDraftDelta(match);
+  renderEconomyBoard(match);
+  renderLaneMatchups(match);
+  renderRoleMatchupDeltas(match);
+  renderObjectiveRuns(match);
+  renderSeriesGames(match, apiBase);
+  renderSeriesComparison(match, apiBase);
+  renderSeriesPlayerTrends(match);
+  renderSelectedGameRecap(match);
+  renderPreMatchPlanner(match);
+  renderTopPerformers(match);
+  renderLiveTicker(match.liveTicker || [], match.status);
+  renderCombatBursts(match.combatBursts || [], match);
+  renderGoldMilestones(match.goldMilestones || [], match);
+  renderObjectiveTimeline(match.objectiveTimeline || [], match.status);
+  renderObjectiveForecast(match);
+  renderPlayerDeltaPanel(match.playerDeltaPanel, match);
+  renderMoments(match.keyMoments || []);
+  renderTimeline(match.timeline || []);
+  applyGamePanelVisibility(match);
+  applySeriesPanelVisibility();
+  applyUpcomingPanelVisibility(match);
+
+  if (uiState.stream.connected) {
+    clearRefreshTimer();
+  } else {
+    scheduleRefresh(match.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
+  }
+}
+
+function startMatchStream({ matchId, requestedGameNumber, apiBase }) {
+  if (typeof window.EventSource !== "function") {
+    uiState.stream.source = "polling";
+    uiState.stream.connected = false;
+    renderStreamStatus(uiState.match);
+    return false;
+  }
+
+  const key = streamKeyForMatch({
+    matchId,
+    apiBase,
+    gameNumber: requestedGameNumber
+  });
+  if (uiState.stream.key === key && uiState.stream.eventSource) {
+    return true;
+  }
+
+  closeMatchStream();
+  uiState.stream.key = key;
+  uiState.stream.source = "sse";
+  uiState.stream.connected = false;
+  renderStreamStatus(uiState.match);
+
+  const streamUrl = new URL(`/v1/stream/matches/${encodeURIComponent(matchId)}`, apiBase);
+  if (Number.isInteger(requestedGameNumber)) {
+    streamUrl.searchParams.set("game", String(requestedGameNumber));
+  }
+
+  const source = new EventSource(streamUrl.toString());
+  uiState.stream.eventSource = source;
+
+  source.addEventListener("open", () => {
+    if (uiState.stream.eventSource !== source) {
+      return;
+    }
+
+    uiState.stream.connected = true;
+    uiState.stream.reconnectAttempt = 0;
+    uiState.stream.lastErrorAt = null;
+    clearRefreshTimer();
+    renderStreamStatus(uiState.match);
+  });
+
+  source.addEventListener("match", (event) => {
+    if (uiState.stream.eventSource !== source) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload?.data) {
+        renderMatchPayload(payload.data, apiBase, "sse");
+      }
+    } catch {
+      // Ignore malformed stream packet and wait for next event.
+    }
+  });
+
+  source.addEventListener("notice", (event) => {
+    if (uiState.stream.eventSource !== source) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload?.code === "not_found") {
+        elements.matchTitle.textContent = `Error loading match: ${payload.message}`;
+      }
+    } catch {
+      // Keep stream alive even if notice payload parse fails.
+    }
+  });
+
+  source.onerror = () => {
+    if (uiState.stream.eventSource !== source) {
+      return;
+    }
+
+    source.close();
+    uiState.stream.eventSource = null;
+    uiState.stream.connected = false;
+    uiState.stream.lastErrorAt = Date.now();
+    uiState.stream.reconnectAttempt += 1;
+    renderStreamStatus(uiState.match);
+
+    scheduleRefresh(8);
+    if (!uiState.stream.reconnectTimer) {
+      const delayMs = Math.min(12000, 3000 + uiState.stream.reconnectAttempt * 1000);
+      uiState.stream.reconnectTimer = setTimeout(() => {
+        uiState.stream.reconnectTimer = null;
+        startMatchStream({ matchId, requestedGameNumber, apiBase });
+      }, delayMs);
+    }
+  };
+
+  return true;
+}
+
+async function loadMatch() {
+  const url = new URL(window.location.href);
+  const matchId = url.searchParams.get("id");
+  const requestedGameNumber = parseRequestedGameNumber(url.searchParams.get("game"));
+  const requestedH2hLimit = normalizeMatchupLimit(url.searchParams.get("h2h_limit"));
+  const apiBase = normalizeApiBase(url.searchParams.get("api") || localStorage.getItem("pulseboard.apiBase") || DEFAULT_API_BASE);
+  const streamEnabled = url.searchParams.get("stream") !== "0";
+
+  uiState.requestedGameNumber = requestedGameNumber;
+  uiState.requestedGameFallback = null;
+
+  if (requestedH2hLimit !== uiState.matchupH2hLimit) {
+    uiState.matchupH2hLimit = requestedH2hLimit;
+    resetMatchupState();
+  }
+
+  uiState.apiBase = apiBase;
+  localStorage.setItem("pulseboard.apiBase", apiBase);
+  if (elements.matchupH2hLimit) {
+    elements.matchupH2hLimit.value = String(uiState.matchupH2hLimit);
+  }
+  bindFeedControls();
+  applyNavigationLinks(apiBase);
+
+  if (!matchId) {
+    closeMatchStream();
+    uiState.stream.source = "polling";
+    uiState.stream.connected = false;
+    uiState.viewMode = "series";
+    uiState.activeGameNumber = null;
+    resetMatchupState();
+    elements.matchTitle.textContent = "Missing match id.";
+    renderStreamStatus(null);
+    renderMatchupConsole(null);
+    scheduleRefresh(DEFAULT_REFRESH_SECONDS);
+    return;
+  }
+
+  try {
+    let effectiveRequestedGameNumber = requestedGameNumber;
+    let match = null;
+    try {
+      match = await fetchMatchSnapshot({
+        matchId,
+        requestedGameNumber,
+        apiBase
+      });
+    } catch (primaryError) {
+      if (!Number.isInteger(requestedGameNumber)) {
+        throw primaryError;
+      }
+
+      match = await fetchMatchSnapshot({
+        matchId,
+        requestedGameNumber: null,
+        apiBase
+      });
+      effectiveRequestedGameNumber = null;
+      uiState.requestedGameFallback = requestedGameNumber;
+    }
+
+    uiState.requestedGameNumber = effectiveRequestedGameNumber;
+    renderMatchPayload(match, apiBase, "polling");
+
+    if (streamEnabled) {
+      startMatchStream({
+        matchId,
+        requestedGameNumber: effectiveRequestedGameNumber,
+        apiBase
+      });
+    } else {
+      closeMatchStream();
+      uiState.stream.source = "polling";
+      uiState.stream.connected = false;
+      uiState.stream.key = null;
+      renderStreamStatus(match);
+    }
+  } catch (error) {
+    uiState.match = null;
+    uiState.stream.lastErrorAt = Date.now();
+    uiState.viewMode = "series";
+    uiState.activeGameNumber = null;
+    resetMatchupState();
+    elements.matchTitle.textContent = `Error loading match: ${error.message}`;
+    renderStreamStatus(null);
+    renderMatchupConsole(null);
+    scheduleRefresh(DEFAULT_REFRESH_SECONDS);
+  }
+}
+
+window.addEventListener("beforeunload", () => {
+  closeMatchStream();
+  clearRespawnTicker();
+});
+
+loadMatch();

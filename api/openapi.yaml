@@ -1,0 +1,534 @@
+openapi: 3.1.0
+info:
+  title: Esports Live API
+  version: 0.2.0
+  description: |
+    Live esports API for LoL and Dota 2.
+    Supports live matches, schedules, results, follows, and notification preferences.
+servers:
+  - url: http://localhost:4000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service health
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service, timestamp]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /v1/live-matches:
+    get:
+      summary: List live and upcoming matches
+      parameters:
+        - $ref: "#/components/parameters/game"
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/dotaTiers"
+        - in: query
+          name: followed_only
+          schema:
+            type: boolean
+        - in: query
+          name: user_id
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Match collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/schedule:
+    get:
+      summary: List scheduled matches
+      parameters:
+        - $ref: "#/components/parameters/game"
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/dotaTiers"
+        - $ref: "#/components/parameters/dateFrom"
+        - $ref: "#/components/parameters/dateTo"
+      responses:
+        "200":
+          description: Scheduled matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/results:
+    get:
+      summary: List completed matches
+      parameters:
+        - $ref: "#/components/parameters/game"
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/dotaTiers"
+        - $ref: "#/components/parameters/dateFrom"
+        - $ref: "#/components/parameters/dateTo"
+      responses:
+        "200":
+          description: Completed matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/matches/{id}:
+    get:
+      summary: Match detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: game
+          description: Optional series game number to focus (1-9).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9
+      responses:
+        "200":
+          description: Match detail payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/MatchDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/teams/{id}:
+    get:
+      summary: Team profile with recent matches and form
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: game
+          schema:
+            type: string
+            enum: [lol, dota2]
+        - in: query
+          name: opponent_id
+          schema:
+            type: string
+        - in: query
+          name: limit
+          description: Number of recent matches to return (1-20).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+        - in: query
+          name: seed_match_id
+          description: Optional match id used to seed profile context when recent history is sparse.
+          schema:
+            type: string
+        - in: query
+          name: team_name
+          description: Optional team name hint used for display when provider data is missing a stable name.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Team profile payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/stream/matches/{id}:
+    get:
+      summary: Stream match detail updates (SSE)
+      description: |
+        Server-Sent Events stream of match detail snapshots.
+        Emits `match` events with `{ data, meta }`.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: game
+          description: Optional series game number to focus (1-9).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/follows:
+    get:
+      summary: List follows for user
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Follow list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Follow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      summary: Add follow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, entityType, entityId]
+              properties:
+                userId:
+                  type: string
+                entityType:
+                  type: string
+                entityId:
+                  type: string
+      responses:
+        "201":
+          description: Follow created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Follow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/follows/{id}:
+    delete:
+      summary: Delete follow
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Follow deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/notification-preferences:
+    get:
+      summary: Get notification preferences
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/NotificationPreferences"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    put:
+      summary: Update notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationPreferencesUpdate"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/NotificationPreferences"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+components:
+  parameters:
+    game:
+      in: query
+      name: game
+      schema:
+        type: string
+        enum: [lol, dota2]
+    region:
+      in: query
+      name: region
+      schema:
+        type: string
+    dateFrom:
+      in: query
+      name: date_from
+      schema:
+        type: string
+        format: date-time
+    dateTo:
+      in: query
+      name: date_to
+      schema:
+        type: string
+        format: date-time
+    dotaTiers:
+      in: query
+      name: dota_tiers
+      description: Comma-separated Dota tournament tiers to include, values 1-4.
+      schema:
+        type: string
+        example: "1,2,3,4"
+  schemas:
+    CollectionResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchSummary"
+        meta:
+          type: object
+          required: [count, generatedAt]
+          properties:
+            count:
+              type: integer
+            generatedAt:
+              type: string
+              format: date-time
+    MatchSummary:
+      type: object
+      required: [id, game, region, tournament, status, startAt, teams, seriesScore]
+      properties:
+        id:
+          type: string
+        game:
+          type: string
+        region:
+          type: string
+        tournament:
+          type: string
+        status:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        teams:
+          $ref: "#/components/schemas/TeamPair"
+        seriesScore:
+          $ref: "#/components/schemas/SeriesScore"
+        winnerTeamId:
+          type: string
+    MatchDetail:
+      type: object
+      required: [id, game, tournament, status, freshness, teams, seriesScore, keyMoments, timeline]
+      properties:
+        id:
+          type: string
+        game:
+          type: string
+        tournament:
+          type: string
+        patch:
+          type: string
+        status:
+          type: string
+        freshness:
+          type: object
+          required: [source, status, updatedAt]
+          properties:
+            source:
+              type: string
+            status:
+              type: string
+            updatedAt:
+              type: string
+              format: date-time
+        teams:
+          $ref: "#/components/schemas/TeamPair"
+        seriesScore:
+          $ref: "#/components/schemas/SeriesScore"
+        keyMoments:
+          type: array
+          items:
+            type: object
+        timeline:
+          type: array
+          items:
+            type: object
+    TeamPair:
+      type: object
+      required: [left, right]
+      properties:
+        left:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        right:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+    SeriesScore:
+      type: object
+      required: [left, right]
+      properties:
+        left:
+          type: integer
+        right:
+          type: integer
+    Follow:
+      type: object
+      required: [id, userId, entityType, entityId, createdAt]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    NotificationPreferences:
+      type: object
+      required: [userId, webPush, emailDigest, swingAlerts, matchStart, matchFinal, updatedAt]
+      properties:
+        userId:
+          type: string
+        webPush:
+          type: boolean
+        emailDigest:
+          type: boolean
+        swingAlerts:
+          type: boolean
+        matchStart:
+          type: boolean
+        matchFinal:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    NotificationPreferencesUpdate:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+        webPush:
+          type: boolean
+        emailDigest:
+          type: boolean
+        swingAlerts:
+          type: boolean
+        matchStart:
+          type: boolean
+        matchFinal:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

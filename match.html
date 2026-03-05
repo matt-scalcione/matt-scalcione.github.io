@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulseboard Match Detail</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <header class="hero compact">
+      <p class="kicker">Pulseboard</p>
+      <h1>Match Detail</h1>
+      <p class="subtitle" id="matchTitle">Loading match...</p>
+      <nav class="page-nav">
+        <a id="liveDeskNav" href="./index.html">Live Desk</a>
+        <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
+        <a id="followsNav" href="./follows.html">Follows & Alerts</a>
+      </nav>
+      <a id="backLink" href="./index.html" class="link-btn">Back to Live Desk</a>
+    </header>
+
+    <main class="layout detail">
+      <section class="panel">
+        <div class="section-head">
+          <h2>Current State</h2>
+          <p id="freshnessText" class="meta-text"></p>
+        </div>
+        <div id="scoreboard" class="scoreboard"></div>
+        <div id="streamStatusWrap" class="stream-status"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Overview</h2>
+          <p id="seriesHeaderSubhead" class="meta-text"></p>
+        </div>
+        <div id="seriesHeaderWrap" class="series-header"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Game Explorer</h2>
+          <p class="meta-text">Series tab = matchup context. Game tabs = map-specific live/final stats.</p>
+        </div>
+        <div id="gameNavWrap" class="game-nav"></div>
+        <div id="gameContextWrap" class="game-context"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Match Snapshot</h2>
+          <p class="meta-text">Status-aware context for this match.</p>
+        </div>
+        <div id="statusSummary" class="snapshot-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Matchup Console</h2>
+          <p id="matchupMetaText" class="meta-text">Head-to-head and team-form compare.</p>
+        </div>
+        <div class="feed-controls">
+          <label>
+            H2H Sample
+            <select id="matchupH2hLimit">
+              <option value="3">Last 3</option>
+              <option value="5">Last 5</option>
+              <option value="10">Last 10</option>
+              <option value="15">Last 15</option>
+              <option value="20">Last 20</option>
+            </select>
+          </label>
+        </div>
+        <div id="matchupConsoleWrap"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Lineups</h2>
+          <p class="meta-text">Latest known roster/champion setup for both teams.</p>
+        </div>
+        <div id="seriesLineupsWrap" class="draft-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="upcoming">
+        <div class="section-head">
+          <h2>Upcoming Essentials</h2>
+          <p class="meta-text">Kickoff timing, format, and key match setup.</p>
+        </div>
+        <div id="upcomingEssentialsWrap" class="upcoming-essentials"></div>
+      </section>
+
+      <section class="panel" data-scope="upcoming">
+        <div class="section-head">
+          <h2>Watch Guide</h2>
+          <p class="meta-text">Where to watch this match and related broadcasts.</p>
+        </div>
+        <div id="upcomingWatchWrap" class="upcoming-watch"></div>
+      </section>
+
+      <section class="panel" data-scope="upcoming">
+        <div class="section-head">
+          <h2>Team Form</h2>
+          <p class="meta-text">Recent series form and map-level trend for each team.</p>
+        </div>
+        <div id="upcomingFormWrap" class="upcoming-form"></div>
+      </section>
+
+      <section class="panel" data-scope="upcoming">
+        <div class="section-head">
+          <h2>Head-To-Head</h2>
+          <p class="meta-text">Recent meetings between these two teams.</p>
+        </div>
+        <div id="upcomingH2hWrap" class="upcoming-h2h"></div>
+      </section>
+
+      <section class="panel" data-scope="upcoming">
+        <div class="section-head">
+          <h2>Prediction Model</h2>
+          <p class="meta-text">Heuristic pre-match forecast based on recent form data.</p>
+        </div>
+        <div id="upcomingPredictionWrap" class="upcoming-prediction"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Game Command Center</h2>
+          <p class="meta-text">Live watch view for the selected map.</p>
+        </div>
+        <div id="gameCommandWrap" class="command-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Team Comparison</h2>
+          <p class="meta-text">Side-by-side stat race for this game.</p>
+        </div>
+        <div id="teamCompareWrap" class="compare-wrap"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Player Tracker</h2>
+          <p class="meta-text">All 10 players with economy and impact stats.</p>
+        </div>
+        <div class="feed-controls">
+          <label>
+            Sort Players
+            <select id="trackerSort">
+              <option value="role">By Role</option>
+              <option value="gold">By Gold</option>
+              <option value="kp">By Kill Participation</option>
+              <option value="impact">By Impact</option>
+            </select>
+          </label>
+        </div>
+        <div id="playerTrackerWrap" class="player-tracker"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Live Event Feed</h2>
+          <p class="meta-text">Timeline anchored to in-game clock for this map.</p>
+        </div>
+        <div class="feed-controls">
+          <label>
+            Event Type
+            <select id="feedTypeFilter">
+              <option value="all">All</option>
+              <option value="combat">Combat</option>
+              <option value="objective">Objective</option>
+              <option value="swing">Swing</option>
+              <option value="moment">Moment</option>
+            </select>
+          </label>
+          <label>
+            Team
+            <select id="feedTeamFilter">
+              <option value="all">All Teams</option>
+              <option value="left">Left Team</option>
+              <option value="right">Right Team</option>
+            </select>
+          </label>
+          <label>
+            Window
+            <select id="feedWindowFilter">
+              <option value="all">All Time</option>
+              <option value="2">Last 2 Minutes</option>
+              <option value="5">Last 5 Minutes</option>
+              <option value="10">Last 10 Minutes</option>
+            </select>
+          </label>
+        </div>
+        <ul id="liveFeedList" class="moments live-feed-list"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Live Alerts</h2>
+          <p class="meta-text">Automated warning signals from current game state.</p>
+        </div>
+        <ul id="liveAlertsList" class="moments"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Combat Bursts</h2>
+          <p class="meta-text">High-action fight windows from kill delta spikes.</p>
+        </div>
+        <ul id="combatBurstsList" class="moments"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Gold Milestones</h2>
+          <p class="meta-text">Team economy threshold progression.</p>
+        </div>
+        <ul id="goldMilestonesList" class="moments"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Data Confidence</h2>
+          <p class="meta-text">Coverage quality of live vs schedule data.</p>
+        </div>
+        <div id="dataConfidenceWrap" class="confidence-wrap"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Pulse Card</h2>
+          <p class="meta-text">Primary story for this series state.</p>
+        </div>
+        <div id="pulseCard" class="pulse-card"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Edge Meter</h2>
+          <p class="meta-text">Composite pressure score from live/control signals.</p>
+        </div>
+        <div id="edgeMeterWrap" class="edge-meter"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Tempo Snapshot</h2>
+          <p class="meta-text">Series pace and game-length profile.</p>
+        </div>
+        <div id="tempoSnapshotWrap" class="tempo-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Tactical Checklist</h2>
+          <p class="meta-text">What matters most right now.</p>
+        </div>
+        <div id="tacticalChecklistWrap" class="checklist"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Storylines</h2>
+          <p class="meta-text">Auto-generated narratives from current metrics.</p>
+        </div>
+        <ul id="storylinesList" class="moments"></ul>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Progress</h2>
+          <p class="meta-text">Race-to-target view for this format.</p>
+        </div>
+        <div id="seriesProgressWrap" class="series-progress"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Highlights</h2>
+          <p class="meta-text">Cross-game moments from the full series.</p>
+        </div>
+        <ul id="seriesMomentsList" class="moments"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Lead Trend</h2>
+          <p class="meta-text">Gold lead movement in current tracked game.</p>
+        </div>
+        <div id="leadTrendWrap" class="trend-wrap"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Objective Control</h2>
+          <p class="meta-text">Weighted objective ownership split.</p>
+        </div>
+        <div id="objectiveControlWrap" class="control-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Objective Breakdown</h2>
+          <p class="meta-text">Captured objective types by side.</p>
+        </div>
+        <div id="objectiveBreakdownWrap" class="objective-breakdown"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Draft Board</h2>
+          <p class="meta-text">Role/champion setup from tracked game metadata.</p>
+        </div>
+        <div id="draftBoardWrap" class="draft-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Draft Delta</h2>
+          <p class="meta-text">How this map changed versus the previous completed map.</p>
+        </div>
+        <div id="draftDeltaWrap" class="draft-delta"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Economy Board</h2>
+          <p class="meta-text">Per-player gold, GPM, and combat line.</p>
+        </div>
+        <div id="economyBoardWrap" class="economy-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Lane Matchups</h2>
+          <p class="meta-text">Role-by-role head-to-head economy comparison.</p>
+        </div>
+        <div id="laneMatchupsWrap" class="lane-matchups"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Role Matchup Deltas</h2>
+          <p class="meta-text">Cross-map role lead conversion and selected-map deltas.</p>
+        </div>
+        <div id="roleDeltaWrap" class="role-delta"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Objective Runs</h2>
+          <p class="meta-text">Recent objective control streaks.</p>
+        </div>
+        <div id="objectiveRunsWrap" class="runs-wrap"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Games</h2>
+          <p class="meta-text">Game-by-game state and VODs.</p>
+        </div>
+        <div id="seriesGamesWrap" class="series-games"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Comparison</h2>
+          <p class="meta-text">Winner, duration, side, and map outcomes in one view.</p>
+        </div>
+        <div id="seriesCompareWrap" class="series-compare"></div>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Player Trends</h2>
+          <p class="meta-text">Cross-map consistency with per-game trend lines.</p>
+        </div>
+        <div id="seriesPlayerTrendsWrap" class="series-player-trends"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Selected Game Recap</h2>
+          <p class="meta-text">State-aware summary for the map you are currently focused on.</p>
+        </div>
+        <div id="selectedGameRecapWrap" class="game-recap"></div>
+      </section>
+
+      <section class="panel" data-scope="upcoming">
+        <div class="section-head">
+          <h2>Pre-Match Planner</h2>
+          <p class="meta-text">Only shown for upcoming series.</p>
+        </div>
+        <div id="preMatchPlanner" class="planner-list"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Performance Leaders</h2>
+          <p class="meta-text">Top players from latest tracked game state.</p>
+        </div>
+        <div id="performersWrap" class="performer-list"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Live Ticker</h2>
+          <p class="meta-text">Derived from live frame deltas.</p>
+        </div>
+        <ul id="liveTickerList" class="moments"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Objective Timeline</h2>
+          <p class="meta-text">Dragons, barons, towers, inhibitors.</p>
+        </div>
+        <ul id="objectiveTimelineList" class="timeline"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Objective Forecast</h2>
+          <p class="meta-text">Estimated next major objective windows.</p>
+        </div>
+        <div id="objectiveForecastWrap" class="objective-forecast"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Player Delta Panel</h2>
+          <p id="deltaWindowText" class="meta-text"></p>
+        </div>
+        <div id="playerDeltaWrap" class="delta-grid"></div>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
+          <h2>Key Moments</h2>
+          <p class="meta-text">Auto-refresh every 15 seconds.</p>
+        </div>
+        <ul id="momentsList" class="moments"></ul>
+      </section>
+
+      <section class="panel" data-scope="series">
+        <div class="section-head">
+          <h2>Series Timeline</h2>
+        </div>
+        <ul id="timelineList" class="timeline"></ul>
+      </section>
+    </main>
+
+    <script src="./site-config.js"></script>
+    <script type="module" src="./match.js"></script>
+  </body>
+</html>
