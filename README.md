@@ -11,8 +11,12 @@ This repo now contains:
 2. In Render, choose **New +** -> **Blueprint**.
 3. Select this repo. Render will detect [`render.yaml`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/render.yaml).
 4. Create the service. Wait until status is **Live**.
-5. Copy your API URL (example: `https://pulseboard-api.onrender.com`).
-6. Verify with:
+5. In GitHub repo settings, add secrets:
+   - `RENDER_API_KEY`
+   - `RENDER_SERVICE_ID` (from Render service settings)
+6. Run workflow **Deploy API to Render** (or push changes under `api/`).
+7. Copy your API URL (example: `https://pulseboard-api.onrender.com`).
+8. Verify with:
    - `https://YOUR_API_URL/health`
    - `https://YOUR_API_URL/v1/live-matches?game=lol`
 
