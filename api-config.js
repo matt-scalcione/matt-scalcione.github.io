@@ -1,5 +1,5 @@
 const DEFAULT_LOCAL_API_BASE = "http://localhost:4000";
-const DEFAULT_PRODUCTION_API_BASE = "https://esports-live-api.onrender.com";
+const DEFAULT_PRODUCTION_API_BASE = "https://pulseboard-api.onrender.com";
 const API_STORAGE_KEY = "pulseboard.apiBase";
 
 function isLoopbackHost(hostname) {
