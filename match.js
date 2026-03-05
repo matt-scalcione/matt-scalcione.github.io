@@ -31,6 +31,7 @@ const TEAM_SHORT_NAMES = {
   "funplus phoenix": "FPX",
   "anyone's legend": "AL",
   "ninjas in pyjamas": "NIP",
+  "red canids kalunga": "RED Canids",
   "royal never give up": "RNG",
   "team we": "WE",
   "ultra prime": "UP",
@@ -242,19 +243,6 @@ function gameCode(game) {
   return normalized.slice(0, 1).toUpperCase() || "?";
 }
 
-function compactStatLabel(label) {
-  const map = {
-    Kills: "K",
-    Gold: "G",
-    "Net Worth": "NW",
-    Towers: "T",
-    Dragons: "Dr",
-    Barons: "B",
-    Inhibitors: "Inh"
-  };
-  return map[label] || label;
-}
-
 function compactStatusLabel(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "live") return "LIVE";
@@ -414,18 +402,6 @@ function formatNumber(value) {
   return num.toLocaleString();
 }
 
-function statList(team) {
-  const rows = [];
-  if (typeof team.kills === "number") rows.push({ label: "Kills", value: String(team.kills) });
-  if (typeof team.gold === "number") rows.push({ label: "Gold", value: formatNumber(team.gold) });
-  if (typeof team.netWorth === "number") rows.push({ label: "Net Worth", value: formatNumber(team.netWorth) });
-  if (typeof team.towers === "number") rows.push({ label: "Towers", value: String(team.towers) });
-  if (typeof team.dragons === "number") rows.push({ label: "Dragons", value: String(team.dragons) });
-  if (typeof team.barons === "number") rows.push({ label: "Barons", value: String(team.barons) });
-  if (typeof team.inhibitors === "number") rows.push({ label: "Inhibitors", value: String(team.inhibitors) });
-  return rows;
-}
-
 function winnerTeamName(match) {
   if (!match?.teams?.left || !match?.teams?.right) {
     return null;
@@ -452,12 +428,91 @@ function winnerTeamName(match) {
   return null;
 }
 
+function teamBadgeText(name) {
+  const short = shortTeamName(name)
+    .replace(/[^A-Za-z0-9\s.]/g, " ")
+    .trim();
+  if (!short) {
+    return "?";
+  }
+
+  const words = short
+    .split(/[\s.]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (words.length >= 2) {
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  }
+
+  const letters = short.replace(/[^A-Za-z0-9]/g, "");
+  if (!letters) {
+    return "?";
+  }
+
+  return letters.slice(0, Math.min(3, letters.length)).toUpperCase();
+}
+
+function selectedGameScoreContext(match) {
+  const selected = match?.selectedGame;
+  if (!selected || uiState.viewMode !== "game") {
+    return null;
+  }
+
+  const selectedNumber = Number(selected?.number || 0);
+  const seriesGame = Array.isArray(match?.seriesGames)
+    ? match.seriesGames.find((row) => Number(row?.number || 0) === selectedNumber)
+    : null;
+
+  const leftKillsRaw = Number(selected?.snapshot?.left?.kills);
+  const rightKillsRaw = Number(selected?.snapshot?.right?.kills);
+  const fallbackLeftKills = Number(match?.teams?.left?.kills);
+  const fallbackRightKills = Number(match?.teams?.right?.kills);
+  const leftKills = Number.isFinite(leftKillsRaw)
+    ? leftKillsRaw
+    : Number.isFinite(fallbackLeftKills)
+      ? fallbackLeftKills
+      : null;
+  const rightKills = Number.isFinite(rightKillsRaw)
+    ? rightKillsRaw
+    : Number.isFinite(fallbackRightKills)
+      ? fallbackRightKills
+      : null;
+
+  let leftSide = String(seriesGame?.sideInfo?.leftSide || "").toUpperCase();
+  let rightSide = String(seriesGame?.sideInfo?.rightSide || "").toUpperCase();
+  if ((!leftSide || !rightSide) && Array.isArray(selected?.sideSummary)) {
+    const [leftSummary, rightSummary] = selected.sideSummary;
+    const leftMatch = String(leftSummary || "").match(/\b(BLUE|RED)\b/i);
+    const rightMatch = String(rightSummary || "").match(/\b(BLUE|RED)\b/i);
+    if (leftMatch) {
+      leftSide = leftMatch[1].toUpperCase();
+    }
+    if (rightMatch) {
+      rightSide = rightMatch[1].toUpperCase();
+    }
+  }
+
+  if (!leftSide) {
+    leftSide = "SIDE";
+  }
+  if (!rightSide) {
+    rightSide = "SIDE";
+  }
+
+  return {
+    number: selectedNumber > 0 ? selectedNumber : null,
+    state: String(selected?.state || "unstarted"),
+    leftKills,
+    rightKills,
+    leftSide,
+    rightSide
+  };
+}
+
 function renderScoreboard(match) {
   const compact = isCompactUI();
-  const leftStats = statList(match.teams.left);
-  const rightStats = statList(match.teams.right);
   const winner = winnerTeamName(match);
-  const winnerLabel = winner ? (compact ? shortTeamName(winner) : winner) : null;
+  const winnerLabel = winner ? displayTeamName(winner) : null;
   const leftDisplayName = displayTeamName(match.teams.left.name);
   const rightDisplayName = displayTeamName(match.teams.right.name);
   const selectedGameNumber = contextGameNumber();
@@ -473,22 +528,46 @@ function renderScoreboard(match) {
     opponentId: match.teams.left.id,
     teamName: match.teams.right.name
   });
+  const gameContext = selectedGameScoreContext(match);
+  const gameStatus = gameContext?.state ? stateLabel(gameContext.state) : "";
 
   elements.scoreboard.innerHTML = `
-    <article class="team-box">
-      <h3><a class="team-link" href="${leftTeamUrl}">${leftDisplayName}</a></h3>
-      ${leftStats.map((line) => `<p class="stat-line"><span>${compact ? compactStatLabel(line.label) : line.label}</span><span>${line.value}</span></p>`).join("")}
+    <article class="score-strip series-strip">
+      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftDisplayName} team page">
+        <span class="team-badge">${teamBadgeText(match.teams.left.name)}</span>
+        <span class="score-team-name">${leftDisplayName}</span>
+      </a>
+      <div class="score-center">
+        <p class="score-center-label"><span class="game-mode-chip ${String(match.game || "").toLowerCase()}">${gameCode(match.game)}</span>${compact ? "Series" : "Series Score"}</p>
+        <p class="score-center-main">${match.seriesScore.left}<span class="score-divider">-</span>${match.seriesScore.right}</p>
+        <p class="score-center-sub">${compactStatusLabel(match.status)}${winnerLabel ? ` · ${winnerLabel}` : ""}</p>
+      </div>
+      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightDisplayName} team page">
+        <span class="team-badge">${teamBadgeText(match.teams.right.name)}</span>
+        <span class="score-team-name">${rightDisplayName}</span>
+      </a>
     </article>
-    <article class="series">
-      <p class="meta-text"><span class="game-mode-chip ${String(match.game || "").toLowerCase()}">${gameCode(match.game)}</span>${compact ? "Series" : "Series Score"}</p>
-      <p class="series-score">${match.seriesScore.left} : ${match.seriesScore.right}</p>
-      <p class="meta-text">${compact ? compactStatusLabel(match.status) : String(match.status || "unknown").toUpperCase()}</p>
-      ${winnerLabel ? `<p class="meta-text strong">Winner: ${winnerLabel}</p>` : ""}
+    ${gameContext
+      ? `
+    <article class="score-strip game-strip ${gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming"}">
+      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftDisplayName} team page">
+        <span class="team-badge">${teamBadgeText(match.teams.left.name)}</span>
+        <span class="score-team-side ${gameContext.leftSide === "BLUE" ? "blue" : gameContext.leftSide === "RED" ? "red" : ""}">${gameContext.leftSide}</span>
+        <span class="score-team-name">${leftDisplayName}</span>
+      </a>
+      <div class="score-center game-center">
+        <p class="score-center-label">${gameContext.number ? (compact ? `G${gameContext.number}` : `Game ${gameContext.number}`) : compact ? "Game" : "Selected Game"}${gameStatus ? ` · ${gameStatus}` : ""}</p>
+        <p class="score-center-main">${Number.isFinite(gameContext.leftKills) ? gameContext.leftKills : "—"}<span class="score-divider">-</span>${Number.isFinite(gameContext.rightKills) ? gameContext.rightKills : "—"}</p>
+        <p class="score-center-sub">${compact ? "Kills" : "Kills this game"}</p>
+      </div>
+      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightDisplayName} team page">
+        <span class="team-badge">${teamBadgeText(match.teams.right.name)}</span>
+        <span class="score-team-side ${gameContext.rightSide === "BLUE" ? "blue" : gameContext.rightSide === "RED" ? "red" : ""}">${gameContext.rightSide}</span>
+        <span class="score-team-name">${rightDisplayName}</span>
+      </a>
     </article>
-    <article class="team-box">
-      <h3><a class="team-link" href="${rightTeamUrl}">${rightDisplayName}</a></h3>
-      ${rightStats.map((line) => `<p class="stat-line"><span>${compact ? compactStatLabel(line.label) : line.label}</span><span>${line.value}</span></p>`).join("")}
-    </article>
+    `
+      : ""}
   `;
 }
 
