@@ -1,12 +1,6 @@
 name: Deploy API to Render
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - "api/**"
-      - "render.yaml"
-      - ".github/workflows/deploy-api-render.yml"
   workflow_dispatch: {}
 
 jobs:
@@ -19,8 +13,8 @@ jobs:
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
           if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
-            echo "::error::Missing required secrets: RENDER_API_KEY and/or RENDER_SERVICE_ID"
-            exit 1
+            echo "Missing Render secrets. Skipping deploy."
+            exit 0
           fi
 
           curl --fail --show-error --silent \
