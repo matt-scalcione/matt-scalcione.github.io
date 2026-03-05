@@ -178,7 +178,8 @@ const uiState = {
     reconnectTimer: null
   },
   controlsBound: false,
-  leadTrendScaleByContext: {}
+  leadTrendScaleByContext: {},
+  mapPulseByContext: {}
 };
 
 function clearRefreshTimer() {
@@ -2687,6 +2688,158 @@ function shortTimeLabel(iso) {
   }
 }
 
+function mapPulseContextKey(match) {
+  const matchId = String(match?.id || "match");
+  const selectedNumber = Number(match?.selectedGame?.number || 0);
+  return `${matchId}::${selectedNumber > 0 ? selectedNumber : "series"}`;
+}
+
+function resolveBurstSignalTeam(match) {
+  const bursts = Array.isArray(match?.combatBursts) ? match.combatBursts : [];
+  for (const row of bursts) {
+    const team = String(row?.team || "").toLowerCase();
+    if (team === "left" || team === "right") {
+      return team;
+    }
+  }
+
+  const leftName = String(match?.teams?.left?.name || "").toLowerCase();
+  const rightName = String(match?.teams?.right?.name || "").toLowerCase();
+  for (const row of bursts) {
+    const title = String(row?.title || "").toLowerCase();
+    if (leftName && title.includes(leftName)) {
+      return "left";
+    }
+    if (rightName && title.includes(rightName)) {
+      return "right";
+    }
+  }
+
+  return null;
+}
+
+function updateMapPulseState(match) {
+  const selected = match?.selectedGame;
+  if (!selected) {
+    return null;
+  }
+
+  const key = mapPulseContextKey(match);
+  const previous = uiState.mapPulseByContext[key] || {};
+  const now = Date.now();
+  const state = {
+    leftKills: Number(selected?.snapshot?.left?.kills),
+    rightKills: Number(selected?.snapshot?.right?.kills),
+    expiresAt: Number(previous.expiresAt || 0),
+    team: previous.team || null
+  };
+
+  if (String(selected.state || "") === "inProgress") {
+    const leftValid = Number.isFinite(state.leftKills);
+    const rightValid = Number.isFinite(state.rightKills);
+    const prevLeftValid = Number.isFinite(previous.leftKills);
+    const prevRightValid = Number.isFinite(previous.rightKills);
+    if (leftValid && rightValid && prevLeftValid && prevRightValid) {
+      const deltaLeft = state.leftKills - Number(previous.leftKills);
+      const deltaRight = state.rightKills - Number(previous.rightKills);
+      if (deltaLeft > 0 || deltaRight > 0) {
+        state.team = deltaLeft > deltaRight ? "left" : deltaRight > deltaLeft ? "right" : "both";
+        state.expiresAt = now + 60_000;
+      }
+    }
+
+    if (state.expiresAt <= now) {
+      const leftDeaths = Array.isArray(match?.playerEconomy?.left)
+        ? match.playerEconomy.left.filter((row) => Boolean(row?.isDead)).length
+        : 0;
+      const rightDeaths = Array.isArray(match?.playerEconomy?.right)
+        ? match.playerEconomy.right.filter((row) => Boolean(row?.isDead)).length
+        : 0;
+      if (leftDeaths + rightDeaths >= 2) {
+        state.team = leftDeaths > rightDeaths ? "left" : rightDeaths > leftDeaths ? "right" : "both";
+        state.expiresAt = now + 40_000;
+      } else {
+        const burstTeam = resolveBurstSignalTeam(match);
+        if (burstTeam) {
+          state.team = burstTeam;
+          state.expiresAt = now + 30_000;
+        }
+      }
+    }
+  } else {
+    state.expiresAt = 0;
+    state.team = null;
+  }
+
+  uiState.mapPulseByContext[key] = state;
+  if (state.expiresAt > now && state.team) {
+    return {
+      team: state.team,
+      expiresAt: state.expiresAt
+    };
+  }
+
+  return null;
+}
+
+function objectiveEtaLabel(row) {
+  if (!row) {
+    return "n/a";
+  }
+
+  const eta = Number(row?.etaSeconds);
+  if (row?.state === "available" || (Number.isFinite(eta) && eta <= 0)) {
+    return "Up";
+  }
+  if (Number.isFinite(eta) && eta > 0) {
+    return shortDuration(eta);
+  }
+  return "Soon";
+}
+
+function objectiveMarkerRows(match) {
+  const forecastRows = Array.isArray(match?.objectiveForecast) ? match.objectiveForecast : [];
+  const forecastByType = new Map();
+  for (const row of forecastRows) {
+    const type = String(row?.type || row?.id || "").toLowerCase();
+    if (type && !forecastByType.has(type)) {
+      forecastByType.set(type, row);
+    }
+  }
+
+  const timelineRows = Array.isArray(match?.objectiveTimeline) ? match.objectiveTimeline : [];
+  const ownershipByType = new Map();
+  for (const row of timelineRows) {
+    const type = String(row?.type || row?.objective || "").toLowerCase();
+    const team = String(row?.team || "").toLowerCase();
+    if (!type || (team !== "left" && team !== "right")) {
+      continue;
+    }
+    if (!ownershipByType.has(type)) {
+      ownershipByType.set(type, team);
+    }
+  }
+
+  const catalog = [
+    { id: "baron", name: "Baron", short: "B", x: 28, y: 24 },
+    { id: "dragon", name: "Dragon", short: "D", x: 73, y: 75 },
+    { id: "herald", name: "Herald", short: "H", x: 24, y: 32 }
+  ];
+
+  return catalog.map((item) => {
+    const forecast = forecastByType.get(item.id) || null;
+    const ownerTeam = ownershipByType.get(item.id) || null;
+    const state = forecast?.state === "available" ? "available" : forecast ? "countdown" : ownerTeam ? "captured" : "unknown";
+    return {
+      ...item,
+      state,
+      ownerTeam,
+      etaLabel: objectiveEtaLabel(forecast),
+      note: String(forecast?.note || "")
+    };
+  });
+}
+
 function readNumericField(row, keys) {
   for (const key of keys) {
     const direct = Number(row?.[key]);
@@ -2819,6 +2972,10 @@ function buildMiniMap(match) {
 
 function renderMiniMap(match) {
   const miniMap = buildMiniMap(match);
+  const pulse = updateMapPulseState(match);
+  const now = Date.now();
+  const pulseSecondsLeft = pulse ? Math.max(1, Math.ceil((pulse.expiresAt - now) / 1000)) : 0;
+  const objectiveMarkers = objectiveMarkerRows(match);
   const leftName = displayTeamName(match?.teams?.left?.name);
   const rightName = displayTeamName(match?.teams?.right?.name);
   if (!miniMap.points.length) {
@@ -2833,9 +2990,20 @@ function renderMiniMap(match) {
   const dots = miniMap.points
     .map(
       (point) => `
-      <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="2.25" class="minimap-dot ${point.team}${point.dead ? " dead" : ""}">
+      <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="2.25" class="minimap-dot ${point.team}${point.dead ? " dead" : ""}${pulse && (pulse.team === "both" || pulse.team === point.team) ? " pulse" : ""}">
         <title>${point.name || point.role || "Player"} · ${point.team === "left" ? leftName : rightName}${point.dead ? " · dead" : ""}</title>
       </circle>
+    `
+    )
+    .join("");
+  const markerLayers = objectiveMarkers
+    .map(
+      (marker) => `
+      <g class="objective-marker ${marker.state}${marker.ownerTeam ? ` owned-${marker.ownerTeam}` : ""}" transform="translate(${marker.x} ${marker.y})">
+        <circle class="objective-ring" r="3.45"></circle>
+        <circle class="objective-core" r="2.5"></circle>
+        <text class="objective-text" text-anchor="middle" dominant-baseline="central">${marker.short}</text>
+      </g>
     `
     )
     .join("");
@@ -2845,9 +3013,12 @@ function renderMiniMap(match) {
       : miniMap.mode === "mixed"
         ? "Mixed exact + role projection"
         : "Role projection (no exact XY)";
+  const pulseText = pulse
+    ? `Fight pulse: ${pulse.team === "both" ? "both teams" : pulse.team === "left" ? leftName : rightName} · ${pulseSecondsLeft}s`
+    : "No active fight pulse";
 
   return `
-    <section class="minimap-card">
+    <section class="minimap-card${pulse ? ` fight-${pulse.team}` : ""}">
       <p class="minimap-title">Map View</p>
       <svg viewBox="0 0 100 100" class="minimap-svg" aria-label="Minimap position overview">
         <rect x="2" y="2" width="96" height="96" class="minimap-bg"></rect>
@@ -2856,13 +3027,26 @@ function renderMiniMap(match) {
         <path d="M12,88 L72,88 L88,58 L88,12" class="minimap-lane side"></path>
         <circle cx="12" cy="88" r="5.4" class="minimap-base left"></circle>
         <circle cx="88" cy="12" r="5.4" class="minimap-base right"></circle>
+        ${markerLayers}
         ${dots}
       </svg>
       <div class="minimap-legend">
         <span class="minimap-chip left">${leftName}</span>
         <span class="minimap-chip right">${rightName}</span>
       </div>
-      <p class="minimap-note">${modeText}</p>
+      <div class="minimap-objectives">
+        ${objectiveMarkers
+          .map(
+            (marker) => `
+          <span class="objective-chip ${marker.state}${marker.ownerTeam ? ` owned-${marker.ownerTeam}` : ""}">
+            <span class="objective-chip-key">${marker.short}</span>
+            <span class="objective-chip-meta">${marker.etaLabel}</span>
+          </span>
+        `
+          )
+          .join("")}
+      </div>
+      <p class="minimap-note">${modeText} · ${pulseText}</p>
     </section>
   `;
 }
@@ -4259,6 +4443,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
 
   if (uiState.match?.id && uiState.match.id !== match.id) {
     uiState.leadTrendScaleByContext = {};
+    uiState.mapPulseByContext = {};
   }
 
   uiState.match = match;
