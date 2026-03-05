@@ -2687,6 +2687,186 @@ function shortTimeLabel(iso) {
   }
 }
 
+function readNumericField(row, keys) {
+  for (const key of keys) {
+    const direct = Number(row?.[key]);
+    if (Number.isFinite(direct)) {
+      return direct;
+    }
+  }
+
+  const nestedX = Number(row?.position?.x);
+  const nestedY = Number(row?.position?.y);
+  if (keys.includes("x") && Number.isFinite(nestedX)) {
+    return nestedX;
+  }
+  if (keys.includes("y") && Number.isFinite(nestedY)) {
+    return nestedY;
+  }
+
+  return null;
+}
+
+function normalizeMapAxis(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return null;
+  }
+
+  if (num >= 0 && num <= 1) {
+    return num * 100;
+  }
+  if (num >= 0 && num <= 100) {
+    return num;
+  }
+  if (num >= -9000 && num <= 9000) {
+    return ((num + 9000) / 18000) * 100;
+  }
+  if (num >= 0 && num <= 20000) {
+    return (num / 15000) * 100;
+  }
+
+  return null;
+}
+
+function clampMapAxis(value) {
+  return Math.max(4, Math.min(96, Number(value)));
+}
+
+function roleAnchor(role, teamSide) {
+  const normalized = String(role || "").toLowerCase();
+  const baseByRole = {
+    top: { x: 22, y: 18 },
+    jungle: { x: 33, y: 37 },
+    mid: { x: 50, y: 50 },
+    bottom: { x: 18, y: 78 },
+    bot: { x: 18, y: 78 },
+    support: { x: 25, y: 70 }
+  };
+  const base = baseByRole[normalized] || baseByRole.mid;
+  if (teamSide === "right") {
+    return { x: 100 - base.x, y: base.y };
+  }
+  return base;
+}
+
+function stableJitter(seedValue) {
+  const seed = Number(seedValue) || 0;
+  const jitterX = (((seed * 17) % 9) - 4) * 1.05;
+  const jitterY = (((seed * 31) % 9) - 4) * 0.95;
+  return { x: jitterX, y: jitterY };
+}
+
+function resolveMapPoint(row, teamSide) {
+  const rawX = readNumericField(row, ["x", "positionX", "posX", "worldX", "locationX", "mapX"]);
+  const rawY = readNumericField(row, ["y", "positionY", "posY", "worldY", "locationY", "mapY"]);
+  const normalizedX = normalizeMapAxis(rawX);
+  const normalizedY = normalizeMapAxis(rawY);
+  if (normalizedX !== null && normalizedY !== null) {
+    return {
+      x: clampMapAxis(normalizedX),
+      y: clampMapAxis(normalizedY),
+      exact: true
+    };
+  }
+
+  const anchor = roleAnchor(row?.role, teamSide);
+  const seed = Number(row?.participantId || 0) + (teamSide === "right" ? 50 : 0);
+  const jitter = stableJitter(seed);
+  return {
+    x: clampMapAxis(anchor.x + jitter.x),
+    y: clampMapAxis(anchor.y + jitter.y),
+    exact: false
+  };
+}
+
+function buildMiniMap(match) {
+  const economy = match?.playerEconomy || null;
+  const draft = match?.teamDraft || null;
+  const leftRows = Array.isArray(economy?.left) && economy.left.length ? economy.left : Array.isArray(draft?.left) ? draft.left : [];
+  const rightRows = Array.isArray(economy?.right) && economy.right.length ? economy.right : Array.isArray(draft?.right) ? draft.right : [];
+  const rows = [
+    ...leftRows.map((row) => ({ ...row, _teamSide: "left" })),
+    ...rightRows.map((row) => ({ ...row, _teamSide: "right" }))
+  ];
+
+  if (!rows.length) {
+    return {
+      points: [],
+      mode: "none"
+    };
+  }
+
+  let exactCount = 0;
+  const points = rows.map((row) => {
+    const resolved = resolveMapPoint(row, row._teamSide);
+    if (resolved.exact) {
+      exactCount += 1;
+    }
+    return {
+      x: resolved.x,
+      y: resolved.y,
+      team: row._teamSide,
+      dead: Boolean(row?.isDead),
+      role: String(row?.role || ""),
+      name: String(row?.name || "")
+    };
+  });
+
+  const mode = exactCount === points.length ? "exact" : exactCount > 0 ? "mixed" : "role";
+  return { points, mode };
+}
+
+function renderMiniMap(match) {
+  const miniMap = buildMiniMap(match);
+  const leftName = displayTeamName(match?.teams?.left?.name);
+  const rightName = displayTeamName(match?.teams?.right?.name);
+  if (!miniMap.points.length) {
+    return `
+      <section class="minimap-card">
+        <p class="minimap-title">Map View</p>
+        <div class="empty">No player location telemetry yet.</div>
+      </section>
+    `;
+  }
+
+  const dots = miniMap.points
+    .map(
+      (point) => `
+      <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="2.25" class="minimap-dot ${point.team}${point.dead ? " dead" : ""}">
+        <title>${point.name || point.role || "Player"} · ${point.team === "left" ? leftName : rightName}${point.dead ? " · dead" : ""}</title>
+      </circle>
+    `
+    )
+    .join("");
+  const modeText =
+    miniMap.mode === "exact"
+      ? "Exact XY telemetry"
+      : miniMap.mode === "mixed"
+        ? "Mixed exact + role projection"
+        : "Role projection (no exact XY)";
+
+  return `
+    <section class="minimap-card">
+      <p class="minimap-title">Map View</p>
+      <svg viewBox="0 0 100 100" class="minimap-svg" aria-label="Minimap position overview">
+        <rect x="2" y="2" width="96" height="96" class="minimap-bg"></rect>
+        <path d="M12,88 C24,76 35,65 48,52 C61,39 73,27 88,12" class="minimap-lane mid"></path>
+        <path d="M12,88 L12,28 L42,12 L88,12" class="minimap-lane side"></path>
+        <path d="M12,88 L72,88 L88,58 L88,12" class="minimap-lane side"></path>
+        <circle cx="12" cy="88" r="5.4" class="minimap-base left"></circle>
+        <circle cx="88" cy="12" r="5.4" class="minimap-base right"></circle>
+        ${dots}
+      </svg>
+      <div class="minimap-legend">
+        <span class="minimap-chip left">${leftName}</span>
+        <span class="minimap-chip right">${rightName}</span>
+      </div>
+      <p class="minimap-note">${modeText}</p>
+    </section>
+  `;
+}
+
 function trendLeadCallout(match, lead) {
   if (!Number.isFinite(lead) || lead === 0) {
     return {
@@ -2807,6 +2987,8 @@ function buildLeadTrendChart(series, options = {}) {
 }
 
 function renderLeadTrend(match) {
+  const leftTeamLabel = displayTeamName(match.teams.left.name);
+  const rightTeamLabel = displayTeamName(match.teams.right.name);
   const series = Array.isArray(match.goldLeadSeries) ? match.goldLeadSeries : [];
   const trend = match.leadTrend;
   if (!series.length || !trend) {
@@ -2831,7 +3013,7 @@ function renderLeadTrend(match) {
   const rightPeakLead = Math.max(0, Math.round(Math.abs(chart.rawMinLead)));
   const finalPoint = chart.points[chart.points.length - 1];
   const finalToneClass = leadCallout.tone === "left" ? "left" : leadCallout.tone === "right" ? "right" : "even";
-  const zeroLineLabel = `0 (${match.teams.left.name} above · ${match.teams.right.name} below)`;
+  const zeroLineLabel = `0 (${leftTeamLabel} above · ${rightTeamLabel} below)`;
   const currentLead = Number(trend.finalLead || 0);
   const currentLeadLabel =
     !Number.isFinite(currentLead) || currentLead === 0
@@ -2849,38 +3031,44 @@ function renderLeadTrend(match) {
     match.status === "live" && coverageSeconds < 120
       ? "Live feed currently exposes a short window; timeline will expand as additional frames are collected."
       : null;
+  const miniMapMarkup = renderMiniMap(match);
 
   elements.leadTrendWrap.innerHTML = `
     <article class="trend-card">
       <p class="trend-headline ${finalToneClass}">${leadCallout.headline}</p>
       <p class="meta-text">${leadCallout.detail}</p>
       <div class="trend-legend">
-        <span class="chip left">${match.teams.left.name} Advantage</span>
-        <span class="chip right">${match.teams.right.name} Advantage</span>
+        <span class="chip left">${leftTeamLabel} Advantage</span>
+        <span class="chip right">${rightTeamLabel} Advantage</span>
       </div>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="trend-chart" aria-label="Gold lead trend over time">
-        <rect x="${chart.chartBounds.left}" y="${chart.chartBounds.top}" width="${chart.chartBounds.right - chart.chartBounds.left}" height="${Math.max(0, chart.zeroY - chart.chartBounds.top)}" class="trend-zone-left"></rect>
-        <rect x="${chart.chartBounds.left}" y="${chart.zeroY}" width="${chart.chartBounds.right - chart.chartBounds.left}" height="${Math.max(0, chart.chartBounds.bottom - chart.zeroY)}" class="trend-zone-right"></rect>
-        ${chart.gridRows
-          .map((row) => `<line x1="${chart.chartBounds.left}" x2="${chart.chartBounds.right}" y1="${row.y.toFixed(2)}" y2="${row.y.toFixed(2)}" class="trend-grid"></line>`)
-          .join("")}
-        ${chart.gridRows
-          .map((row) => `<text x="${(chart.chartBounds.left + 0.7).toFixed(2)}" y="${(row.y - 0.8).toFixed(2)}" class="trend-grid-label">${row.value === 0 ? "0" : `${row.value > 0 ? "+" : "-"}${compactGold(Math.abs(row.value))}`}</text>`)
-          .join("")}
-        <line x1="${chart.chartBounds.left}" x2="${chart.chartBounds.right}" y1="${chart.zeroY.toFixed(2)}" y2="${chart.zeroY.toFixed(2)}" class="trend-zero"></line>
-        <line x1="${finalPoint.x.toFixed(2)}" x2="${finalPoint.x.toFixed(2)}" y1="${chart.zeroY.toFixed(2)}" y2="${finalPoint.y.toFixed(2)}" class="trend-current-guide ${finalToneClass}"></line>
-        <path d="${chart.areaPath}" class="trend-area"></path>
-        <path d="${chart.linePath}" class="trend-line"></path>
-        <circle cx="${finalPoint.x.toFixed(2)}" cy="${finalPoint.y.toFixed(2)}" r="1.2" class="trend-dot ${finalToneClass}"></circle>
-        <text x="${currentLabelX.toFixed(2)}" y="${currentLabelY.toFixed(2)}" class="trend-current-label ${finalToneClass}">${currentLeadLabel}</text>
-      </svg>
-      <div class="trend-axis">
-        <span>${shortTimeLabel(new Date(chart.minAt).toISOString())}</span>
-        <span>${coverageLabel} full-game timeline · ${chart.rows.length} samples</span>
-        <span>${shortTimeLabel(new Date(chart.maxAt).toISOString())}</span>
+      <div class="trend-split">
+        ${miniMapMarkup}
+        <section class="trend-chart-panel">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="trend-chart" aria-label="Gold lead trend over time">
+            <rect x="${chart.chartBounds.left}" y="${chart.chartBounds.top}" width="${chart.chartBounds.right - chart.chartBounds.left}" height="${Math.max(0, chart.zeroY - chart.chartBounds.top)}" class="trend-zone-left"></rect>
+            <rect x="${chart.chartBounds.left}" y="${chart.zeroY}" width="${chart.chartBounds.right - chart.chartBounds.left}" height="${Math.max(0, chart.chartBounds.bottom - chart.zeroY)}" class="trend-zone-right"></rect>
+            ${chart.gridRows
+              .map((row) => `<line x1="${chart.chartBounds.left}" x2="${chart.chartBounds.right}" y1="${row.y.toFixed(2)}" y2="${row.y.toFixed(2)}" class="trend-grid"></line>`)
+              .join("")}
+            ${chart.gridRows
+              .map((row) => `<text x="${(chart.chartBounds.left + 0.7).toFixed(2)}" y="${(row.y - 0.8).toFixed(2)}" class="trend-grid-label">${row.value === 0 ? "0" : `${row.value > 0 ? "+" : "-"}${compactGold(Math.abs(row.value))}`}</text>`)
+              .join("")}
+            <line x1="${chart.chartBounds.left}" x2="${chart.chartBounds.right}" y1="${chart.zeroY.toFixed(2)}" y2="${chart.zeroY.toFixed(2)}" class="trend-zero"></line>
+            <line x1="${finalPoint.x.toFixed(2)}" x2="${finalPoint.x.toFixed(2)}" y1="${chart.zeroY.toFixed(2)}" y2="${finalPoint.y.toFixed(2)}" class="trend-current-guide ${finalToneClass}"></line>
+            <path d="${chart.areaPath}" class="trend-area"></path>
+            <path d="${chart.linePath}" class="trend-line"></path>
+            <circle cx="${finalPoint.x.toFixed(2)}" cy="${finalPoint.y.toFixed(2)}" r="1.2" class="trend-dot ${finalToneClass}"></circle>
+            <text x="${currentLabelX.toFixed(2)}" y="${currentLabelY.toFixed(2)}" class="trend-current-label ${finalToneClass}">${currentLeadLabel}</text>
+          </svg>
+          <div class="trend-axis">
+            <span>${shortTimeLabel(new Date(chart.minAt).toISOString())}</span>
+            <span>${coverageLabel} full-game timeline · ${chart.rows.length} samples</span>
+            <span>${shortTimeLabel(new Date(chart.maxAt).toISOString())}</span>
+          </div>
+        </section>
       </div>
       <div class="trend-stats">
-        <p class="meta-text">Peak ${match.teams.left.name}: +${compactGold(leftPeakLead)} · Peak ${match.teams.right.name}: +${compactGold(rightPeakLead)}</p>
+        <p class="meta-text">Peak ${leftTeamLabel}: +${compactGold(leftPeakLead)} · Peak ${rightTeamLabel}: +${compactGold(rightPeakLead)}</p>
         <p class="meta-text">Fixed scale: ±${compactGold(chart.displayAbsLead)} around center 0</p>
         <p class="meta-text">Largest swing: ${formatNumber(Math.abs(Math.round(trend.largestSwing || 0)))} gold</p>
         <p class="meta-text">${zeroLineLabel}</p>
