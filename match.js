@@ -4,6 +4,74 @@ const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
 const LEAD_TREND_MIN_ABS_GOLD = 7000;
 const LEAD_TREND_SCALE_HEADROOM = 1.15;
+const MOBILE_BREAKPOINT = 760;
+const TEAM_SHORT_NAMES = {
+  "cloud9 kia": "Cloud9",
+  "cloud9": "Cloud9",
+  "team liquid honda": "Liquid",
+  "team liquid": "Liquid",
+  "gen.g esports": "Gen.G",
+  "hanwha life esports": "HLE",
+  "dplus kia": "DK",
+  "kt rolster": "KT",
+  "g2 esports": "G2",
+  "karmine corp": "KC",
+  "mad lions koi": "MAD",
+  "movistar koi": "KOI",
+  "team bds": "BDS",
+  "team vitality": "VIT",
+  "th team heretics": "TH",
+  "bilibili gaming": "BLG",
+  "top esports": "TES",
+  "jd gaming": "JDG",
+  "lng esports": "LNG",
+  "weibo gaming": "WBG",
+  "edward gaming": "EDG",
+  "invictus gaming": "iG",
+  "funplus phoenix": "FPX",
+  "anyone's legend": "AL",
+  "ninjas in pyjamas": "NIP",
+  "royal never give up": "RNG",
+  "team we": "WE",
+  "ultra prime": "UP",
+  "gaimin gladiators": "GG",
+  "team spirit": "Spirit",
+  "team falcons": "Falcons",
+  "betboom team": "BetBoom",
+  "tundra esports": "Tundra",
+  "shopify rebellion": "SR",
+  "aurora gaming": "Aurora",
+  "xtreme gaming": "XG",
+  "azure ray": "AR",
+  "nigma galaxy": "Nigma",
+  "virtus.pro": "VP",
+  "team secret": "Secret",
+  "evil geniuses": "EG",
+  "talon esports": "Talon",
+  "natus vincere": "NAVI"
+};
+const MOBILE_SECTION_HEADINGS = {
+  "Current State": { icon: "ST", short: "State" },
+  "Series Overview": { icon: "SR", short: "Series" },
+  "Game Explorer": { icon: "GX", short: "Games" },
+  "Match Snapshot": { icon: "SN", short: "Snapshot" },
+  "Matchup Console": { icon: "H2H", short: "Matchup" },
+  "Series Lineups": { icon: "LU", short: "Lineups" },
+  "Upcoming Essentials": { icon: "UP", short: "Upcoming" },
+  "Watch Guide": { icon: "TV", short: "Watch" },
+  "Team Form": { icon: "FM", short: "Form" },
+  "Head-To-Head": { icon: "H2H", short: "H2H" },
+  "Prediction Model": { icon: "PR", short: "Prediction" },
+  "Game Command Center": { icon: "CC", short: "Command" },
+  "Team Comparison": { icon: "TC", short: "Team Compare" },
+  "Player Tracker": { icon: "PT", short: "Players" },
+  "Live Event Feed": { icon: "FE", short: "Live Feed" },
+  "Lead Trend": { icon: "LD", short: "Lead Trend" },
+  "Objective Control": { icon: "OBJ", short: "Objective" },
+  "Series Games": { icon: "SG", short: "Series Games" },
+  "Series Comparison": { icon: "SC", short: "Series Stats" },
+  "Selected Game Recap": { icon: "RC", short: "Game Recap" }
+};
 
 const elements = {
   matchTitle: document.querySelector("#matchTitle"),
@@ -126,6 +194,114 @@ function scheduleRefresh(seconds = DEFAULT_REFRESH_SECONDS) {
   const safeSeconds = Number.isFinite(Number(seconds)) ? Math.max(8, Number(seconds)) : DEFAULT_REFRESH_SECONDS;
   clearRefreshTimer();
   refreshTimer = setTimeout(loadMatch, safeSeconds * 1000);
+}
+
+function isCompactUI() {
+  return typeof window !== "undefined" && window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+function normalizeTeamKey(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function shortTeamName(name) {
+  const raw = String(name || "").trim();
+  if (!raw) {
+    return "TBD";
+  }
+
+  const mapped = TEAM_SHORT_NAMES[normalizeTeamKey(raw)];
+  if (mapped) {
+    return mapped;
+  }
+
+  const stripped = raw
+    .replace(/\b(Esports?|E-Sports?|Gaming|Club|Kia|Honda)\b/gi, "")
+    .replace(/\bTeam\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (stripped.length >= 3) {
+    return stripped;
+  }
+
+  return raw;
+}
+
+function displayTeamName(name) {
+  return isCompactUI() ? shortTeamName(name) : String(name || "Unknown");
+}
+
+function gameCode(game) {
+  const normalized = String(game || "").toLowerCase();
+  if (normalized === "lol") return "L";
+  if (normalized === "dota2") return "D";
+  return normalized.slice(0, 1).toUpperCase() || "?";
+}
+
+function compactStatLabel(label) {
+  const map = {
+    Kills: "K",
+    Gold: "G",
+    "Net Worth": "NW",
+    Towers: "T",
+    Dragons: "Dr",
+    Barons: "B",
+    Inhibitors: "Inh"
+  };
+  return map[label] || label;
+}
+
+function compactStatusLabel(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "live") return "LIVE";
+  if (normalized === "completed") return "FINAL";
+  if (normalized === "upcoming") return "UPCOMING";
+  return normalized.toUpperCase() || "UNKNOWN";
+}
+
+function dateTimeCompact(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(iso || "");
+    }
+
+    return parsed.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function applyMobileSectionHeadings() {
+  if (elements.backLink) {
+    elements.backLink.textContent = isCompactUI() ? "Back" : "Back to Live Desk";
+  }
+
+  const headings = Array.from(document.querySelectorAll(".match-page .section-head h2"));
+  for (const heading of headings) {
+    const full = heading.dataset.fullTitle || heading.textContent.trim();
+    if (!heading.dataset.fullTitle) {
+      heading.dataset.fullTitle = full;
+    }
+
+    const mapping = MOBILE_SECTION_HEADINGS[full];
+    if (isCompactUI() && mapping) {
+      heading.innerHTML = `<span class="section-mini-icon" aria-hidden="true">${mapping.icon}</span>${mapping.short}`;
+      heading.classList.add("mobile-short");
+    } else {
+      heading.textContent = full;
+      heading.classList.remove("mobile-short");
+    }
+  }
 }
 
 function dateTimeLabel(iso) {
@@ -277,9 +453,13 @@ function winnerTeamName(match) {
 }
 
 function renderScoreboard(match) {
+  const compact = isCompactUI();
   const leftStats = statList(match.teams.left);
   const rightStats = statList(match.teams.right);
   const winner = winnerTeamName(match);
+  const winnerLabel = winner ? (compact ? shortTeamName(winner) : winner) : null;
+  const leftDisplayName = displayTeamName(match.teams.left.name);
+  const rightDisplayName = displayTeamName(match.teams.right.name);
   const selectedGameNumber = contextGameNumber();
   const leftTeamUrl = teamDetailUrl(match.teams.left.id, match.game, uiState.apiBase, {
     matchId: match.id,
@@ -296,18 +476,18 @@ function renderScoreboard(match) {
 
   elements.scoreboard.innerHTML = `
     <article class="team-box">
-      <h3><a class="team-link" href="${leftTeamUrl}">${match.teams.left.name}</a></h3>
-      ${leftStats.map((line) => `<p class="stat-line"><span>${line.label}</span><span>${line.value}</span></p>`).join("")}
+      <h3><a class="team-link" href="${leftTeamUrl}">${leftDisplayName}</a></h3>
+      ${leftStats.map((line) => `<p class="stat-line"><span>${compact ? compactStatLabel(line.label) : line.label}</span><span>${line.value}</span></p>`).join("")}
     </article>
     <article class="series">
-      <p class="meta-text">Series Score</p>
+      <p class="meta-text"><span class="game-mode-chip ${String(match.game || "").toLowerCase()}">${gameCode(match.game)}</span>${compact ? "Series" : "Series Score"}</p>
       <p class="series-score">${match.seriesScore.left} : ${match.seriesScore.right}</p>
-      <p class="meta-text">${match.status.toUpperCase()}</p>
-      ${winner ? `<p class="meta-text strong">Winner: ${winner}</p>` : ""}
+      <p class="meta-text">${compact ? compactStatusLabel(match.status) : String(match.status || "unknown").toUpperCase()}</p>
+      ${winnerLabel ? `<p class="meta-text strong">Winner: ${winnerLabel}</p>` : ""}
     </article>
     <article class="team-box">
-      <h3><a class="team-link" href="${rightTeamUrl}">${match.teams.right.name}</a></h3>
-      ${rightStats.map((line) => `<p class="stat-line"><span>${line.label}</span><span>${line.value}</span></p>`).join("")}
+      <h3><a class="team-link" href="${rightTeamUrl}">${rightDisplayName}</a></h3>
+      ${rightStats.map((line) => `<p class="stat-line"><span>${compact ? compactStatLabel(line.label) : line.label}</span><span>${line.value}</span></p>`).join("")}
     </article>
   `;
 }
@@ -947,6 +1127,7 @@ function renderGameExplorer(match, apiBase) {
   const nav = match.gameNavigation;
   const selected = match.selectedGame;
   const isGameMode = uiState.viewMode === "game";
+  const compact = isCompactUI();
   const activeGameNumber = contextGameNumber();
 
   if (!nav || !Array.isArray(nav.availableGames) || !nav.availableGames.length) {
@@ -956,10 +1137,10 @@ function renderGameExplorer(match, apiBase) {
   }
 
   const seriesHref = detailUrlForGame(match.id, apiBase, null);
-  const seriesPill = `<a class="game-pill complete${!isGameMode ? " selected" : ""}" href="${seriesHref}">Series</a>`;
+  const seriesPill = `<a class="game-pill complete${!isGameMode ? " selected" : ""}" href="${seriesHref}">${compact ? "S" : "Series"}</a>`;
   const liveGameNumber = firstInProgressGameNumber(match);
   const currentLiveCallout = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
-    ? `<article class="live-now-banner"><p class="meta-text strong">Current game live now: Game ${liveGameNumber}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">Open Live Game ${liveGameNumber}</a></article>`
+    ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `LIVE NOW · G${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
     : "";
   const navPills = [
     seriesPill,
@@ -970,23 +1151,35 @@ function renderGameExplorer(match, apiBase) {
         match.status === "live" &&
         Number.isInteger(liveGameNumber) &&
         liveGameNumber === game.number;
-      const liveLabel = isCurrentLiveGame ? `Game ${game.number} · LIVE` : `Game ${game.number}`;
+      const liveLabel = compact
+        ? isCurrentLiveGame
+          ? `G${game.number} ●`
+          : `G${game.number}`
+        : isCurrentLiveGame
+          ? `Game ${game.number} · LIVE`
+          : `Game ${game.number}`;
       return `<a class="game-pill ${gameNavPillClass(game.state, selectedGamePill)}${isCurrentLiveGame ? " current-live" : ""}" href="${href}">${liveLabel}</a>`;
     })
   ].join("");
 
   const prevLink = isGameMode && Number.isInteger(nav.previousGameNumber)
-    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">Previous Game</a>`
+    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">${compact ? `← G${nav.previousGameNumber}` : "Previous Game"}</a>`
     : `<span class="meta-text">${isGameMode ? "No previous game" : "Series view active"}</span>`;
   const nextLink = isGameMode && Number.isInteger(nav.nextGameNumber)
-    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">Next Game</a>`
+    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">${compact ? `G${nav.nextGameNumber} →` : "Next Game"}</a>`
     : `<span class="meta-text">${isGameMode ? "No next game" : "Choose a game tab to inspect map-level data"}</span>`;
   const liveJumpLink = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
-    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">Jump to Live Game ${liveGameNumber}</a>`
+    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Jump G${liveGameNumber}` : `Jump to Live Game ${liveGameNumber}`}</a>`
     : "";
   const modeNote = isGameMode
-    ? `<p class="meta-text">Game mode active${activeGameNumber ? ` · Game ${activeGameNumber}` : ""}. Switch to Series to review full-match context.</p>`
-    : `<p class="meta-text">${match.status === "completed"
+    ? `<p class="meta-text">${compact ? `Game mode${activeGameNumber ? ` · G${activeGameNumber}` : ""}` : `Game mode active${activeGameNumber ? ` · Game ${activeGameNumber}` : ""}. Switch to Series to review full-match context.`}</p>`
+    : `<p class="meta-text">${compact
+        ? match.status === "completed"
+          ? "Series mode · final context"
+          : match.status === "upcoming"
+            ? "Series mode · pre-match context"
+            : "Series mode · open live game for map stats"
+        : match.status === "completed"
         ? "Series mode active. Review overall result and open any game for map-level detail."
         : match.status === "upcoming"
           ? "Series mode active. Focused on match setup, timing, and matchup context."
@@ -995,7 +1188,7 @@ function renderGameExplorer(match, apiBase) {
 
   elements.gameNavWrap.innerHTML = `
     <div class="game-nav-head">
-      <p class="meta-text">Completed ${nav.counts?.completed || 0} · Live ${nav.counts?.inProgress || 0} · Upcoming ${nav.counts?.upcoming || 0}</p>
+      <p class="meta-text">${compact ? `C ${nav.counts?.completed || 0} · L ${nav.counts?.inProgress || 0} · U ${nav.counts?.upcoming || 0}` : `Completed ${nav.counts?.completed || 0} · Live ${nav.counts?.inProgress || 0} · Upcoming ${nav.counts?.upcoming || 0}`}</p>
       <div class="game-nav-links">${liveJumpLink}${prevLink}${nextLink}</div>
     </div>
     ${currentLiveCallout}
@@ -1009,10 +1202,10 @@ function renderGameExplorer(match, apiBase) {
     const leftOption = elements.feedTeamFilter.querySelector("option[value='left']");
     const rightOption = elements.feedTeamFilter.querySelector("option[value='right']");
     if (leftOption) {
-      leftOption.textContent = match.teams.left.name;
+      leftOption.textContent = displayTeamName(match.teams.left.name);
     }
     if (rightOption) {
-      rightOption.textContent = match.teams.right.name;
+      rightOption.textContent = displayTeamName(match.teams.right.name);
     }
   }
 
@@ -1026,7 +1219,7 @@ function renderGameExplorer(match, apiBase) {
             <span class="pill upcoming">series mode</span>
           </div>
           <p class="meta-text">Kickoff: ${match.startAt ? dateTimeLabel(match.startAt) : "TBD"} · Format BO${match.bestOf || 1}</p>
-          <p class="meta-text">${match.teams.left.name} vs ${match.teams.right.name} · ${match.tournament || "Tournament TBD"}</p>
+          <p class="meta-text">${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)} · ${match.tournament || "Tournament TBD"}</p>
         </article>
       `;
       return;
@@ -1039,8 +1232,8 @@ function renderGameExplorer(match, apiBase) {
             <p class="game-context-title">Series Context · COMPLETED</p>
             <span class="pill complete">series mode</span>
           </div>
-          <p class="meta-text">Final: ${match.seriesScore.left} - ${match.seriesScore.right}${winner ? ` · Winner ${winner}` : ""}</p>
-          <p class="meta-text">${match.teams.left.name} vs ${match.teams.right.name} · ${match.tournament || "Tournament"}</p>
+          <p class="meta-text">Final: ${match.seriesScore.left} - ${match.seriesScore.right}${winner ? ` · Winner ${displayTeamName(winner)}` : ""}</p>
+          <p class="meta-text">${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)} · ${match.tournament || "Tournament"}</p>
         </article>
       `;
       return;
@@ -1889,6 +2082,8 @@ function snapshotItem(label, value, tone = "neutral") {
 }
 
 function renderStatusSummary(match) {
+  const compact = isCompactUI();
+  const labelFor = (full, short) => (compact ? short : full);
   const items = [];
   const bestOf = Number(match?.bestOf || match?.seriesProgress?.bestOf || 1);
   const projectionCountdown = Number(match?.seriesProjection?.countdownSeconds);
@@ -1899,24 +2094,24 @@ function renderStatusSummary(match) {
   const countdown = Number.isFinite(projectionCountdown) ? projectionCountdown : fallbackCountdown;
   const refreshAfter = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
 
-  items.push(snapshotItem("Status", String(match.status || "unknown").toUpperCase(), match.status === "live" ? "good" : "neutral"));
-  items.push(snapshotItem("Format", `BO${bestOf}`));
+  items.push(snapshotItem(labelFor("Status", "State"), String(match.status || "unknown").toUpperCase(), match.status === "live" ? "good" : "neutral"));
+  items.push(snapshotItem(labelFor("Format", "BO"), `BO${bestOf}`));
   items.push(snapshotItem("Patch", match.patch || "unknown"));
-  items.push(snapshotItem("Refresh", `Every ${refreshAfter}s`));
+  items.push(snapshotItem(labelFor("Refresh", "Sync"), compact ? `${refreshAfter}s` : `Every ${refreshAfter}s`));
   if (uiState.viewMode === "series") {
-    items.push(snapshotItem("View", "Series"));
+    items.push(snapshotItem("View", compact ? "S" : "Series"));
   } else if (Number.isInteger(selectedGameNumber) && selectedGameNumber > 0) {
-    items.push(snapshotItem("Focused Game", `Game ${selectedGameNumber}`));
+    items.push(snapshotItem(labelFor("Focused Game", "Game"), compact ? `G${selectedGameNumber}` : `Game ${selectedGameNumber}`));
   }
 
   if (match.status === "upcoming") {
-    const startLabel = match.startAt ? dateTimeLabel(match.startAt) : "TBD";
-    items.push(snapshotItem("Starts", startLabel, "warn"));
+    const startLabel = match.startAt ? (compact ? dateTimeCompact(match.startAt) : dateTimeLabel(match.startAt)) : "TBD";
+    items.push(snapshotItem(labelFor("Starts", "Kickoff"), startLabel, "warn"));
     items.push(snapshotItem("Countdown", countdown !== null ? shortDuration(countdown) : "TBD", "warn"));
   } else if (match.status === "live") {
     const liveGame = (match.seriesGames || []).find((game) => game.state === "inProgress");
-    const gameLabel = liveGame ? `Game ${liveGame.number}` : "Game in progress";
-    items.push(snapshotItem("Current Game", gameLabel, "good"));
+    const gameLabel = liveGame ? (compact ? `G${liveGame.number}` : `Game ${liveGame.number}`) : "Game in progress";
+    items.push(snapshotItem(labelFor("Current Game", "Live"), gameLabel, "good"));
 
     if (match.momentum) {
       items.push(snapshotItem("Gold Lead", signed(match.momentum.goldLead), "good"));
@@ -1926,8 +2121,8 @@ function renderStatusSummary(match) {
     }
   } else if (match.status === "completed") {
     const winner = winnerTeamName(match);
-    items.push(snapshotItem("Final", `${match.seriesScore.left} : ${match.seriesScore.right}`));
-    items.push(snapshotItem("Winner", winner || "TBD", "good"));
+    items.push(snapshotItem(labelFor("Final", "Score"), `${match.seriesScore.left} : ${match.seriesScore.right}`));
+    items.push(snapshotItem("Winner", winner ? displayTeamName(winner) : "TBD", "good"));
   }
 
   elements.statusSummary.innerHTML = items.join("");
@@ -1953,6 +2148,7 @@ function renderUpcomingEssentials(match) {
     return;
   }
 
+  const compact = isCompactUI();
   const intel = upcomingIntel(match);
   const essentials = intel?.essentials || {};
   const scheduledAt = essentials.scheduledAt || match.startAt;
@@ -1963,23 +2159,26 @@ function renderUpcomingEssentials(match) {
       : null;
   const estimatedEndAt = essentials.estimatedEndAt || match?.seriesProjection?.estimatedEndAt || null;
   const cards = [
-    upcomingCard("Kickoff", scheduledAt ? dateTimeLabel(scheduledAt) : "TBD"),
+    upcomingCard("Kickoff", scheduledAt ? (compact ? dateTimeCompact(scheduledAt) : dateTimeLabel(scheduledAt)) : "TBD"),
     upcomingCard("Countdown", countdownSeconds !== null ? shortDuration(Math.max(0, countdownSeconds)) : "TBD"),
-    upcomingCard("Format", `BO${match.bestOf || 1}`),
+    upcomingCard(compact ? "BO" : "Format", `BO${match.bestOf || 1}`),
     upcomingCard("Tournament", match.tournament || "Unknown"),
-    upcomingCard("Patch", match.patch || "unknown"),
-    upcomingCard("Region", String(match.region || "global").toUpperCase())
+    upcomingCard("Patch", match.patch || "unknown")
   ];
 
   if (estimatedEndAt) {
-    cards.push(upcomingCard("Estimated End", dateTimeLabel(estimatedEndAt)));
+    cards.push(upcomingCard(compact ? "End ETA" : "Estimated End", compact ? dateTimeCompact(estimatedEndAt) : dateTimeLabel(estimatedEndAt)));
+  }
+
+  if (!compact) {
+    cards.push(upcomingCard("Region", String(match.region || "global").toUpperCase()));
   }
 
   elements.upcomingEssentialsWrap.innerHTML = `
     <div class="upcoming-grid">${cards.join("")}</div>
     <article class="upcoming-note">
-      <p class="meta-text">${match.teams.left.name} vs ${match.teams.right.name}</p>
-      <p class="meta-text">Selected map: Game ${match?.selectedGame?.number || 1}</p>
+      <p class="meta-text">${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)}</p>
+      <p class="meta-text">${compact ? "Map" : "Selected map"}: ${compact ? `G${match?.selectedGame?.number || 1}` : `Game ${match?.selectedGame?.number || 1}`}</p>
     </article>
   `;
 }
@@ -2912,6 +3111,7 @@ function stateLabel(state) {
 }
 
 function renderSeriesGames(match, apiBase) {
+  const compact = isCompactUI();
   const games = Array.isArray(match.seriesGames) ? match.seriesGames : [];
   if (!games.length) {
     elements.seriesGamesWrap.innerHTML = `<div class="empty">No game breakdown available.</div>`;
@@ -2921,26 +3121,26 @@ function renderSeriesGames(match, apiBase) {
   elements.seriesGamesWrap.innerHTML = games
     .map((game) => {
       const primaryWatch = game.watchUrl
-        ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">Watch VOD</a>`
+        ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">${compact ? "VOD" : "Watch VOD"}</a>`
         : `<span class="meta-text">No VOD</span>`;
       const options = Array.isArray(game.watchOptions) ? game.watchOptions : [];
       const openGameHref = detailUrlForGame(match.id, apiBase, game.number);
       const sideInfo = game?.sideInfo || {};
       const sideText = sideInfo.leftSide && sideInfo.rightSide
-        ? `${match.teams.left.name} ${String(sideInfo.leftSide).toUpperCase()} · ${match.teams.right.name} ${String(sideInfo.rightSide).toUpperCase()}`
+        ? `${displayTeamName(match.teams.left.name)} ${String(sideInfo.leftSide).toUpperCase()} · ${displayTeamName(match.teams.right.name)} ${String(sideInfo.rightSide).toUpperCase()}`
         : null;
 
       return `
         <article class="game-card ${game.selected ? "selected" : ""}">
           <div class="game-head">
-            <p class="game-title">Game ${game.number}</p>
+            <p class="game-title">${compact ? `G${game.number}` : `Game ${game.number}`}</p>
             <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
           </div>
-          ${game.selected ? `<p class="meta-text strong">Currently selected</p>` : `<a class="table-link" href="${openGameHref}">Open game detail</a>`}
+          ${game.selected ? `<p class="meta-text strong">${compact ? "Focused" : "Currently selected"}</p>` : `<a class="table-link" href="${openGameHref}">${compact ? "Open" : "Open game detail"}</a>`}
           <p class="meta-text">${game.label || "Match game details."}</p>
           ${sideText ? `<p class="meta-text">${sideText}</p>` : ""}
-          ${game.startedAt ? `<p class="meta-text">Start: ${dateTimeLabel(game.startedAt)}</p>` : ""}
-          ${primaryWatch}
+          ${game.startedAt ? `<p class="meta-text">${compact ? "Start" : "Start"}: ${compact ? dateTimeCompact(game.startedAt) : dateTimeLabel(game.startedAt)}</p>` : ""}
+          ${compact && game.watchUrl ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>` : primaryWatch}
           ${options.length
             ? `<div class="vod-options">${options
                 .map((opt) => `<a class="vod-link" href="${opt.watchUrl}" target="_blank" rel="noreferrer">${opt.label}</a>`)
@@ -2984,10 +3184,11 @@ function sideSummaryFromSeriesGame(game, match) {
     return "n/a";
   }
 
-  return `${match.teams.left.name} ${String(sideInfo.leftSide).toUpperCase()} · ${match.teams.right.name} ${String(sideInfo.rightSide).toUpperCase()}`;
+  return `${displayTeamName(match.teams.left.name)} ${String(sideInfo.leftSide).toUpperCase()} · ${displayTeamName(match.teams.right.name)} ${String(sideInfo.rightSide).toUpperCase()}`;
 }
 
 function renderSeriesComparison(match, apiBase) {
+  const compact = isCompactUI();
   const games = Array.isArray(match.seriesGames) ? match.seriesGames : [];
   if (!games.length) {
     elements.seriesCompareWrap.innerHTML = `<div class="empty">Series comparison appears once game breakdown is available.</div>`;
@@ -3007,12 +3208,12 @@ function renderSeriesComparison(match, apiBase) {
   const slowest = durations.length ? durationLabelFromMinutes(Math.max(...durations)) : "n/a";
 
   const summaryCards = [
-    { label: "Completed Maps", value: String(completedGames.length) },
-    { label: `${match.teams.left.name} Wins`, value: String(leftWins) },
-    { label: `${match.teams.right.name} Wins`, value: String(rightWins) },
-    { label: "Avg Map Length", value: avgDuration },
-    { label: "Fastest Map", value: fastest },
-    { label: "Slowest Map", value: slowest }
+    { label: compact ? "Maps" : "Completed Maps", value: String(completedGames.length) },
+    { label: compact ? `${displayTeamName(match.teams.left.name)} W` : `${displayTeamName(match.teams.left.name)} Wins`, value: String(leftWins) },
+    { label: compact ? `${displayTeamName(match.teams.right.name)} W` : `${displayTeamName(match.teams.right.name)} Wins`, value: String(rightWins) },
+    { label: compact ? "Avg Len" : "Avg Map Length", value: avgDuration },
+    { label: compact ? "Fastest" : "Fastest Map", value: fastest },
+    { label: compact ? "Slowest" : "Slowest Map", value: slowest }
   ];
 
   const rows = games
@@ -3020,7 +3221,7 @@ function renderSeriesComparison(match, apiBase) {
       const openHref = detailUrlForGame(match.id, apiBase, game.number);
       const winner = resolveSeriesGameWinnerName(game, match);
       const winnerText =
-        winner ||
+        (winner ? displayTeamName(winner) : null) ||
         (game.state === "inProgress"
           ? "Live"
           : game.state === "unneeded"
@@ -3037,7 +3238,7 @@ function renderSeriesComparison(match, apiBase) {
 
       return `
         <tr>
-          <td>Game ${game.number}</td>
+          <td>${compact ? `G${game.number}` : `Game ${game.number}`}</td>
           <td><span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span></td>
           <td>${winnerText}</td>
           <td>${durationText}</td>
@@ -3787,6 +3988,8 @@ async function fetchMatchSnapshot({ matchId, requestedGameNumber, apiBase }) {
 }
 
 function renderMatchPayload(match, apiBase, source = "polling") {
+  applyMobileSectionHeadings();
+
   if (uiState.match?.id && uiState.match.id !== match.id) {
     uiState.leadTrendScaleByContext = {};
   }
@@ -3806,10 +4009,12 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   }
 
   const focusedLabel = Number.isInteger(uiState.activeGameNumber) && uiState.viewMode === "game"
-    ? ` · Game ${uiState.activeGameNumber}`
+    ? ` · ${isCompactUI() ? `G${uiState.activeGameNumber}` : `Game ${uiState.activeGameNumber}`}`
     : "";
-  elements.matchTitle.textContent = `${match.teams.left.name} vs ${match.teams.right.name} · ${match.tournament}${focusedLabel}`;
-  elements.freshnessText.textContent = `Source: ${match.freshness.source} · ${match.freshness.status} · Updated ${dateTimeLabel(match.freshness.updatedAt)}`;
+  elements.matchTitle.textContent = `${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)} · ${match.tournament}${focusedLabel}`;
+  elements.freshnessText.textContent = isCompactUI()
+    ? `${String(match.freshness.source || "polling").toUpperCase()} · ${String(match.freshness.status || "syncing").toUpperCase()} · ${dateTimeCompact(match.freshness.updatedAt)}`
+    : `Source: ${match.freshness.source} · ${match.freshness.status} · Updated ${dateTimeLabel(match.freshness.updatedAt)}`;
   document.title = `${match.teams.left.name} vs ${match.teams.right.name}${focusedLabel} | Pulseboard`;
 
   renderScoreboard(match);
@@ -4065,4 +4270,9 @@ window.addEventListener("beforeunload", () => {
   clearRespawnTicker();
 });
 
+window.addEventListener("resize", () => {
+  applyMobileSectionHeadings();
+});
+
+applyMobileSectionHeadings();
 loadMatch();
