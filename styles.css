@@ -2039,13 +2039,486 @@ button.ghost,
   display: none;
 }
 
-@media (max-width: 920px) {
+@media (max-width: 1024px) {
+  .hero {
+    padding: 1.45rem 0.85rem 0.7rem;
+  }
+
+  .hero.compact {
+    padding-bottom: 0.55rem;
+  }
+
   .layout {
     grid-template-columns: 1fr;
+    padding: 0.8rem 0.8rem 1.4rem;
+    gap: 0.75rem;
+  }
+
+  .panel {
+    padding: 0.8rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(10, 24, 40, 0.1);
+  }
+
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    margin-bottom: 0.62rem;
+  }
+
+  .section-head h2 {
+    font-size: 1.02rem;
   }
 
   .scoreboard {
     grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .series {
+    order: -1;
+  }
+
+  .actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.52rem;
+  }
+
+  .actions .status-text,
+  .actions .meta-text {
+    grid-column: 1 / -1;
+  }
+
+  .controls-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .controls-grid .check {
+    grid-column: 1 / -1;
+  }
+
+  .feed-controls,
+  .past-toolbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .card-grid,
+  .matchup-grid,
+  .upcoming-form,
+  .series-games,
+  .objective-forecast,
+  .runs-wrap,
+  .delta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upcoming-grid,
+  .snapshot-grid,
+  .tempo-grid,
+  .command-grid,
+  .objective-breakdown,
+  .control-rows,
+  .series-compare-summary,
+  .recap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .game-nav-links {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .game-pill-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.2rem;
+  }
+
+  .game-pill-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .game-pill {
+    flex: 0 0 auto;
+  }
+
+  .live-now-banner {
+    padding: 0.52rem 0.6rem;
+  }
+
+  .moments li,
+  .timeline li,
+  .follow-item,
+  .game-card,
+  .upcoming-card,
+  .watch-row,
+  .form-card {
+    padding: 0.6rem;
+  }
+
+  .table-wrap,
+  .lane-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    border-radius: 12px;
+  }
+
+  .data-table {
+    min-width: 640px;
+  }
+
+  .upcoming-h2h-table {
+    min-width: 560px;
+  }
+
+  .compare-table {
+    min-width: 560px;
+  }
+
+  .tracker-table {
+    min-width: 1180px;
+  }
+
+  .lane-table {
+    min-width: 620px;
+  }
+
+  .series-compare-table {
+    min-width: 720px;
+  }
+
+  .trends-table {
+    min-width: 980px;
+  }
+
+  .draft-delta-table {
+    min-width: 680px;
+  }
+
+  .role-delta-table {
+    min-width: 720px;
+  }
+
+  .form-list li {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.45rem;
+    font-size: 0.75rem;
+  }
+
+  .live-feed-row {
+    grid-template-columns: 3rem 1fr;
+  }
+
+  .feed-game-time {
+    font-size: 0.8rem;
+    min-width: 2.9rem;
+  }
+
+  .trend-chart {
+    height: 198px;
+  }
+
+  .trend-grid-label {
+    font-size: 2.8px;
+  }
+
+  .trend-current-label {
+    font-size: 3px;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: calc(4.8rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .noise {
+    opacity: 0.12;
+  }
+
+  .hero {
+    position: sticky;
+    top: 0;
+    z-index: 35;
+    background: linear-gradient(
+      180deg,
+      rgba(245, 241, 231, 0.98) 0%,
+      rgba(245, 241, 231, 0.95) 70%,
+      rgba(245, 241, 231, 0.78) 100%
+    );
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(12, 45, 66, 0.1);
+    padding: 0.95rem 0.7rem 0.62rem;
+  }
+
+  .hero.compact {
+    padding-bottom: 0.52rem;
+  }
+
+  .kicker {
+    font-size: 0.72rem;
+    margin-bottom: 0.12rem;
+  }
+
+  h1 {
+    font-size: clamp(1.44rem, 6.2vw, 1.9rem);
+  }
+
+  .subtitle {
+    margin-top: 0.45rem;
+    font-size: 0.82rem;
+    line-height: 1.28;
+  }
+
+  .page-nav {
+    position: fixed;
+    left: 0.55rem;
+    right: 0.55rem;
+    bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+    z-index: 60;
+    margin-top: 0;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    box-shadow: 0 12px 28px rgba(10, 24, 40, 0.18);
+    backdrop-filter: blur(16px);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.2rem;
+    padding: 0.22rem;
+    flex-wrap: nowrap;
+  }
+
+  .page-nav a {
+    border: 0;
+    min-height: 2.35rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    padding: 0 0.26rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: transparent;
+  }
+
+  .layout {
+    padding: 0.58rem 0.52rem 1rem;
+    gap: 0.62rem;
+  }
+
+  .panel {
+    padding: 0.66rem;
+    border-radius: 14px;
+  }
+
+  .controls h2 {
+    font-size: 0.98rem;
+  }
+
+  .controls-grid,
+  .feed-controls,
+  .past-toolbar,
+  .snapshot-grid,
+  .upcoming-grid,
+  .tempo-grid,
+  .command-grid,
+  .objective-breakdown,
+  .control-rows,
+  .series-compare-summary,
+  .recap-grid,
+  .delta-grid,
+  .objective-forecast,
+  .series-games,
+  .runs-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  input,
+  select,
+  button,
+  .link-btn {
+    min-height: 2.65rem;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+    gap: 0.48rem;
+    margin-top: 0.7rem;
+  }
+
+  .link-btn {
+    width: 100%;
+    margin-top: 0.55rem;
+  }
+
+  .hero .link-btn {
+    margin-top: 0.5rem;
+  }
+
+  .api-base-field,
+  .api-base-save {
+    display: none !important;
+  }
+
+  .match-card {
+    padding: 0.7rem;
+  }
+
+  .game-nav-head {
+    align-items: flex-start;
+  }
+
+  .game-nav-links {
+    gap: 0.36rem;
+    justify-content: flex-start;
+  }
+
+  .live-now-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+  }
+
+  .live-now-banner .link-btn {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .game-context-top,
+  .game-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .moments,
+  .timeline,
+  .mini-list {
+    gap: 0.5rem;
+  }
+
+  .moments li,
+  .timeline li {
+    padding: 0.56rem;
+  }
+
+  .timeline li {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .live-feed-row {
+    gap: 0.42rem;
+  }
+
+  .live-feed-title {
+    font-size: 0.76rem;
+  }
+
+  .live-feed-meta {
+    font-size: 0.64rem;
+  }
+
+  .feed-bucket-tag {
+    font-size: 0.54rem;
+  }
+
+  .follow-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+  }
+
+  .follow-item .danger-btn {
+    width: 100%;
+  }
+
+  .planner-rows li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.18rem;
+  }
+
+  .form-list li {
+    grid-template-columns: 1fr;
+    font-size: 0.74rem;
+  }
+
+  .table-wrap,
+  .lane-table-wrap {
+    border: 1px solid rgba(12, 45, 66, 0.1);
+    background: rgba(255, 255, 255, 0.45);
+    padding-bottom: 0.12rem;
+  }
+
+  .data-table {
+    min-width: 560px;
+  }
+
+  .compare-table {
+    min-width: 540px;
+  }
+
+  .tracker-table {
+    min-width: 1060px;
+  }
+
+  .lane-table {
+    min-width: 560px;
+  }
+
+  .series-compare-table,
+  .role-delta-table,
+  .draft-delta-table {
+    min-width: 620px;
+  }
+
+  .trends-table {
+    min-width: 860px;
+  }
+
+  .trend-chart {
+    height: 206px;
+  }
+
+  .trend-axis {
+    font-size: 0.64rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero {
+    padding-top: 0.82rem;
+  }
+
+  .subtitle {
+    font-size: 0.78rem;
+  }
+
+  .panel {
+    padding: 0.58rem;
+  }
+
+  .series-score {
+    font-size: 1.45rem;
+  }
+
+  .feed-game-time {
+    font-size: 0.72rem;
+    min-width: 2.55rem;
+  }
+
+  .trend-chart {
+    height: 186px;
   }
 }
 
