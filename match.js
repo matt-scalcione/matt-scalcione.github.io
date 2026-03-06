@@ -106,9 +106,7 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
     "liveAlertsList"
   ],
   completed: [
-    "selectedGameRecapWrap",
     "playerTrackerWrap",
-    "teamCompareWrap",
     "leadTrendWrap",
     "liveFeedList"
   ],
@@ -2615,6 +2613,77 @@ function renderGameExplorer(match, apiBase) {
     return;
   }
 
+  if (selected.state === "completed") {
+    const selectedSeriesGame = (Array.isArray(match.seriesGames) ? match.seriesGames : []).find((game) => game.selected) || null;
+    const winnerName = selectedGameWinnerName(match, selectedSeriesGame, selected) || "TBD";
+    const winnerShort = winnerName === "TBD" ? "TBD" : displayTeamName(winnerName);
+    const winnerTone =
+      winnerName === match?.teams?.left?.name ? "left" : winnerName === match?.teams?.right?.name ? "right" : "neutral";
+    const duration = durationLabelFromMinutes(selectedSeriesGame?.durationMinutes);
+    const snapshot = selected.snapshot || {};
+    const left = snapshot.left || {};
+    const right = snapshot.right || {};
+    const leftGold = Number(left.gold);
+    const rightGold = Number(right.gold);
+    const hasGold = Number.isFinite(leftGold) && Number.isFinite(rightGold);
+    const finalKills = `${left.kills ?? 0} - ${right.kills ?? 0}`;
+    const finalTowers = `${left.towers ?? 0} - ${right.towers ?? 0}`;
+    const objectives = `Drg ${left.dragons ?? 0}-${right.dragons ?? 0} · Brn ${left.barons ?? 0}-${right.barons ?? 0}`;
+    const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, 3) : [];
+    const spotlightMarkup = topRows.length
+      ? `
+        <div class="completed-spotlights">
+          ${topRows
+            .map(
+              (player) => `
+                <article class="completed-spotlight-card">
+                  <p class="completed-spotlight-name">${player.name}</p>
+                  <p class="meta-text">${player.champion || "Unknown"} · ${String(player.role || "flex").toUpperCase()}</p>
+                  <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · Gold ${formatNumber(player.goldEarned)}</p>
+                </article>
+              `
+            )
+            .join("")}
+        </div>
+      `
+      : "";
+
+    elements.gameContextWrap.innerHTML = `
+      <article class="game-context-card ${selected.telemetryStatus || "none"} completed-context-card">
+        <div class="game-context-top">
+          <p class="game-context-title">Game ${selected.number} · Final</p>
+          <span class="pill complete">Complete</span>
+        </div>
+        <article class="completed-result-banner ${winnerTone}">
+          <div class="completed-result-copy">
+            <p class="completed-result-kicker">Result</p>
+            <p class="completed-result-title">${winnerShort} won Game ${selected.number}</p>
+            <p class="meta-text">${finalKills} kills · ${duration} · ${sideLabel}</p>
+          </div>
+        </article>
+        <div class="game-context-grid">
+          ${gameContextInfoCard("Winner", winnerShort)}
+          ${gameContextInfoCard("Kills", finalKills)}
+          ${gameContextInfoCard("Towers", finalTowers)}
+          ${gameContextInfoCard("Objectives", objectives)}
+          ${gameContextInfoCard("Gold", hasGold ? `${formatNumber(leftGold)} - ${formatNumber(rightGold)}` : "n/a")}
+          ${gameContextInfoCard("Started", startedLabel)}
+          ${gameContextInfoCard("Sides", sideLabel)}
+          ${gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine)}
+        </div>
+        ${spotlightMarkup}
+        ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Open VOD / Stream</a>` : ""}
+        ${watchOptions.length
+          ? `<div class="vod-options">${watchOptions
+              .map((option) => `<a class="vod-link" href="${option.watchUrl}" target="_blank" rel="noreferrer">${compact ? option.shortLabel || option.label : option.label}</a>`)
+              .join("")}</div>`
+          : ""}
+        ${tipsList}
+      </article>
+    `;
+    return;
+  }
+
   elements.gameContextWrap.innerHTML = `
     <article class="game-context-card ${selected.telemetryStatus || "none"}">
       <div class="game-context-top">
@@ -2725,8 +2794,10 @@ function applyGamePanelVisibility(match) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
     }
-    setTargetVisibility(elements.gameCommandWrap, !draftPreview);
-    setTargetVisibility(elements.selectedGameRecapWrap, !draftPreview);
+    setTargetVisibility(elements.gameCommandWrap, !draftPreview && selectedState !== "completed");
+    setTargetVisibility(elements.selectedGameRecapWrap, !draftPreview && selectedState !== "completed");
+    setTargetVisibility(elements.teamCompareWrap, false);
+    setTargetVisibility(elements.pulseCard, false);
     return;
   }
 
@@ -2755,6 +2826,15 @@ function applyGamePanelVisibility(match) {
   if (selectedState === "inProgress") {
     setTargetVisibility(elements.gameCommandWrap, false);
     setTargetVisibility(elements.teamCompareWrap, false);
+    setTargetVisibility(elements.liveAlertsList, false);
+    return;
+  }
+
+  if (selectedState === "completed") {
+    setTargetVisibility(elements.gameCommandWrap, false);
+    setTargetVisibility(elements.teamCompareWrap, false);
+    setTargetVisibility(elements.pulseCard, false);
+    setTargetVisibility(elements.selectedGameRecapWrap, false);
     setTargetVisibility(elements.liveAlertsList, false);
     return;
   }
