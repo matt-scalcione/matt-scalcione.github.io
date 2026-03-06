@@ -78,8 +78,8 @@ const MOBILE_GAME_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Game" },
   { id: "selectedGameRecapWrap", label: "Recap" },
   { id: "playerTrackerWrap", label: "Players" },
-  { id: "liveFeedList", label: "Feed" },
   { id: "leadTrendWrap", label: "Gold" },
+  { id: "liveFeedList", label: "Feed" },
   { id: "objectiveControlWrap", label: "Obj" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
@@ -103,8 +103,8 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
     "gameCommandWrap",
     "teamCompareWrap",
     "playerTrackerWrap",
-    "liveFeedList",
     "leadTrendWrap",
+    "liveFeedList",
     "objectiveControlWrap"
   ],
   completed: [
@@ -112,6 +112,7 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
     "playerTrackerWrap",
     "teamCompareWrap",
     "leadTrendWrap",
+    "liveFeedList",
     "objectiveControlWrap",
     "performersWrap",
     "momentsList"
@@ -4979,7 +4980,6 @@ function buildTrendStory(match, chart) {
     return {
       timelineAnchor: { startTs: null, estimated: true },
       markers: [],
-      latestRows: [],
       activeRow: null
     };
   }
@@ -4993,7 +4993,6 @@ function buildTrendStory(match, chart) {
     return {
       timelineAnchor,
       markers: [],
-      latestRows: [],
       activeRow: null
     };
   }
@@ -5014,7 +5013,6 @@ function buildTrendStory(match, chart) {
   return {
     timelineAnchor,
     markers,
-    latestRows: latestFirst.slice(0, 8),
     activeRow
   };
 }
@@ -5067,17 +5065,23 @@ function renderLeadTrend(match) {
   const trendStory = buildTrendStory(match, chart);
   const activeStory = trendStory.activeRow;
   const miniMapMarkup = renderMiniMap(match, { focusedEvent: activeStory, timelineAnchor: trendStory.timelineAnchor });
-  const activeStoryTeam = activeStory?.team === "left" ? displayTeamName(match.teams.left.name) : activeStory?.team === "right" ? displayTeamName(match.teams.right.name) : "Neutral";
+  const activeStoryLead = Number.isFinite(activeStory?.eventTs) ? leadValueAtTimestamp(chart.rows, Number(activeStory.eventTs)) : null;
   const activeStoryClock = activeStory?.gameClockSeconds === null || activeStory?.gameClockSeconds === undefined
     ? "--:--"
     : `${trendStory.timelineAnchor.estimated ? "~" : ""}${formatGameClock(activeStory.gameClockSeconds)}`;
-  const activeStoryLead = Number.isFinite(activeStory?.eventTs) ? leadValueAtTimestamp(chart.rows, Number(activeStory.eventTs)) : null;
   const activeStoryLeadLabel =
     !Number.isFinite(activeStoryLead) || activeStoryLead === 0
-      ? "Lead: even"
-      : `Lead: ${activeStoryLead > 0 ? `${leftTeamLabel} +` : `${rightTeamLabel} +`}${compactGold(Math.abs(activeStoryLead))}`;
-  const activeStoryMomentumLabel = activeStory?.swingDescriptor?.label || "Δ n/a";
-  const activeStoryPhaseLabel = activeStory?.phase?.label || "Phase ?";
+      ? "Even"
+      : `${activeStoryLead > 0 ? leftTeamLabel : rightTeamLabel} +${compactGold(Math.abs(activeStoryLead))}`;
+  const activeStoryTeamLabel =
+    activeStory?.team === "left"
+      ? leftTeamLabel
+      : activeStory?.team === "right"
+        ? rightTeamLabel
+        : "Neutral";
+  const activeStoryFocusLine = activeStory
+    ? `${activeStoryClock} · ${activeStory.phase?.label || "Phase ?"} · ${activeStoryTeamLabel} · ${feedBucketLabel(activeStory.bucket)} · ${activeStoryLeadLabel} · ${activeStory.swingDescriptor?.short || "Δ n/a"}`
+    : "No focused event selected";
   const activeStoryTone = activeStoryLead > 0 ? "left" : activeStoryLead < 0 ? "right" : "neutral";
   const activeStoryMarker = trendStory.markers.find((row) => row.eventId === activeStory?.eventId) || null;
   const activeStoryGuideMarkup = activeStoryMarker
@@ -5092,40 +5096,6 @@ function renderLeadTrend(match) {
       return `<circle cx="${row.chartX.toFixed(2)}" cy="${row.chartY.toFixed(2)}" r="${markerRadius.toFixed(2)}" class="trend-event-marker ${tone} ${row.bucket} importance-${row.importance}${isActive ? " active" : ""}" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0"></circle>`;
     })
     .join("");
-  const trendStoryListMarkup = trendStory.latestRows
-    .map((row) => {
-      const tone = row.team === "left" ? "left" : row.team === "right" ? "right" : "neutral";
-      const isActive = Boolean(activeStory?.eventId) && row.eventId === activeStory.eventId;
-      const teamLabel = row.team
-        ? row.team === "left"
-          ? displayTeamName(match.teams.left.name)
-          : displayTeamName(match.teams.right.name)
-        : "Neutral";
-      const clockLabel = row.gameClockSeconds === null ? "--:--" : `${trendStory.timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`;
-      return `
-        <li>
-          <button type="button" class="trend-story-item ${tone}${isActive ? " active" : ""} importance-${row.importance}" data-story-event-id="${encodeStoryEventId(row.eventId)}">
-            <span class="trend-story-clock">${clockLabel}</span>
-            <span class="trend-story-pill">${feedBucketLabel(row.bucket)}</span>
-            <span class="trend-story-text">${row.title}</span>
-            <span class="trend-story-team">${teamLabel} · ${row.phase?.label || "?"} · ${row.swingDescriptor?.short || "Δ n/a"}</span>
-          </button>
-        </li>
-      `;
-    })
-    .join("");
-  const trendStoryMarkup = trendStory.latestRows.length
-    ? `
-      <section class="trend-storyboard">
-        <article class="trend-story-current ${activeStoryTone}">
-          <p class="trend-story-kicker">Live Story</p>
-          <p class="trend-story-headline">${activeStory?.title || "No event selected"}</p>
-          <p class="trend-story-meta">${activeStoryClock} · ${activeStoryPhaseLabel} · ${activeStoryTeam} · ${activeStory ? feedBucketLabel(activeStory.bucket) : "Event"} · ${activeStoryLeadLabel} · ${activeStoryMomentumLabel}</p>
-        </article>
-        <ul class="trend-story-list">${trendStoryListMarkup}</ul>
-      </section>
-    `
-    : `<p class="meta-text">No timeline events yet for this map.</p>`;
 
   elements.leadTrendWrap.innerHTML = `
     <article class="trend-card">
@@ -5163,8 +5133,8 @@ function renderLeadTrend(match) {
           </div>
         </section>
       </div>
-      ${trendStoryMarkup}
       <div class="trend-stats">
+        <p class="meta-text trend-focus-line">Focused Event: ${activeStoryFocusLine}</p>
         <p class="meta-text">Peak ${leftTeamLabel}: +${compactGold(leftPeakLead)} · Peak ${rightTeamLabel}: +${compactGold(rightPeakLead)}</p>
         <p class="meta-text">Fixed scale: ±${compactGold(chart.displayAbsLead)} around center 0</p>
         <p class="meta-text">Largest swing: ${formatNumber(Math.abs(Math.round(trend.largestSwing || 0)))} gold</p>
