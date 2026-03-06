@@ -90,10 +90,9 @@ const MOBILE_SERIES_JUMP_TARGETS = [
 ];
 const MOBILE_UPCOMING_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Overview" },
-  { id: "upcomingEssentialsWrap", label: "Info" },
+  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "seriesLineupsWrap", label: "Lineups" },
   { id: "upcomingFormWrap", label: "Form" },
-  { id: "upcomingPredictionWrap", label: "Predict" },
-  { id: "upcomingWatchWrap", label: "Watch" },
   { id: "upcomingH2hWrap", label: "H2H" }
 ];
 const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
@@ -142,7 +141,7 @@ const MOBILE_SECTION_HEADINGS = {
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
-  upcoming: new Set(["Upcoming Essentials", "Team Form", "Prediction Model", "Watch Guide"]),
+  upcoming: new Set(["Game Explorer", "Matchup Console", "Series Lineups", "Team Form", "Head-To-Head"]),
   game: new Set(["Selected Game Recap", "Live Feed", "Player Tracker", "What Matters Now", "Live Alerts"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
@@ -2478,21 +2477,125 @@ function renderGameExplorer(match, apiBase) {
     const formatLabel = `Best of ${bestOf}`;
 
     if (match.status === "upcoming") {
+      const intel = upcomingIntel(match);
+      const essentials = intel?.essentials || {};
+      const scheduledAt = essentials.scheduledAt || match.startAt;
+      const estimatedEndAt = essentials.estimatedEndAt || match?.seriesProjection?.estimatedEndAt || null;
+      const watchOptions = Array.isArray(intel?.watchOptions) ? intel.watchOptions : [];
+      const featuredWatchOptions = watchOptions.slice(0, compact ? 2 : 3);
+      const overflowWatchCount = Math.max(0, watchOptions.length - featuredWatchOptions.length);
+      const prediction = intel?.prediction || null;
+      const leftPct = prediction ? Math.max(0, Math.min(100, Number(prediction.leftWinPct || 0))) : null;
+      const rightPct = prediction ? Math.max(0, Math.min(100, Number(prediction.rightWinPct || 0))) : null;
+      const drivers = prediction && Array.isArray(prediction.drivers) ? prediction.drivers.slice(0, compact ? 2 : 3) : [];
+      const favoriteName = prediction?.favoriteTeamName || "";
+      const favoriteTone =
+        favoriteName === match?.teams?.left?.name
+          ? "left"
+          : favoriteName === match?.teams?.right?.name
+            ? "right"
+            : "neutral";
+      const countdownLabel = countdown !== null ? (countdown > 0 ? shortDuration(Math.max(0, countdown)) : "Soon") : "TBD";
+      const kickoffLabel = scheduledAt ? (compact ? dateTimeCompact(scheduledAt) : dateTimeLabel(scheduledAt)) : `${kickoffDate} · ${kickoffTime}`;
+      const heroTags = [
+        formatLabel,
+        tournamentName,
+        match.patch ? `Patch ${match.patch}` : null,
+        estimatedEndAt ? `Ends ${compact ? dateTimeCompact(estimatedEndAt) : dateTimeLabel(estimatedEndAt)}` : null
+      ].filter(Boolean);
+      const watchMarkup = featuredWatchOptions.length
+        ? `
+          <div class="vod-options">
+            ${featuredWatchOptions
+              .map(
+                (option) => `
+                  <a class="vod-link" href="${option.url}" target="_blank" rel="noreferrer">${option.label || "Watch"}</a>
+                `
+              )
+              .join("")}
+            ${overflowWatchCount ? `<span class="series-context-more">+${overflowWatchCount} more</span>` : ""}
+          </div>
+        `
+        : `<p class="meta-text">Broadcast links are not published yet.</p>`;
+      const predictionMarkup = prediction
+        ? `
+          <article class="series-forecast-card ${favoriteTone}">
+            <div class="series-forecast-head">
+              <div>
+                <p class="tempo-label">Forecast</p>
+                <p class="series-forecast-favorite">${favoriteName ? `${displayTeamName(favoriteName)} favored` : "Forecast looks even"}</p>
+              </div>
+              <p class="meta-text">Confidence ${String(prediction.confidence || "low").toUpperCase()}</p>
+            </div>
+            <div class="edge-head">
+              <p class="meta-text">${scoreboardTeamName(match.teams.left.name)}</p>
+              <p class="meta-text">${scoreboardTeamName(match.teams.right.name)}</p>
+            </div>
+            <div class="edge-bars">
+              <div class="edge-side left" style="width:${leftPct}%"></div>
+              <div class="edge-side right" style="width:${rightPct}%"></div>
+            </div>
+            <div class="edge-head">
+              <p class="edge-score">${leftPct.toFixed(1)}%</p>
+              <p class="edge-score">${rightPct.toFixed(1)}%</p>
+            </div>
+            <p class="meta-text">Model ${prediction.modelVersion || "heuristic-v1"} weighs form, map-rate, H2H, and streak.</p>
+            ${drivers.length ? `<ul class="series-forecast-drivers">${drivers.map((driver) => `<li>${driver}</li>`).join("")}</ul>` : ""}
+          </article>
+        `
+        : `
+          <article class="series-forecast-card neutral">
+            <div class="series-forecast-head">
+              <div>
+                <p class="tempo-label">Forecast</p>
+                <p class="series-forecast-favorite">Prediction still building</p>
+              </div>
+            </div>
+            <p class="meta-text">Need recent form and head-to-head sample to project a favorite.</p>
+          </article>
+        `;
+
       elements.gameContextWrap.innerHTML = `
-        <article class="game-context-card none series-context-card">
+        <article class="game-context-card none series-context-card upcoming-series-card">
           <div class="game-context-top">
             <p class="game-context-title">Upcoming Series</p>
           </div>
+          <article class="series-context-hero">
+            <div class="series-context-headline">
+              <div class="series-context-matchup">
+                <span class="series-context-team left">${scoreboardTeamName(match.teams.left.name)}</span>
+                <span class="series-context-vs">vs</span>
+                <span class="series-context-team right">${scoreboardTeamName(match.teams.right.name)}</span>
+              </div>
+              <p class="series-context-fullname">${matchupLabel}</p>
+            </div>
+            <div class="series-context-timing">
+              <p class="series-context-kicker">${kickoffDate} · ${kickoffTime}</p>
+              <p class="series-context-countdown">${countdownLabel}</p>
+              <p class="meta-text">${countdown !== null ? "until first map" : kickoffLabel}</p>
+            </div>
+          </article>
+          <div class="series-context-tags">
+            ${heroTags.map((tag) => `<span class="series-context-tag">${tag}</span>`).join("")}
+          </div>
           <div class="series-context-grid">
-            ${seriesInfoCard("Date", kickoffDate)}
-            ${seriesInfoCard("Time", kickoffTime)}
-            ${seriesInfoCard("Matchup", matchupLabel)}
+            ${seriesInfoCard("Kickoff", kickoffLabel)}
+            ${seriesInfoCard("Countdown", countdownLabel)}
             ${seriesInfoCard("Format", formatLabel)}
             ${seriesInfoCard("Tournament", tournamentName)}
-            ${seriesInfoCard("Countdown", countdown !== null ? shortDuration(Math.max(0, countdown)) : "TBD")}
             ${seriesInfoCard("Patch", match.patch || "unknown")}
             ${seriesInfoCard("Region", String(match.region || "global").toUpperCase())}
           </div>
+          ${predictionMarkup}
+          <article class="series-watch-card">
+            <div class="series-forecast-head">
+              <div>
+                <p class="tempo-label">Watch</p>
+                <p class="series-forecast-favorite">${featuredWatchOptions.length ? "Official streams and mirrors" : "Watch links pending"}</p>
+              </div>
+            </div>
+            ${watchMarkup}
+          </article>
         </article>
       `;
       return;
@@ -2851,9 +2954,11 @@ function applySeriesPanelVisibility() {
 
 function applyUpcomingPanelVisibility(match) {
   const isUpcoming = match?.status === "upcoming";
-  for (const panel of elements.upcomingPanels) {
-    setPanelVisibility(panel, isUpcoming);
-  }
+  setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), false);
+  setPanelVisibility(elements.upcomingWatchWrap?.closest("section.panel"), false);
+  setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), false);
+  setPanelVisibility(elements.upcomingFormWrap?.closest("section.panel"), isUpcoming);
+  setPanelVisibility(elements.upcomingH2hWrap?.closest("section.panel"), isUpcoming);
 }
 
 function commandCard(label, value, hint, options = {}) {
