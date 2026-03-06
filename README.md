@@ -54,8 +54,19 @@ Your site URL will be:
   - On every push to `main`
   - Every 6 hours (scheduled run)
   - Deploy is blocked if SEO checks fail
+  - Default policy excludes match/team detail URLs unless `PULSEBOARD_INDEX_DETAIL_PAGES=true`
 
-## 5. Route Mode
+## 5. Game Hubs
+
+- LoL hub: `https://matt-scalcione.github.io/lol.html`
+- Dota 2 hub: `https://matt-scalcione.github.io/dota2.html`
+- Hubs include:
+  - Live cards
+  - Upcoming preview templates
+  - Recent recap templates
+  - Tournament radar
+
+## 6. Route Mode
 
 Default link mode is query-style (SEO-safe for GitHub Pages 404 behavior):
 
@@ -68,5 +79,25 @@ To force pretty route links, set in [`site-config.js`](/Users/admin/Documents/Gi
 window.PULSEBOARD_CONFIG = {
   ...window.PULSEBOARD_CONFIG,
   usePrettyRoutes: true
+};
+```
+
+## 7. Detail Page Indexing Policy
+
+By default, detail pages are kept non-indexed for crawler safety on static hosting:
+
+```js
+window.PULSEBOARD_CONFIG = {
+  ...window.PULSEBOARD_CONFIG,
+  indexDetailPages: false
+};
+```
+
+To enable indexing for `/match.html?id=...` and `/team.html?id=...`, set:
+
+```js
+window.PULSEBOARD_CONFIG = {
+  ...window.PULSEBOARD_CONFIG,
+  indexDetailPages: true
 };
 ```

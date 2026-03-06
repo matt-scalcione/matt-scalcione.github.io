@@ -83,6 +83,8 @@ const elements = {
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
+  lolHubNav: document.querySelector("#lolHubNav"),
+  dotaHubNav: document.querySelector("#dotaHubNav"),
   mobileLiveNav: document.querySelector("#mobileLiveNav"),
   mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
   mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
@@ -238,6 +240,12 @@ function gameChipMarkup(game) {
   }
 
   return `<span class="game-chip">${String(game || "?").slice(0, 1).toUpperCase()}</span>`;
+}
+
+function hubUrlForGame(game) {
+  const normalized = normalizeGameKey(game);
+  const page = normalized === "dota2" ? "dota2.html" : "lol.html";
+  return new URL(`./${page}`, window.location.href).toString();
 }
 
 function toLocalInputValue(date) {
@@ -405,6 +413,8 @@ function updateNav() {
   const scheduleUrl = new URL("./schedule.html", window.location.href);
 
   const followsUrl = new URL("./follows.html", window.location.href);
+  const lolHubUrl = new URL("./lol.html", window.location.href);
+  const dotaHubUrl = new URL("./dota2.html", window.location.href);
   const titleKey = selectedTitleKey();
   if (titleKey) {
     liveUrl.searchParams.set("title", titleKey);
@@ -420,6 +430,8 @@ function updateNav() {
   if (elements.mobileScheduleNav) elements.mobileScheduleNav.href = scheduleUrl.toString();
   if (elements.followsNav) elements.followsNav.href = followsUrl.toString();
   if (elements.mobileFollowsNav) elements.mobileFollowsNav.href = followsUrl.toString();
+  if (elements.lolHubNav) elements.lolHubNav.href = lolHubUrl.toString();
+  if (elements.dotaHubNav) elements.dotaHubNav.href = dotaHubUrl.toString();
 }
 
 function setStatus(message, tone = "neutral") {
@@ -457,6 +469,7 @@ function renderTable(container, rows, type) {
   const desktopBody = rows
     .map((row) => {
       const detailUrl = rowLink(row.id);
+      const hubUrl = hubUrlForGame(row.game);
       const winnerLong =
         row.winnerTeamId === row.teams.left.id
           ? row.teams.left.name
@@ -487,7 +500,7 @@ function renderTable(container, rows, type) {
       return `
         <tr class="schedule-row schedule-row-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftShort} vs ${rightShort}">
           <td class="schedule-time-cell">${dateTimeCompact(row.startAt)}</td>
-          <td class="schedule-game-cell">${gameChipMarkup(row.game)}</td>
+          <td class="schedule-game-cell"><a class="hub-chip-link" href="${hubUrl}" aria-label="Open ${gameLabel(row.game)} hub">${gameChipMarkup(row.game)}</a></td>
           <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
           <td class="schedule-score-cell">${scoreLabel}</td>
           <td class="schedule-winner-cell">${type === "result" ? winnerShort : "—"}</td>
@@ -499,6 +512,7 @@ function renderTable(container, rows, type) {
   const mobileCards = rows
     .map((row) => {
       const detailUrl = rowLink(row.id);
+      const hubUrl = hubUrlForGame(row.game);
       const leftShort = shortTeamName(row.teams.left.name);
       const rightShort = shortTeamName(row.teams.right.name);
       const winnerLong =
@@ -515,7 +529,7 @@ function renderTable(container, rows, type) {
       return `
         <a class="schedule-row-card schedule-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
           <div class="schedule-card-top">
-            <div class="schedule-card-game">${gameChipMarkup(row.game)} <span>${dateTimeCompact(row.startAt)}</span></div>
+            <div class="schedule-card-game"><span class="hub-chip-link" title="${gameLabel(row.game)}">${gameChipMarkup(row.game)}</span> <span>${dateTimeCompact(row.startAt)}</span></div>
             <span class="pill ${statusClass} schedule-card-status">${statusLabel}</span>
           </div>
           <p class="schedule-card-match">${leftShort} <span>vs</span> ${rightShort}</p>

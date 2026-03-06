@@ -9,5 +9,7 @@ window.PULSEBOARD_CONFIG = {
   apiBase: window.PULSEBOARD_API_BASE || "",
   siteOrigin: window.PULSEBOARD_SITE_ORIGIN || "",
   // Keep false on GitHub Pages for SEO safety; true requires server-side rewrites.
-  usePrettyRoutes: false
+  usePrettyRoutes: false,
+  // Keep false until detail pages are pre-rendered for crawler-safe indexing.
+  indexDetailPages: false
 };
