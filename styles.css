@@ -2259,11 +2259,29 @@ button.ghost,
   padding: 0.72rem;
 }
 
+.pulse-shell {
+  display: grid;
+  gap: 0.56rem;
+}
+
 .pulse-head {
   display: flex;
   justify-content: space-between;
   gap: 0.6rem;
   align-items: center;
+}
+
+.pulse-head-copy {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.pulse-kicker {
+  margin: 0;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
 .pulse.good {
@@ -2340,6 +2358,98 @@ button.ghost,
   display: flex;
   flex-wrap: wrap;
   gap: 0.32rem;
+}
+
+.pulse-command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.46rem;
+}
+
+.pulse-command-grid .command-card {
+  padding: 0.54rem;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.pulse-command-grid .command-card.featured {
+  background: linear-gradient(180deg, rgba(31, 123, 194, 0.12), rgba(31, 123, 194, 0.04));
+}
+
+.pulse-alerts {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.pulse-alert {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 0.5rem 0.56rem;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.pulse-alert.importance-critical {
+  border-color: rgba(164, 47, 23, 0.34);
+  background: rgba(164, 47, 23, 0.08);
+}
+
+.pulse-alert.importance-high {
+  border-color: rgba(168, 93, 20, 0.34);
+  background: rgba(168, 93, 20, 0.08);
+}
+
+.pulse-alert.importance-medium {
+  border-color: rgba(31, 123, 194, 0.28);
+  background: rgba(31, 123, 194, 0.06);
+}
+
+.pulse-alert-top {
+  display: flex;
+  align-items: center;
+  gap: 0.34rem;
+  flex-wrap: wrap;
+}
+
+.pulse-alert-top strong {
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.pulse-alert-severity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.02rem 0.3rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.52rem;
+  letter-spacing: 0.03em;
+}
+
+.pulse-alert-severity.critical {
+  border-color: rgba(164, 47, 23, 0.38);
+  color: #8d2a15;
+  background: rgba(164, 47, 23, 0.12);
+}
+
+.pulse-alert-severity.high {
+  border-color: rgba(168, 93, 20, 0.38);
+  color: #8c4d10;
+  background: rgba(168, 93, 20, 0.12);
+}
+
+.pulse-alert-severity.medium {
+  border-color: rgba(31, 123, 194, 0.34);
+  color: #1b639b;
+  background: rgba(31, 123, 194, 0.12);
+}
+
+.pulse-alert-severity.low {
+  border-color: rgba(84, 97, 113, 0.3);
+  color: #44505d;
+  background: rgba(84, 97, 113, 0.08);
 }
 
 .edge-meter {
@@ -5159,6 +5269,23 @@ button.ghost,
 
   .live-summary-card {
     padding: 0.52rem 0.56rem;
+  }
+
+  .pulse {
+    padding: 0.62rem;
+  }
+
+  .pulse-command-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+
+  .pulse-command-grid .command-card {
+    padding: 0.5rem;
+  }
+
+  .pulse-alert {
+    padding: 0.46rem 0.5rem;
   }
 
   .live-summary-value {
