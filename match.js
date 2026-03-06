@@ -116,6 +116,12 @@ const MOBILE_SECTION_HEADINGS = {
   "Series Comparison": { icon: "SC", short: "Series Stats" },
   "Selected Game Recap": { icon: "RC", short: "Game Recap" }
 };
+const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State", "Game Explorer"]);
+const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
+  series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
+  upcoming: new Set(["Upcoming Essentials", "Team Form", "Prediction Model", "Watch Guide"]),
+  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "Objective Control"])
+};
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
 const LOL_CDN_CHAMPION_ICON = "https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{id}.png";
@@ -315,6 +321,8 @@ const uiState = {
     reconnectTimer: null
   },
   mobileAdvancedExpanded: false,
+  mobilePanelCollapsedByKey: {},
+  mobilePanelControlsBound: false,
   controlsBound: false,
   leadTrendScaleByContext: {},
   mapPulseByContext: {}
@@ -339,6 +347,20 @@ try {
   uiState.mobileAdvancedExpanded = false;
 }
 
+try {
+  const raw = localStorage.getItem("pulseboard.match.mobilePanelCollapsed");
+  const parsed = raw ? JSON.parse(raw) : null;
+  if (parsed && typeof parsed === "object") {
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "boolean") {
+        uiState.mobilePanelCollapsedByKey[key] = value;
+      }
+    }
+  }
+} catch {
+  uiState.mobilePanelCollapsedByKey = {};
+}
+
 function clearRefreshTimer() {
   clearTimeout(refreshTimer);
   refreshTimer = null;
@@ -357,6 +379,138 @@ function scheduleRefresh(seconds = DEFAULT_REFRESH_SECONDS) {
 
 function isCompactUI() {
   return typeof window !== "undefined" && window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+function normalizePanelToken(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function matchPanelStorageKey(panelElement, headingTitle) {
+  const scope = String(panelElement?.getAttribute("data-scope") || "base").trim();
+  const normalizedHeading = normalizePanelToken(headingTitle) || "panel";
+  return `${scope}:${normalizedHeading}`;
+}
+
+function persistMatchMobilePanelState() {
+  try {
+    localStorage.setItem("pulseboard.match.mobilePanelCollapsed", JSON.stringify(uiState.mobilePanelCollapsedByKey));
+  } catch {
+    // Ignore storage failures and continue with in-memory state.
+  }
+}
+
+function shouldMatchPanelBeOpenByDefault(headingTitle, match) {
+  if (MOBILE_MATCH_PANELS_ALWAYS_OPEN.has(headingTitle)) {
+    return true;
+  }
+
+  const mode = uiState.viewMode === "game" ? "game" : match?.status === "upcoming" ? "upcoming" : "series";
+  return MOBILE_MATCH_PANELS_DEFAULT_OPEN[mode]?.has(headingTitle) || false;
+}
+
+function applyMatchMobilePanelCollapseState(match = uiState.match) {
+  const compact = isCompactUI();
+  const panels = Array.from(document.querySelectorAll(".match-page main section.panel"));
+
+  panels.forEach((panelElement, index) => {
+    const sectionHead = panelElement.querySelector(".section-head");
+    const heading = sectionHead?.querySelector("h2");
+    if (!sectionHead || !heading) {
+      return;
+    }
+
+    const headingTitle = String(heading.dataset.fullTitle || heading.textContent || "").trim();
+    const panelKey = matchPanelStorageKey(panelElement, headingTitle);
+    panelElement.dataset.mobilePanelKey = panelKey;
+    if (!panelElement.id) {
+      panelElement.id = `match-panel-${normalizePanelToken(panelKey) || String(index + 1)}`;
+    }
+
+    let toggleButton = sectionHead.querySelector(".panel-section-toggle");
+    if (!toggleButton) {
+      toggleButton = document.createElement("button");
+      toggleButton.type = "button";
+      toggleButton.className = "ghost panel-section-toggle";
+      sectionHead.append(toggleButton);
+    }
+
+    const hiddenByScope = panelElement.classList.contains("hidden-panel");
+    const hiddenAsAdvanced =
+      panelElement.classList.contains("mobile-advanced-collapsed") ||
+      panelElement.classList.contains("mobile-advanced-panel") ||
+      panelElement.classList.contains("mobile-core-panel");
+    const shouldHideControl = !compact || hiddenByScope || (uiState.viewMode === "game" && hiddenAsAdvanced);
+    if (shouldHideControl) {
+      panelElement.classList.remove("mobile-collapsible", "mobile-panel-collapsed");
+      toggleButton.hidden = true;
+      toggleButton.disabled = true;
+      toggleButton.classList.remove("locked");
+      toggleButton.removeAttribute("data-panel-key");
+      toggleButton.removeAttribute("aria-controls");
+      toggleButton.removeAttribute("aria-expanded");
+      return;
+    }
+
+    panelElement.classList.add("mobile-collapsible");
+    toggleButton.hidden = false;
+    toggleButton.disabled = false;
+    toggleButton.setAttribute("aria-controls", panelElement.id);
+    toggleButton.dataset.panelKey = panelKey;
+
+    const lockedOpen = MOBILE_MATCH_PANELS_ALWAYS_OPEN.has(headingTitle);
+    if (lockedOpen) {
+      panelElement.classList.remove("mobile-panel-collapsed");
+      toggleButton.textContent = "Pinned";
+      toggleButton.setAttribute("aria-expanded", "true");
+      toggleButton.disabled = true;
+      toggleButton.classList.add("locked");
+      return;
+    }
+
+    const hasSaved = Object.prototype.hasOwnProperty.call(uiState.mobilePanelCollapsedByKey, panelKey);
+    const collapsed = hasSaved
+      ? Boolean(uiState.mobilePanelCollapsedByKey[panelKey])
+      : !shouldMatchPanelBeOpenByDefault(headingTitle, match);
+    panelElement.classList.toggle("mobile-panel-collapsed", collapsed);
+    toggleButton.textContent = collapsed ? "Show" : "Hide";
+    toggleButton.setAttribute("aria-expanded", String(!collapsed));
+    toggleButton.classList.remove("locked");
+  });
+}
+
+function bindMatchMobilePanelControls() {
+  if (uiState.mobilePanelControlsBound) {
+    return;
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const toggleButton = target.closest(".match-page .panel-section-toggle");
+    if (!toggleButton || toggleButton.disabled || !isCompactUI()) {
+      return;
+    }
+
+    const panelElement = toggleButton.closest("section.panel");
+    const panelKey = toggleButton.getAttribute("data-panel-key");
+    if (!panelElement || !panelKey) {
+      return;
+    }
+
+    const nextCollapsed = !panelElement.classList.contains("mobile-panel-collapsed");
+    uiState.mobilePanelCollapsedByKey[panelKey] = nextCollapsed;
+    persistMatchMobilePanelState();
+    applyMatchMobilePanelCollapseState(uiState.match);
+  });
+
+  uiState.mobilePanelControlsBound = true;
 }
 
 function normalizeTeamKey(name) {
@@ -5709,6 +5863,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   applySeriesPanelVisibility();
   applyUpcomingPanelVisibility(match);
   applyMobileGameEnhancements(match);
+  applyMatchMobilePanelCollapseState(match);
 
   if (uiState.stream.connected) {
     clearRefreshTimer();
@@ -5914,8 +6069,13 @@ window.addEventListener("resize", () => {
   applyMobileSectionHeadings();
   if (uiState.match) {
     applyMobileGameEnhancements(uiState.match);
+    applyMatchMobilePanelCollapseState(uiState.match);
+  } else {
+    applyMatchMobilePanelCollapseState(null);
   }
 });
 
 applyMobileSectionHeadings();
+bindMatchMobilePanelControls();
+applyMatchMobilePanelCollapseState(null);
 loadMatch();
