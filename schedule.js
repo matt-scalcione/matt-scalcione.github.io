@@ -261,6 +261,32 @@ function updateNav(apiBase) {
   elements.followsNav.href = followsUrl.toString();
 }
 
+function setStatus(message, tone = "neutral") {
+  elements.statusText.textContent = message;
+  elements.statusText.classList.remove("success", "error", "loading");
+  if (tone !== "neutral") {
+    elements.statusText.classList.add(tone);
+  }
+}
+
+function renderLoadingTable(container) {
+  container.innerHTML = `
+    <div class="schedule-mobile-list loading-grid" aria-hidden="true">
+      ${Array.from({ length: 5 })
+        .map(
+          () => `
+            <article class="schedule-row-card loading">
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderTable(container, rows, apiBase, type) {
   if (!rows.length) {
     container.innerHTML = `<div class="empty">No ${type} matches for current filters.</div>`;
@@ -300,7 +326,7 @@ function renderTable(container, rows, apiBase, type) {
       });
 
       return `
-        <tr class="schedule-row" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftShort} vs ${rightShort}">
+        <tr class="schedule-row schedule-row-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftShort} vs ${rightShort}">
           <td class="schedule-time-cell">${dateTimeCompact(row.startAt)}</td>
           <td class="schedule-game-cell">${gameChipMarkup(row.game)}</td>
           <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
@@ -324,15 +350,18 @@ function renderTable(container, rows, apiBase, type) {
             : null;
       const winnerShort = winnerLong ? shortTeamName(winnerLong) : "—";
       const scoreLabel = seriesScoreLabel(row, type);
+      const statusLabel = type === "result" ? "FINAL" : String(row.status || "upcoming").toUpperCase();
+      const statusClass = type === "result" ? "complete" : row.status === "live" ? "live" : "upcoming";
 
       return `
-        <a class="schedule-row-card" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
+        <a class="schedule-row-card schedule-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
           <div class="schedule-card-top">
             <div class="schedule-card-game">${gameChipMarkup(row.game)} <span>${dateTimeCompact(row.startAt)}</span></div>
-            <p class="schedule-card-score">${scoreLabel}</p>
+            <span class="pill ${statusClass} schedule-card-status">${statusLabel}</span>
           </div>
           <p class="schedule-card-match">${leftShort} <span>vs</span> ${rightShort}</p>
-          <p class="schedule-card-meta">${type === "result" ? `Winner: ${winnerShort}` : "Tap for full match details"}</p>
+          <p class="schedule-card-score">${scoreLabel}</p>
+          <p class="schedule-card-meta">${type === "result" ? `Winner: ${winnerShort}` : "Tap for full match context"}</p>
         </a>
       `;
     })
@@ -413,7 +442,9 @@ async function loadCollections() {
   updateNav(apiBase);
 
   try {
-    elements.statusText.textContent = "Loading schedule and results...";
+    renderLoadingTable(elements.scheduleTableWrap);
+    renderLoadingTable(elements.resultsTableWrap);
+    setStatus("Loading schedule and results...", "loading");
     const [schedulePayload, resultsPayload] = await Promise.all([
       fetchCollection(apiBase, "/v1/schedule", query),
       fetchCollection(apiBase, "/v1/results", query)
@@ -422,11 +453,11 @@ async function loadCollections() {
     renderTable(elements.scheduleTableWrap, schedulePayload.data || [], apiBase, "scheduled");
     renderTable(elements.resultsTableWrap, resultsPayload.data || [], apiBase, "result");
 
-    elements.scheduleMeta.textContent = `Showing ${schedulePayload.meta.count} matches.`;
-    elements.resultsMeta.textContent = `Showing ${resultsPayload.meta.count} matches.`;
-    elements.statusText.textContent = "Data synced.";
+    elements.scheduleMeta.textContent = `Showing ${schedulePayload.meta.count} matches · Updated ${dateTimeCompact(schedulePayload.meta.generatedAt)}`;
+    elements.resultsMeta.textContent = `Showing ${resultsPayload.meta.count} matches · Updated ${dateTimeCompact(resultsPayload.meta.generatedAt)}`;
+    setStatus("Schedule and results synced.", "success");
   } catch (error) {
-    elements.statusText.textContent = `Error: ${error.message}`;
+    setStatus(`Error: ${error.message}`, "error");
     elements.scheduleTableWrap.innerHTML = `<div class="empty">Unable to load schedule.</div>`;
     elements.resultsTableWrap.innerHTML = `<div class="empty">Unable to load results.</div>`;
   }
@@ -440,7 +471,7 @@ function installEvents() {
   elements.saveButton.addEventListener("click", () => {
     const value = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
     saveApiBase(value);
-    elements.statusText.textContent = "API base saved locally.";
+    setStatus("API base saved locally.", "success");
   });
 
   elements.gameSelect.addEventListener("change", loadCollections);

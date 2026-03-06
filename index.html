@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body class="live-page">
     <div class="noise"></div>
     <header class="hero">
       <h1>Live Esports Desk</h1>
@@ -63,14 +63,14 @@
         <div class="actions">
           <button id="refreshButton" type="button">Refresh Now</button>
           <button id="saveButton" type="button" class="ghost api-base-save">Save API Base</button>
-          <p id="statusText" class="status-text">Ready.</p>
+          <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
         </div>
       </section>
 
       <section class="panel live-desk">
         <div class="section-head">
           <h2>Live and Upcoming</h2>
-          <p id="metaText" class="meta-text">Waiting for data...</p>
+          <p id="metaText" class="meta-text" aria-live="polite">Waiting for data...</p>
         </div>
         <div id="cardGrid" class="card-grid"></div>
       </section>
