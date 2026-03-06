@@ -26,34 +26,47 @@
     </header>
 
     <main class="layout detail">
-      <section class="panel controls">
-        <h2>Team Filters</h2>
-        <div class="controls-grid">
-          <label class="api-base-field">
-            API Base
-            <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
-          </label>
-          <label>
-            Game
-            <select id="gameSelect">
-              <option value="lol">League of Legends</option>
-              <option value="dota2">Dota 2</option>
-            </select>
-          </label>
-          <label>
-            History Size
-            <select id="limitSelect">
-              <option value="5">Last 5</option>
-              <option value="10">Last 10</option>
-              <option value="15">Last 15</option>
-              <option value="20">Last 20</option>
-            </select>
-          </label>
+      <section class="panel controls" id="controlsPanel">
+        <div class="controls-head">
+          <h2>Team Filters</h2>
+          <button
+            id="controlsToggle"
+            type="button"
+            class="ghost controls-toggle"
+            aria-expanded="true"
+            aria-controls="controlsBody"
+          >
+            Hide Filters
+          </button>
         </div>
-        <div class="actions">
-          <button id="refreshButton" type="button">Refresh</button>
-          <button id="saveButton" type="button" class="ghost api-base-save">Save API Base</button>
-          <p id="statusText" class="status-text" aria-live="polite">Waiting for data...</p>
+        <div class="controls-body" id="controlsBody">
+          <div class="controls-grid">
+            <label class="api-base-field">
+              API Base
+              <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
+            </label>
+            <label>
+              Game
+              <select id="gameSelect">
+                <option value="lol">League of Legends</option>
+                <option value="dota2">Dota 2</option>
+              </select>
+            </label>
+            <label>
+              History Size
+              <select id="limitSelect">
+                <option value="5">Last 5</option>
+                <option value="10">Last 10</option>
+                <option value="15">Last 15</option>
+                <option value="20">Last 20</option>
+              </select>
+            </label>
+          </div>
+          <div class="actions">
+            <button id="refreshButton" type="button">Refresh</button>
+            <button id="saveButton" type="button" class="ghost api-base-save">Save API Base</button>
+            <p id="statusText" class="status-text" aria-live="polite">Waiting for data...</p>
+          </div>
         </div>
       </section>
 
@@ -153,6 +166,21 @@
         <div id="headToHeadWrap"></div>
       </section>
     </main>
+
+    <nav class="mobile-tabbar" aria-label="Primary">
+      <a id="mobileLiveNav" class="mobile-tab" href="./index.html">
+        <span class="mobile-tab-icon">L</span>
+        <span>Live</span>
+      </a>
+      <a id="mobileScheduleNav" class="mobile-tab" href="./schedule.html">
+        <span class="mobile-tab-icon">S</span>
+        <span>Schedule</span>
+      </a>
+      <a id="mobileFollowsNav" class="mobile-tab" href="./follows.html">
+        <span class="mobile-tab-icon">F</span>
+        <span>Follows</span>
+      </a>
+    </nav>
 
     <script src="./site-config.js"></script>
     <script type="module" src="./team.js"></script>

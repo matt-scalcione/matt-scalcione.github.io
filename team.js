@@ -1,6 +1,7 @@
 import { resolveInitialApiBase } from "./api-config.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
+const MOBILE_BREAKPOINT = 760;
 
 const elements = {
   teamTitle: document.querySelector("#teamTitle"),
@@ -8,7 +9,12 @@ const elements = {
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
+  mobileLiveNav: document.querySelector("#mobileLiveNav"),
+  mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
+  mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
   apiBaseInput: document.querySelector("#apiBaseInput"),
+  controlsPanel: document.querySelector("#controlsPanel"),
+  controlsToggle: document.querySelector("#controlsToggle"),
   gameSelect: document.querySelector("#gameSelect"),
   limitSelect: document.querySelector("#limitSelect"),
   opponentSelect: document.querySelector("#opponentSelect"),
@@ -48,6 +54,47 @@ function readApiBase() {
 
 function saveApiBase(value) {
   localStorage.setItem("pulseboard.apiBase", value);
+}
+
+function isCompactViewport() {
+  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+function applyControlsCollapsed(collapsed) {
+  if (!elements.controlsPanel || !elements.controlsToggle) {
+    return;
+  }
+
+  elements.controlsPanel.classList.toggle("collapsed", collapsed);
+  elements.controlsToggle.textContent = collapsed ? "Show Filters" : "Hide Filters";
+  elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
+}
+
+function setupControlsPanel() {
+  if (!elements.controlsPanel || !elements.controlsToggle) {
+    return;
+  }
+
+  let collapsed = isCompactViewport();
+  try {
+    const saved = localStorage.getItem("pulseboard.team.controlsCollapsed");
+    if (saved === "1" || saved === "0") {
+      collapsed = saved === "1";
+    }
+  } catch {
+    collapsed = isCompactViewport();
+  }
+
+  applyControlsCollapsed(collapsed);
+  elements.controlsToggle.addEventListener("click", () => {
+    const next = !elements.controlsPanel.classList.contains("collapsed");
+    applyControlsCollapsed(next);
+    try {
+      localStorage.setItem("pulseboard.team.controlsCollapsed", next ? "1" : "0");
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+  });
 }
 
 function dateTimeLabel(iso) {
@@ -95,15 +142,19 @@ function resultClass(result) {
 function updateNav(apiBase) {
   const liveUrl = new URL("./index.html", window.location.href);
   liveUrl.searchParams.set("api", apiBase);
-  elements.liveDeskNav.href = liveUrl.toString();
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
   scheduleUrl.searchParams.set("api", apiBase);
-  elements.scheduleNav.href = scheduleUrl.toString();
 
   const followsUrl = new URL("./follows.html", window.location.href);
   followsUrl.searchParams.set("api", apiBase);
-  elements.followsNav.href = followsUrl.toString();
+
+  if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
+  if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
+  if (elements.scheduleNav) elements.scheduleNav.href = scheduleUrl.toString();
+  if (elements.mobileScheduleNav) elements.mobileScheduleNav.href = scheduleUrl.toString();
+  if (elements.followsNav) elements.followsNav.href = followsUrl.toString();
+  if (elements.mobileFollowsNav) elements.mobileFollowsNav.href = followsUrl.toString();
 }
 
 function buildBackLink(apiBase) {
@@ -1018,6 +1069,7 @@ function boot() {
   }
   state.pastTournamentSignature = null;
 
+  setupControlsPanel();
   installEvents();
   loadTeamProfile();
 }

@@ -27,42 +27,55 @@
     </header>
 
     <main class="layout">
-      <section class="panel controls">
-        <h2>Account Context</h2>
-        <div class="controls-grid">
-          <label class="api-base-field">
-            API Base
-            <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
-          </label>
-          <label>
-            User ID
-            <input id="userIdInput" type="text" placeholder="demo-user" />
-          </label>
+      <section class="panel controls" id="controlsPanel">
+        <div class="controls-head">
+          <h2>Account Context</h2>
+          <button
+            id="controlsToggle"
+            type="button"
+            class="ghost controls-toggle"
+            aria-expanded="true"
+            aria-controls="controlsBody"
+          >
+            Hide Panel
+          </button>
         </div>
+        <div class="controls-body" id="controlsBody">
+          <div class="controls-grid">
+            <label class="api-base-field">
+              API Base
+              <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
+            </label>
+            <label>
+              User ID
+              <input id="userIdInput" type="text" placeholder="demo-user" />
+            </label>
+          </div>
 
-        <div class="actions">
-          <button id="refreshButton" type="button">Reload</button>
-          <button id="saveApiButton" type="button" class="ghost api-base-save">Save API Base</button>
-          <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
-        </div>
+          <div class="actions">
+            <button id="refreshButton" type="button">Reload</button>
+            <button id="saveApiButton" type="button" class="ghost api-base-save">Save API Base</button>
+            <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
+          </div>
 
-        <h2 class="top-space">Add Follow</h2>
-        <div class="controls-grid">
-          <label>
-            Entity Type
-            <select id="entityTypeSelect">
-              <option value="team">Team</option>
-              <option value="player">Player</option>
-              <option value="tournament">Tournament</option>
-            </select>
-          </label>
-          <label>
-            Entity ID
-            <input id="entityIdInput" type="text" placeholder="team_t1" />
-          </label>
-        </div>
-        <div class="actions">
-          <button id="addFollowButton" type="button">Add Follow</button>
+          <h2 class="top-space">Add Follow</h2>
+          <div class="controls-grid">
+            <label>
+              Entity Type
+              <select id="entityTypeSelect">
+                <option value="team">Team</option>
+                <option value="player">Player</option>
+                <option value="tournament">Tournament</option>
+              </select>
+            </label>
+            <label>
+              Entity ID
+              <input id="entityIdInput" type="text" placeholder="team_t1" />
+            </label>
+          </div>
+          <div class="actions">
+            <button id="addFollowButton" type="button">Add Follow</button>
+          </div>
         </div>
       </section>
 
@@ -109,6 +122,21 @@
         </div>
       </section>
     </main>
+
+    <nav class="mobile-tabbar" aria-label="Primary">
+      <a id="mobileLiveNav" class="mobile-tab" href="./index.html">
+        <span class="mobile-tab-icon">L</span>
+        <span>Live</span>
+      </a>
+      <a id="mobileScheduleNav" class="mobile-tab" href="./schedule.html">
+        <span class="mobile-tab-icon">S</span>
+        <span>Schedule</span>
+      </a>
+      <a id="mobileFollowsNav" class="mobile-tab" href="./follows.html" aria-current="page">
+        <span class="mobile-tab-icon">F</span>
+        <span>Follows</span>
+      </a>
+    </nav>
 
     <script src="./site-config.js"></script>
     <script type="module" src="./follows.js"></script>

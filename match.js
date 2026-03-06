@@ -213,6 +213,9 @@ const elements = {
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
+  mobileLiveNav: document.querySelector("#mobileLiveNav"),
+  mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
+  mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
   freshnessText: document.querySelector("#freshnessText"),
   scoreboard: document.querySelector("#scoreboard"),
   streamStatusWrap: document.querySelector("#streamStatusWrap"),
@@ -5591,15 +5594,19 @@ function applyNavigationLinks(apiBase) {
   const backUrl = new URL("./index.html", window.location.href);
   backUrl.searchParams.set("api", apiBase);
   elements.backLink.href = backUrl.toString();
-  elements.liveDeskNav.href = backUrl.toString();
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
   scheduleUrl.searchParams.set("api", apiBase);
-  elements.scheduleNav.href = scheduleUrl.toString();
 
   const followsUrl = new URL("./follows.html", window.location.href);
   followsUrl.searchParams.set("api", apiBase);
-  elements.followsNav.href = followsUrl.toString();
+
+  if (elements.liveDeskNav) elements.liveDeskNav.href = backUrl.toString();
+  if (elements.mobileLiveNav) elements.mobileLiveNav.href = backUrl.toString();
+  if (elements.scheduleNav) elements.scheduleNav.href = scheduleUrl.toString();
+  if (elements.mobileScheduleNav) elements.mobileScheduleNav.href = scheduleUrl.toString();
+  if (elements.followsNav) elements.followsNav.href = followsUrl.toString();
+  if (elements.mobileFollowsNav) elements.mobileFollowsNav.href = followsUrl.toString();
 }
 
 async function fetchMatchSnapshot({ matchId, requestedGameNumber, apiBase }) {

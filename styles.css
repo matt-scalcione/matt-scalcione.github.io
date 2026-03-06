@@ -230,6 +230,20 @@ h2 {
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+.mobile-tabbar {
+  display: none;
+}
+
+.mobile-tab {
+  text-decoration: none;
+}
+
+.mobile-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .match-page .hero h1 {
   font-size: 0.66rem;
   line-height: 1.1;
@@ -288,6 +302,38 @@ h2 {
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 34%, white 66%), transparent);
   opacity: 0.86;
   pointer-events: none;
+}
+
+.controls-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.72rem;
+}
+
+.controls-head h2 {
+  margin: 0;
+}
+
+.controls-toggle {
+  min-height: 2rem;
+  padding: 0.38rem 0.68rem;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.controls-body {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.controls.collapsed .controls-head {
+  margin-bottom: 0;
+}
+
+.controls.collapsed .controls-body {
+  display: none;
 }
 
 .controls-grid {
@@ -4025,6 +4071,10 @@ button.ghost,
   }
 
   .page-nav {
+    display: none;
+  }
+
+  .mobile-tabbar {
     position: fixed;
     left: 0.5rem;
     right: 0.5rem;
@@ -4042,29 +4092,50 @@ button.ghost,
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.22rem;
     padding: 0.24rem;
-    flex-wrap: nowrap;
   }
 
-  .page-nav a {
+  .mobile-tab {
     border: 1px solid transparent;
     min-height: 2.2rem;
     border-radius: 10px;
     font-size: 0.66rem;
-    padding: 0 0.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 0.12rem 0.2rem;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 0.12rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     background: rgba(16, 66, 91, 0.06);
     color: #1e5e67;
+    font-family: "Archivo Black", "Impact", sans-serif;
+    letter-spacing: 0.01em;
   }
 
-  .page-nav a[aria-current="page"] {
+  .mobile-tab-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 999px;
+    border: 1px solid rgba(30, 94, 103, 0.25);
+    font-size: 0.56rem;
+    line-height: 1;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .mobile-tab[aria-current="page"] {
     background: linear-gradient(130deg, var(--accent), var(--accent-strong));
     color: #fff;
     border-color: rgba(9, 63, 60, 0.3);
+    box-shadow:
+      0 8px 18px color-mix(in srgb, var(--accent-strong) 28%, #0f2d4f 72%),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .mobile-tab[aria-current="page"] .mobile-tab-icon {
+    border-color: rgba(255, 255, 255, 0.36);
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
   }
 
   .match-page .hero h1 {
