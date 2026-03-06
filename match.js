@@ -3465,6 +3465,15 @@ function feedBucketLabel(bucket) {
   return "Event";
 }
 
+function feedBucketTagLabel(bucket) {
+  const normalized = String(bucket || "").toLowerCase();
+  if (normalized === "combat") return "Fight";
+  if (normalized === "objective") return "Obj";
+  if (normalized === "swing") return "Gold";
+  if (normalized === "moment") return "State";
+  return "Event";
+}
+
 function feedRowContentFingerprint(row) {
   const title = String(row?.title || "").trim().toLowerCase();
   const team = String(row?.team || "none").trim().toLowerCase();
@@ -3848,16 +3857,26 @@ function renderUnifiedLiveFeed(match) {
         <div class="live-feed-row">
           <span class="feed-game-time">${row.gameClockSeconds === null ? "--:--" : `${timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`}</span>
           <div class="live-feed-main">
-            <p class="live-feed-title">
+            <div class="live-feed-top">
+              <p class="live-feed-title">
+                <span class="feed-priority-dot ${row.importance}" aria-hidden="true"></span>
+                <span>${row.title}</span>
+              </p>
+              <span class="feed-absolute-time">${shortTimeLabel(row.at)}</span>
+            </div>
+            <div class="live-feed-meta-row">
               <span class="feed-phase-tag ${row.phase.key}">${row.phase.label}</span>
-              <span class="feed-bucket-tag">${feedBucketLabel(row.bucket)}</span>
-              <span>${row.title}</span>
-            </p>
-            <p class="live-feed-meta">${dateTimeCompact(row.at)}${
-              row.team
-                ? ` · ${row.team === "left" ? displayTeamName(match.teams.left.name) : displayTeamName(match.teams.right.name)}`
-                : ""
-            } · <span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span> · <span class="feed-swing-tag ${row.swingDescriptor.tone}">${row.swingDescriptor.label}</span></p>
+              <span class="feed-bucket-tag ${row.bucket}">${feedBucketTagLabel(row.bucket)}</span>
+              ${
+                row.team
+                  ? `<span class="feed-team-tag ${row.team}">${
+                      row.team === "left" ? displayTeamName(match.teams.left.name) : displayTeamName(match.teams.right.name)
+                    }</span>`
+                  : ""
+              }
+              <span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span>
+              <span class="feed-swing-tag ${row.swingDescriptor.tone}">${row.swingDescriptor.short}</span>
+            </div>
           </div>
         </div>
       </li>
