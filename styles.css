@@ -1684,6 +1684,75 @@ button.ghost,
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.matchup-console-shell {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.matchup-overview-card {
+  gap: 0.46rem;
+}
+
+.matchup-overview-card.left {
+  border-color: rgba(31, 123, 194, 0.28);
+}
+
+.matchup-overview-card.right {
+  border-color: rgba(189, 81, 55, 0.28);
+}
+
+.matchup-overview-head,
+.matchup-team-head,
+.matchup-h2h-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.58rem;
+  align-items: flex-start;
+}
+
+.matchup-overview-head p,
+.matchup-driver-list,
+.matchup-driver-list li,
+.matchup-overview-title {
+  margin: 0;
+}
+
+.matchup-overview-title {
+  color: #18324b;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.94rem;
+}
+
+.matchup-driver-list {
+  font-size: 0.78rem;
+}
+
+.matchup-team-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.matchup-team-card {
+  gap: 0.46rem;
+}
+
+.matchup-team-head h3 {
+  margin: 0;
+}
+
+.matchup-team-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem 0.7rem;
+}
+
+.matchup-team-notes p {
+  margin: 0;
+}
+
+.matchup-h2h-shell {
+  gap: 0.52rem;
+}
+
 .series-header {
   display: grid;
 }
@@ -4317,6 +4386,30 @@ button.ghost,
   font-size: 0.95rem;
 }
 
+.series-lineup-card {
+  gap: 0.56rem;
+}
+
+.series-lineup-card.left {
+  border-left: 4px solid #257ac0;
+}
+
+.series-lineup-card.right {
+  border-left: 4px solid #bd5137;
+}
+
+.series-lineup-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.58rem;
+  align-items: flex-start;
+}
+
+.series-lineup-head h3,
+.series-lineup-head p {
+  margin: 0;
+}
+
 .draft-row {
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -4328,6 +4421,33 @@ button.ghost,
 
 .draft-row p {
   margin: 0;
+}
+
+.series-lineup-row {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.52rem;
+}
+
+.series-lineup-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+}
+
+.series-lineup-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.06rem;
+}
+
+.series-lineup-player {
+  font-weight: 700;
+  color: #18324b;
+}
+
+.lineup-source-note {
+  gap: 0.4rem;
 }
 
 .economy-grid {
@@ -5676,6 +5796,14 @@ button.ghost,
     font-size: 0.78rem;
   }
 
+  .matchup-overview-head,
+  .matchup-team-head,
+  .matchup-h2h-head,
+  .series-lineup-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .series-context-countdown {
     font-size: 0.9rem;
   }
@@ -6741,6 +6869,28 @@ button.ghost,
 
   .series-forecast-favorite {
     font-size: 0.8rem;
+  }
+
+  .match-page .matchup-overview-title {
+    font-size: 0.84rem;
+  }
+
+  .match-page .matchup-driver-list,
+  .match-page .lineup-source-note .meta-text {
+    font-size: 0.72rem;
+  }
+
+  .match-page .series-lineup-row {
+    grid-template-columns: auto 1fr;
+    gap: 0.42rem;
+  }
+
+  .match-page .series-lineup-icons {
+    gap: 0.26rem;
+  }
+
+  .match-page .series-lineup-player {
+    font-size: 0.78rem;
   }
 
   .api-base-field,
