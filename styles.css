@@ -620,6 +620,18 @@ button.ghost,
   letter-spacing: 0.02em;
 }
 
+.team-badge.has-logo {
+  padding: 0.16rem;
+  overflow: hidden;
+}
+
+.team-badge.has-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
 .score-team-name {
   font-weight: 700;
   font-size: 0.84rem;

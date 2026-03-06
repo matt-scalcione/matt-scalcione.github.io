@@ -2,8 +2,8 @@ import { resolveInitialApiBase } from "./api-config.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const TEAM_SHORT_NAMES = {
-  "cloud9 kia": "Cloud9",
-  "cloud9": "Cloud9",
+  "cloud9 kia": "C9",
+  "cloud9": "C9",
   "team liquid honda": "Liquid",
   "team liquid": "Liquid",
   "gen.g esports": "Gen.G",
@@ -29,6 +29,8 @@ const TEAM_SHORT_NAMES = {
   "funplus phoenix": "FPX",
   "anyone's legend": "AL",
   "ninjas in pyjamas": "NIP",
+  "red canids kalunga": "RED",
+  "red canids": "RED",
   "royal never give up": "RNG",
   "team we": "WE",
   "ultra prime": "UP",
