@@ -264,6 +264,8 @@ const elements = {
   playerTrackerWrap: document.querySelector("#playerTrackerWrap"),
   trackerSort: document.querySelector("#trackerSort"),
   liveSummaryWrap: document.querySelector("#liveSummaryWrap"),
+  feedControlsToggle: document.querySelector("#feedControlsToggle"),
+  feedControlsWrap: document.querySelector("#feedControlsWrap"),
   liveFeedList: document.querySelector("#liveFeedList"),
   combatBurstsList: document.querySelector("#combatBurstsList"),
   goldMilestonesList: document.querySelector("#goldMilestonesList"),
@@ -326,6 +328,7 @@ const uiState = {
   requestedGameFallback: null,
   activeGameNumber: null,
   viewMode: "series",
+  feedControlsExpanded: false,
   feedType: "all",
   feedTeam: "all",
   feedImportance: "all",
@@ -381,6 +384,12 @@ try {
 }
 
 try {
+  uiState.feedControlsExpanded = localStorage.getItem("pulseboard.feedControlsExpanded") === "1";
+} catch {
+  uiState.feedControlsExpanded = false;
+}
+
+try {
   const raw = localStorage.getItem("pulseboard.match.mobilePanelCollapsed");
   const parsed = raw ? JSON.parse(raw) : null;
   if (parsed && typeof parsed === "object") {
@@ -431,6 +440,14 @@ function matchPanelStorageKey(panelElement, headingTitle) {
 function persistMatchMobilePanelState() {
   try {
     localStorage.setItem("pulseboard.match.mobilePanelCollapsed", JSON.stringify(uiState.mobilePanelCollapsedByKey));
+  } catch {
+    // Ignore storage failures and continue with in-memory state.
+  }
+}
+
+function persistFeedControlsExpanded() {
+  try {
+    localStorage.setItem("pulseboard.feedControlsExpanded", uiState.feedControlsExpanded ? "1" : "0");
   } catch {
     // Ignore storage failures and continue with in-memory state.
   }
@@ -872,6 +889,67 @@ function scoreboardTeamName(name) {
   return TEAM_HEADER_ABBREVIATIONS[normalizeTeamKey(raw)] || shortTeamName(raw);
 }
 
+function feedTypeSummaryLabel(value) {
+  const normalized = String(value || "all").toLowerCase();
+  if (normalized === "combat") return "Combat";
+  if (normalized === "objective") return "Objective";
+  if (normalized === "swing") return "Swing";
+  if (normalized === "moment") return "Moment";
+  return "All events";
+}
+
+function feedTeamSummaryLabel(match, value) {
+  const normalized = String(value || "all").toLowerCase();
+  if (normalized === "left") {
+    return scoreboardTeamName(match?.teams?.left?.name || "Left");
+  }
+  if (normalized === "right") {
+    return scoreboardTeamName(match?.teams?.right?.name || "Right");
+  }
+  return "Both teams";
+}
+
+function feedWindowSummaryLabel(value) {
+  const minutes = Number(value);
+  if (Number.isFinite(minutes) && minutes > 0) {
+    return `${minutes}m window`;
+  }
+  return "All time";
+}
+
+function renderFeedControlsChrome(match = uiState.match) {
+  const shell = elements.feedControlsWrap?.closest(".feed-controls-shell");
+  if (!elements.feedControlsToggle || !elements.feedControlsWrap || !shell) {
+    return;
+  }
+
+  const compact = isCompactUI() && uiState.viewMode === "game";
+  const summaryChips = [
+    feedTypeSummaryLabel(uiState.feedType),
+    feedTeamSummaryLabel(match, uiState.feedTeam),
+    feedWindowSummaryLabel(uiState.feedWindowMinutes)
+  ];
+
+  shell.classList.toggle("compact", compact);
+  shell.classList.toggle("expanded", compact && uiState.feedControlsExpanded);
+  elements.feedControlsToggle.hidden = !compact;
+  elements.feedControlsToggle.setAttribute("aria-expanded", String(!compact || uiState.feedControlsExpanded));
+  elements.feedControlsToggle.innerHTML = `
+    <span class="feed-controls-toggle-label">Filters</span>
+    <span class="feed-controls-toggle-summary">${summaryChips
+      .map((label) => `<span class="feed-controls-toggle-chip">${label}</span>`)
+      .join("")}</span>
+    <span class="feed-controls-toggle-action">${uiState.feedControlsExpanded ? "Hide" : "Edit"}</span>
+  `;
+
+  if (!compact) {
+    elements.feedControlsWrap.hidden = false;
+    return;
+  }
+
+  elements.feedControlsWrap.hidden = !uiState.feedControlsExpanded;
+}
+
 function trackerTeamTag(name) {
   const short = scoreboardTeamName(name);
   if (short.length <= 4) {
@@ -1169,6 +1247,7 @@ function applyMobileGameEnhancements(match) {
     advancedVisibleCount
   });
   renderMobileModeToolbar(match);
+  renderFeedControlsChrome(match);
 }
 
 function dateTimeLabel(iso) {
@@ -3710,6 +3789,8 @@ function setStoryFocusEvent(eventId, options = {}) {
 }
 
 function renderUnifiedLiveFeed(match) {
+  renderFeedControlsChrome(match);
+
   if (elements.liveSummaryWrap && String(match?.selectedGame?.state || "") !== "inProgress") {
     elements.liveSummaryWrap.innerHTML = "";
   }
@@ -3790,10 +3871,19 @@ function bindFeedControls() {
     return;
   }
 
+  if (elements.feedControlsToggle) {
+    elements.feedControlsToggle.addEventListener("click", () => {
+      uiState.feedControlsExpanded = !uiState.feedControlsExpanded;
+      persistFeedControlsExpanded();
+      renderFeedControlsChrome(uiState.match);
+    });
+  }
+
   if (elements.feedTypeFilter) {
     elements.feedTypeFilter.value = uiState.feedType;
     elements.feedTypeFilter.addEventListener("change", () => {
       uiState.feedType = elements.feedTypeFilter.value || "all";
+      renderFeedControlsChrome(uiState.match);
       if (uiState.match) {
         renderUnifiedLiveFeed(uiState.match);
       }
@@ -3804,6 +3894,7 @@ function bindFeedControls() {
     elements.feedTeamFilter.value = uiState.feedTeam;
     elements.feedTeamFilter.addEventListener("change", () => {
       uiState.feedTeam = elements.feedTeamFilter.value || "all";
+      renderFeedControlsChrome(uiState.match);
       if (uiState.match) {
         renderUnifiedLiveFeed(uiState.match);
       }
@@ -3831,6 +3922,7 @@ function bindFeedControls() {
         uiState.feedWindowMinutes = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
       }
 
+      renderFeedControlsChrome(uiState.match);
       if (uiState.match) {
         renderUnifiedLiveFeed(uiState.match);
       }
