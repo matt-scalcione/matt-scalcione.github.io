@@ -237,13 +237,6 @@ function displayTeamName(name) {
   return isCompactUI() ? shortTeamName(name) : String(name || "Unknown");
 }
 
-function gameCode(game) {
-  const normalized = String(game || "").toLowerCase();
-  if (normalized === "lol") return "L";
-  if (normalized === "dota2") return "D";
-  return normalized.slice(0, 1).toUpperCase() || "?";
-}
-
 function compactStatusLabel(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "live") return "LIVE";
@@ -514,6 +507,9 @@ function renderScoreboard(match) {
   const compact = isCompactUI();
   const winner = winnerTeamName(match);
   const winnerLabel = winner ? displayTeamName(winner) : null;
+  const seriesSubline = compact
+    ? compactStatusLabel(match.status)
+    : `${compactStatusLabel(match.status)}${winnerLabel ? ` · ${winnerLabel}` : ""}`;
   const leftDisplayName = displayTeamName(match.teams.left.name);
   const rightDisplayName = displayTeamName(match.teams.right.name);
   const selectedGameNumber = contextGameNumber();
@@ -539,9 +535,9 @@ function renderScoreboard(match) {
         <span class="score-team-name">${leftDisplayName}</span>
       </a>
       <div class="score-center">
-        <p class="score-center-label"><span class="game-mode-chip ${String(match.game || "").toLowerCase()}">${gameCode(match.game)}</span>${compact ? "Series" : "Series Score"}</p>
+        <p class="score-center-label">${compact ? "Series" : "Series Score"}</p>
         <p class="score-center-main">${match.seriesScore.left}<span class="score-divider">-</span>${match.seriesScore.right}</p>
-        <p class="score-center-sub">${compactStatusLabel(match.status)}${winnerLabel ? ` · ${winnerLabel}` : ""}</p>
+        <p class="score-center-sub">${seriesSubline}</p>
       </div>
       <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightDisplayName} team page">
         <span class="team-badge">${teamBadgeText(match.teams.right.name)}</span>
@@ -596,34 +592,38 @@ function streamBadge(status) {
 }
 
 function streamStatusText(match) {
+  const compact = isCompactUI();
   const refreshSeconds = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
   if (uiState.stream.source === "sse") {
     if (uiState.stream.connected) {
-      return "Realtime stream connected";
+      return compact ? "Live stream" : "Realtime stream connected";
     }
 
     if (uiState.stream.eventSource && uiState.stream.reconnectAttempt === 0) {
-      return "Realtime stream connecting";
+      return compact ? "Connecting stream" : "Realtime stream connecting";
     }
 
     if (uiState.stream.reconnectAttempt > 0) {
-      return `Realtime stream reconnecting (attempt ${uiState.stream.reconnectAttempt})`;
+      return compact
+        ? `Reconnecting (${uiState.stream.reconnectAttempt})`
+        : `Realtime stream reconnecting (attempt ${uiState.stream.reconnectAttempt})`;
     }
 
-    return "Realtime stream unavailable";
+    return compact ? "Stream unavailable" : "Realtime stream unavailable";
   }
 
-  return `Polling every ${refreshSeconds}s`;
+  return compact ? `Refresh ${refreshSeconds}s` : `Polling every ${refreshSeconds}s`;
 }
 
 function streamStatusDetail() {
+  const compact = isCompactUI();
   const updatedAt = Number(uiState.stream.lastSnapshotAt || 0);
   if (!updatedAt) {
-    return "Waiting for snapshot...";
+    return compact ? "Waiting..." : "Waiting for snapshot...";
   }
 
   const ageSeconds = Math.max(0, Math.round((Date.now() - updatedAt) / 1000));
-  return `Last snapshot ${ageSeconds}s ago`;
+  return compact ? `${ageSeconds}s ago` : `Last snapshot ${ageSeconds}s ago`;
 }
 
 function renderStreamStatus(match) {
@@ -631,9 +631,14 @@ function renderStreamStatus(match) {
     return;
   }
 
+  const compact = isCompactUI();
+  const lastErrorAt = Number(uiState.stream.lastErrorAt || 0);
+  const errorSeconds = lastErrorAt ? Math.max(0, Math.round((Date.now() - lastErrorAt) / 1000)) : null;
   const badge = streamBadge(uiState.stream.connected ? "connected" : uiState.stream.source === "sse" ? "reconnecting" : "polling");
-  const errorText = uiState.stream.lastErrorAt
-    ? ` · Last stream error ${dateTimeLabel(uiState.stream.lastErrorAt)}`
+  const errorText = lastErrorAt
+    ? compact
+      ? ` · Err ${errorSeconds}s`
+      : ` · Last stream error ${dateTimeLabel(lastErrorAt)}`
     : "";
   elements.streamStatusWrap.innerHTML = `
     <article class="stream-card ${badge}">
