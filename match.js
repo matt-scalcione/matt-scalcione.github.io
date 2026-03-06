@@ -353,7 +353,9 @@ const uiState = {
   mobilePanelControlsBound: false,
   controlsBound: false,
   leadTrendScaleByContext: {},
-  mapPulseByContext: {}
+  mapPulseByContext: {},
+  storyFocusEventId: null,
+  storyInteractionsBound: false
 };
 const heroIconCatalog = {
   lol: {
@@ -2765,18 +2767,67 @@ function healthToneClass(pct, isDead) {
   return "good";
 }
 
-function formatRespawnLabel(row, isDead) {
+function parseFlexibleTimestampMs(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const directNumber = Number(value);
+  if (Number.isFinite(directNumber)) {
+    if (directNumber > 1e12) {
+      return directNumber;
+    }
+    if (directNumber > 1e9) {
+      return directNumber * 1000;
+    }
+  }
+
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function respawnSecondsForRow(row) {
+  const candidates = [row?.respawnSeconds, row?.respawnTimerSeconds, row?.respawnTimer];
+  for (const candidate of candidates) {
+    const parsed = Number(candidate);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function respawnTargetMsForRow(row, nowMs = Date.now()) {
+  const fromPayload = parseFlexibleTimestampMs(row?.respawnAt);
+  const respawnSeconds = respawnSecondsForRow(row);
+
+  if (fromPayload !== null) {
+    if (Number.isFinite(respawnSeconds) && respawnSeconds > 0 && fromPayload < nowMs - 1200) {
+      return nowMs + Math.round(respawnSeconds * 1000);
+    }
+    return fromPayload;
+  }
+
+  if (Number.isFinite(respawnSeconds)) {
+    return nowMs + Math.round(respawnSeconds * 1000);
+  }
+
+  return null;
+}
+
+function formatRespawnLabel(row, isDead, nowMs = Date.now(), targetMs = null) {
   if (!isDead) {
     return "Alive";
   }
 
-  const respawnAtTs = Date.parse(String(row?.respawnAt || ""));
-  if (Number.isFinite(respawnAtTs)) {
-    const secondsLeft = Math.max(0, Math.round((respawnAtTs - Date.now()) / 1000));
+  const resolvedTargetMs = Number.isFinite(targetMs) ? targetMs : respawnTargetMsForRow(row, nowMs);
+  if (Number.isFinite(resolvedTargetMs)) {
+    const secondsLeft = Math.max(0, Math.round((resolvedTargetMs - nowMs) / 1000));
     return `${secondsLeft}s${row?.respawnEstimated ? " est" : ""}`;
   }
 
-  const respawnSeconds = Number(row?.respawnSeconds);
+  const respawnSeconds = respawnSecondsForRow(row);
   if (Number.isFinite(respawnSeconds)) {
     return `${Math.max(0, Math.round(respawnSeconds))}s${row?.respawnEstimated ? " est" : ""}`;
   }
@@ -2805,7 +2856,9 @@ function tickRespawnCountdownCells() {
 
     const secondsLeft = Math.max(0, Math.round((respawnAt - now) / 1000));
     const estimated = cell.getAttribute("data-respawn-est") === "1";
-    cell.textContent = `${secondsLeft}s${estimated ? " est" : ""}`;
+    const prefix = cell.getAttribute("data-respawn-prefix") || "";
+    cell.textContent = `${prefix}${secondsLeft}s${estimated ? " est" : ""}`;
+    cell.classList.toggle("respawn-ready", secondsLeft <= 0);
   }
 }
 
@@ -2907,6 +2960,7 @@ function renderPlayerTracker(match) {
 
     return Number(b.goldEarned || 0) - Number(a.goldEarned || 0);
   });
+  const renderNowMs = Date.now();
 
   if (isCompactUI()) {
     elements.playerTrackerWrap.innerHTML = `
@@ -2928,20 +2982,19 @@ function renderPlayerTracker(match) {
                 const teamShort = trackerTeamTag(teamName);
                 const teamClass = row.team === "left" ? "win-left" : "win-right";
                 const playerName = displayPlayerHandle(row.name, teamName);
-                const heroName = trackerHeroName(row);
-                const isDead = isLiveMap && row.isDead === true;
+                const isDead = isLiveMap && (row.isDead === true || row.isDead === "true");
                 const hpPct = healthPctForRow(row);
                 const hpTone = healthToneClass(hpPct, isDead);
                 const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
                 const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
                 const hpCompactLabel = isLiveMap ? (Number.isFinite(hpPct) ? `${Math.round(hpPct)}%` : "n/a") : "N/A";
-                const respawnLabel = isLiveMap && isDead ? formatRespawnLabel(row, isDead) : "";
-                const respawnAtTs = isDead ? Date.parse(String(row?.respawnAt || "")) : Number.NaN;
+                const respawnAtTs = isDead ? respawnTargetMsForRow(row, renderNowMs) : null;
+                const respawnLabel = isLiveMap && isDead ? formatRespawnLabel(row, isDead, renderNowMs, respawnAtTs) : "";
                 const respawnAttrs = Number.isFinite(respawnAtTs)
-                  ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}"`
+                  ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}" data-respawn-prefix="☠ "`
                   : "";
                 const respawnOverlay = isDead
-                  ? `<span class="tracker-respawn-overlay tracker-respawn dead"${respawnAttrs}>${respawnLabel}</span>`
+                  ? `<span class="tracker-respawn-overlay tracker-respawn dead"${respawnAttrs}>☠ ${respawnLabel}</span>`
                   : "";
 
                 return `
@@ -2952,9 +3005,7 @@ function renderPlayerTracker(match) {
                         ${heroIconMarkup(match, row)}
                         ${roleIconMarkup(row.role, gameKey, false)}
                         <div class="tracker-player-inline-meta">
-                          <span class="tracker-player-inline-name">${playerName}</span>
-                          <span class="tracker-player-inline-divider">\u00b7</span>
-                          <span class="tracker-player-inline-hero">${heroName}</span>
+                          <span class="tracker-player-inline-name" title="${playerName}">${playerName}</span>
                         </div>
                       </div>
                       ${respawnOverlay}
@@ -3014,17 +3065,17 @@ function renderPlayerTracker(match) {
               const heroName = trackerHeroName(row);
               const deltaLabel = Number.isFinite(row.deltaGold) ? signed(Math.round(row.deltaGold)) : "n/a";
               const impactLabel = Number.isFinite(row.impact) ? row.impact.toFixed(1) : "n/a";
-              const isDead = isLiveMap && row.isDead === true;
+              const isDead = isLiveMap && (row.isDead === true || row.isDead === "true");
               const hpPct = healthPctForRow(row);
               const hpTone = healthToneClass(hpPct, isDead);
               const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
               const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
               const statusLabel = isLiveMap ? (isDead ? "DEAD \u2620" : "ALIVE") : "N/A";
               const statusClass = isLiveMap ? (isDead ? "dead" : "alive") : "neutral";
-              const respawnLabel = isLiveMap ? formatRespawnLabel(row, isDead) : "N/A";
-              const respawnAtTs = isDead ? Date.parse(String(row?.respawnAt || "")) : Number.NaN;
+              const respawnAtTs = isDead ? respawnTargetMsForRow(row, renderNowMs) : null;
+              const respawnLabel = isLiveMap ? formatRespawnLabel(row, isDead, renderNowMs, respawnAtTs) : "N/A";
               const respawnAttrs = Number.isFinite(respawnAtTs)
-                ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}"`
+                ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}" data-respawn-prefix="☠ "`
                 : "";
 
               return `
@@ -3111,6 +3162,32 @@ function feedRowContentFingerprint(row) {
     : String(row?.at || "").trim();
 
   return `${team}|${title}|${atKey}`;
+}
+
+function buildFeedEventId(row, index = 0) {
+  const rowId = String(row?.id || "").trim();
+  if (rowId) {
+    return `id:${rowId}`;
+  }
+
+  const fingerprint = feedRowContentFingerprint(row);
+  if (fingerprint) {
+    return `fp:${fingerprint}`;
+  }
+
+  return `row:${index}`;
+}
+
+function encodeStoryEventId(value) {
+  return encodeURIComponent(String(value || ""));
+}
+
+function decodeStoryEventId(value) {
+  try {
+    return decodeURIComponent(String(value || ""));
+  } catch {
+    return String(value || "");
+  }
 }
 
 function dedupeUnifiedFeedRows(rows) {
@@ -3209,14 +3286,69 @@ function buildUnifiedFeed(match) {
     .filter((row) => row.at && row.title)
     .sort((left, right) => Date.parse(String(right.at || "")) - Date.parse(String(left.at || "")));
 
-  return dedupeUnifiedFeedRows(combined).slice(0, 60);
+  return dedupeUnifiedFeedRows(combined)
+    .slice(0, 60)
+    .map((row, index) => ({
+      ...row,
+      eventId: buildFeedEventId(row, index)
+    }));
+}
+
+function feedRowsWithGameClock(match, rows) {
+  const timelineAnchor = resolveFeedTimelineAnchor(match, rows);
+  const mappedRows = rows.map((row, index) => {
+    const eventTs = parseIsoTimestamp(row.at);
+    const gameClockSeconds =
+      timelineAnchor.startTs !== null && eventTs !== null
+        ? Math.max(0, Math.round((eventTs - timelineAnchor.startTs) / 1000))
+        : null;
+    return {
+      ...row,
+      eventId: row.eventId || buildFeedEventId(row, index),
+      eventTs,
+      gameClockSeconds
+    };
+  });
+
+  return {
+    timelineAnchor,
+    rows: mappedRows
+  };
+}
+
+function ensureStoryFocus(rows) {
+  if (!rows.length) {
+    uiState.storyFocusEventId = null;
+    return null;
+  }
+
+  const byId = new Set(rows.map((row) => String(row.eventId || "")).filter(Boolean));
+  if (uiState.storyFocusEventId && byId.has(uiState.storyFocusEventId)) {
+    return uiState.storyFocusEventId;
+  }
+
+  const fallback = String(rows[0].eventId || "");
+  uiState.storyFocusEventId = fallback || null;
+  return uiState.storyFocusEventId;
+}
+
+function setStoryFocusEvent(eventId) {
+  const normalized = String(eventId || "").trim();
+  if (!normalized || normalized === uiState.storyFocusEventId) {
+    return;
+  }
+
+  uiState.storyFocusEventId = normalized;
+  if (uiState.match) {
+    renderLeadTrend(uiState.match);
+    renderUnifiedLiveFeed(uiState.match);
+  }
 }
 
 function renderUnifiedLiveFeed(match) {
   const rows = buildUnifiedFeed(match);
   const nowMs = Date.now();
   const windowMinutes = Number.isFinite(uiState.feedWindowMinutes) ? uiState.feedWindowMinutes : null;
-  const timelineAnchor = resolveFeedTimelineAnchor(match, rows);
   const filtered = rows.filter((row) => {
     if (uiState.feedType !== "all" && row.bucket !== uiState.feedType) {
       return false;
@@ -3244,35 +3376,32 @@ function renderUnifiedLiveFeed(match) {
   });
 
   if (!filtered.length) {
+    uiState.storyFocusEventId = null;
     elements.liveFeedList.innerHTML = `<li>No events match the current feed filters.</li>`;
     return;
   }
 
-  const anchoredRows = filtered.map((row) => {
-    const eventTs = parseIsoTimestamp(row.at);
-    const gameClockSeconds =
-      timelineAnchor.startTs !== null && eventTs !== null
-        ? Math.max(0, Math.round((eventTs - timelineAnchor.startTs) / 1000))
-        : null;
-
-    return {
-      ...row,
-      gameClockSeconds
-    };
-  });
+  const { timelineAnchor, rows: anchoredRows } = feedRowsWithGameClock(match, filtered);
+  const activeEventId = ensureStoryFocus(anchoredRows);
 
   elements.liveFeedList.innerHTML = anchoredRows
     .map(
       (row) => `
-      <li class="live-feed-item ${row.team === "left" ? "team-left" : row.team === "right" ? "team-right" : "team-neutral"}">
+      <li class="live-feed-item ${row.team === "left" ? "team-left" : row.team === "right" ? "team-right" : "team-neutral"}${
+        activeEventId && row.eventId === activeEventId ? " active" : ""
+      }" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0" role="button" aria-label="Jump to event in trend">
         <div class="live-feed-row">
-          <span class="feed-game-time">${row.gameClockSeconds === null ? "--:--" : formatGameClock(row.gameClockSeconds)}</span>
+          <span class="feed-game-time">${row.gameClockSeconds === null ? "--:--" : `${timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`}</span>
           <div class="live-feed-main">
             <p class="live-feed-title">
               <span class="feed-bucket-tag">${feedBucketLabel(row.bucket)}</span>
               <span>${row.title}</span>
             </p>
-            <p class="live-feed-meta">${timelineAnchor.estimated ? "Game time (est.)" : "Game time"} · ${dateTimeLabel(row.at)}${row.team ? ` · ${row.team === "left" ? match.teams.left.name : match.teams.right.name}` : ""}</p>
+            <p class="live-feed-meta">${dateTimeCompact(row.at)}${
+              row.team
+                ? ` · ${row.team === "left" ? displayTeamName(match.teams.left.name) : displayTeamName(match.teams.right.name)}`
+                : ""
+            }</p>
           </div>
         </div>
       </li>
@@ -3355,6 +3484,63 @@ function bindFeedControls() {
         ensureMatchupData(uiState.match, uiState.apiBase);
       }
     });
+  }
+
+  const storyInteractionHandler = (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const trigger = target.closest("[data-story-event-id]");
+    if (!trigger) {
+      return;
+    }
+
+    const encodedEventId = trigger.getAttribute("data-story-event-id");
+    const eventId = decodeStoryEventId(encodedEventId);
+    if (!eventId) {
+      return;
+    }
+
+    setStoryFocusEvent(eventId);
+  };
+
+  const storyKeyboardHandler = (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    const trigger = target.closest("[data-story-event-id]");
+    if (!trigger) {
+      return;
+    }
+
+    event.preventDefault();
+    const encodedEventId = trigger.getAttribute("data-story-event-id");
+    const eventId = decodeStoryEventId(encodedEventId);
+    if (!eventId) {
+      return;
+    }
+
+    setStoryFocusEvent(eventId);
+  };
+
+  if (!uiState.storyInteractionsBound) {
+    if (elements.liveFeedList) {
+      elements.liveFeedList.addEventListener("click", storyInteractionHandler);
+      elements.liveFeedList.addEventListener("keydown", storyKeyboardHandler);
+    }
+    if (elements.leadTrendWrap) {
+      elements.leadTrendWrap.addEventListener("click", storyInteractionHandler);
+      elements.leadTrendWrap.addEventListener("keydown", storyKeyboardHandler);
+    }
+    uiState.storyInteractionsBound = true;
   }
 
   uiState.controlsBound = true;
@@ -4581,9 +4767,96 @@ function buildLeadTrendChart(series, options = {}) {
     rawMaxLead,
     minLead,
     maxLead,
+    leadRange,
+    timeRange,
     displayAbsLead,
     gridRows,
     chartBounds: chart
+  };
+}
+
+function leadValueAtTimestamp(rows, timestamp) {
+  if (!Array.isArray(rows) || !rows.length || !Number.isFinite(timestamp)) {
+    return 0;
+  }
+
+  if (timestamp <= rows[0].at) {
+    return Number(rows[0].lead || 0);
+  }
+  if (timestamp >= rows[rows.length - 1].at) {
+    return Number(rows[rows.length - 1].lead || 0);
+  }
+
+  for (let index = 1; index < rows.length; index += 1) {
+    const previous = rows[index - 1];
+    const next = rows[index];
+    if (timestamp > next.at) {
+      continue;
+    }
+
+    const segment = Math.max(1, next.at - previous.at);
+    const ratio = Math.max(0, Math.min(1, (timestamp - previous.at) / segment));
+    return previous.lead + (next.lead - previous.lead) * ratio;
+  }
+
+  return Number(rows[rows.length - 1].lead || 0);
+}
+
+function chartXForTimestamp(chart, timestamp) {
+  const { chartBounds } = chart;
+  const clamped = Math.max(chart.minAt, Math.min(chart.maxAt, timestamp));
+  const ratio = chart.timeRange > 0 ? (clamped - chart.minAt) / chart.timeRange : 0;
+  return chartBounds.left + ratio * (chartBounds.right - chartBounds.left);
+}
+
+function chartYForLead(chart, lead) {
+  const { chartBounds } = chart;
+  const ratio = chart.leadRange > 0 ? (chart.maxLead - lead) / chart.leadRange : 0.5;
+  return Math.max(chartBounds.top, Math.min(chartBounds.bottom, chartBounds.top + ratio * (chartBounds.bottom - chartBounds.top)));
+}
+
+function buildTrendStory(match, chart) {
+  const feedRows = buildUnifiedFeed(match);
+  if (!feedRows.length) {
+    return {
+      timelineAnchor: { startTs: null, estimated: true },
+      markers: [],
+      latestRows: [],
+      activeRow: null
+    };
+  }
+
+  const { timelineAnchor, rows } = feedRowsWithGameClock(match, feedRows);
+  const chronologicalRows = rows
+    .filter((row) => Number.isFinite(row.eventTs))
+    .sort((left, right) => left.eventTs - right.eventTs);
+  if (!chronologicalRows.length) {
+    return {
+      timelineAnchor,
+      markers: [],
+      latestRows: [],
+      activeRow: null
+    };
+  }
+
+  const latestFirst = [...chronologicalRows].sort((left, right) => right.eventTs - left.eventTs);
+  const activeId = ensureStoryFocus(latestFirst);
+  const activeRow = latestFirst.find((row) => row.eventId === activeId) || latestFirst[0];
+  const markerRows = chronologicalRows.slice(Math.max(0, chronologicalRows.length - 14));
+  const markers = markerRows.map((row) => {
+    const interpolatedLead = leadValueAtTimestamp(chart.rows, row.eventTs);
+    return {
+      ...row,
+      chartX: chartXForTimestamp(chart, row.eventTs),
+      chartY: chartYForLead(chart, interpolatedLead)
+    };
+  });
+
+  return {
+    timelineAnchor,
+    markers,
+    latestRows: latestFirst.slice(0, 8),
+    activeRow
   };
 }
 
@@ -4633,6 +4906,59 @@ function renderLeadTrend(match) {
       ? "Live feed currently exposes a short window; timeline will expand as additional frames are collected."
       : null;
   const miniMapMarkup = renderMiniMap(match);
+  const trendStory = buildTrendStory(match, chart);
+  const activeStory = trendStory.activeRow;
+  const activeStoryTeam = activeStory?.team === "left" ? displayTeamName(match.teams.left.name) : activeStory?.team === "right" ? displayTeamName(match.teams.right.name) : "Neutral";
+  const activeStoryClock = activeStory?.gameClockSeconds === null || activeStory?.gameClockSeconds === undefined
+    ? "--:--"
+    : `${trendStory.timelineAnchor.estimated ? "~" : ""}${formatGameClock(activeStory.gameClockSeconds)}`;
+  const activeStoryLead = Number.isFinite(activeStory?.eventTs) ? leadValueAtTimestamp(chart.rows, Number(activeStory.eventTs)) : null;
+  const activeStoryLeadLabel =
+    !Number.isFinite(activeStoryLead) || activeStoryLead === 0
+      ? "Lead: even"
+      : `Lead: ${activeStoryLead > 0 ? `${leftTeamLabel} +` : `${rightTeamLabel} +`}${compactGold(Math.abs(activeStoryLead))}`;
+  const activeStoryTone = activeStoryLead > 0 ? "left" : activeStoryLead < 0 ? "right" : "neutral";
+  const trendMarkerMarkup = trendStory.markers
+    .map((row) => {
+      const tone = row.team === "left" ? "left" : row.team === "right" ? "right" : "neutral";
+      const isActive = Boolean(activeStory?.eventId) && row.eventId === activeStory.eventId;
+      return `<circle cx="${row.chartX.toFixed(2)}" cy="${row.chartY.toFixed(2)}" r="${isActive ? "1.18" : "0.86"}" class="trend-event-marker ${tone} ${row.bucket}${isActive ? " active" : ""}" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0"></circle>`;
+    })
+    .join("");
+  const trendStoryListMarkup = trendStory.latestRows
+    .map((row) => {
+      const tone = row.team === "left" ? "left" : row.team === "right" ? "right" : "neutral";
+      const isActive = Boolean(activeStory?.eventId) && row.eventId === activeStory.eventId;
+      const teamLabel = row.team
+        ? row.team === "left"
+          ? displayTeamName(match.teams.left.name)
+          : displayTeamName(match.teams.right.name)
+        : "Neutral";
+      const clockLabel = row.gameClockSeconds === null ? "--:--" : `${trendStory.timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`;
+      return `
+        <li>
+          <button type="button" class="trend-story-item ${tone}${isActive ? " active" : ""}" data-story-event-id="${encodeStoryEventId(row.eventId)}">
+            <span class="trend-story-clock">${clockLabel}</span>
+            <span class="trend-story-pill">${feedBucketLabel(row.bucket)}</span>
+            <span class="trend-story-text">${row.title}</span>
+            <span class="trend-story-team">${teamLabel}</span>
+          </button>
+        </li>
+      `;
+    })
+    .join("");
+  const trendStoryMarkup = trendStory.latestRows.length
+    ? `
+      <section class="trend-storyboard">
+        <article class="trend-story-current ${activeStoryTone}">
+          <p class="trend-story-kicker">Live Story</p>
+          <p class="trend-story-headline">${activeStory?.title || "No event selected"}</p>
+          <p class="trend-story-meta">${activeStoryClock} · ${activeStoryTeam} · ${activeStory ? feedBucketLabel(activeStory.bucket) : "Event"} · ${activeStoryLeadLabel}</p>
+        </article>
+        <ul class="trend-story-list">${trendStoryListMarkup}</ul>
+      </section>
+    `
+    : `<p class="meta-text">No timeline events yet for this map.</p>`;
 
   elements.leadTrendWrap.innerHTML = `
     <article class="trend-card">
@@ -4658,6 +4984,7 @@ function renderLeadTrend(match) {
             <line x1="${finalPoint.x.toFixed(2)}" x2="${finalPoint.x.toFixed(2)}" y1="${chart.zeroY.toFixed(2)}" y2="${finalPoint.y.toFixed(2)}" class="trend-current-guide ${finalToneClass}"></line>
             <path d="${chart.areaPath}" class="trend-area"></path>
             <path d="${chart.linePath}" class="trend-line"></path>
+            ${trendMarkerMarkup}
             <circle cx="${finalPoint.x.toFixed(2)}" cy="${finalPoint.y.toFixed(2)}" r="1.2" class="trend-dot ${finalToneClass}"></circle>
             <text x="${currentLabelX.toFixed(2)}" y="${currentLabelY.toFixed(2)}" class="trend-current-label ${finalToneClass}">${currentLeadLabel}</text>
           </svg>
@@ -4668,6 +4995,7 @@ function renderLeadTrend(match) {
           </div>
         </section>
       </div>
+      ${trendStoryMarkup}
       <div class="trend-stats">
         <p class="meta-text">Peak ${leftTeamLabel}: +${compactGold(leftPeakLead)} · Peak ${rightTeamLabel}: +${compactGold(rightPeakLead)}</p>
         <p class="meta-text">Fixed scale: ±${compactGold(chart.displayAbsLead)} around center 0</p>
