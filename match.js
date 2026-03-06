@@ -72,15 +72,28 @@ const MOBILE_GAME_JUMP_TARGETS = [
   { id: "leadTrendWrap", label: "Gold" },
   { id: "objectiveControlWrap", label: "Obj" }
 ];
-const MOBILE_CORE_GAME_PANEL_TARGETS = new Set([
-  "selectedGameRecapWrap",
-  "gameCommandWrap",
-  "teamCompareWrap",
-  "playerTrackerWrap",
-  "liveFeedList",
-  "leadTrendWrap",
-  "objectiveControlWrap"
-]);
+const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
+  inProgress: [
+    "selectedGameRecapWrap",
+    "gameCommandWrap",
+    "teamCompareWrap",
+    "playerTrackerWrap",
+    "liveFeedList",
+    "leadTrendWrap",
+    "objectiveControlWrap"
+  ],
+  completed: [
+    "selectedGameRecapWrap",
+    "playerTrackerWrap",
+    "teamCompareWrap",
+    "leadTrendWrap",
+    "objectiveControlWrap",
+    "performersWrap",
+    "momentsList"
+  ],
+  unstarted: ["selectedGameRecapWrap", "gameCommandWrap"],
+  unneeded: ["selectedGameRecapWrap", "gameCommandWrap"]
+};
 const MOBILE_SECTION_HEADINGS = {
   "Current State": { icon: "ST", short: "State" },
   "Series Overview": { icon: "SR", short: "Series" },
@@ -419,20 +432,43 @@ function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
       ? `<button type="button" class="mobile-advanced-toggle${uiState.mobileAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${uiState.mobileAdvancedExpanded ? "Hide extra panels" : `More stats (${advancedVisibleCount})`}</button>`
       : "";
 
+  if (!jumpButtons && !advancedButton) {
+    elements.mobileGameToolbar.hidden = true;
+    elements.mobileGameToolbar.innerHTML = "";
+    return;
+  }
+
   elements.mobileGameToolbar.hidden = false;
   elements.mobileGameToolbar.innerHTML = `
-    <div class="mobile-jump-row">${jumpButtons}</div>
+    ${jumpButtons ? `<div class="mobile-jump-row">${jumpButtons}</div>` : ""}
     ${advancedButton}
   `;
 }
 
+function mobileCorePanelTargetIds(match) {
+  const selectedState = String(match?.selectedGame?.state || "inProgress");
+  const mapped = MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE[selectedState];
+  if (Array.isArray(mapped) && mapped.length) {
+    return mapped;
+  }
+
+  return MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE.inProgress;
+}
+
 function applyMobileGameEnhancements(match) {
+  const selectedState = String(match?.selectedGame?.state || "");
   const compactGameMode = isCompactUI() && uiState.viewMode === "game";
   document.body.classList.toggle("mobile-game-mode", compactGameMode);
+  document.body.classList.toggle("mobile-game-live", compactGameMode && selectedState === "inProgress");
+  document.body.classList.toggle("mobile-game-complete", compactGameMode && selectedState === "completed");
+  document.body.classList.toggle(
+    "mobile-game-upcoming",
+    compactGameMode && (selectedState === "unstarted" || selectedState === "unneeded")
+  );
   bindMobileGameToolbar();
 
   const corePanels = new Set(
-    Array.from(MOBILE_CORE_GAME_PANEL_TARGETS)
+    mobileCorePanelTargetIds(match)
       .map((targetId) => panelForTargetId(targetId))
       .filter(Boolean)
   );
@@ -1533,6 +1569,8 @@ function renderGameExplorer(match, apiBase) {
   const sideSummary = Array.isArray(selected.sideSummary) ? selected.sideSummary : [];
   const tips = Array.isArray(selected.tips) ? selected.tips : [];
   const watchOptions = Array.isArray(selected.watchOptions) ? selected.watchOptions : [];
+  const compactStateSummary = compact && selected.state !== "inProgress";
+  const telemetryCountsLine = `Ticker ${selected.telemetryCounts?.tickerEvents || 0} · Objective ${selected.telemetryCounts?.objectiveEvents || 0} · Bursts ${selected.telemetryCounts?.combatBursts || 0} · Milestones ${selected.telemetryCounts?.goldMilestones || 0}`;
 
   elements.gameContextWrap.innerHTML = `
     <article class="game-context-card ${selected.telemetryStatus || "none"}">
@@ -1543,14 +1581,14 @@ function renderGameExplorer(match, apiBase) {
       <p class="meta-text">${selected.label || "No game label."}</p>
       ${selected.startedAt ? `<p class="meta-text">Started: ${dateTimeLabel(selected.startedAt)}</p>` : ""}
       ${sideSummary.length ? `<p class="meta-text">${sideSummary.join(" · ")}</p>` : ""}
-      <p class="meta-text">Ticker ${selected.telemetryCounts?.tickerEvents || 0} · Objective ${selected.telemetryCounts?.objectiveEvents || 0} · Bursts ${selected.telemetryCounts?.combatBursts || 0} · Milestones ${selected.telemetryCounts?.goldMilestones || 0}</p>
-      ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Primary VOD</a>` : `<span class="meta-text">No primary VOD link.</span>`}
+      ${compactStateSummary ? "" : `<p class="meta-text">${telemetryCountsLine}</p>`}
+      ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">${compactStateSummary ? "Watch" : "Primary VOD"}</a>` : `<span class="meta-text">${compactStateSummary ? "No watch link." : "No primary VOD link."}</span>`}
       ${watchOptions.length
         ? `<div class="vod-options">${watchOptions
-            .map((option) => `<a class="vod-link" href="${option.watchUrl}" target="_blank" rel="noreferrer">${option.label}</a>`)
+            .map((option) => `<a class="vod-link" href="${option.watchUrl}" target="_blank" rel="noreferrer">${compactStateSummary ? option.shortLabel || option.label : option.label}</a>`)
             .join("")}</div>`
         : ""}
-      ${tips.length ? `<ul class="confidence-notes">${tips.map((tip) => `<li>${tip}</li>`).join("")}</ul>` : ""}
+      ${compactStateSummary ? "" : tips.length ? `<ul class="confidence-notes">${tips.map((tip) => `<li>${tip}</li>`).join("")}</ul>` : ""}
     </article>
   `;
 }
@@ -1602,6 +1640,7 @@ function applyGamePanelVisibility(match) {
     elements.objectiveTimelineList,
     elements.objectiveForecastWrap,
     elements.playerDeltaWrap,
+    elements.momentsList,
     elements.teamCompareWrap,
     elements.playerTrackerWrap,
     elements.liveFeedList,
