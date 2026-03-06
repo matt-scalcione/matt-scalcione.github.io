@@ -1,4 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import { buildMatchUrl } from "./routes.js";
 import {
   applySeo,
   buildCanonicalPath,
@@ -327,13 +328,12 @@ function renderCards(rows) {
 
   elements.cardGrid.innerHTML = orderedRows
     .map((match, index) => {
-      const link = new URL("./match.html", window.location.href);
-      link.searchParams.set("id", match.id);
+      const link = buildMatchUrl({ matchId: match.id });
       const statusClass = statusPillClass(match.status);
       const statusLabel = String(match.status || "upcoming").toUpperCase();
 
       return `
-        <a class="match-card" style="--delay:${index * 55}ms" href="${link.toString()}">
+        <a class="match-card" style="--delay:${index * 55}ms" href="${link}">
           <div class="match-card-topline">
             <span class="pill ${statusClass}">${statusLabel}</span>
             <span class="subline">${gameChipMarkup(match.game)} ${match.tournament || "Tournament"}</span>

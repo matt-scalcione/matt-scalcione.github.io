@@ -1,4 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import { buildMatchUrl, buildTeamUrl, parseTeamRoute } from "./routes.js";
 import {
   applySeo,
   buildCanonicalPath,
@@ -444,16 +445,13 @@ function updateNav(apiBase) {
 }
 
 function buildBackLink(apiBase) {
-  const url = new URL(window.location.href);
-  const fromMatch = url.searchParams.get("match");
+  const route = parseTeamRoute();
+  const fromMatch = route.matchId;
   if (fromMatch) {
-    const matchUrl = new URL("./match.html", window.location.href);
-    matchUrl.searchParams.set("id", fromMatch);
-    const gameNumber = url.searchParams.get("game_number");
-    if (gameNumber) {
-      matchUrl.searchParams.set("game", gameNumber);
-    }
-    elements.backLink.href = matchUrl.toString();
+    elements.backLink.href = buildMatchUrl({
+      matchId: fromMatch,
+      gameNumber: route.gameNumber
+    });
     elements.backLink.textContent = "Back to Match";
     return;
   }
@@ -468,9 +466,7 @@ function buildBackLink(apiBase) {
 }
 
 function matchDetailUrl(matchId, apiBase) {
-  const url = new URL("./match.html", window.location.href);
-  url.searchParams.set("id", matchId);
-  return url.toString();
+  return buildMatchUrl({ matchId });
 }
 
 function teamDetailUrl({
@@ -485,22 +481,13 @@ function teamDetailUrl({
     return null;
   }
 
-  const url = new URL("./team.html", window.location.href);
-  url.searchParams.set("id", teamId);
-  if (game) {
-    url.searchParams.set("game", game);
-  }
-  if (matchId) {
-    url.searchParams.set("match", matchId);
-  }
-  if (opponentId) {
-    url.searchParams.set("opponent", opponentId);
-  }
-  if (teamName) {
-    url.searchParams.set("team_name", teamName);
-  }
-
-  return url.toString();
+  return buildTeamUrl({
+    teamId,
+    game,
+    matchId,
+    opponentId,
+    teamName
+  });
 }
 
 function seriesScoreLabel(row) {
@@ -1310,27 +1297,27 @@ function installEvents() {
 }
 
 function boot() {
-  const url = new URL(window.location.href);
-  const teamId = url.searchParams.get("id");
+  const route = parseTeamRoute();
+  const teamId = route.id;
   if (!teamId) {
     elements.teamTitle.textContent = "Missing team id.";
-    setStatus("Add ?id=<team-id> to the URL.", "error");
+    setStatus("Use /team/<team-id> or ?id=<team-id> in the URL.", "error");
     return;
   }
 
   state.teamId = teamId;
-  state.seedMatchId = url.searchParams.get("match");
-  state.teamNameHint = url.searchParams.get("team_name");
+  state.seedMatchId = route.matchId;
+  state.teamNameHint = route.teamName;
 
-  const apiBase = url.searchParams.get("api") || readApiBase();
+  const apiBase = route.api || readApiBase();
   elements.apiBaseInput.value = apiBase;
 
-  const game = url.searchParams.get("game");
+  const game = route.game;
   if (game) {
     elements.gameSelect.value = game;
   }
 
-  const opponent = url.searchParams.get("opponent") || url.searchParams.get("opponent_id");
+  const opponent = route.opponent;
   if (opponent) {
     state.pendingOpponentId = opponent;
     if (elements.opponentSelect) {
@@ -1344,7 +1331,7 @@ function boot() {
     elements.opponentSelect.value = "";
   }
 
-  const limit = url.searchParams.get("limit");
+  const limit = route.limit;
   if (limit && ["5", "10", "15", "20"].includes(limit)) {
     elements.limitSelect.value = limit;
   } else {

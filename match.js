@@ -1,4 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import { buildMatchUrl, buildTeamUrl, parseMatchRoute } from "./routes.js";
 import {
   applySeo,
   gameLabel,
@@ -1635,16 +1636,10 @@ function normalizeApiBase(base) {
 }
 
 function detailUrlForGame(matchId, _apiBase, gameNumber = null) {
-  const url = new URL("./match.html", window.location.href);
-  url.searchParams.set("id", matchId);
-
-  if (Number.isInteger(gameNumber) && gameNumber > 0) {
-    url.searchParams.set("game", String(gameNumber));
-  } else {
-    url.searchParams.delete("game");
-  }
-
-  return url.toString();
+  return buildMatchUrl({
+    matchId,
+    gameNumber
+  });
 }
 
 function teamDetailUrl(
@@ -1653,25 +1648,14 @@ function teamDetailUrl(
   _apiBase,
   { matchId = null, gameNumber = null, opponentId = null, teamName = null } = {}
 ) {
-  const url = new URL("./team.html", window.location.href);
-  url.searchParams.set("id", teamId);
-  if (game) {
-    url.searchParams.set("game", game);
-  }
-  if (matchId) {
-    url.searchParams.set("match", matchId);
-  }
-  if (Number.isInteger(gameNumber) && gameNumber > 0) {
-    url.searchParams.set("game_number", String(gameNumber));
-  }
-  if (opponentId) {
-    url.searchParams.set("opponent", opponentId);
-  }
-  if (teamName) {
-    url.searchParams.set("team_name", teamName);
-  }
-
-  return url.toString();
+  return buildTeamUrl({
+    teamId,
+    game,
+    matchId,
+    gameNumber,
+    opponentId,
+    teamName
+  });
 }
 
 function canonicalMatchPath(matchId, gameNumber = null) {
@@ -1699,8 +1683,9 @@ function eventStatusForMatch(match) {
 
 function refreshMatchSeo(match = null) {
   const pageUrl = new URL(window.location.href);
-  const matchId = String(match?.id || pageUrl.searchParams.get("id") || "").trim();
-  const requestedGame = parseRequestedGameNumber(pageUrl.searchParams.get("game"));
+  const route = parseMatchRoute(pageUrl.toString());
+  const matchId = String(match?.id || route.id || "").trim();
+  const requestedGame = Number.isInteger(route.gameNumber) ? route.gameNumber : parseRequestedGameNumber(pageUrl.searchParams.get("game"));
   const selectedGame = contextGameNumber();
   const gameNumber = Number.isInteger(selectedGame) ? selectedGame : requestedGame;
   const seoGameKey = normalizeSeoGameKey(match?.game || pageUrl.searchParams.get("title") || pageUrl.searchParams.get("game"));
@@ -6185,8 +6170,11 @@ function startMatchStream({ matchId, requestedGameNumber, apiBase }) {
 
 async function loadMatch() {
   const url = new URL(window.location.href);
-  const matchId = url.searchParams.get("id");
-  const requestedGameNumber = parseRequestedGameNumber(url.searchParams.get("game"));
+  const route = parseMatchRoute(url.toString());
+  const matchId = route.id;
+  const requestedGameNumber = Number.isInteger(route.gameNumber)
+    ? route.gameNumber
+    : parseRequestedGameNumber(url.searchParams.get("game"));
   const requestedH2hLimit = normalizeMatchupLimit(url.searchParams.get("h2h_limit"));
   const apiBase = normalizeApiBase(url.searchParams.get("api") || localStorage.getItem("pulseboard.apiBase") || DEFAULT_API_BASE);
   const streamEnabled = url.searchParams.get("stream") !== "0";
@@ -6215,7 +6203,7 @@ async function loadMatch() {
     uiState.viewMode = "series";
     uiState.activeGameNumber = null;
     resetMatchupState();
-    elements.matchTitle.textContent = "Missing match id.";
+    elements.matchTitle.textContent = "Missing match id. Use /match/<match-id> or ?id=<match-id>.";
     refreshMatchSeo(null);
     renderStreamStatus(null);
     renderMatchupConsole(null);
