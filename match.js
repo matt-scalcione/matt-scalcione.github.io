@@ -2658,10 +2658,16 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.dataConfidenceWrap, false);
     setTargetVisibility(elements.tempoSnapshotWrap, false);
     setTargetVisibility(elements.tacticalChecklistWrap, false);
+    setTargetVisibility(elements.objectiveBreakdownWrap, false);
+    setTargetVisibility(elements.draftBoardWrap, false);
+    setTargetVisibility(elements.draftDeltaWrap, false);
+    setTargetVisibility(elements.economyBoardWrap, false);
+    setTargetVisibility(elements.laneMatchupsWrap, false);
+    setTargetVisibility(elements.roleDeltaWrap, false);
+    setTargetVisibility(elements.objectiveRunsWrap, false);
     setTargetVisibility(elements.liveTickerList, hasRows(match?.liveTicker));
     setTargetVisibility(elements.combatBurstsList, hasRows(match?.combatBursts) || hasRows(match?.goldMilestones));
     setTargetVisibility(elements.goldMilestonesList, false);
-    setTargetVisibility(elements.objectiveRunsWrap, hasRows(match?.objectiveRuns));
     setTargetVisibility(elements.momentsList, hasRows(match?.keyMoments));
   }
 }
