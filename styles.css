@@ -2711,12 +2711,7 @@ button.ghost,
   background: linear-gradient(180deg, rgba(31, 123, 194, 0.12), rgba(31, 123, 194, 0.04));
 }
 
-.pulse-alerts {
-  display: grid;
-  gap: 0.38rem;
-}
-
-.pulse-alert {
+.pulse-priority {
   border: 1px solid var(--line);
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.84);
@@ -2725,29 +2720,29 @@ button.ghost,
   gap: 0.16rem;
 }
 
-.pulse-alert.importance-critical {
+.pulse-priority.importance-critical {
   border-color: rgba(164, 47, 23, 0.34);
   background: rgba(164, 47, 23, 0.08);
 }
 
-.pulse-alert.importance-high {
+.pulse-priority.importance-high {
   border-color: rgba(168, 93, 20, 0.34);
   background: rgba(168, 93, 20, 0.08);
 }
 
-.pulse-alert.importance-medium {
+.pulse-priority.importance-medium {
   border-color: rgba(31, 123, 194, 0.28);
   background: rgba(31, 123, 194, 0.06);
 }
 
-.pulse-alert-top {
+.pulse-priority-top {
   display: flex;
   align-items: center;
   gap: 0.34rem;
   flex-wrap: wrap;
 }
 
-.pulse-alert-top strong {
+.pulse-priority-top strong {
   font-size: 0.8rem;
   line-height: 1.2;
 }
