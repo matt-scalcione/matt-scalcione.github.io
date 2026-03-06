@@ -3135,9 +3135,9 @@ button.ghost,
   .match-page .match-state-panel {
     padding: 0.4rem;
     border-radius: 13px;
-    background: linear-gradient(180deg, rgba(4, 10, 20, 0.97) 0%, rgba(8, 16, 28, 0.95) 100%);
-    border-color: rgba(132, 157, 192, 0.35);
-    box-shadow: 0 10px 24px rgba(5, 12, 24, 0.34);
+    background: linear-gradient(180deg, rgba(227, 237, 248, 0.96) 0%, rgba(241, 247, 255, 0.94) 100%);
+    border-color: rgba(108, 138, 176, 0.35);
+    box-shadow: 0 8px 18px rgba(33, 67, 104, 0.18);
   }
 
   .match-page .match-state-panel .section-head {
@@ -3190,45 +3190,45 @@ button.ghost,
   }
 
   .match-page .match-state-panel .series-strip {
-    background: linear-gradient(120deg, #0f1f33 0%, #152943 62%, #1b3455 100%);
-    border-color: rgba(164, 188, 224, 0.35);
-    box-shadow: inset 0 0 0 1px rgba(193, 213, 246, 0.06);
+    background: linear-gradient(120deg, rgba(70, 130, 182, 0.28) 0%, rgba(89, 148, 199, 0.34) 100%);
+    border-color: rgba(93, 134, 174, 0.4);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   }
 
   .match-page .match-state-panel .series-strip .team-badge,
   .match-page .match-state-panel .game-strip .team-badge {
-    background: rgba(241, 248, 255, 0.14);
-    border-color: rgba(208, 224, 246, 0.42);
-    color: #f2f8ff;
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(110, 145, 180, 0.45);
+    color: #173f66;
   }
 
   .match-page .match-state-panel .series-strip .score-team-name,
   .match-page .match-state-panel .game-strip .score-team-name,
   .match-page .match-state-panel .series-strip .score-center-main,
   .match-page .match-state-panel .game-strip .score-center-main {
-    color: #f9fbff;
+    color: #12395f;
   }
 
   .match-page .match-state-panel .series-strip .score-center-label {
-    color: rgba(231, 241, 255, 0.72);
+    color: rgba(47, 85, 120, 0.88);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-size: 0.54rem;
   }
 
   .match-page .match-state-panel .series-strip .score-center-sub {
-    color: rgba(224, 238, 255, 0.82);
+    color: rgba(49, 87, 124, 0.86);
     font-size: 0.6rem;
   }
 
   .match-page .match-state-panel .game-strip {
-    background: rgba(12, 24, 40, 0.74);
-    border-color: rgba(132, 157, 192, 0.35);
+    background: rgba(255, 255, 255, 0.84);
+    border-color: rgba(114, 146, 182, 0.34);
   }
 
   .match-page .match-state-panel .game-strip .score-center-label,
   .match-page .match-state-panel .game-strip .score-center-sub {
-    color: rgba(221, 236, 255, 0.78);
+    color: rgba(70, 105, 141, 0.9);
   }
 
   .match-page .team-badge {
@@ -3309,23 +3309,23 @@ button.ghost,
     grid-template-columns: auto 1fr;
     align-items: center;
     gap: 0.16rem 0.44rem;
-    border-color: rgba(132, 157, 192, 0.35);
-    background: rgba(11, 22, 37, 0.74);
+    border-color: rgba(112, 145, 180, 0.34);
+    background: rgba(255, 255, 255, 0.85);
   }
 
   .match-page .match-state-panel .stream-card.connected {
-    border-color: rgba(60, 182, 123, 0.45);
-    background: rgba(15, 76, 56, 0.58);
+    border-color: rgba(41, 143, 102, 0.4);
+    background: rgba(41, 143, 102, 0.16);
   }
 
   .match-page .match-state-panel .stream-card.reconnecting {
-    border-color: rgba(205, 135, 64, 0.45);
-    background: rgba(112, 69, 26, 0.56);
+    border-color: rgba(173, 111, 42, 0.42);
+    background: rgba(173, 111, 42, 0.16);
   }
 
   .match-page .match-state-panel .stream-card.polling {
-    border-color: rgba(93, 157, 223, 0.42);
-    background: rgba(24, 56, 89, 0.62);
+    border-color: rgba(52, 119, 184, 0.4);
+    background: rgba(52, 119, 184, 0.16);
   }
 
   .match-page .match-state-panel .stream-title {
@@ -3334,7 +3334,7 @@ button.ghost,
     line-height: 1.05;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #f2f7ff;
+    color: #1b4f7b;
   }
 
   .match-page .match-state-panel .stream-card .meta-text {
@@ -3342,7 +3342,7 @@ button.ghost,
     font-size: 0.6rem;
     line-height: 1.12;
     text-align: right;
-    color: rgba(222, 236, 255, 0.86);
+    color: rgba(39, 74, 109, 0.84);
   }
 
   .match-page .stream-title {
@@ -3358,7 +3358,24 @@ button.ghost,
     box-shadow: 0 8px 18px rgba(10, 24, 40, 0.12);
   }
 
+  .match-page.mobile-game-live .panel[data-scope="game"].mobile-core-panel {
+    border-color: rgba(14, 104, 76, 0.28);
+  }
+
+  .match-page.mobile-game-complete .panel[data-scope="game"].mobile-core-panel {
+    border-color: rgba(91, 108, 128, 0.3);
+  }
+
+  .match-page.mobile-game-upcoming .panel[data-scope="game"].mobile-core-panel {
+    border-color: rgba(163, 108, 34, 0.32);
+  }
+
   .match-page.mobile-game-mode .panel[data-scope="game"]:not(.mobile-core-panel) .section-head .meta-text {
+    display: none;
+  }
+
+  .match-page.mobile-game-complete .panel[data-scope="game"] .section-head .meta-text,
+  .match-page.mobile-game-upcoming .panel[data-scope="game"] .section-head .meta-text {
     display: none;
   }
 
@@ -3378,6 +3395,16 @@ button.ghost,
     position: sticky;
     top: calc(4.4rem + env(safe-area-inset-top, 0px));
     z-index: 24;
+  }
+
+  .match-page.mobile-game-complete .mobile-game-toolbar {
+    border-color: rgba(122, 136, 156, 0.35);
+    background: rgba(245, 248, 253, 0.94);
+  }
+
+  .match-page.mobile-game-upcoming .mobile-game-toolbar {
+    border-color: rgba(171, 126, 67, 0.35);
+    background: rgba(255, 250, 242, 0.93);
   }
 
   .match-page.mobile-game-mode .mobile-jump-chip {
