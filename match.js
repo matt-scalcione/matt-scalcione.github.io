@@ -80,6 +80,7 @@ const MOBILE_GAME_JUMP_TARGETS = [
   { id: "playerTrackerWrap", label: "Players" },
   { id: "leadTrendWrap", label: "Gold" },
   { id: "liveFeedList", label: "Feed" },
+  { id: "liveAlertsList", label: "Alerts" },
   { id: "objectiveControlWrap", label: "Obj" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
@@ -104,7 +105,7 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
     "leadTrendWrap",
     "liveFeedList",
     "pulseCard",
-    "objectiveControlWrap"
+    "liveAlertsList"
   ],
   completed: [
     "selectedGameRecapWrap",
@@ -137,6 +138,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Live Event Feed": { icon: "FE", short: "Live Feed" },
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
   "What Matters Now": { icon: "NOW", short: "Now" },
+  "Live Alerts": { icon: "AL", short: "Alerts" },
   "Signal Log": { icon: "SG", short: "Signals" },
   "Objective Control": { icon: "OBJ", short: "Objective" },
   "Analyst Desk": { icon: "AD", short: "Analyst" },
@@ -148,7 +150,7 @@ const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
   upcoming: new Set(["Upcoming Essentials", "Team Form", "Prediction Model", "Watch Guide"]),
-  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "What Matters Now", "Objective Control"])
+  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "What Matters Now", "Live Alerts"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -2653,11 +2655,13 @@ function applyGamePanelVisibility(match) {
   if (selectedState === "inProgress") {
     setTargetVisibility(elements.gameCommandWrap, false);
     setTargetVisibility(elements.teamCompareWrap, false);
-    setTargetVisibility(elements.liveAlertsList, false);
+    setTargetVisibility(elements.liveAlertsList, true);
     setTargetVisibility(elements.storylinesList, false);
     setTargetVisibility(elements.dataConfidenceWrap, false);
+    setTargetVisibility(elements.edgeMeterWrap, false);
     setTargetVisibility(elements.tempoSnapshotWrap, false);
     setTargetVisibility(elements.tacticalChecklistWrap, false);
+    setTargetVisibility(elements.objectiveControlWrap, false);
     setTargetVisibility(elements.objectiveBreakdownWrap, false);
     setTargetVisibility(elements.draftBoardWrap, false);
     setTargetVisibility(elements.draftDeltaWrap, false);
@@ -2665,10 +2669,14 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.laneMatchupsWrap, false);
     setTargetVisibility(elements.roleDeltaWrap, false);
     setTargetVisibility(elements.objectiveRunsWrap, false);
-    setTargetVisibility(elements.liveTickerList, hasRows(match?.liveTicker));
-    setTargetVisibility(elements.combatBurstsList, hasRows(match?.combatBursts) || hasRows(match?.goldMilestones));
+    setTargetVisibility(elements.performersWrap, false);
+    setTargetVisibility(elements.liveTickerList, false);
+    setTargetVisibility(elements.objectiveTimelineList, false);
+    setTargetVisibility(elements.objectiveForecastWrap, false);
+    setTargetVisibility(elements.playerDeltaWrap, false);
+    setTargetVisibility(elements.combatBurstsList, false);
     setTargetVisibility(elements.goldMilestonesList, false);
-    setTargetVisibility(elements.momentsList, hasRows(match?.keyMoments));
+    setTargetVisibility(elements.momentsList, false);
   }
 }
 
