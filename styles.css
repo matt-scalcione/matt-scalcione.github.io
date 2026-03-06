@@ -50,20 +50,29 @@ body {
 .hero {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 3.2rem 1rem 1rem;
+  padding: 2.45rem 1rem 1rem;
   animation: reveal 0.7s ease-out both;
+  display: grid;
+  gap: 0.36rem;
+  position: relative;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(12, 45, 66, 0), rgba(12, 45, 66, 0.2), rgba(12, 45, 66, 0));
 }
 
 .hero.compact {
-  padding-bottom: 0.2rem;
+  padding-bottom: 0.52rem;
 }
 
 .kicker {
-  margin: 0 0 0.2rem;
-  font-size: 0.86rem;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--accent-strong);
+  display: none;
 }
 
 h1,
@@ -75,7 +84,7 @@ h3 {
 }
 
 h1 {
-  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-size: clamp(1.95rem, 5.2vw, 3rem);
   line-height: 0.95;
 }
 
@@ -84,31 +93,72 @@ h2 {
 }
 
 .subtitle {
-  margin: 0.7rem 0 0;
+  margin: 0.2rem 0 0;
   max-width: 62ch;
   color: var(--muted);
+  line-height: 1.35;
 }
 
 .page-nav {
-  margin-top: 0.95rem;
-  display: flex;
-  gap: 0.55rem;
+  margin-top: 0.52rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.26rem;
   flex-wrap: wrap;
+  width: fit-content;
+  border: 1px solid rgba(16, 70, 106, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(246, 251, 255, 0.88));
+  box-shadow:
+    0 10px 24px rgba(10, 24, 40, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  padding: 0.22rem;
+  backdrop-filter: blur(10px);
 }
 
 .page-nav a {
-  border: 1px solid rgba(12, 76, 72, 0.2);
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--accent-strong);
-  border-radius: 999px;
-  padding: 0.34rem 0.7rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #195b63;
+  border-radius: 10px;
+  padding: 0.34rem 0.72rem;
   text-decoration: none;
-  font-size: 0.83rem;
+  font-size: 0.75rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  letter-spacing: 0.01em;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.page-nav a:hover {
+  border-color: rgba(23, 93, 124, 0.24);
+  background: rgba(23, 93, 124, 0.08);
 }
 
 .page-nav a[aria-current="page"] {
   color: #fff;
   background: linear-gradient(130deg, var(--accent), var(--accent-strong));
+  border-color: rgba(9, 63, 60, 0.28);
+  box-shadow:
+    0 5px 12px rgba(10, 62, 66, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.match-page .hero h1 {
+  font-size: 0.66rem;
+  line-height: 1.1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(20, 57, 90, 0.7);
+}
+
+.match-page .hero #matchTitle.subtitle {
+  margin-top: 0.08rem;
+  max-width: 34ch;
+  color: #132033;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: clamp(1.32rem, 4.2vw, 2.1rem);
+  line-height: 1.08;
+  letter-spacing: 0.01em;
 }
 
 .layout {
@@ -1035,11 +1085,16 @@ button.ghost,
 }
 
 .mobile-jump-row {
-  display: flex;
-  gap: 0.34rem;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: stretch;
+  gap: 0.28rem;
   overflow-x: auto;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.04rem;
 }
 
 .mobile-jump-row::-webkit-scrollbar {
@@ -1047,34 +1102,41 @@ button.ghost,
 }
 
 .mobile-jump-chip {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--accent-strong);
+  border: 1px solid rgba(47, 99, 143, 0.22);
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 251, 255, 0.9));
+  color: #1e4f73;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   letter-spacing: 0.02em;
-  padding: 0.24rem 0.54rem;
+  padding: 0.26rem 0.52rem;
+  min-height: 1.76rem;
+  box-shadow: 0 4px 10px rgba(22, 64, 95, 0.09);
   flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.mobile-jump-chip:active {
+  transform: translateY(1px);
 }
 
 .mobile-advanced-toggle {
   margin-top: 0;
-  border: 1px solid rgba(32, 81, 132, 0.34);
+  border: 1px solid rgba(31, 97, 141, 0.3);
   border-radius: 10px;
-  background: rgba(32, 81, 132, 0.1);
-  color: #18456f;
+  background: linear-gradient(180deg, rgba(232, 244, 255, 0.88), rgba(220, 239, 255, 0.78));
+  color: #14496f;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   letter-spacing: 0.02em;
-  padding: 0.28rem 0.5rem;
+  padding: 0.24rem 0.46rem;
   width: 100%;
-  min-height: 2.1rem;
+  min-height: 1.9rem;
 }
 
 .mobile-advanced-toggle.open {
   border-color: rgba(14, 112, 76, 0.35);
-  background: rgba(14, 112, 76, 0.12);
+  background: linear-gradient(180deg, rgba(224, 247, 238, 0.85), rgba(208, 243, 229, 0.75));
   color: #0c6a43;
 }
 
@@ -3198,65 +3260,82 @@ button.ghost,
     background: linear-gradient(
       180deg,
       rgba(245, 241, 231, 0.98) 0%,
-      rgba(245, 241, 231, 0.95) 70%,
+      rgba(245, 241, 231, 0.93) 66%,
       rgba(245, 241, 231, 0.78) 100%
     );
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(12, 45, 66, 0.1);
-    padding: 0.95rem 0.7rem 0.62rem;
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(12, 45, 66, 0.12);
+    padding: 0.82rem 0.66rem 0.52rem;
+    gap: 0.28rem;
   }
 
   .hero.compact {
-    padding-bottom: 0.52rem;
-  }
-
-  .kicker {
-    font-size: 0.72rem;
-    margin-bottom: 0.12rem;
+    padding-bottom: 0.44rem;
   }
 
   h1 {
-    font-size: clamp(1.44rem, 6.2vw, 1.9rem);
+    font-size: clamp(1.3rem, 5.8vw, 1.78rem);
   }
 
   .subtitle {
-    margin-top: 0.45rem;
-    font-size: 0.82rem;
-    line-height: 1.28;
+    margin-top: 0.2rem;
+    font-size: 0.76rem;
+    line-height: 1.3;
   }
 
   .page-nav {
     position: fixed;
-    left: 0.55rem;
-    right: 0.55rem;
-    bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
-    z-index: 60;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    z-index: 62;
     margin-top: 0;
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    box-shadow: 0 12px 28px rgba(10, 24, 40, 0.18);
-    backdrop-filter: blur(16px);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 252, 255, 0.93));
+    border: 1px solid rgba(27, 90, 129, 0.2);
+    border-radius: 16px;
+    box-shadow:
+      0 14px 32px rgba(10, 24, 40, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(18px);
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.2rem;
-    padding: 0.22rem;
+    gap: 0.22rem;
+    padding: 0.24rem;
     flex-wrap: nowrap;
   }
 
   .page-nav a {
-    border: 0;
-    min-height: 2.35rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    padding: 0 0.26rem;
+    border: 1px solid transparent;
+    min-height: 2.2rem;
+    border-radius: 10px;
+    font-size: 0.66rem;
+    padding: 0 0.2rem;
     display: flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    background: transparent;
+    background: rgba(16, 66, 91, 0.06);
+    color: #1e5e67;
+  }
+
+  .page-nav a[aria-current="page"] {
+    background: linear-gradient(130deg, var(--accent), var(--accent-strong));
+    color: #fff;
+    border-color: rgba(9, 63, 60, 0.3);
+  }
+
+  .match-page .hero h1 {
+    font-size: 0.58rem;
+    letter-spacing: 0.13em;
+  }
+
+  .match-page .hero #matchTitle.subtitle {
+    margin-top: 0.12rem;
+    font-size: clamp(1.04rem, 4.9vw, 1.38rem);
+    line-height: 1.12;
+    max-width: 29ch;
   }
 
   .layout {
@@ -3532,38 +3611,41 @@ button.ghost,
 
   .match-page.mobile-game-mode .mobile-game-toolbar {
     display: grid;
-    gap: 0.28rem;
-    margin-top: 0.46rem;
-    padding: 0.34rem;
-    border-radius: 11px;
-    border: 1px solid rgba(118, 146, 183, 0.33);
-    background: rgba(247, 251, 255, 0.92);
-    backdrop-filter: blur(10px);
+    gap: 0.24rem;
+    margin-top: 0.4rem;
+    padding: 0.3rem;
+    border-radius: 14px;
+    border: 1px solid rgba(95, 132, 170, 0.34);
+    background: linear-gradient(180deg, rgba(246, 251, 255, 0.94), rgba(237, 247, 255, 0.9));
+    box-shadow:
+      0 8px 20px rgba(18, 46, 72, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(14px);
     position: sticky;
-    top: calc(4.4rem + env(safe-area-inset-top, 0px));
+    top: calc(4.2rem + env(safe-area-inset-top, 0px));
     z-index: 24;
   }
 
   .match-page.mobile-game-complete .mobile-game-toolbar {
-    border-color: rgba(122, 136, 156, 0.35);
-    background: rgba(245, 248, 253, 0.94);
+    border-color: rgba(122, 136, 156, 0.4);
+    background: linear-gradient(180deg, rgba(248, 250, 254, 0.94), rgba(240, 245, 252, 0.9));
   }
 
   .match-page.mobile-game-upcoming .mobile-game-toolbar {
-    border-color: rgba(171, 126, 67, 0.35);
-    background: rgba(255, 250, 242, 0.93);
+    border-color: rgba(171, 126, 67, 0.4);
+    background: linear-gradient(180deg, rgba(255, 250, 242, 0.94), rgba(255, 245, 232, 0.9));
   }
 
   .match-page.mobile-game-mode .mobile-jump-chip {
-    min-height: 1.85rem;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.6rem;
+    min-height: 1.78rem;
+    padding: 0.18rem 0.44rem;
+    font-size: 0.56rem;
   }
 
   .match-page.mobile-game-mode .mobile-advanced-toggle {
-    min-height: 1.95rem;
-    font-size: 0.62rem;
-    padding: 0.22rem 0.4rem;
+    min-height: 1.82rem;
+    font-size: 0.58rem;
+    padding: 0.2rem 0.34rem;
   }
 
   .match-page .game-nav-head .meta-text {
@@ -4060,19 +4142,30 @@ button.ghost,
   }
 
   .match-page.mobile-game-mode .mobile-game-toolbar {
-    top: calc(4.05rem + env(safe-area-inset-top, 0px));
-    padding: 0.28rem;
-    gap: 0.22rem;
+    top: calc(3.9rem + env(safe-area-inset-top, 0px));
+    padding: 0.24rem;
+    gap: 0.2rem;
   }
 
   .match-page.mobile-game-mode .mobile-jump-row {
-    gap: 0.24rem;
+    gap: 0.2rem;
   }
 
   .match-page.mobile-game-mode .mobile-jump-chip {
-    min-height: 1.72rem;
-    padding: 0.16rem 0.42rem;
-    font-size: 0.56rem;
+    min-height: 1.62rem;
+    padding: 0.14rem 0.34rem;
+    font-size: 0.52rem;
+  }
+
+  .match-page .hero h1 {
+    font-size: 0.54rem;
+    letter-spacing: 0.12em;
+  }
+
+  .match-page .hero #matchTitle.subtitle {
+    font-size: 1rem;
+    line-height: 1.14;
+    max-width: 26ch;
   }
 
   .match-page .tracker-table-mobile {
