@@ -2777,8 +2777,218 @@ button.ghost,
 
 .series-games {
   display: grid;
-  gap: 0.65rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.72rem;
+}
+
+.series-games-overview {
+  border: 1px solid rgba(12, 110, 102, 0.2);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(12, 110, 102, 0.12), rgba(255, 255, 255, 0.92));
+  padding: 0.64rem 0.68rem;
+  display: grid;
+  gap: 0.36rem;
+}
+
+.series-games-scoreline {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.96rem;
+  color: var(--accent-strong);
+  letter-spacing: 0.01em;
+}
+
+.series-games-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+.series-summary-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(12, 45, 66, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--muted);
+  padding: 0.15rem 0.46rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+}
+
+.series-games-grid {
+  display: grid;
+  gap: 0.66rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.series-game-card {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.36rem;
+  box-shadow: 0 7px 18px rgba(10, 24, 40, 0.08);
+}
+
+.series-game-card.selected {
+  border-color: rgba(12, 110, 102, 0.4);
+  background: linear-gradient(180deg, rgba(12, 110, 102, 0.12), rgba(255, 255, 255, 0.96));
+}
+
+.series-game-card.state-live {
+  border-color: rgba(19, 125, 79, 0.35);
+}
+
+.series-game-card.state-complete {
+  border-color: rgba(64, 96, 122, 0.25);
+}
+
+.series-game-card.state-upcoming {
+  border-color: rgba(168, 93, 20, 0.3);
+}
+
+.series-game-card.state-skip {
+  border-color: rgba(84, 97, 113, 0.28);
+}
+
+.series-game-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.series-game-title {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.9rem;
+  color: var(--accent-strong);
+}
+
+.series-game-status {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.series-game-winner {
+  margin: 0;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 110, 102, 0.28);
+  background: rgba(12, 110, 102, 0.1);
+  color: var(--accent-strong);
+  padding: 0.14rem 0.44rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+}
+
+.series-game-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.36rem;
+}
+
+.series-game-meta-cell {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 0.34rem 0.38rem;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.series-game-meta-value {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.72rem;
+  color: var(--accent-strong);
+}
+
+.series-game-sides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.series-side-chip {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--muted);
+  padding: 0.14rem 0.44rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.63rem;
+  letter-spacing: 0.02em;
+}
+
+.series-side-chip.blue {
+  border-color: rgba(31, 123, 194, 0.36);
+  background: rgba(31, 123, 194, 0.12);
+  color: #1b639b;
+}
+
+.series-side-chip.red {
+  border-color: rgba(183, 70, 50, 0.36);
+  background: rgba(183, 70, 50, 0.12);
+  color: #8f382a;
+}
+
+.series-game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+}
+
+.series-game-open,
+.series-game-vod,
+.series-game-focused {
+  border-radius: 9px;
+  border: 1px solid rgba(12, 76, 72, 0.2);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--accent-strong);
+  text-decoration: none;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
+  padding: 0.24rem 0.5rem;
+}
+
+.series-game-open {
+  background: linear-gradient(130deg, rgba(12, 110, 102, 0.18), rgba(12, 110, 102, 0.1));
+  border-color: rgba(12, 110, 102, 0.32);
+}
+
+.series-game-focused {
+  color: #0f6942;
+  border-color: rgba(19, 125, 79, 0.34);
+  background: rgba(19, 125, 79, 0.12);
+}
+
+.series-game-vod.disabled {
+  color: var(--muted);
+  border-style: dashed;
+  border-color: rgba(84, 97, 113, 0.28);
+  background: rgba(84, 97, 113, 0.06);
+}
+
+.series-game-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+.series-game-option {
+  border: 1px solid rgba(12, 76, 72, 0.22);
+  border-radius: 999px;
+  background: rgba(12, 110, 102, 0.08);
+  color: var(--accent-strong);
+  text-decoration: none;
+  padding: 0.12rem 0.46rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
 }
 
 .series-compare {
@@ -3275,10 +3485,13 @@ button.ghost,
   .card-grid,
   .matchup-grid,
   .upcoming-form,
-  .series-games,
   .objective-forecast,
   .runs-wrap,
   .delta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .series-games-grid {
     grid-template-columns: 1fr;
   }
 
@@ -3322,6 +3535,7 @@ button.ghost,
   .timeline li,
   .follow-item,
   .game-card,
+  .series-game-card,
   .upcoming-card,
   .watch-row,
   .form-card,
@@ -4071,6 +4285,48 @@ button.ghost,
   .form-list li {
     grid-template-columns: 1fr;
     font-size: 0.74rem;
+  }
+
+  .series-games-overview {
+    padding: 0.54rem 0.58rem;
+    gap: 0.28rem;
+  }
+
+  .series-games-scoreline {
+    font-size: 0.86rem;
+  }
+
+  .series-summary-chip {
+    font-size: 0.58rem;
+    padding: 0.12rem 0.38rem;
+  }
+
+  .series-game-meta-grid {
+    gap: 0.3rem;
+  }
+
+  .series-game-meta-cell {
+    padding: 0.28rem 0.34rem;
+  }
+
+  .series-game-meta-value {
+    font-size: 0.68rem;
+  }
+
+  .series-side-chip {
+    font-size: 0.58rem;
+    padding: 0.12rem 0.38rem;
+  }
+
+  .series-game-open,
+  .series-game-vod,
+  .series-game-focused {
+    font-size: 0.62rem;
+    padding: 0.2rem 0.42rem;
+  }
+
+  .series-game-option {
+    font-size: 0.56rem;
   }
 
   .series-compare-item {
