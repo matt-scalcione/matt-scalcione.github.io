@@ -1918,6 +1918,15 @@ button.ghost,
   box-shadow: 0 0 0 1px rgba(31, 123, 194, 0.16);
 }
 
+.live-feed-list .live-feed-item.importance-critical {
+  border-left-width: 4px;
+  box-shadow: inset 0 0 0 1px rgba(177, 52, 33, 0.18);
+}
+
+.live-feed-list .live-feed-item.importance-high {
+  box-shadow: inset 0 0 0 1px rgba(168, 93, 20, 0.16);
+}
+
 .live-feed-row {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1954,11 +1963,44 @@ button.ghost,
   margin: 0;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.3rem;
   font-size: 0.76rem;
   line-height: 1.2;
   color: var(--ink);
   font-weight: 600;
+}
+
+.feed-phase-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.03rem 0.28rem;
+  font-size: 0.5rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  letter-spacing: 0.02em;
+  color: #44505d;
+  background: rgba(84, 97, 113, 0.08);
+}
+
+.feed-phase-tag.early {
+  border-color: rgba(35, 132, 82, 0.38);
+  color: #1f6f45;
+  background: rgba(35, 132, 82, 0.12);
+}
+
+.feed-phase-tag.mid {
+  border-color: rgba(31, 123, 194, 0.38);
+  color: #1b639b;
+  background: rgba(31, 123, 194, 0.12);
+}
+
+.feed-phase-tag.late {
+  border-color: rgba(164, 47, 23, 0.38);
+  color: #8f2810;
+  background: rgba(164, 47, 23, 0.12);
 }
 
 .feed-bucket-tag {
@@ -2009,6 +2051,31 @@ button.ghost,
 
 .feed-lead-tag.even {
   border-color: rgba(84, 97, 113, 0.3);
+}
+
+.feed-swing-tag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(84, 97, 113, 0.3);
+  border-radius: 999px;
+  padding: 0.02rem 0.24rem;
+  font-size: 0.53rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  letter-spacing: 0.01em;
+  color: #44505d;
+  background: rgba(84, 97, 113, 0.07);
+}
+
+.feed-swing-tag.left {
+  border-color: rgba(31, 123, 194, 0.32);
+  color: #1b639b;
+  background: rgba(31, 123, 194, 0.11);
+}
+
+.feed-swing-tag.right {
+  border-color: rgba(183, 70, 50, 0.32);
+  color: #8f382a;
+  background: rgba(183, 70, 50, 0.11);
 }
 
 .timeline li {
@@ -2460,6 +2527,14 @@ button.ghost,
   box-shadow: 0 0 0 1px rgba(31, 123, 194, 0.14);
 }
 
+.trend-story-item.importance-critical {
+  border-left-width: 4px;
+}
+
+.trend-story-item.importance-high {
+  border-left-width: 3px;
+}
+
 .trend-story-item:focus-visible {
   outline: 2px solid rgba(31, 123, 194, 0.46);
   outline-offset: 1px;
@@ -2497,6 +2572,9 @@ button.ghost,
   font-size: 0.6rem;
   justify-self: end;
   white-space: nowrap;
+  max-width: 10.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .minimap-card {
@@ -2773,6 +2851,10 @@ button.ghost,
   color: #8f382a;
 }
 
+.objective-chip.focused {
+  box-shadow: 0 0 0 1px rgba(12, 45, 66, 0.26), 0 0 0 3px rgba(31, 123, 194, 0.16);
+}
+
 @keyframes minimap-pulse {
   0% {
     transform: translate(-50%, -50%) scale(1);
@@ -2944,9 +3026,35 @@ button.ghost,
   opacity: 1;
 }
 
+.trend-event-marker.importance-critical {
+  stroke-width: 0.7;
+}
+
+.trend-event-marker.importance-high {
+  stroke-width: 0.58;
+}
+
 .trend-event-marker:focus-visible {
   stroke-width: 0.82;
   opacity: 1;
+}
+
+.trend-event-guide {
+  stroke-width: 0.52;
+  stroke-dasharray: 1.1 1.1;
+  opacity: 0.78;
+}
+
+.trend-event-guide.left {
+  stroke: rgba(31, 123, 194, 0.84);
+}
+
+.trend-event-guide.right {
+  stroke: rgba(183, 70, 50, 0.84);
+}
+
+.trend-event-guide.neutral {
+  stroke: rgba(74, 86, 100, 0.82);
 }
 
 .trend-current-label {
@@ -5065,9 +5173,15 @@ button.ghost,
     font-size: 0.5rem;
   }
 
+  .match-page .feed-phase-tag,
   .match-page .feed-lead-tag {
     font-size: 0.5rem;
     padding: 0.02rem 0.22rem;
+  }
+
+  .match-page .feed-swing-tag {
+    font-size: 0.48rem;
+    padding: 0.02rem 0.2rem;
   }
 
   .match-page .tempo-label {
@@ -5228,9 +5342,15 @@ button.ghost,
     font-size: 0.54rem;
   }
 
+  .feed-phase-tag,
   .feed-lead-tag {
     font-size: 0.52rem;
     padding: 0.02rem 0.2rem;
+  }
+
+  .feed-swing-tag {
+    font-size: 0.5rem;
+    padding: 0.02rem 0.18rem;
   }
 
   .follow-item {
@@ -5540,9 +5660,15 @@ button.ghost,
     min-width: 2.55rem;
   }
 
+  .feed-phase-tag,
   .feed-lead-tag {
     font-size: 0.48rem;
     padding: 0.02rem 0.18rem;
+  }
+
+  .feed-swing-tag {
+    font-size: 0.46rem;
+    padding: 0.02rem 0.16rem;
   }
 
   .trend-storyboard {
