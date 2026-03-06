@@ -121,6 +121,91 @@ const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}
 const LOL_CDN_CHAMPION_ICON = "https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{id}.png";
 const DOTA_HERO_STATS_URL = "https://api.opendota.com/api/heroStats";
 const DOTA_ICON_CDN_BASE = "https://cdn.cloudflare.steamstatic.com";
+const MINIMAP_ASSETS = {
+  lol: {
+    background: "./assets/minimap/lol-map.png",
+    tower: "./assets/minimap/lol-tower.png",
+    inhibitor: "./assets/minimap/lol-inhibitor.png",
+    core: "./assets/minimap/lol-nexus.png"
+  },
+  dota2: {
+    background: "./assets/minimap/dota-map.webp",
+    towerLeft: "./assets/minimap/dota-tower-radiant.png",
+    towerRight: "./assets/minimap/dota-tower-dire.png",
+    inhibitorLeft: "./assets/minimap/dota-rax-radiant.png",
+    inhibitorRight: "./assets/minimap/dota-rax-dire.png",
+    coreLeft: "./assets/minimap/dota-fort-radiant.png",
+    coreRight: "./assets/minimap/dota-fort-dire.png"
+  }
+};
+const LOL_TOWER_TOTAL = 11;
+const LOL_INHIBITOR_TOTAL = 3;
+const DOTA_TOWER_TOTAL = 11;
+const DOTA_INHIBITOR_TOTAL = 6;
+const LOL_LEFT_TOWER_LAYOUT = [
+  { id: "nexus_a", x: 15.5, y: 86.5 },
+  { id: "nexus_b", x: 20.5, y: 81.2 },
+  { id: "top_t3", x: 30.2, y: 42.1 },
+  { id: "mid_t3", x: 42.2, y: 49.2 },
+  { id: "bot_t3", x: 59.4, y: 68.1 },
+  { id: "top_t2", x: 24.8, y: 52.1 },
+  { id: "mid_t2", x: 37.8, y: 58.8 },
+  { id: "bot_t2", x: 50.7, y: 75.1 },
+  { id: "top_t1", x: 18.3, y: 63.2 },
+  { id: "mid_t1", x: 30.1, y: 69.3 },
+  { id: "bot_t1", x: 39.8, y: 84.1 }
+];
+const LOL_LEFT_INHIBITOR_LAYOUT = [
+  { id: "top_inhib", x: 26.3, y: 38.9 },
+  { id: "mid_inhib", x: 42.4, y: 49.8 },
+  { id: "bot_inhib", x: 57.2, y: 69.6 }
+];
+const DOTA_LEFT_TOWER_LAYOUT = [
+  { id: "t4br", x: 12, y: 82 },
+  { id: "t4tr", x: 8, y: 79 },
+  { id: "t3br", x: 23, y: 83.5 },
+  { id: "t3mr", x: 18, y: 71 },
+  { id: "t3tr", x: 7, y: 68 },
+  { id: "t2br", x: 46, y: 85 },
+  { id: "t2mr", x: 27, y: 63 },
+  { id: "t2tr", x: 8, y: 51 },
+  { id: "t1br", x: 78, y: 83 },
+  { id: "t1mr", x: 38, y: 54 },
+  { id: "t1tr", x: 8, y: 35 }
+];
+const DOTA_RIGHT_TOWER_LAYOUT = [
+  { id: "t4bd", x: 84, y: 16 },
+  { id: "t4td", x: 81, y: 13 },
+  { id: "t3bd", x: 86, y: 28 },
+  { id: "t3md", x: 73, y: 24 },
+  { id: "t3td", x: 70, y: 11 },
+  { id: "t2bd", x: 86, y: 45 },
+  { id: "t2md", x: 63, y: 34 },
+  { id: "t2td", x: 44, y: 10 },
+  { id: "t1bd", x: 86, y: 60 },
+  { id: "t1md", x: 53, y: 44 },
+  { id: "t1td", x: 15, y: 10 }
+];
+const DOTA_LEFT_INHIBITOR_LAYOUT = [
+  { id: "bmbr", x: 20, y: 84.5 },
+  { id: "brbr", x: 20, y: 80.5 },
+  { id: "bmmr", x: 18, y: 73 },
+  { id: "brmr", x: 15, y: 70.5 },
+  { id: "bmtr", x: 9.5, y: 70.5 },
+  { id: "brtr", x: 5.5, y: 70.5 }
+];
+const DOTA_RIGHT_INHIBITOR_LAYOUT = [
+  { id: "bmbd", x: 88.5, y: 24 },
+  { id: "brbd", x: 84.5, y: 24 },
+  { id: "bmmd", x: 77.5, y: 22 },
+  { id: "brmd", x: 74.5, y: 19.5 },
+  { id: "bmtd", x: 74, y: 12 },
+  { id: "brtd", x: 74, y: 8 }
+];
+const DOTA_CORE_LAYOUT = {
+  left: { x: 5, y: 83 },
+  right: { x: 84, y: 9 }
+};
 
 const elements = {
   matchTitle: document.querySelector("#matchTitle"),
@@ -496,6 +581,7 @@ function scheduleHeroIconCatalogLoad(match) {
       loadLolHeroCatalog().then(() => {
         if (uiState.match?.id === match?.id) {
           renderPlayerTracker(uiState.match);
+          renderLeadTrend(uiState.match);
         }
       });
     }
@@ -506,6 +592,7 @@ function scheduleHeroIconCatalogLoad(match) {
     loadDotaHeroCatalog().then(() => {
       if (uiState.match?.id === match?.id) {
         renderPlayerTracker(uiState.match);
+        renderLeadTrend(uiState.match);
       }
     });
   }
@@ -617,6 +704,45 @@ function trackerTeamTag(name) {
 
   const compact = short.replace(/[^A-Za-z0-9]+/g, "").toUpperCase();
   return compact.slice(0, 4) || short.slice(0, 4).toUpperCase();
+}
+
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function displayPlayerHandle(name, teamName) {
+  const raw = String(name || "").trim();
+  if (!raw) {
+    return "Player";
+  }
+
+  const candidates = new Set();
+  const addCandidate = (value) => {
+    const normalized = String(value || "").trim();
+    if (normalized && normalized.length >= 2) {
+      candidates.add(normalized);
+    }
+  };
+
+  addCandidate(teamName);
+  addCandidate(shortTeamName(teamName));
+  addCandidate(scoreboardTeamName(teamName));
+  addCandidate(trackerTeamTag(teamName));
+
+  for (const candidate of candidates) {
+    const escaped = escapeRegex(candidate);
+    const regex = new RegExp(`^\\[?${escaped}\\]?[\\s._-]+`, "i");
+    if (!regex.test(raw)) {
+      continue;
+    }
+
+    const stripped = raw.replace(regex, "").trim();
+    if (stripped.length >= 2) {
+      return stripped;
+    }
+  }
+
+  return raw;
 }
 
 function compactStatusLabel(status) {
@@ -2350,10 +2476,7 @@ function renderPlayerTracker(match) {
           <thead>
             <tr>
               <th>Tm</th>
-              <th>Player / Hero</th>
-              <th>Role</th>
-              <th>State</th>
-              <th>Resp</th>
+              <th>Player</th>
               <th>HP</th>
               <th>NW</th>
               <th>KDA</th>
@@ -2365,6 +2488,7 @@ function renderPlayerTracker(match) {
                 const teamName = row.team === "left" ? match.teams.left.name : match.teams.right.name;
                 const teamShort = trackerTeamTag(teamName);
                 const teamClass = row.team === "left" ? "win-left" : "win-right";
+                const playerName = displayPlayerHandle(row.name, teamName);
                 const heroName = trackerHeroName(row);
                 const isDead = isLiveMap && row.isDead === true;
                 const hpPct = healthPctForRow(row);
@@ -2372,30 +2496,30 @@ function renderPlayerTracker(match) {
                 const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
                 const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
                 const hpCompactLabel = isLiveMap ? (Number.isFinite(hpPct) ? `${Math.round(hpPct)}%` : "n/a") : "N/A";
-                const statusLabel = isLiveMap ? (isDead ? "Dead" : "Alive") : "N/A";
-                const statusClass = isLiveMap ? (isDead ? "dead" : "alive") : "neutral";
-                const respawnLabel = isLiveMap ? formatRespawnLabel(row, isDead) : "N/A";
+                const respawnLabel = isLiveMap && isDead ? formatRespawnLabel(row, isDead) : "";
                 const respawnAtTs = isDead ? Date.parse(String(row?.respawnAt || "")) : Number.NaN;
                 const respawnAttrs = Number.isFinite(respawnAtTs)
                   ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}"`
+                  : "";
+                const respawnOverlay = isDead
+                  ? `<span class="tracker-respawn-overlay tracker-respawn dead"${respawnAttrs}>${respawnLabel}</span>`
                   : "";
 
                 return `
                   <tr class="${isDead ? "tracker-row-dead" : ""}">
                     <td class="${teamClass}">${teamShort}</td>
-                    <td>
+                    <td class="tracker-player-cell">
                       <div class="tracker-player-inline">
                         ${heroIconMarkup(match, row)}
+                        ${roleIconMarkup(row.role, gameKey, false)}
                         <div class="tracker-player-inline-meta">
-                          <span class="tracker-player-inline-name">${row.name || "Player"}</span>
+                          <span class="tracker-player-inline-name">${playerName}</span>
                           <span class="tracker-player-inline-divider">\u00b7</span>
                           <span class="tracker-player-inline-hero">${heroName}</span>
                         </div>
                       </div>
+                      ${respawnOverlay}
                     </td>
-                    <td>${roleIconMarkup(row.role, gameKey, true)}</td>
-                    <td><span class="tracker-status-badge ${statusClass}">${statusLabel}</span></td>
-                    <td class="tracker-respawn ${statusClass}"${respawnAttrs}>${respawnLabel}</td>
                     <td>
                       <div class="tracker-hp-cell compact">
                         <div class="hp-track ${hpTone}">
@@ -2447,6 +2571,7 @@ function renderPlayerTracker(match) {
             .map((row) => {
               const teamName = row.team === "left" ? match.teams.left.name : match.teams.right.name;
               const teamClass = row.team === "left" ? "win-left" : "win-right";
+              const playerName = displayPlayerHandle(row.name, teamName);
               const heroName = trackerHeroName(row);
               const deltaLabel = Number.isFinite(row.deltaGold) ? signed(Math.round(row.deltaGold)) : "n/a";
               const impactLabel = Number.isFinite(row.impact) ? row.impact.toFixed(1) : "n/a";
@@ -2466,7 +2591,7 @@ function renderPlayerTracker(match) {
               return `
                 <tr class="${isDead ? "tracker-row-dead" : ""}">
                   <td class="${teamClass}">${teamName}</td>
-                  <td>${row.name || "Player"}</td>
+                  <td>${playerName}</td>
                   <td>${roleIconMarkup(row.role, gameKey, true)}</td>
                   <td>
                     <div class="tracker-player-inline">
@@ -3527,157 +3652,349 @@ function normalizeMapAxis(value) {
 }
 
 function clampMapAxis(value) {
-  return Math.max(4, Math.min(96, Number(value)));
+  return Math.max(3, Math.min(97, Number(value)));
 }
 
-function roleAnchor(role, teamSide) {
-  const normalized = String(role || "").toLowerCase();
-  const baseByRole = {
-    top: { x: 22, y: 18 },
-    jungle: { x: 33, y: 37 },
-    mid: { x: 50, y: 50 },
-    bottom: { x: 18, y: 78 },
-    bot: { x: 18, y: 78 },
-    support: { x: 25, y: 70 }
+function mirrorMapPoint(point) {
+  return {
+    x: 100 - Number(point.x),
+    y: 100 - Number(point.y)
   };
-  const base = baseByRole[normalized] || baseByRole.mid;
-  if (teamSide === "right") {
-    return { x: 100 - base.x, y: base.y };
+}
+
+function boundedCount(value, max) {
+  const count = Number(value);
+  if (!Number.isFinite(count)) {
+    return 0;
   }
-  return base;
+
+  return Math.max(0, Math.min(max, Math.round(count)));
 }
 
-function stableJitter(seedValue) {
-  const seed = Number(seedValue) || 0;
-  const jitterX = (((seed * 17) % 9) - 4) * 1.05;
-  const jitterY = (((seed * 31) % 9) - 4) * 0.95;
-  return { x: jitterX, y: jitterY };
+function readMetricCount(source, keys) {
+  for (const key of keys) {
+    const count = Number(source?.[key]);
+    if (Number.isFinite(count)) {
+      return Math.max(0, Math.round(count));
+    }
+  }
+  return null;
 }
 
-function resolveMapPoint(row, teamSide) {
+function sideObjectiveCount(match, side, keys) {
+  const snapshot = match?.selectedGame?.snapshot?.[side];
+  const team = match?.teams?.[side];
+  const fromSnapshot = readMetricCount(snapshot, keys);
+  if (fromSnapshot !== null) {
+    return fromSnapshot;
+  }
+  const fromTeam = readMetricCount(team, keys);
+  if (fromTeam !== null) {
+    return fromTeam;
+  }
+  return 0;
+}
+
+function resolveMapPoint(row) {
   const rawX = readNumericField(row, ["x", "positionX", "posX", "worldX", "locationX", "mapX"]);
   const rawY = readNumericField(row, ["y", "positionY", "posY", "worldY", "locationY", "mapY"]);
   const normalizedX = normalizeMapAxis(rawX);
   const normalizedY = normalizeMapAxis(rawY);
-  if (normalizedX !== null && normalizedY !== null) {
-    return {
-      x: clampMapAxis(normalizedX),
-      y: clampMapAxis(normalizedY),
-      exact: true
-    };
+  if (normalizedX === null || normalizedY === null) {
+    return null;
   }
 
-  const anchor = roleAnchor(row?.role, teamSide);
-  const seed = Number(row?.participantId || 0) + (teamSide === "right" ? 50 : 0);
-  const jitter = stableJitter(seed);
   return {
-    x: clampMapAxis(anchor.x + jitter.x),
-    y: clampMapAxis(anchor.y + jitter.y),
-    exact: false
+    x: clampMapAxis(normalizedX),
+    y: clampMapAxis(normalizedY)
   };
+}
+
+function buildLolStructureMarkers(match) {
+  const leftSecuredTowers = sideObjectiveCount(match, "left", ["towers", "turrets", "towerKills"]);
+  const rightSecuredTowers = sideObjectiveCount(match, "right", ["towers", "turrets", "towerKills"]);
+  const leftSecuredInhibitors = sideObjectiveCount(match, "left", ["inhibitors", "inhibitorKills"]);
+  const rightSecuredInhibitors = sideObjectiveCount(match, "right", ["inhibitors", "inhibitorKills"]);
+
+  const leftAliveTowers = boundedCount(LOL_TOWER_TOTAL - rightSecuredTowers, LOL_TOWER_TOTAL);
+  const rightAliveTowers = boundedCount(LOL_TOWER_TOTAL - leftSecuredTowers, LOL_TOWER_TOTAL);
+  const leftAliveInhibitors = boundedCount(LOL_INHIBITOR_TOTAL - rightSecuredInhibitors, LOL_INHIBITOR_TOTAL);
+  const rightAliveInhibitors = boundedCount(LOL_INHIBITOR_TOTAL - leftSecuredInhibitors, LOL_INHIBITOR_TOTAL);
+
+  const markers = [];
+  LOL_LEFT_TOWER_LAYOUT.forEach((point, index) => {
+    markers.push({
+      key: `lol_tower_left_${point.id}`,
+      team: "left",
+      type: "tower",
+      x: point.x,
+      y: point.y,
+      icon: MINIMAP_ASSETS.lol.tower,
+      alive: index < leftAliveTowers
+    });
+  });
+
+  LOL_LEFT_TOWER_LAYOUT.forEach((point, index) => {
+    const mirrored = mirrorMapPoint(point);
+    markers.push({
+      key: `lol_tower_right_${point.id}`,
+      team: "right",
+      type: "tower",
+      x: mirrored.x,
+      y: mirrored.y,
+      icon: MINIMAP_ASSETS.lol.tower,
+      alive: index < rightAliveTowers
+    });
+  });
+
+  LOL_LEFT_INHIBITOR_LAYOUT.forEach((point, index) => {
+    markers.push({
+      key: `lol_inhib_left_${point.id}`,
+      team: "left",
+      type: "inhibitor",
+      x: point.x,
+      y: point.y,
+      icon: MINIMAP_ASSETS.lol.inhibitor,
+      alive: index < leftAliveInhibitors
+    });
+  });
+
+  LOL_LEFT_INHIBITOR_LAYOUT.forEach((point, index) => {
+    const mirrored = mirrorMapPoint(point);
+    markers.push({
+      key: `lol_inhib_right_${point.id}`,
+      team: "right",
+      type: "inhibitor",
+      x: mirrored.x,
+      y: mirrored.y,
+      icon: MINIMAP_ASSETS.lol.inhibitor,
+      alive: index < rightAliveInhibitors
+    });
+  });
+
+  const leftCoreAlive = rightSecuredTowers < LOL_TOWER_TOTAL;
+  const rightCoreAlive = leftSecuredTowers < LOL_TOWER_TOTAL;
+  markers.push({
+    key: "lol_core_left",
+    team: "left",
+    type: "core",
+    x: 11.6,
+    y: 89.6,
+    icon: MINIMAP_ASSETS.lol.core,
+    alive: leftCoreAlive
+  });
+  markers.push({
+    key: "lol_core_right",
+    team: "right",
+    type: "core",
+    x: 88.4,
+    y: 10.4,
+    icon: MINIMAP_ASSETS.lol.core,
+    alive: rightCoreAlive
+  });
+
+  return {
+    background: MINIMAP_ASSETS.lol.background,
+    markers,
+    summary: {
+      towerTotal: LOL_TOWER_TOTAL,
+      inhibitorTotal: LOL_INHIBITOR_TOTAL,
+      inhibitorLabel: "Inhib",
+      leftTowers: leftAliveTowers,
+      rightTowers: rightAliveTowers,
+      leftInhibitors: leftAliveInhibitors,
+      rightInhibitors: rightAliveInhibitors
+    }
+  };
+}
+
+function buildDotaStructureMarkers(match) {
+  const leftSecuredTowers = sideObjectiveCount(match, "left", ["towers", "turrets", "towerKills"]);
+  const rightSecuredTowers = sideObjectiveCount(match, "right", ["towers", "turrets", "towerKills"]);
+  const leftSecuredInhibitors = sideObjectiveCount(match, "left", ["barracks", "rax", "racks", "inhibitors"]);
+  const rightSecuredInhibitors = sideObjectiveCount(match, "right", ["barracks", "rax", "racks", "inhibitors"]);
+
+  const leftAliveTowers = boundedCount(DOTA_TOWER_TOTAL - rightSecuredTowers, DOTA_TOWER_TOTAL);
+  const rightAliveTowers = boundedCount(DOTA_TOWER_TOTAL - leftSecuredTowers, DOTA_TOWER_TOTAL);
+  const leftAliveInhibitors = boundedCount(DOTA_INHIBITOR_TOTAL - rightSecuredInhibitors, DOTA_INHIBITOR_TOTAL);
+  const rightAliveInhibitors = boundedCount(DOTA_INHIBITOR_TOTAL - leftSecuredInhibitors, DOTA_INHIBITOR_TOTAL);
+
+  const markers = [];
+  DOTA_LEFT_TOWER_LAYOUT.forEach((point, index) => {
+    markers.push({
+      key: `dota_tower_left_${point.id}`,
+      team: "left",
+      type: "tower",
+      x: point.x,
+      y: point.y,
+      icon: MINIMAP_ASSETS.dota2.towerLeft,
+      alive: index < leftAliveTowers
+    });
+  });
+  DOTA_RIGHT_TOWER_LAYOUT.forEach((point, index) => {
+    markers.push({
+      key: `dota_tower_right_${point.id}`,
+      team: "right",
+      type: "tower",
+      x: point.x,
+      y: point.y,
+      icon: MINIMAP_ASSETS.dota2.towerRight,
+      alive: index < rightAliveTowers
+    });
+  });
+
+  DOTA_LEFT_INHIBITOR_LAYOUT.forEach((point, index) => {
+    markers.push({
+      key: `dota_rax_left_${point.id}`,
+      team: "left",
+      type: "inhibitor",
+      x: point.x,
+      y: point.y,
+      icon: MINIMAP_ASSETS.dota2.inhibitorLeft,
+      alive: index < leftAliveInhibitors
+    });
+  });
+  DOTA_RIGHT_INHIBITOR_LAYOUT.forEach((point, index) => {
+    markers.push({
+      key: `dota_rax_right_${point.id}`,
+      team: "right",
+      type: "inhibitor",
+      x: point.x,
+      y: point.y,
+      icon: MINIMAP_ASSETS.dota2.inhibitorRight,
+      alive: index < rightAliveInhibitors
+    });
+  });
+
+  const leftCoreAlive = rightSecuredTowers < DOTA_TOWER_TOTAL;
+  const rightCoreAlive = leftSecuredTowers < DOTA_TOWER_TOTAL;
+  markers.push({
+    key: "dota_core_left",
+    team: "left",
+    type: "core",
+    x: DOTA_CORE_LAYOUT.left.x,
+    y: DOTA_CORE_LAYOUT.left.y,
+    icon: MINIMAP_ASSETS.dota2.coreLeft,
+    alive: leftCoreAlive
+  });
+  markers.push({
+    key: "dota_core_right",
+    team: "right",
+    type: "core",
+    x: DOTA_CORE_LAYOUT.right.x,
+    y: DOTA_CORE_LAYOUT.right.y,
+    icon: MINIMAP_ASSETS.dota2.coreRight,
+    alive: rightCoreAlive
+  });
+
+  return {
+    background: MINIMAP_ASSETS.dota2.background,
+    markers,
+    summary: {
+      towerTotal: DOTA_TOWER_TOTAL,
+      inhibitorTotal: DOTA_INHIBITOR_TOTAL,
+      inhibitorLabel: "Rax",
+      leftTowers: leftAliveTowers,
+      rightTowers: rightAliveTowers,
+      leftInhibitors: leftAliveInhibitors,
+      rightInhibitors: rightAliveInhibitors
+    }
+  };
+}
+
+function buildStructureLayer(match) {
+  const gameKey = normalizeGameKey(match?.game);
+  if (gameKey === "dota2") {
+    return buildDotaStructureMarkers(match);
+  }
+
+  return buildLolStructureMarkers(match);
 }
 
 function buildMiniMap(match) {
   const economy = match?.playerEconomy || null;
-  const draft = match?.teamDraft || null;
-  const leftRows = Array.isArray(economy?.left) && economy.left.length ? economy.left : Array.isArray(draft?.left) ? draft.left : [];
-  const rightRows = Array.isArray(economy?.right) && economy.right.length ? economy.right : Array.isArray(draft?.right) ? draft.right : [];
+  const leftRows = Array.isArray(economy?.left) ? economy.left : [];
+  const rightRows = Array.isArray(economy?.right) ? economy.right : [];
   const rows = [
     ...leftRows.map((row) => ({ ...row, _teamSide: "left" })),
     ...rightRows.map((row) => ({ ...row, _teamSide: "right" }))
   ];
 
-  if (!rows.length) {
-    return {
-      points: [],
-      mode: "none"
-    };
-  }
+  const resolved = rows.map((row) => ({
+    row,
+    team: row._teamSide,
+    point: resolveMapPoint(row)
+  }));
+  const exactRows = resolved.filter((entry) => entry.point !== null);
+  const exactForAllPlayers = rows.length > 0 && exactRows.length === rows.length;
 
-  let exactCount = 0;
-  const points = rows.map((row) => {
-    const resolved = resolveMapPoint(row, row._teamSide);
-    if (resolved.exact) {
-      exactCount += 1;
-    }
-    return {
-      x: resolved.x,
-      y: resolved.y,
-      team: row._teamSide,
-      dead: Boolean(row?.isDead),
-      role: String(row?.role || ""),
-      name: String(row?.name || "")
-    };
-  });
+  const points = exactForAllPlayers
+    ? exactRows.map((entry) => ({
+        x: entry.point.x,
+        y: entry.point.y,
+        team: entry.team,
+        dead: Boolean(entry.row?.isDead),
+        row: entry.row
+      }))
+    : [];
 
-  const mode = exactCount === points.length ? "exact" : exactCount > 0 ? "mixed" : "role";
-  return { points, mode };
+  return {
+    mode: exactForAllPlayers ? "exact" : rows.length ? "no_exact" : "none",
+    totalPlayers: rows.length,
+    exactPlayers: exactRows.length,
+    points,
+    gameKey: normalizeGameKey(match?.game),
+    structures: buildStructureLayer(match)
+  };
 }
 
 function renderMiniMap(match) {
   const miniMap = buildMiniMap(match);
+  const structures = miniMap.structures;
   const pulse = updateMapPulseState(match);
   const now = Date.now();
   const pulseSecondsLeft = pulse ? Math.max(1, Math.ceil((pulse.expiresAt - now) / 1000)) : 0;
   const objectiveMarkers = objectiveMarkerRows(match);
   const leftName = displayTeamName(match?.teams?.left?.name);
   const rightName = displayTeamName(match?.teams?.right?.name);
-  if (!miniMap.points.length) {
-    return `
-      <section class="minimap-card">
-        <p class="minimap-title">Map View</p>
-        <div class="empty">No player location telemetry yet.</div>
-      </section>
-    `;
-  }
-
-  const dots = miniMap.points
+  const structureNodes = structures.markers
     .map(
-      (point) => `
-      <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="2.25" class="minimap-dot ${point.team}${point.dead ? " dead" : ""}${pulse && (pulse.team === "both" || pulse.team === point.team) ? " pulse" : ""}">
-        <title>${point.name || point.role || "Player"} · ${point.team === "left" ? leftName : rightName}${point.dead ? " · dead" : ""}</title>
-      </circle>
+      (marker) => `
+      <span class="minimap-structure ${marker.team} ${marker.type} ${marker.alive ? "alive" : "destroyed"}" style="left:${marker.x.toFixed(2)}%;top:${marker.y.toFixed(2)}%;">
+        <img src="${marker.icon}" alt="" loading="lazy" decoding="async" />
+      </span>
     `
     )
     .join("");
-  const markerLayers = objectiveMarkers
-    .map(
-      (marker) => `
-      <g class="objective-marker ${marker.state}${marker.ownerTeam ? ` owned-${marker.ownerTeam}` : ""}" transform="translate(${marker.x} ${marker.y})">
-        <circle class="objective-ring" r="3.45"></circle>
-        <circle class="objective-core" r="2.5"></circle>
-        <text class="objective-text" text-anchor="middle" dominant-baseline="central">${marker.short}</text>
-      </g>
-    `
-    )
+  const playerNodes = miniMap.points
+    .map((point) => {
+      const heroName = trackerHeroName(point.row);
+      const heroIconUrl = heroIconUrlForRow(match, point.row);
+      return `
+      <span class="minimap-player ${point.team}${point.dead ? " dead" : ""}${pulse && (pulse.team === "both" || pulse.team === point.team) ? " pulse" : ""}" style="left:${point.x.toFixed(2)}%;top:${point.y.toFixed(2)}%;">
+        ${
+          heroIconUrl
+            ? `<img src="${heroIconUrl}" alt="${heroName}" loading="lazy" decoding="async" />`
+            : `<span class="minimap-player-fallback">${trackerAvatarFallback(heroName)}</span>`
+        }
+      </span>
+    `;
+    })
     .join("");
   const modeText =
     miniMap.mode === "exact"
-      ? "Exact XY telemetry"
-      : miniMap.mode === "mixed"
-        ? "Mixed exact + role projection"
-        : "Role projection (no exact XY)";
+      ? "Exact player coordinates are live."
+      : miniMap.mode === "no_exact"
+        ? "Player icons hidden until exact coordinates are available."
+        : "No player telemetry for this game yet.";
   const pulseText = pulse
     ? `Fight pulse: ${pulse.team === "both" ? "both teams" : pulse.team === "left" ? leftName : rightName} · ${pulseSecondsLeft}s`
     : "No active fight pulse";
-
-  return `
-    <section class="minimap-card${pulse ? ` fight-${pulse.team}` : ""}">
-      <p class="minimap-title">Map View</p>
-      <svg viewBox="0 0 100 100" class="minimap-svg" aria-label="Minimap position overview">
-        <rect x="2" y="2" width="96" height="96" class="minimap-bg"></rect>
-        <path d="M12,88 C24,76 35,65 48,52 C61,39 73,27 88,12" class="minimap-lane mid"></path>
-        <path d="M12,88 L12,28 L42,12 L88,12" class="minimap-lane side"></path>
-        <path d="M12,88 L72,88 L88,58 L88,12" class="minimap-lane side"></path>
-        <circle cx="12" cy="88" r="5.4" class="minimap-base left"></circle>
-        <circle cx="88" cy="12" r="5.4" class="minimap-base right"></circle>
-        ${markerLayers}
-        ${dots}
-      </svg>
-      <div class="minimap-legend">
-        <span class="minimap-chip left">${leftName}</span>
-        <span class="minimap-chip right">${rightName}</span>
-      </div>
+  const summary = structures.summary;
+  const structureSummary = `${leftName} T ${summary.leftTowers}/${summary.towerTotal} · ${rightName} T ${summary.rightTowers}/${summary.towerTotal} · ${leftName} ${summary.inhibitorLabel} ${summary.leftInhibitors}/${summary.inhibitorTotal} · ${rightName} ${summary.inhibitorLabel} ${summary.rightInhibitors}/${summary.inhibitorTotal}`;
+  const objectiveChips =
+    miniMap.gameKey === "lol"
+      ? `
       <div class="minimap-objectives">
         ${objectiveMarkers
           .map(
@@ -3690,6 +4007,23 @@ function renderMiniMap(match) {
           )
           .join("")}
       </div>
+    `
+      : "";
+
+  return `
+    <section class="minimap-card${pulse ? ` fight-${pulse.team}` : ""}">
+      <p class="minimap-title">Map View</p>
+      <div class="minimap-stage ${miniMap.gameKey}">
+        <img src="${structures.background}" class="minimap-image" alt="${miniMap.gameKey === "dota2" ? "Dota 2 minimap" : "League of Legends minimap"}" loading="lazy" decoding="async" />
+        <div class="minimap-overlay minimap-structures-layer">${structureNodes}</div>
+        <div class="minimap-overlay minimap-players-layer">${playerNodes}</div>
+      </div>
+      <div class="minimap-legend">
+        <span class="minimap-chip left">${leftName}</span>
+        <span class="minimap-chip right">${rightName}</span>
+      </div>
+      ${objectiveChips}
+      <p class="minimap-note">${structureSummary}</p>
       <p class="minimap-note">${modeText} · ${pulseText}</p>
     </section>
   `;
