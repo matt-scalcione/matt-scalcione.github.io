@@ -2548,6 +2548,7 @@ function renderGameExplorer(match, apiBase) {
   const sideSummary = Array.isArray(selected.sideSummary) ? selected.sideSummary : [];
   const tips = Array.isArray(selected.tips) ? selected.tips : [];
   const watchOptions = Array.isArray(selected.watchOptions) ? selected.watchOptions : [];
+  const draftPreview = inferDraftPreview(match);
   const compactStateSummary = compact && selected.state !== "inProgress";
   const telemetryCountsLine = `Ticker ${selected.telemetryCounts?.tickerEvents || 0} · Objective ${selected.telemetryCounts?.objectiveEvents || 0} · Bursts ${selected.telemetryCounts?.combatBursts || 0} · Milestones ${selected.telemetryCounts?.goldMilestones || 0}`;
 
@@ -2558,6 +2559,18 @@ function renderGameExplorer(match, apiBase) {
         <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
       </div>
       <p class="meta-text">${selected.label || "No game label."}</p>
+      ${draftPreview
+        ? `
+      <article class="draft-phase-banner ${draftPreview.tone}">
+        <div class="draft-phase-copy">
+          <p class="draft-phase-kicker">${draftPreview.badge}</p>
+          <p class="draft-phase-title">${draftPreview.hasDraftRows ? "Champion select is underway" : "Game start is close"}</p>
+          <p class="meta-text">${draftPreview.summary}</p>
+        </div>
+        <p class="draft-phase-detail">${draftPreview.detail}</p>
+      </article>
+      `
+        : ""}
       ${selected.startedAt ? `<p class="meta-text">Started: ${dateTimeLabel(selected.startedAt)}</p>` : ""}
       ${sideSummary.length ? `<p class="meta-text">${sideSummary.join(" · ")}</p>` : ""}
       ${compactStateSummary ? "" : `<p class="meta-text">${telemetryCountsLine}</p>`}

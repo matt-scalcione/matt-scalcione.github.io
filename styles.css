@@ -1803,6 +1803,59 @@ button.ghost,
   font-size: 0.92rem;
 }
 
+.draft-phase-banner {
+  border: 1px solid rgba(168, 93, 20, 0.28);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 247, 234, 0.98), rgba(255, 241, 220, 0.92));
+  padding: 0.64rem 0.7rem;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.draft-phase-banner.draft {
+  border-color: rgba(168, 93, 20, 0.34);
+  background: linear-gradient(135deg, rgba(255, 246, 230, 0.98), rgba(255, 236, 206, 0.92));
+}
+
+.draft-phase-banner.pending {
+  border-color: rgba(109, 126, 145, 0.28);
+  background: linear-gradient(135deg, rgba(245, 248, 252, 0.98), rgba(236, 242, 248, 0.92));
+}
+
+.draft-phase-copy {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.draft-phase-kicker,
+.draft-phase-title,
+.draft-phase-detail {
+  margin: 0;
+}
+
+.draft-phase-kicker {
+  color: #8b4b13;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.draft-phase-banner.pending .draft-phase-kicker {
+  color: #496072;
+}
+
+.draft-phase-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1e3346;
+}
+
+.draft-phase-detail {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .series-context-card {
   gap: 0.52rem;
 }
