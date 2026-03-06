@@ -2,6 +2,7 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { buildMatchUrl, buildTeamUrl } from "./routes.js";
 import {
   applySeo,
+  buildBreadcrumbJsonLd,
   buildCanonicalPath,
   gameLabel,
   inferRobotsDirective,
@@ -128,6 +129,20 @@ function refreshScheduleSeo() {
     canonicalPath,
     robots
   });
+
+  const crumbLabel =
+    viewKey === "results"
+      ? "Results"
+      : viewKey === "schedule"
+        ? "Schedule"
+        : "Schedule & Results";
+  setJsonLd(
+    "page-breadcrumb",
+    buildBreadcrumbJsonLd([
+      { name: "Pulseboard", path: "/index.html" },
+      { name: crumbLabel, path: canonicalPath }
+    ])
+  );
 }
 
 function readApiBase() {

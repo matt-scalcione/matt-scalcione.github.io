@@ -226,6 +226,36 @@ export function setJsonLd(id, data) {
   document.head.append(script);
 }
 
+export function buildBreadcrumbJsonLd(items = []) {
+  const list = Array.isArray(items)
+    ? items
+        .map((item, index) => {
+          const name = sanitizeText(item?.name, "");
+          if (!name) {
+            return null;
+          }
+          const rawPath = String(item?.path || item?.url || "/").trim() || "/";
+          return {
+            "@type": "ListItem",
+            position: index + 1,
+            name,
+            item: toAbsoluteSiteUrl(rawPath)
+          };
+        })
+        .filter(Boolean)
+    : [];
+
+  if (!list.length) {
+    return null;
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: list
+  };
+}
+
 export function gameLabel(game) {
   const value = String(game || "").toLowerCase();
   if (value === "lol") {

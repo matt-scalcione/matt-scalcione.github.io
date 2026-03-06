@@ -2,6 +2,7 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { buildMatchUrl, buildTeamUrl, parseTeamRoute } from "./routes.js";
 import {
   applySeo,
+  buildBreadcrumbJsonLd,
   buildCanonicalPath,
   gameLabel,
   inferRobotsDirective,
@@ -108,6 +109,18 @@ function refreshTeamSeo(profile = null) {
     canonicalPath: canonicalTeamPath(),
     robots
   });
+
+  const schedulePath = game
+    ? `/schedule.html?title=${encodeURIComponent(game)}`
+    : "/schedule.html";
+  setJsonLd(
+    "page-breadcrumb",
+    buildBreadcrumbJsonLd([
+      { name: "Pulseboard", path: "/index.html" },
+      { name: "Schedule", path: schedulePath },
+      { name: teamName, path: canonicalTeamPath() }
+    ])
+  );
 
   if (!profile) {
     setJsonLd("team-organization", null);

@@ -2,6 +2,7 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { buildMatchUrl, buildTeamUrl, parseMatchRoute } from "./routes.js";
 import {
   applySeo,
+  buildBreadcrumbJsonLd,
   gameLabel,
   inferRobotsDirective,
   normalizeGameKey as normalizeSeoGameKey,
@@ -1739,6 +1740,27 @@ function refreshMatchSeo(match = null) {
     robots,
     ogType: "article"
   });
+
+  const schedulePath = seoGameKey
+    ? `/schedule.html?title=${encodeURIComponent(seoGameKey)}`
+    : "/schedule.html";
+  const crumbItems = [
+    { name: "Pulseboard", path: "/index.html" },
+    { name: "Schedule", path: schedulePath }
+  ];
+  if (matchId) {
+    crumbItems.push({
+      name: matchup,
+      path: canonicalMatchPath(matchId, null)
+    });
+  }
+  if (Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game" && matchId) {
+    crumbItems.push({
+      name: `Game ${gameNumber}`,
+      path: canonicalMatchPath(matchId, gameNumber)
+    });
+  }
+  setJsonLd("page-breadcrumb", buildBreadcrumbJsonLd(crumbItems));
 
   if (!match) {
     setJsonLd("match-event", null);

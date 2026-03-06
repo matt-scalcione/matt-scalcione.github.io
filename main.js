@@ -2,6 +2,7 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { buildMatchUrl } from "./routes.js";
 import {
   applySeo,
+  buildBreadcrumbJsonLd,
   buildCanonicalPath,
   gameLabel,
   inferRobotsDirective,
@@ -86,6 +87,20 @@ function refreshLiveSeo() {
     description: pageDescription,
     canonicalPath,
     robots
+  });
+
+  setJsonLd(
+    "page-breadcrumb",
+    buildBreadcrumbJsonLd([
+      { name: "Pulseboard", path: "/index.html" },
+      { name: "Live Desk", path: canonicalPath }
+    ])
+  );
+  setJsonLd("site-meta", {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Pulseboard",
+    url: toAbsoluteSiteUrl("/index.html")
   });
 }
 
