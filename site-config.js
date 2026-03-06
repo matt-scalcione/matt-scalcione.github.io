@@ -7,5 +7,7 @@ window.PULSEBOARD_SITE_ORIGIN = window.PULSEBOARD_SITE_ORIGIN || "https://matt-s
 window.PULSEBOARD_CONFIG = {
   ...(window.PULSEBOARD_CONFIG || {}),
   apiBase: window.PULSEBOARD_API_BASE || "",
-  siteOrigin: window.PULSEBOARD_SITE_ORIGIN || ""
+  siteOrigin: window.PULSEBOARD_SITE_ORIGIN || "",
+  // Keep false on GitHub Pages for SEO safety; true requires server-side rewrites.
+  usePrettyRoutes: false
 };

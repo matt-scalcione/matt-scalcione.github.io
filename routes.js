@@ -13,7 +13,8 @@ function shouldUsePrettyRoutes() {
     return window.PULSEBOARD_USE_PRETTY_ROUTES;
   }
 
-  return !isLoopbackHost(window.location.hostname);
+  // Default to query-style links so GitHub Pages crawlers never rely on JS 404 rewrites.
+  return false;
 }
 
 function parsePositiveInt(value) {
@@ -142,4 +143,3 @@ export function parseTeamRoute(urlLike = window.location.href) {
     api: String(url.searchParams.get("api") || "").trim() || null
   };
 }
-
