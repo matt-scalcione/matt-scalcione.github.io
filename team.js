@@ -8,6 +8,15 @@ const TEAM_MOBILE_PANELS_DEFAULT_OPEN = new Set([
   "Last Games",
   "Upcoming Matches"
 ]);
+const TEAM_MOBILE_JUMP_TARGETS = [
+  { id: "teamSummaryWrap", label: "Snapshot" },
+  { id: "performanceInsightsWrap", label: "Insights" },
+  { id: "formTimelineWrap", label: "Form" },
+  { id: "recentMatchesWrap", label: "Last" },
+  { id: "upcomingMatchesWrap", label: "Upcoming" },
+  { id: "opponentBreakdownWrap", label: "Past" },
+  { id: "headToHeadWrap", label: "H2H" }
+];
 
 const elements = {
   teamTitle: document.querySelector("#teamTitle"),
@@ -21,6 +30,7 @@ const elements = {
   apiBaseInput: document.querySelector("#apiBaseInput"),
   controlsPanel: document.querySelector("#controlsPanel"),
   controlsToggle: document.querySelector("#controlsToggle"),
+  teamQuickJump: document.querySelector("#teamQuickJump"),
   gameSelect: document.querySelector("#gameSelect"),
   limitSelect: document.querySelector("#limitSelect"),
   opponentSelect: document.querySelector("#opponentSelect"),
@@ -225,6 +235,76 @@ function bindTeamMobilePanelControls() {
   });
 
   state.mobilePanelControlsBound = true;
+}
+
+function scrollToTeamTarget(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return;
+  }
+
+  const anchor = target.closest("section.panel") || target;
+  const topOffset = isCompactViewport() ? 132 : 86;
+  const top = Math.max(0, Math.round(anchor.getBoundingClientRect().top + window.scrollY - topOffset));
+  window.scrollTo({ top, behavior: "smooth" });
+}
+
+function renderTeamQuickJump() {
+  if (!elements.teamQuickJump) {
+    return;
+  }
+
+  if (!isCompactViewport()) {
+    elements.teamQuickJump.hidden = true;
+    elements.teamQuickJump.innerHTML = "";
+    return;
+  }
+
+  const visibleTargets = TEAM_MOBILE_JUMP_TARGETS.filter((item) => {
+    const target = document.getElementById(item.id);
+    if (!target) {
+      return false;
+    }
+    const panel = target.closest("section.panel");
+    if (!panel) {
+      return false;
+    }
+    return !panel.hidden && !panel.classList.contains("hidden-panel");
+  });
+
+  if (!visibleTargets.length) {
+    elements.teamQuickJump.hidden = true;
+    elements.teamQuickJump.innerHTML = "";
+    return;
+  }
+
+  elements.teamQuickJump.hidden = false;
+  elements.teamQuickJump.innerHTML = visibleTargets
+    .map((item) => `<button type="button" class="team-jump-chip" data-jump-target="${item.id}">${item.label}</button>`)
+    .join("");
+}
+
+function bindTeamQuickJump() {
+  if (!elements.teamQuickJump || elements.teamQuickJump.dataset.bound === "1") {
+    return;
+  }
+
+  elements.teamQuickJump.dataset.bound = "1";
+  elements.teamQuickJump.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const button = target.closest("[data-jump-target]");
+    if (!button) {
+      return;
+    }
+    const jumpTarget = button.getAttribute("data-jump-target");
+    if (jumpTarget) {
+      scrollToTeamTarget(jumpTarget);
+    }
+  });
 }
 
 function dateTimeLabel(iso) {
@@ -1059,6 +1139,7 @@ async function loadTeamProfile() {
     renderPastMatches(profile, apiBase);
     renderHeadToHead(profile, apiBase);
     applyTeamMobilePanelCollapseState();
+    renderTeamQuickJump();
     setStatus("Team profile synced.", "success");
   } catch (error) {
     state.profile = null;
@@ -1091,6 +1172,7 @@ async function loadTeamProfile() {
     elements.opponentBreakdownWrap.innerHTML = `<div class="empty">Unable to load past matches.</div>`;
     elements.headToHeadWrap.innerHTML = `<div class="empty">Unable to load head-to-head data.</div>`;
     applyTeamMobilePanelCollapseState();
+    renderTeamQuickJump();
   }
 }
 
@@ -1203,13 +1285,16 @@ function boot() {
 
   setupControlsPanel();
   bindTeamMobilePanelControls();
+  bindTeamQuickJump();
   applyTeamMobilePanelCollapseState();
+  renderTeamQuickJump();
   installEvents();
   loadTeamProfile();
 }
 
 window.addEventListener("resize", () => {
   applyTeamMobilePanelCollapseState();
+  renderTeamQuickJump();
 });
 
 boot();

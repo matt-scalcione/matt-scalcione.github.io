@@ -80,9 +80,14 @@ const elements = {
   statusText: document.querySelector("#statusText"),
   scheduleMeta: document.querySelector("#scheduleMeta"),
   resultsMeta: document.querySelector("#resultsMeta"),
+  scheduleViewSwitch: document.querySelector("#scheduleViewSwitch"),
+  scheduleViewButtons: Array.from(document.querySelectorAll("#scheduleViewSwitch [data-view]")),
+  scheduleSection: document.querySelector("#scheduleSection"),
+  resultsSection: document.querySelector("#resultsSection"),
   scheduleTableWrap: document.querySelector("#scheduleTableWrap"),
   resultsTableWrap: document.querySelector("#resultsTableWrap")
 };
+let scheduleViewMode = "both";
 
 function readApiBase() {
   return resolveInitialApiBase();
@@ -252,6 +257,64 @@ function setupControlsPanel() {
     applyControlsCollapsed(next);
     try {
       localStorage.setItem("pulseboard.schedule.controlsCollapsed", next ? "1" : "0");
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+  });
+}
+
+function applyScheduleViewMode(mode) {
+  const normalized =
+    mode === "schedule" || mode === "results" || mode === "both" ? mode : "both";
+  scheduleViewMode = normalized;
+
+  const compact = isCompactViewport();
+  const showSchedule = !compact || normalized === "both" || normalized === "schedule";
+  const showResults = !compact || normalized === "both" || normalized === "results";
+
+  if (elements.scheduleSection) {
+    elements.scheduleSection.hidden = !showSchedule;
+  }
+  if (elements.resultsSection) {
+    elements.resultsSection.hidden = !showResults;
+    elements.resultsSection.classList.toggle("top-space", showSchedule && showResults);
+  }
+
+  for (const button of elements.scheduleViewButtons) {
+    const active = button.getAttribute("data-view") === normalized;
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
+function setupScheduleViewSwitch() {
+  if (!elements.scheduleViewSwitch) {
+    return;
+  }
+
+  try {
+    const saved = localStorage.getItem("pulseboard.schedule.mobileView");
+    if (saved === "schedule" || saved === "results" || saved === "both") {
+      scheduleViewMode = saved;
+    }
+  } catch {
+    scheduleViewMode = "both";
+  }
+
+  applyScheduleViewMode(scheduleViewMode);
+  elements.scheduleViewSwitch.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const button = target.closest("[data-view]");
+    if (!button) {
+      return;
+    }
+
+    const next = button.getAttribute("data-view") || "both";
+    applyScheduleViewMode(next);
+    try {
+      localStorage.setItem("pulseboard.schedule.mobileView", scheduleViewMode);
     } catch {
       // Ignore storage failures in private mode.
     }
@@ -534,6 +597,7 @@ function boot() {
   elements.dotaTiersInput.value = "1,2,3,4";
   updateNav(apiBase);
   setupControlsPanel();
+  setupScheduleViewSwitch();
 
   const now = new Date();
   const start = new Date(now.getTime() - 12 * 60 * 60 * 1000);
@@ -544,5 +608,9 @@ function boot() {
   installEvents();
   loadCollections();
 }
+
+window.addEventListener("resize", () => {
+  applyScheduleViewMode(scheduleViewMode);
+});
 
 boot();

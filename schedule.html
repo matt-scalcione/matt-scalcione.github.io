@@ -81,17 +81,27 @@
       </section>
 
       <section class="panel">
-        <div class="section-head">
-          <h2>Schedule</h2>
-          <p id="scheduleMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
+        <div id="scheduleViewSwitch" class="mobile-segment" aria-label="Schedule view">
+          <button type="button" class="mobile-segment-btn" data-view="both" aria-pressed="true">Both</button>
+          <button type="button" class="mobile-segment-btn" data-view="schedule" aria-pressed="false">Schedule</button>
+          <button type="button" class="mobile-segment-btn" data-view="results" aria-pressed="false">Results</button>
         </div>
-        <div id="scheduleTableWrap" class="table-wrap"></div>
 
-        <div class="section-head top-space">
-          <h2>Results</h2>
-          <p id="resultsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
+        <div id="scheduleSection">
+          <div class="section-head">
+            <h2>Schedule</h2>
+            <p id="scheduleMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
+          </div>
+          <div id="scheduleTableWrap" class="table-wrap"></div>
         </div>
-        <div id="resultsTableWrap" class="table-wrap"></div>
+
+        <div id="resultsSection" class="top-space">
+          <div class="section-head">
+            <h2>Results</h2>
+            <p id="resultsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
+          </div>
+          <div id="resultsTableWrap" class="table-wrap"></div>
+        </div>
       </section>
     </main>
 

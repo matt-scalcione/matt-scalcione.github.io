@@ -80,7 +80,13 @@
       </section>
 
       <section class="panel stack">
-        <div>
+        <div id="followsViewSwitch" class="mobile-segment" aria-label="Follows view">
+          <button type="button" class="mobile-segment-btn" data-view="both" aria-pressed="true">Both</button>
+          <button type="button" class="mobile-segment-btn" data-view="follows" aria-pressed="false">Follows</button>
+          <button type="button" class="mobile-segment-btn" data-view="prefs" aria-pressed="false">Prefs</button>
+        </div>
+
+        <div id="followsBlock">
           <div class="section-head">
             <h2>Current Follows</h2>
             <p id="followsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
@@ -88,7 +94,7 @@
           <div id="followsList" class="follow-list"></div>
         </div>
 
-        <div>
+        <div id="prefsBlock">
           <div class="section-head top-space">
             <h2>Notification Preferences</h2>
             <p class="meta-text">Saved per user ID.</p>
