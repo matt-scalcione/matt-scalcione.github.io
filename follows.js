@@ -1,4 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import { applySeo, inferRobotsDirective, setJsonLd } from "./seo.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const MOBILE_BREAKPOINT = 760;
@@ -35,6 +36,17 @@ const elements = {
   savePrefsButton: document.querySelector("#savePrefsButton")
 };
 let followsViewMode = "both";
+
+function refreshFollowsSeo() {
+  const inferred = inferRobotsDirective({ allowedQueryParams: [] });
+  applySeo({
+    title: "Follows & Alerts | Pulseboard",
+    description: "Manage followed teams and notification preferences on Pulseboard.",
+    canonicalPath: "/follows.html",
+    robots: inferred === "index,follow" ? "noindex,follow" : "noindex,nofollow"
+  });
+  setJsonLd("follows-itemlist", null);
+}
 
 function readApiBase() {
   return resolveInitialApiBase();
@@ -145,15 +157,12 @@ function setupFollowsViewSwitch() {
   });
 }
 
-function updateNav(apiBase) {
+function updateNav() {
   const liveUrl = new URL("./index.html", window.location.href);
-  liveUrl.searchParams.set("api", apiBase);
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  scheduleUrl.searchParams.set("api", apiBase);
 
   const followsUrl = new URL("./follows.html", window.location.href);
-  followsUrl.searchParams.set("api", apiBase);
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -271,7 +280,12 @@ async function loadPreferences() {
 async function loadAll() {
   try {
     const { apiBase } = getContext();
-    updateNav(apiBase);
+    try {
+      localStorage.setItem("pulseboard.apiBase", apiBase);
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+    updateNav();
     setStatus("Loading follows and preferences...", "loading");
     await Promise.all([loadFollows(), loadPreferences()]);
     setStatus("Follows and preferences loaded.", "success");
@@ -373,7 +387,7 @@ function installEvents() {
   elements.saveApiButton.addEventListener("click", () => {
     const { apiBase } = getContext();
     saveApiBase(apiBase);
-    updateNav(apiBase);
+    updateNav();
     setStatus("API base saved locally.", "success");
   });
 
@@ -391,7 +405,8 @@ function boot() {
   const startupApiBase = readApiBase();
   elements.apiBaseInput.value = startupApiBase;
   elements.userIdInput.value = "demo-user";
-  updateNav(startupApiBase);
+  updateNav();
+  refreshFollowsSeo();
   setupControlsPanel();
   setupFollowsViewSwitch();
   installEvents();

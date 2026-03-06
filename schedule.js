@@ -1,4 +1,13 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import {
+  applySeo,
+  buildCanonicalPath,
+  gameLabel,
+  inferRobotsDirective,
+  normalizeGameKey,
+  setJsonLd,
+  toAbsoluteSiteUrl
+} from "./seo.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const MOBILE_BREAKPOINT = 760;
@@ -88,6 +97,37 @@ const elements = {
   resultsTableWrap: document.querySelector("#resultsTableWrap")
 };
 let scheduleViewMode = "both";
+
+function selectedTitleKey() {
+  return normalizeGameKey(elements.gameSelect?.value || "");
+}
+
+function refreshScheduleSeo() {
+  const titleKey = selectedTitleKey();
+  const viewKey = scheduleViewMode === "schedule" || scheduleViewMode === "results"
+    ? scheduleViewMode
+    : null;
+  const titlePrefix = titleKey ? `${gameLabel(titleKey)} ` : "";
+  const viewLabel = viewKey === "results" ? "Results" : viewKey === "schedule" ? "Upcoming Schedule" : "Schedule & Results";
+  const pageTitle = `${titlePrefix}${viewLabel} | Pulseboard`;
+  const pageDescription = titleKey
+    ? `${viewLabel} for ${gameLabel(titleKey)} series on Pulseboard, with fast match access and state-aware context.`
+    : "Upcoming schedule and completed results for League of Legends and Dota 2 series on Pulseboard.";
+  const canonicalPath = buildCanonicalPath({
+    pathname: "/schedule.html",
+    allowedQueryParams: []
+  });
+  const robots = inferRobotsDirective({
+    allowedQueryParams: ["title", "game", "view"]
+  });
+
+  applySeo({
+    title: pageTitle,
+    description: pageDescription,
+    canonicalPath,
+    robots
+  });
+}
 
 function readApiBase() {
   return resolveInitialApiBase();
@@ -215,10 +255,9 @@ function buildQuery() {
   return params.toString();
 }
 
-function rowLink(id, apiBase) {
+function rowLink(id) {
   const url = new URL("./match.html", window.location.href);
   url.searchParams.set("id", id);
-  url.searchParams.set("api", apiBase);
   return url.toString();
 }
 
@@ -284,6 +323,9 @@ function applyScheduleViewMode(mode) {
     const active = button.getAttribute("data-view") === normalized;
     button.setAttribute("aria-pressed", String(active));
   }
+
+  updateNav();
+  refreshScheduleSeo();
 }
 
 function setupScheduleViewSwitch() {
@@ -326,7 +368,6 @@ function teamLink({
   teamName,
   label = null,
   game,
-  apiBase,
   matchId = null,
   opponentId = null
 }) {
@@ -336,7 +377,6 @@ function teamLink({
 
   const url = new URL("./team.html", window.location.href);
   url.searchParams.set("id", teamId);
-  url.searchParams.set("api", apiBase);
   if (game) {
     url.searchParams.set("game", game);
   }
@@ -353,15 +393,20 @@ function teamLink({
   return `<a class="team-link" href="${url.toString()}">${label || teamName || teamId}</a>`;
 }
 
-function updateNav(apiBase) {
+function updateNav() {
   const liveUrl = new URL("./index.html", window.location.href);
-  liveUrl.searchParams.set("api", apiBase);
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  scheduleUrl.searchParams.set("api", apiBase);
 
   const followsUrl = new URL("./follows.html", window.location.href);
-  followsUrl.searchParams.set("api", apiBase);
+  const titleKey = selectedTitleKey();
+  if (titleKey) {
+    liveUrl.searchParams.set("title", titleKey);
+    scheduleUrl.searchParams.set("title", titleKey);
+  }
+  if (scheduleViewMode === "schedule" || scheduleViewMode === "results") {
+    scheduleUrl.searchParams.set("view", scheduleViewMode);
+  }
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -397,7 +442,7 @@ function renderLoadingTable(container) {
   `;
 }
 
-function renderTable(container, rows, apiBase, type) {
+function renderTable(container, rows, type) {
   if (!rows.length) {
     container.innerHTML = `<div class="empty">No ${type} matches for current filters.</div>`;
     return;
@@ -405,7 +450,7 @@ function renderTable(container, rows, apiBase, type) {
 
   const desktopBody = rows
     .map((row) => {
-      const detailUrl = rowLink(row.id, apiBase);
+      const detailUrl = rowLink(row.id);
       const winnerLong =
         row.winnerTeamId === row.teams.left.id
           ? row.teams.left.name
@@ -421,7 +466,6 @@ function renderTable(container, rows, apiBase, type) {
         teamName: row.teams.left.name,
         label: leftShort,
         game: row.game,
-        apiBase,
         matchId: row.id,
         opponentId: row.teams.right.id
       });
@@ -430,7 +474,6 @@ function renderTable(container, rows, apiBase, type) {
         teamName: row.teams.right.name,
         label: rightShort,
         game: row.game,
-        apiBase,
         matchId: row.id,
         opponentId: row.teams.left.id
       });
@@ -449,7 +492,7 @@ function renderTable(container, rows, apiBase, type) {
 
   const mobileCards = rows
     .map((row) => {
-      const detailUrl = rowLink(row.id, apiBase);
+      const detailUrl = rowLink(row.id);
       const leftShort = shortTeamName(row.teams.left.name);
       const rightShort = shortTeamName(row.teams.right.name);
       const winnerLong =
@@ -494,6 +537,28 @@ function renderTable(container, rows, apiBase, type) {
     </div>
     <div class="schedule-mobile-list">${mobileCards}</div>
   `;
+}
+
+function applyScheduleStructuredData(scheduleRows = [], resultRows = []) {
+  const allRows = [...scheduleRows, ...resultRows].slice(0, 20);
+  if (!allRows.length) {
+    setJsonLd("schedule-itemlist", null);
+    return;
+  }
+
+  const items = allRows.map((row, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    url: toAbsoluteSiteUrl(`/match.html?id=${encodeURIComponent(String(row?.id || ""))}`),
+    name: `${row?.teams?.left?.name || "Team A"} vs ${row?.teams?.right?.name || "Team B"}`
+  }));
+
+  setJsonLd("schedule-itemlist", {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Pulseboard Schedule and Results",
+    itemListElement: items
+  });
 }
 
 function wireRowNavigation(container) {
@@ -549,7 +614,12 @@ async function fetchCollection(apiBase, endpoint, query) {
 async function loadCollections() {
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   const query = buildQuery();
-  updateNav(apiBase);
+  try {
+    localStorage.setItem("pulseboard.apiBase", apiBase);
+  } catch {
+    // Ignore storage failures in private mode.
+  }
+  updateNav();
 
   try {
     renderLoadingTable(elements.scheduleTableWrap);
@@ -560,8 +630,12 @@ async function loadCollections() {
       fetchCollection(apiBase, "/v1/results", query)
     ]);
 
-    renderTable(elements.scheduleTableWrap, schedulePayload.data || [], apiBase, "scheduled");
-    renderTable(elements.resultsTableWrap, resultsPayload.data || [], apiBase, "result");
+    const scheduleRows = Array.isArray(schedulePayload.data) ? schedulePayload.data : [];
+    const resultRows = Array.isArray(resultsPayload.data) ? resultsPayload.data : [];
+    renderTable(elements.scheduleTableWrap, scheduleRows, "scheduled");
+    renderTable(elements.resultsTableWrap, resultRows, "result");
+    applyScheduleStructuredData(scheduleRows, resultRows);
+    refreshScheduleSeo();
 
     elements.scheduleMeta.textContent = `Showing ${schedulePayload.meta.count} matches · Updated ${dateTimeCompact(schedulePayload.meta.generatedAt)}`;
     elements.resultsMeta.textContent = `Showing ${resultsPayload.meta.count} matches · Updated ${dateTimeCompact(resultsPayload.meta.generatedAt)}`;
@@ -570,6 +644,8 @@ async function loadCollections() {
     setStatus(`Error: ${error.message}`, "error");
     elements.scheduleTableWrap.innerHTML = `<div class="empty">Unable to load schedule.</div>`;
     elements.resultsTableWrap.innerHTML = `<div class="empty">Unable to load results.</div>`;
+    setJsonLd("schedule-itemlist", null);
+    refreshScheduleSeo();
   }
 }
 
@@ -591,11 +667,27 @@ function installEvents() {
   elements.dateToInput.addEventListener("change", loadCollections);
 }
 
+function applyInitialUrlFilters() {
+  const url = new URL(window.location.href);
+  const title =
+    normalizeGameKey(url.searchParams.get("title")) ||
+    normalizeGameKey(url.searchParams.get("game"));
+  if (title && elements.gameSelect) {
+    elements.gameSelect.value = title;
+  }
+
+  const view = String(url.searchParams.get("view") || "").toLowerCase();
+  if (view === "schedule" || view === "results" || view === "both") {
+    scheduleViewMode = view;
+  }
+}
+
 function boot() {
   const apiBase = readApiBase();
   elements.apiBaseInput.value = apiBase;
   elements.dotaTiersInput.value = "1,2,3,4";
-  updateNav(apiBase);
+  applyInitialUrlFilters();
+  updateNav();
   setupControlsPanel();
   setupScheduleViewSwitch();
 
@@ -606,6 +698,7 @@ function boot() {
   elements.dateToInput.value = toLocalInputValue(end);
 
   installEvents();
+  refreshScheduleSeo();
   loadCollections();
 }
 

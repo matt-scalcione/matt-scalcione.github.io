@@ -1,10 +1,51 @@
-<!doctype html><meta charset="utf-8"><title>Redirecting…</title>
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=/index.html" />
-    <title>Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Redirecting to Pulseboard</title>
+    <link rel="canonical" href="https://matt-scalcione.github.io/index.html" />
+    <script>
+      (function () {
+        const { pathname, search } = window.location;
+        const normalized = String(pathname || "/").replace(/\/+$/, "") || "/";
+        const aliases = [
+          { pattern: /^\/live$/i, target: "/index.html" },
+          { pattern: /^\/schedule$/i, target: "/schedule.html" },
+          { pattern: /^\/results$/i, target: "/schedule.html?view=results" },
+          {
+            pattern: /^\/match\/([^/]+)\/game\/(\d+)$/i,
+            build: (match) =>
+              `/match.html?id=${encodeURIComponent(match[1])}&game=${encodeURIComponent(match[2])}`
+          },
+          {
+            pattern: /^\/match\/([^/]+)$/i,
+            build: (match) => `/match.html?id=${encodeURIComponent(match[1])}`
+          },
+          {
+            pattern: /^\/team\/([^/]+)$/i,
+            build: (match) => `/team.html?id=${encodeURIComponent(match[1])}`
+          }
+        ];
+
+        let destination = "/index.html";
+        for (const alias of aliases) {
+          const matched = normalized.match(alias.pattern);
+          if (!matched) {
+            continue;
+          }
+          destination = typeof alias.build === "function" ? alias.build(matched) : alias.target;
+          break;
+        }
+
+        if (search && !destination.includes("?")) {
+          destination = `${destination}${search}`;
+        }
+
+        window.location.replace(destination);
+      })();
+    </script>
   </head>
   <body>
     Redirecting to <a href="/index.html">Pulseboard</a>.

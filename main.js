@@ -1,4 +1,13 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import {
+  applySeo,
+  buildCanonicalPath,
+  gameLabel,
+  inferRobotsDirective,
+  normalizeGameKey,
+  setJsonLd,
+  toAbsoluteSiteUrl
+} from "./seo.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const AUTO_REFRESH_MS = 15000;
@@ -41,6 +50,7 @@ const LIVE_STATUS_LABELS = {
   upcoming: "Next",
   completed: "Final"
 };
+const GAME_OPTION_VALUES = new Set(["", "lol", "dota2"]);
 
 function readApiBase() {
   return resolveInitialApiBase();
@@ -48,6 +58,34 @@ function readApiBase() {
 
 function saveApiBase(value) {
   localStorage.setItem("pulseboard.apiBase", value);
+}
+
+function preferredTitleQueryValue() {
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  return game || null;
+}
+
+function refreshLiveSeo() {
+  const titleGame = preferredTitleQueryValue();
+  const titlePrefix = titleGame ? `${gameLabel(titleGame)} Live Scores` : "Live Esports Scores";
+  const pageTitle = `${titlePrefix} | Pulseboard`;
+  const pageDescription = titleGame
+    ? `${gameLabel(titleGame)} live series, map tracking, and score updates with state-aware context on Pulseboard.`
+    : "Live League of Legends and Dota 2 series with score, status, and map context on Pulseboard.";
+  const canonicalPath = buildCanonicalPath({
+    pathname: "/index.html",
+    allowedQueryParams: titleGame ? ["title"] : []
+  });
+  const robots = inferRobotsDirective({
+    allowedQueryParams: ["title", "game"]
+  });
+
+  applySeo({
+    title: pageTitle,
+    description: pageDescription,
+    canonicalPath,
+    robots
+  });
 }
 
 function statusPillClass(status) {
@@ -221,13 +259,15 @@ function liveFilterSummaryText(filtered, total, counts) {
 
 function updateNav(apiBase) {
   const liveUrl = new URL("./index.html", window.location.href);
-  liveUrl.searchParams.set("api", apiBase);
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  scheduleUrl.searchParams.set("api", apiBase);
 
   const followsUrl = new URL("./follows.html", window.location.href);
-  followsUrl.searchParams.set("api", apiBase);
+  const titleValue = preferredTitleQueryValue();
+  if (titleValue) {
+    liveUrl.searchParams.set("title", titleValue);
+    scheduleUrl.searchParams.set("title", titleValue);
+  }
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -273,7 +313,7 @@ function renderEmpty(message) {
   `;
 }
 
-function renderCards(rows, apiBase) {
+function renderCards(rows) {
   const orderedRows = rows
     .slice()
     .sort((left, right) => {
@@ -289,7 +329,6 @@ function renderCards(rows, apiBase) {
     .map((match, index) => {
       const link = new URL("./match.html", window.location.href);
       link.searchParams.set("id", match.id);
-      link.searchParams.set("api", apiBase);
       const statusClass = statusPillClass(match.status);
       const statusLabel = String(match.status || "upcoming").toUpperCase();
 
@@ -321,7 +360,28 @@ function renderCards(rows, apiBase) {
     .join("");
 }
 
-function renderLiveDesk(apiBase) {
+function applyLiveStructuredData(rows = []) {
+  const list = rows.slice(0, 16).map((match, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    url: toAbsoluteSiteUrl(`/match.html?id=${encodeURIComponent(String(match?.id || ""))}`),
+    name: `${match?.teams?.left?.name || "Team A"} vs ${match?.teams?.right?.name || "Team B"}`
+  }));
+
+  if (!list.length) {
+    setJsonLd("live-itemlist", null);
+    return;
+  }
+
+  setJsonLd("live-itemlist", {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Pulseboard Live and Upcoming Matches",
+    itemListElement: list
+  });
+}
+
+function renderLiveDesk() {
   const totalRows = liveDeskState.rows.length;
   const counts = statusCounts(liveDeskState.rows);
   const filteredRows = applyClientFilters(liveDeskState.rows);
@@ -333,7 +393,7 @@ function renderLiveDesk(apiBase) {
       renderEmpty("No matches for this quick filter. Try `All` or clear search.");
     }
   } else {
-    renderCards(filteredRows, apiBase);
+    renderCards(filteredRows);
   }
 
   if (elements.liveFilterMeta) {
@@ -345,6 +405,8 @@ function renderLiveDesk(apiBase) {
   }
   applyLiveStatusCounts(counts);
   applyLiveStatusButtons();
+  applyLiveStructuredData(filteredRows);
+  refreshLiveSeo();
 }
 
 async function loadMatches() {
@@ -363,6 +425,11 @@ async function loadMatches() {
 
   const query = buildQuery({ game, region, dotaTiers, followedOnly, userId });
   const requestUrl = `${apiBase}/v1/live-matches${query ? `?${query}` : ""}`;
+  try {
+    localStorage.setItem("pulseboard.apiBase", apiBase);
+  } catch {
+    // Ignore storage failures in private mode.
+  }
   updateNav(apiBase);
 
   try {
@@ -376,7 +443,7 @@ async function loadMatches() {
     }
 
     liveDeskState.rows = Array.isArray(payload.data) ? payload.data : [];
-    renderLiveDesk(apiBase);
+    renderLiveDesk();
     elements.metaText.textContent = `Showing ${payload?.meta?.count ?? 0} matches. Updated ${dateTimeLabel(payload?.meta?.generatedAt)}`;
     setStatus("Live desk synced.", "success");
   } catch (error) {
@@ -385,6 +452,8 @@ async function loadMatches() {
     if (elements.liveFilterMeta) {
       elements.liveFilterMeta.textContent = "";
     }
+    setJsonLd("live-itemlist", null);
+    refreshLiveSeo();
     renderEmpty("Unable to load matches. Check API base and API server status.");
   }
 }
@@ -426,7 +495,7 @@ function installEvents() {
       } catch {
         // Ignore storage failures.
       }
-      renderLiveDesk(elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+      renderLiveDesk();
     });
   }
 
@@ -438,7 +507,7 @@ function installEvents() {
       } catch {
         // Ignore storage failures.
       }
-      renderLiveDesk(elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+      renderLiveDesk();
     });
   }
 
@@ -455,14 +524,25 @@ function installEvents() {
       } catch {
         // Ignore storage failures.
       }
-      renderLiveDesk(elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+      renderLiveDesk();
     });
+  }
+}
+
+function applyInitialUrlFilters() {
+  const url = new URL(window.location.href);
+  const initialGame =
+    normalizeGameKey(url.searchParams.get("title")) ||
+    normalizeGameKey(url.searchParams.get("game"));
+  if (initialGame && GAME_OPTION_VALUES.has(initialGame) && elements.gameSelect) {
+    elements.gameSelect.value = initialGame;
   }
 }
 
 function boot() {
   const startupApiBase = readApiBase();
   elements.apiBaseInput.value = startupApiBase;
+  applyInitialUrlFilters();
   updateNav(startupApiBase);
   setupControlsPanel();
   try {
@@ -480,6 +560,7 @@ function boot() {
   }
   applyLiveStatusCounts(statusCounts([]));
   applyLiveStatusButtons();
+  refreshLiveSeo();
   elements.dotaTiersInput.value = "1,2,3,4";
   elements.userIdInput.value = "demo-user";
   installEvents();
