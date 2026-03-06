@@ -4558,6 +4558,21 @@ function stateLabel(state) {
   return "UPCOMING";
 }
 
+function seriesGameStatusNote(game, match) {
+  const state = String(game?.state || "unstarted");
+  const winner = resolveSeriesGameWinnerName(game, match);
+  if (state === "inProgress") {
+    return "Map currently live.";
+  }
+  if (state === "completed") {
+    return winner ? `Winner: ${scoreboardTeamName(winner)}` : "Completed.";
+  }
+  if (state === "unneeded") {
+    return "Not played.";
+  }
+  return "Waiting for kickoff.";
+}
+
 function renderSeriesGames(match, apiBase) {
   const compact = isCompactUI();
   const games = Array.isArray(match.seriesGames) ? match.seriesGames : [];
@@ -4566,38 +4581,105 @@ function renderSeriesGames(match, apiBase) {
     return;
   }
 
-  elements.seriesGamesWrap.innerHTML = games
+  const completedCount = games.filter((game) => game?.state === "completed").length;
+  const liveGame = games.find((game) => game?.state === "inProgress") || null;
+  const skippedCount = games.filter((game) => game?.state === "unneeded").length;
+  const upcomingCount = games.filter((game) => game?.state === "unstarted").length;
+  const focusedGame = games.find((game) => game?.selected) || null;
+  const leftTag = scoreboardTeamName(match?.teams?.left?.name);
+  const rightTag = scoreboardTeamName(match?.teams?.right?.name);
+  const leftSeriesScore = Number(match?.seriesScore?.left || 0);
+  const rightSeriesScore = Number(match?.seriesScore?.right || 0);
+  const summaryChips = [
+    `Completed ${completedCount}/${games.length}`,
+    `Live ${liveGame ? `G${liveGame.number}` : "None"}`,
+    `Upcoming ${upcomingCount}`
+  ];
+  if (skippedCount > 0) {
+    summaryChips.push(`Skipped ${skippedCount}`);
+  }
+  if (focusedGame) {
+    summaryChips.push(`Focused G${focusedGame.number}`);
+  }
+
+  const cards = games
     .map((game) => {
-      const primaryWatch = game.watchUrl
-        ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">${compact ? "VOD" : "Watch VOD"}</a>`
-        : `<span class="meta-text">No VOD</span>`;
       const options = Array.isArray(game.watchOptions) ? game.watchOptions : [];
       const openGameHref = detailUrlForGame(match.id, apiBase, game.number);
       const sideInfo = game?.sideInfo || {};
-      const sideText = sideInfo.leftSide && sideInfo.rightSide
-        ? `${displayTeamName(match.teams.left.name)} ${String(sideInfo.leftSide).toUpperCase()} · ${displayTeamName(match.teams.right.name)} ${String(sideInfo.rightSide).toUpperCase()}`
-        : null;
+      const leftSide = String(sideInfo.leftSide || "").toLowerCase();
+      const rightSide = String(sideInfo.rightSide || "").toLowerCase();
+      const leftSideLabel = leftSide ? leftSide.toUpperCase() : "TBD";
+      const rightSideLabel = rightSide ? rightSide.toUpperCase() : "TBD";
+      const leftSideTone = leftSide === "blue" ? "blue" : leftSide === "red" ? "red" : "neutral";
+      const rightSideTone = rightSide === "red" ? "red" : rightSide === "blue" ? "blue" : "neutral";
+      const winnerName = resolveSeriesGameWinnerName(game, match);
+      const startedLabel = game.startedAt ? (compact ? dateTimeCompact(game.startedAt) : dateTimeLabel(game.startedAt)) : "TBD";
+      const durationLabel = durationLabelFromMinutes(game.durationMinutes);
+      const statusNote = seriesGameStatusNote(game, match);
+      const labelText = String(game.label || "").trim();
+      const labelNormalized = labelText.toLowerCase();
+      const showLabel =
+        labelText &&
+        labelNormalized !== "completed game." &&
+        labelNormalized !== "completed game" &&
+        labelNormalized !== "upcoming game." &&
+        labelNormalized !== "upcoming game" &&
+        labelNormalized !== "live game." &&
+        labelNormalized !== "live game";
+      const openAction = game.selected
+        ? `<span class="series-game-focused">${compact ? "Viewing" : "Viewing this game"}</span>`
+        : `<a class="series-game-open" href="${openGameHref}">${compact ? `Open G${game.number}` : `Open Game ${game.number}`}</a>`;
+      const vodAction = game.watchUrl
+        ? `<a class="series-game-vod" href="${game.watchUrl}" target="_blank" rel="noreferrer">${compact ? "VOD" : "Watch VOD"}</a>`
+        : `<span class="series-game-vod disabled">No VOD</span>`;
 
       return `
-        <article class="game-card ${game.selected ? "selected" : ""}">
-          <div class="game-head">
-            <p class="game-title">${compact ? `G${game.number}` : `Game ${game.number}`}</p>
+        <article class="series-game-card ${game.selected ? "selected" : ""} state-${stateClass(game.state)}">
+          <div class="series-game-head">
+            <p class="series-game-title">${compact ? `G${game.number}` : `Game ${game.number}`}</p>
             <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
           </div>
-          ${game.selected ? `<p class="meta-text strong">${compact ? "Focused" : "Currently selected"}</p>` : `<a class="table-link" href="${openGameHref}">${compact ? "Open" : "Open game detail"}</a>`}
-          <p class="meta-text">${game.label || "Match game details."}</p>
-          ${sideText ? `<p class="meta-text">${sideText}</p>` : ""}
-          ${game.startedAt ? `<p class="meta-text">${compact ? "Start" : "Start"}: ${compact ? dateTimeCompact(game.startedAt) : dateTimeLabel(game.startedAt)}</p>` : ""}
-          ${compact && game.watchUrl ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>` : primaryWatch}
+          <p class="series-game-status">${statusNote}</p>
+          ${showLabel ? `<p class="meta-text">${labelText}</p>` : ""}
+          ${winnerName ? `<p class="series-game-winner">Winner ${scoreboardTeamName(winnerName)}</p>` : ""}
+          <div class="series-game-meta-grid">
+            <article class="series-game-meta-cell">
+              <p class="meta-text">Start</p>
+              <p class="series-game-meta-value">${startedLabel}</p>
+            </article>
+            <article class="series-game-meta-cell">
+              <p class="meta-text">Duration</p>
+              <p class="series-game-meta-value">${durationLabel}</p>
+            </article>
+          </div>
+          <div class="series-game-sides">
+            <span class="series-side-chip ${leftSideTone}">${leftTag} ${leftSideLabel}</span>
+            <span class="series-side-chip ${rightSideTone}">${rightTag} ${rightSideLabel}</span>
+          </div>
+          <div class="series-game-actions">
+            ${openAction}
+            ${vodAction}
+          </div>
           ${options.length
-            ? `<div class="vod-options">${options
-                .map((opt) => `<a class="vod-link" href="${opt.watchUrl}" target="_blank" rel="noreferrer">${opt.label}</a>`)
+            ? `<div class="series-game-options">${options
+                .map((opt) => `<a class="series-game-option" href="${opt.watchUrl}" target="_blank" rel="noreferrer">${opt.shortLabel || opt.label}</a>`)
                 .join("")}</div>`
             : ""}
         </article>
       `;
     })
     .join("");
+
+  elements.seriesGamesWrap.innerHTML = `
+    <article class="series-games-overview">
+      <p class="series-games-scoreline">${leftTag} ${leftSeriesScore} - ${rightSeriesScore} ${rightTag}</p>
+      <div class="series-games-summary-chips">
+        ${summaryChips.map((chip) => `<span class="series-summary-chip">${chip}</span>`).join("")}
+      </div>
+    </article>
+    <div class="series-games-grid">${cards}</div>
+  `;
 }
 
 function durationLabelFromMinutes(minutes) {
