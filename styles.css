@@ -1030,6 +1030,54 @@ button.ghost,
   margin-top: 0.65rem;
 }
 
+.mobile-game-toolbar {
+  display: none;
+}
+
+.mobile-jump-row {
+  display: flex;
+  gap: 0.34rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-jump-row::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-jump-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--accent-strong);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  padding: 0.24rem 0.54rem;
+  flex: 0 0 auto;
+}
+
+.mobile-advanced-toggle {
+  margin-top: 0;
+  border: 1px solid rgba(32, 81, 132, 0.34);
+  border-radius: 10px;
+  background: rgba(32, 81, 132, 0.1);
+  color: #18456f;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  padding: 0.28rem 0.5rem;
+  width: 100%;
+  min-height: 2.1rem;
+}
+
+.mobile-advanced-toggle.open {
+  border-color: rgba(14, 112, 76, 0.35);
+  background: rgba(14, 112, 76, 0.12);
+  color: #0c6a43;
+}
+
 .game-context-card {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -2289,6 +2337,122 @@ button.ghost,
   font-family: "Archivo Black", "Impact", sans-serif;
 }
 
+.tracker-mobile-wrap {
+  display: grid;
+  gap: 0.56rem;
+}
+
+.tracker-team-group {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.52rem;
+  display: grid;
+  gap: 0.42rem;
+}
+
+.tracker-team-group.left {
+  border-left: 4px solid rgba(31, 123, 194, 0.55);
+}
+
+.tracker-team-group.right {
+  border-left: 4px solid rgba(183, 70, 50, 0.52);
+}
+
+.tracker-team-header {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+.tracker-player-stack {
+  display: grid;
+  gap: 0.44rem;
+}
+
+.tracker-player-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.48rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.tracker-player-card.dead {
+  border-color: rgba(164, 47, 23, 0.4);
+  background: rgba(164, 47, 23, 0.08);
+}
+
+.tracker-player-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.tracker-player-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.06rem;
+}
+
+.tracker-role-pill {
+  justify-self: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.04rem 0.3rem;
+  font-size: 0.58rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: rgba(12, 45, 66, 0.05);
+}
+
+.tracker-player-name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.tracker-player-champion {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.1;
+}
+
+.tracker-mobile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.2rem 0.3rem;
+}
+
+.tracker-mobile-stats p {
+  margin: 0;
+  display: grid;
+  gap: 0.02rem;
+}
+
+.tracker-mobile-stats span {
+  color: var(--muted);
+  font-size: 0.58rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.tracker-mobile-stats strong {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  color: var(--accent-strong);
+  font-size: 0.67rem;
+  line-height: 1.12;
+}
+
 .lane-table th,
 .lane-table td {
   text-align: left;
@@ -3185,6 +3349,49 @@ button.ghost,
     font-size: 0.76rem;
   }
 
+  .match-page.mobile-game-mode .panel[data-scope="game"].mobile-advanced-collapsed {
+    display: none !important;
+  }
+
+  .match-page.mobile-game-mode .panel[data-scope="game"].mobile-core-panel {
+    border-color: rgba(14, 83, 125, 0.22);
+    box-shadow: 0 8px 18px rgba(10, 24, 40, 0.12);
+  }
+
+  .match-page.mobile-game-mode .panel[data-scope="game"]:not(.mobile-core-panel) .section-head .meta-text {
+    display: none;
+  }
+
+  .match-page.mobile-game-mode .panel[data-scope="game"] .section-head {
+    margin-bottom: 0.34rem;
+  }
+
+  .match-page.mobile-game-mode .mobile-game-toolbar {
+    display: grid;
+    gap: 0.28rem;
+    margin-top: 0.46rem;
+    padding: 0.34rem;
+    border-radius: 11px;
+    border: 1px solid rgba(118, 146, 183, 0.33);
+    background: rgba(247, 251, 255, 0.92);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: calc(4.4rem + env(safe-area-inset-top, 0px));
+    z-index: 24;
+  }
+
+  .match-page.mobile-game-mode .mobile-jump-chip {
+    min-height: 1.85rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6rem;
+  }
+
+  .match-page.mobile-game-mode .mobile-advanced-toggle {
+    min-height: 1.95rem;
+    font-size: 0.62rem;
+    padding: 0.22rem 0.4rem;
+  }
+
   .match-page .game-nav-head .meta-text {
     font-size: 0.66rem;
   }
@@ -3220,6 +3427,23 @@ button.ghost,
 
   .match-page .game-context-card {
     padding: 0.56rem;
+  }
+
+  .match-page.mobile-game-mode .feed-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.3rem;
+    margin-bottom: 0.42rem;
+  }
+
+  .match-page.mobile-game-mode .feed-controls label {
+    gap: 0.1rem;
+    font-size: 0.56rem;
+  }
+
+  .match-page.mobile-game-mode .feed-controls select {
+    min-height: 2rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.68rem;
   }
 
   .match-page .snapshot-item {
@@ -3610,6 +3834,57 @@ button.ghost,
 
   .match-page .match-state-panel .stream-card .meta-text {
     font-size: 0.56rem;
+  }
+
+  .match-page.mobile-game-mode .mobile-game-toolbar {
+    top: calc(4.05rem + env(safe-area-inset-top, 0px));
+    padding: 0.28rem;
+    gap: 0.22rem;
+  }
+
+  .match-page.mobile-game-mode .mobile-jump-row {
+    gap: 0.24rem;
+  }
+
+  .match-page.mobile-game-mode .mobile-jump-chip {
+    min-height: 1.72rem;
+    padding: 0.16rem 0.42rem;
+    font-size: 0.56rem;
+  }
+
+  .match-page .tracker-team-group {
+    padding: 0.44rem;
+    gap: 0.34rem;
+  }
+
+  .match-page .tracker-player-card {
+    padding: 0.42rem;
+    gap: 0.24rem;
+  }
+
+  .match-page .tracker-role-pill {
+    font-size: 0.52rem;
+  }
+
+  .match-page .tracker-player-name {
+    font-size: 0.74rem;
+  }
+
+  .match-page .tracker-player-champion {
+    font-size: 0.64rem;
+  }
+
+  .match-page .tracker-mobile-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.18rem 0.26rem;
+  }
+
+  .match-page .tracker-mobile-stats span {
+    font-size: 0.54rem;
+  }
+
+  .match-page .tracker-mobile-stats strong {
+    font-size: 0.62rem;
   }
 
   .match-page .team-box .team-link {

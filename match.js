@@ -64,6 +64,23 @@ const TEAM_LOGO_BY_KEY = {
   "red canids kalunga": "./assets/team-logos/red-canids.png",
   "red canids": "./assets/team-logos/red-canids.png"
 };
+const MOBILE_GAME_JUMP_TARGETS = [
+  { id: "gameContextWrap", label: "Game" },
+  { id: "selectedGameRecapWrap", label: "Recap" },
+  { id: "playerTrackerWrap", label: "Players" },
+  { id: "liveFeedList", label: "Feed" },
+  { id: "leadTrendWrap", label: "Gold" },
+  { id: "objectiveControlWrap", label: "Obj" }
+];
+const MOBILE_CORE_GAME_PANEL_TARGETS = new Set([
+  "selectedGameRecapWrap",
+  "gameCommandWrap",
+  "teamCompareWrap",
+  "playerTrackerWrap",
+  "liveFeedList",
+  "leadTrendWrap",
+  "objectiveControlWrap"
+]);
 const MOBILE_SECTION_HEADINGS = {
   "Current State": { icon: "ST", short: "State" },
   "Series Overview": { icon: "SR", short: "Series" },
@@ -100,6 +117,7 @@ const elements = {
   seriesHeaderWrap: document.querySelector("#seriesHeaderWrap"),
   gameNavWrap: document.querySelector("#gameNavWrap"),
   gameContextWrap: document.querySelector("#gameContextWrap"),
+  mobileGameToolbar: document.querySelector("#mobileGameToolbar"),
   gameCommandWrap: document.querySelector("#gameCommandWrap"),
   teamCompareWrap: document.querySelector("#teamCompareWrap"),
   playerTrackerWrap: document.querySelector("#playerTrackerWrap"),
@@ -190,10 +208,17 @@ const uiState = {
     eventSource: null,
     reconnectTimer: null
   },
+  mobileAdvancedExpanded: false,
   controlsBound: false,
   leadTrendScaleByContext: {},
   mapPulseByContext: {}
 };
+
+try {
+  uiState.mobileAdvancedExpanded = localStorage.getItem("pulseboard.mobileAdvancedExpanded") === "1";
+} catch {
+  uiState.mobileAdvancedExpanded = false;
+}
 
 function clearRefreshTimer() {
   clearTimeout(refreshTimer);
@@ -306,6 +331,127 @@ function applyMobileSectionHeadings() {
       heading.classList.remove("mobile-short");
     }
   }
+}
+
+function panelForTargetId(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return null;
+  }
+
+  return target.closest("section.panel");
+}
+
+function scrollToTargetId(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return;
+  }
+
+  const anchor = target.closest("section.panel") || target;
+  const topOffset = isCompactUI() ? 136 : 92;
+  const top = Math.max(0, Math.round(anchor.getBoundingClientRect().top + window.scrollY - topOffset));
+  window.scrollTo({ top, behavior: "smooth" });
+}
+
+function bindMobileGameToolbar() {
+  if (!elements.mobileGameToolbar || elements.mobileGameToolbar.dataset.bound === "1") {
+    return;
+  }
+
+  elements.mobileGameToolbar.dataset.bound = "1";
+  elements.mobileGameToolbar.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const jumpButton = target.closest("[data-jump-target]");
+    if (jumpButton) {
+      const jumpTarget = jumpButton.getAttribute("data-jump-target");
+      if (jumpTarget) {
+        scrollToTargetId(jumpTarget);
+      }
+      return;
+    }
+
+    if (!target.closest("[data-advanced-toggle]")) {
+      return;
+    }
+
+    uiState.mobileAdvancedExpanded = !uiState.mobileAdvancedExpanded;
+    try {
+      localStorage.setItem("pulseboard.mobileAdvancedExpanded", uiState.mobileAdvancedExpanded ? "1" : "0");
+    } catch {
+      // Ignore storage failures and keep current in-memory preference.
+    }
+
+    if (uiState.match) {
+      applyMobileGameEnhancements(uiState.match);
+    }
+  });
+}
+
+function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
+  if (!elements.mobileGameToolbar) {
+    return;
+  }
+
+  if (!compactGameMode) {
+    elements.mobileGameToolbar.hidden = true;
+    elements.mobileGameToolbar.innerHTML = "";
+    return;
+  }
+
+  const jumpButtons = MOBILE_GAME_JUMP_TARGETS
+    .filter((item) => {
+      const panel = panelForTargetId(item.id);
+      if (!panel) {
+        return false;
+      }
+      return !panel.classList.contains("hidden-panel");
+    })
+    .map((item) => `<button type="button" class="mobile-jump-chip" data-jump-target="${item.id}">${item.label}</button>`)
+    .join("");
+
+  const advancedButton =
+    advancedVisibleCount > 0
+      ? `<button type="button" class="mobile-advanced-toggle${uiState.mobileAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${uiState.mobileAdvancedExpanded ? "Hide extra panels" : `More stats (${advancedVisibleCount})`}</button>`
+      : "";
+
+  elements.mobileGameToolbar.hidden = false;
+  elements.mobileGameToolbar.innerHTML = `
+    <div class="mobile-jump-row">${jumpButtons}</div>
+    ${advancedButton}
+  `;
+}
+
+function applyMobileGameEnhancements(match) {
+  const compactGameMode = isCompactUI() && uiState.viewMode === "game";
+  document.body.classList.toggle("mobile-game-mode", compactGameMode);
+  bindMobileGameToolbar();
+
+  const corePanels = new Set(
+    Array.from(MOBILE_CORE_GAME_PANEL_TARGETS)
+      .map((targetId) => panelForTargetId(targetId))
+      .filter(Boolean)
+  );
+
+  let advancedVisibleCount = 0;
+  for (const panel of elements.gamePanels) {
+    const isCore = corePanels.has(panel);
+    panel.classList.toggle("mobile-core-panel", isCore);
+    panel.classList.toggle("mobile-advanced-panel", !isCore);
+    panel.classList.toggle("mobile-advanced-collapsed", compactGameMode && !uiState.mobileAdvancedExpanded && !isCore);
+    if (!isCore && !panel.classList.contains("hidden-panel")) {
+      advancedVisibleCount += 1;
+    }
+  }
+
+  renderMobileGameToolbar({
+    compactGameMode,
+    advancedVisibleCount
+  });
 }
 
 function dateTimeLabel(iso) {
@@ -1828,6 +1974,88 @@ function renderPlayerTracker(match) {
 
     return Number(b.goldEarned || 0) - Number(a.goldEarned || 0);
   });
+
+  if (isCompactUI()) {
+    const teamGroups = [
+      {
+        key: "left",
+        label: scoreboardTeamName(match.teams.left.name),
+        rows: rows.filter((row) => row.team === "left")
+      },
+      {
+        key: "right",
+        label: scoreboardTeamName(match.teams.right.name),
+        rows: rows.filter((row) => row.team === "right")
+      }
+    ];
+
+    elements.playerTrackerWrap.innerHTML = `
+      <div class="tracker-mobile-wrap">
+        ${teamGroups
+          .map(
+            (group) => `
+          <article class="tracker-team-group ${group.key}">
+            <p class="tracker-team-header">${group.label}</p>
+            <div class="tracker-player-stack">
+              ${group.rows
+                .map((row) => {
+                  const deltaLabel = Number.isFinite(row.deltaGold) ? signed(Math.round(row.deltaGold)) : "n/a";
+                  const impactLabel = Number.isFinite(row.impact) ? row.impact.toFixed(1) : "n/a";
+                  const isDead = isLiveMap && row.isDead === true;
+                  const hpPct = healthPctForRow(row);
+                  const hpTone = healthToneClass(hpPct, isDead);
+                  const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
+                  const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
+                  const statusLabel = isLiveMap ? (isDead ? "DEAD \u2620" : "ALIVE") : "N/A";
+                  const statusClass = isLiveMap ? (isDead ? "dead" : "alive") : "neutral";
+                  const respawnLabel = isLiveMap ? formatRespawnLabel(row, isDead) : "N/A";
+                  const respawnAtTs = isDead ? Date.parse(String(row?.respawnAt || "")) : Number.NaN;
+                  const respawnAttrs = Number.isFinite(respawnAtTs)
+                    ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}"`
+                    : "";
+
+                  return `
+                    <article class="tracker-player-card${isDead ? " dead" : ""}">
+                      <div class="tracker-player-head">
+                        <div class="tracker-player-main">
+                          <span class="tracker-role-pill">${String(row.role || "flex").toUpperCase()}</span>
+                          <p class="tracker-player-name">${row.name || "Player"}</p>
+                          <p class="tracker-player-champion">${row.champion || "Unknown"}</p>
+                        </div>
+                        <span class="tracker-status-badge ${statusClass}">${statusLabel}</span>
+                      </div>
+                      <div class="tracker-hp-cell">
+                        <div class="hp-track ${hpTone}">
+                          <div class="hp-fill ${hpTone}" style="width:${hpWidth}%"></div>
+                        </div>
+                        <span class="tracker-hp-label">${hpLabel}</span>
+                      </div>
+                      <div class="tracker-mobile-stats">
+                        <p><span>KDA</span><strong>${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}</strong></p>
+                        <p><span>CS</span><strong>${row.cs ?? "n/a"}</strong></p>
+                        <p><span>Gold</span><strong>${formatNumber(row.goldEarned || 0)}</strong></p>
+                        <p><span>KP</span><strong>${toPercent(row.kp)}</strong></p>
+                        <p><span>GPM</span><strong>${formatNumber(row.gpm || 0)}</strong></p>
+                        <p><span>Items</span><strong>${row.itemCount ?? "n/a"}</strong></p>
+                        <p><span>dGold</span><strong>${deltaLabel}</strong></p>
+                        <p><span>Impact</span><strong>${impactLabel}</strong></p>
+                        <p><span>Respawn</span><strong class="tracker-respawn ${statusClass}"${respawnAttrs}>${respawnLabel}</strong></p>
+                      </div>
+                    </article>
+                  `;
+                })
+                .join("")}
+            </div>
+          </article>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+
+    startRespawnTicker();
+    return;
+  }
 
   elements.playerTrackerWrap.innerHTML = `
     <div class="lane-table-wrap">
@@ -4569,6 +4797,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   applyGamePanelVisibility(match);
   applySeriesPanelVisibility();
   applyUpcomingPanelVisibility(match);
+  applyMobileGameEnhancements(match);
 
   if (uiState.stream.connected) {
     clearRefreshTimer();
@@ -4772,6 +5001,9 @@ window.addEventListener("beforeunload", () => {
 
 window.addEventListener("resize", () => {
   applyMobileSectionHeadings();
+  if (uiState.match) {
+    applyMobileGameEnhancements(uiState.match);
+  }
 });
 
 applyMobileSectionHeadings();
