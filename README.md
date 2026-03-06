@@ -42,3 +42,28 @@ In GitHub repo settings:
 Your site URL will be:
 
 - `https://matt-scalcione.github.io/`
+
+## 4. SEO Sitemap Automation
+
+- Sitemap is generated from live API data via [`scripts/generate-sitemap.mjs`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/scripts/generate-sitemap.mjs).
+- Run locally:
+  - `node scripts/generate-sitemap.mjs`
+- The Pages workflow also regenerates sitemap automatically:
+  - On every push to `main`
+  - Every 6 hours (scheduled run)
+
+## 5. Route Mode
+
+Default link mode is query-style (SEO-safe for GitHub Pages 404 behavior):
+
+- `match.html?id=...`
+- `team.html?id=...`
+
+To force pretty route links, set in [`site-config.js`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/site-config.js):
+
+```js
+window.PULSEBOARD_CONFIG = {
+  ...window.PULSEBOARD_CONFIG,
+  usePrettyRoutes: true
+};
+```

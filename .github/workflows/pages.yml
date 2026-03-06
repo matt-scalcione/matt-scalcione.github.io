@@ -3,6 +3,8 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch: {}
+  schedule:
+    - cron: "0 */6 * * *"
 permissions:
   contents: read
   pages: write
@@ -15,6 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Generate sitemap from live API data
+        run: node scripts/generate-sitemap.mjs
+        env:
+          PULSEBOARD_API_BASE: https://pulseboard-api-drq0.onrender.com
+          PULSEBOARD_SITE_ORIGIN: https://matt-scalcione.github.io
       - uses: actions/upload-pages-artifact@v3
         with: { path: . }
   deploy:
