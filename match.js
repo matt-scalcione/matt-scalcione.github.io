@@ -6,8 +6,8 @@ const LEAD_TREND_MIN_ABS_GOLD = 7000;
 const LEAD_TREND_SCALE_HEADROOM = 1.15;
 const MOBILE_BREAKPOINT = 760;
 const TEAM_SHORT_NAMES = {
-  "cloud9 kia": "Cloud9",
-  "cloud9": "Cloud9",
+  "cloud9 kia": "C9",
+  "cloud9": "C9",
   "team liquid honda": "Liquid",
   "team liquid": "Liquid",
   "gen.g esports": "Gen.G",
@@ -31,7 +31,8 @@ const TEAM_SHORT_NAMES = {
   "funplus phoenix": "FPX",
   "anyone's legend": "AL",
   "ninjas in pyjamas": "NIP",
-  "red canids kalunga": "RED Canids",
+  "red canids kalunga": "RED",
+  "red canids": "RED",
   "royal never give up": "RNG",
   "team we": "WE",
   "ultra prime": "UP",
@@ -50,6 +51,18 @@ const TEAM_SHORT_NAMES = {
   "evil geniuses": "EG",
   "talon esports": "Talon",
   "natus vincere": "NAVI"
+};
+const TEAM_HEADER_ABBREVIATIONS = {
+  "cloud9 kia": "C9",
+  "cloud9": "C9",
+  "red canids kalunga": "RED",
+  "red canids": "RED"
+};
+const TEAM_LOGO_BY_KEY = {
+  "cloud9 kia": "./assets/team-logos/cloud9.png",
+  "cloud9": "./assets/team-logos/cloud9.png",
+  "red canids kalunga": "./assets/team-logos/red-canids.png",
+  "red canids": "./assets/team-logos/red-canids.png"
 };
 const MOBILE_SECTION_HEADINGS = {
   "Current State": { icon: "ST", short: "State" },
@@ -235,6 +248,15 @@ function shortTeamName(name) {
 
 function displayTeamName(name) {
   return isCompactUI() ? shortTeamName(name) : String(name || "Unknown");
+}
+
+function scoreboardTeamName(name) {
+  const raw = String(name || "").trim();
+  if (!raw) {
+    return "TBD";
+  }
+
+  return TEAM_HEADER_ABBREVIATIONS[normalizeTeamKey(raw)] || shortTeamName(raw);
 }
 
 function compactStatusLabel(status) {
@@ -446,6 +468,25 @@ function teamBadgeText(name) {
   return letters.slice(0, Math.min(3, letters.length)).toUpperCase();
 }
 
+function teamLogoUrl(name) {
+  const raw = String(name || "").trim();
+  if (!raw) {
+    return null;
+  }
+
+  return TEAM_LOGO_BY_KEY[normalizeTeamKey(raw)] || null;
+}
+
+function teamBadgeMarkup(name) {
+  const logo = teamLogoUrl(name);
+  if (logo) {
+    const label = scoreboardTeamName(name);
+    return `<span class="team-badge has-logo"><img src="${logo}" alt="${label} logo" loading="lazy" decoding="async" /></span>`;
+  }
+
+  return `<span class="team-badge">${teamBadgeText(name)}</span>`;
+}
+
 function selectedGameScoreContext(match) {
   const selected = match?.selectedGame;
   if (!selected || uiState.viewMode !== "game") {
@@ -506,32 +547,34 @@ function selectedGameScoreContext(match) {
 function renderScoreboard(match) {
   const compact = isCompactUI();
   const winner = winnerTeamName(match);
-  const winnerLabel = winner ? displayTeamName(winner) : null;
+  const winnerLabel = winner ? scoreboardTeamName(winner) : null;
   const seriesSubline = compact
     ? compactStatusLabel(match.status)
     : `${compactStatusLabel(match.status)}${winnerLabel ? ` · ${winnerLabel}` : ""}`;
-  const leftDisplayName = displayTeamName(match.teams.left.name);
-  const rightDisplayName = displayTeamName(match.teams.right.name);
+  const leftRawName = String(match?.teams?.left?.name || "Unknown");
+  const rightRawName = String(match?.teams?.right?.name || "Unknown");
+  const leftDisplayName = scoreboardTeamName(leftRawName);
+  const rightDisplayName = scoreboardTeamName(rightRawName);
   const selectedGameNumber = contextGameNumber();
   const leftTeamUrl = teamDetailUrl(match.teams.left.id, match.game, uiState.apiBase, {
     matchId: match.id,
     gameNumber: selectedGameNumber,
     opponentId: match.teams.right.id,
-    teamName: match.teams.left.name
+    teamName: leftRawName
   });
   const rightTeamUrl = teamDetailUrl(match.teams.right.id, match.game, uiState.apiBase, {
     matchId: match.id,
     gameNumber: selectedGameNumber,
     opponentId: match.teams.left.id,
-    teamName: match.teams.right.name
+    teamName: rightRawName
   });
   const gameContext = selectedGameScoreContext(match);
   const gameStatus = gameContext?.state ? stateLabel(gameContext.state) : "";
 
   elements.scoreboard.innerHTML = `
     <article class="score-strip series-strip">
-      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftDisplayName} team page">
-        <span class="team-badge">${teamBadgeText(match.teams.left.name)}</span>
+      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
+        ${teamBadgeMarkup(leftRawName)}
         <span class="score-team-name">${leftDisplayName}</span>
       </a>
       <div class="score-center">
@@ -539,16 +582,16 @@ function renderScoreboard(match) {
         <p class="score-center-main">${match.seriesScore.left}<span class="score-divider">-</span>${match.seriesScore.right}</p>
         <p class="score-center-sub">${seriesSubline}</p>
       </div>
-      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightDisplayName} team page">
-        <span class="team-badge">${teamBadgeText(match.teams.right.name)}</span>
+      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
+        ${teamBadgeMarkup(rightRawName)}
         <span class="score-team-name">${rightDisplayName}</span>
       </a>
     </article>
     ${gameContext
       ? `
     <article class="score-strip game-strip ${gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming"}">
-      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftDisplayName} team page">
-        <span class="team-badge">${teamBadgeText(match.teams.left.name)}</span>
+      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
+        ${teamBadgeMarkup(leftRawName)}
         <span class="score-team-side ${gameContext.leftSide === "BLUE" ? "blue" : gameContext.leftSide === "RED" ? "red" : ""}">${gameContext.leftSide}</span>
         <span class="score-team-name">${leftDisplayName}</span>
       </a>
@@ -557,8 +600,8 @@ function renderScoreboard(match) {
         <p class="score-center-main">${Number.isFinite(gameContext.leftKills) ? gameContext.leftKills : "—"}<span class="score-divider">-</span>${Number.isFinite(gameContext.rightKills) ? gameContext.rightKills : "—"}</p>
         <p class="score-center-sub">${compact ? "Kills" : "Kills this game"}</p>
       </div>
-      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightDisplayName} team page">
-        <span class="team-badge">${teamBadgeText(match.teams.right.name)}</span>
+      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
+        ${teamBadgeMarkup(rightRawName)}
         <span class="score-team-side ${gameContext.rightSide === "BLUE" ? "blue" : gameContext.rightSide === "RED" ? "red" : ""}">${gameContext.rightSide}</span>
         <span class="score-team-name">${rightDisplayName}</span>
       </a>
