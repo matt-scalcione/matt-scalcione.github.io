@@ -138,6 +138,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
   "What Matters Now": { icon: "NOW", short: "Now" },
   "Objective Control": { icon: "OBJ", short: "Objective" },
+  "Analyst Desk": { icon: "AD", short: "Analyst" },
   "Series Games": { icon: "SG", short: "Series Games" },
   "Series Comparison": { icon: "SC", short: "Series Stats" },
   "Selected Game Recap": { icon: "RC", short: "Game Recap" }
@@ -2652,21 +2653,14 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.gameCommandWrap, false);
     setTargetVisibility(elements.liveAlertsList, false);
     setTargetVisibility(elements.storylinesList, false);
+    setTargetVisibility(elements.dataConfidenceWrap, false);
+    setTargetVisibility(elements.tempoSnapshotWrap, false);
+    setTargetVisibility(elements.tacticalChecklistWrap, false);
     setTargetVisibility(elements.liveTickerList, hasRows(match?.liveTicker));
     setTargetVisibility(elements.combatBurstsList, hasRows(match?.combatBursts));
     setTargetVisibility(elements.goldMilestonesList, hasRows(match?.goldMilestones));
     setTargetVisibility(elements.objectiveRunsWrap, hasRows(match?.objectiveRuns));
     setTargetVisibility(elements.momentsList, hasRows(match?.keyMoments));
-
-    const confidenceScore = Number(match?.dataConfidence?.score);
-    if (Number.isFinite(confidenceScore) && confidenceScore >= 85) {
-      setTargetVisibility(elements.dataConfidenceWrap, false);
-    }
-
-    const completedGames = Number(match?.tempoSnapshot?.completedGames || 0);
-    if (completedGames <= 0) {
-      setTargetVisibility(elements.tempoSnapshotWrap, false);
-    }
   }
 }
 
@@ -4667,6 +4661,117 @@ function renderPulseCard(match) {
 }
 
 function renderEdgeMeter(match) {
+  if (String(match?.selectedGame?.state || "") === "inProgress") {
+    const edge = match.edgeMeter;
+    const confidence = match.dataConfidence;
+    const tempo = match.tempoSnapshot;
+    const checklist = Array.isArray(match.tacticalChecklist) ? match.tacticalChecklist.slice(0, 3) : [];
+    const edgeAvailable = Boolean(edge?.left && edge?.right);
+    const leftScore = edgeAvailable ? Math.max(0, Math.min(100, Number(edge.left.score || 0))) : 0;
+    const rightScore = edgeAvailable ? Math.max(0, Math.min(100, Number(edge.right.score || 0))) : 0;
+    const total = Math.max(1, leftScore + rightScore);
+    const leftWidth = (leftScore / total) * 100;
+    const rightWidth = (rightScore / total) * 100;
+    const confidenceTone =
+      String(confidence?.grade || "").toLowerCase() === "high"
+        ? "good"
+        : String(confidence?.grade || "").toLowerCase() === "low"
+          ? "warn"
+          : "neutral";
+    const confidenceLabel = confidence
+      ? `${String(confidence.grade || "medium").toUpperCase()} · ${formatNumber(confidence.score)} / 100`
+      : "Confidence unavailable";
+    const tempoCards = [
+      tempoCard(
+        "Series Pace",
+        Number.isFinite(tempo?.averageDurationMinutes) ? `${tempo.averageDurationMinutes.toFixed(1)}m` : "n/a",
+        Number.isFinite(tempo?.completedGames) ? `${tempo.completedGames} completed games` : "Waiting for history"
+      ),
+      tempoCard(
+        "Current Map",
+        Number.isFinite(tempo?.currentGameMinutes) ? `${tempo.currentGameMinutes.toFixed(1)}m` : "n/a",
+        Number.isFinite(tempo?.objectivePer10Minutes) ? `${tempo.objectivePer10Minutes.toFixed(2)} obj / 10m` : "Objective pace pending"
+      )
+    ].join("");
+
+    elements.edgeMeterWrap.innerHTML = `
+      <article class="analyst-desk">
+        <div class="analyst-grid">
+          <section class="analyst-card analyst-card-edge">
+            <div class="analyst-head">
+              <p class="tempo-label">Edge</p>
+              <span class="analyst-pill ${edgeAvailable ? "live" : "neutral"}">${edgeAvailable ? "LIVE" : "MODEL"}</span>
+            </div>
+            ${
+              edgeAvailable
+                ? `
+                  <div class="edge-head">
+                    <p class="meta-text">${edge.left.team}</p>
+                    <p class="meta-text">${edge.right.team}</p>
+                  </div>
+                  <div class="edge-bars">
+                    <div class="edge-side left" style="width:${leftWidth}%"></div>
+                    <div class="edge-side right" style="width:${rightWidth}%"></div>
+                  </div>
+                  <div class="edge-head">
+                    <p class="edge-score">${leftScore}</p>
+                    <p class="edge-score">${rightScore}</p>
+                  </div>
+                  <p class="analyst-verdict">${edge.verdict || "Pressure balance is even."}</p>
+                `
+                : `<p class="analyst-verdict">Edge model is waiting for enough live/control signals.</p>`
+            }
+          </section>
+          <section class="analyst-card">
+            <div class="analyst-head">
+              <p class="tempo-label">Coverage</p>
+              <span class="analyst-pill ${confidenceTone}">${confidence ? String(confidence.telemetry || "unknown").toUpperCase() : "N/A"}</span>
+            </div>
+            <p class="analyst-verdict">${confidenceLabel}</p>
+            ${
+              Array.isArray(confidence?.notes) && confidence.notes.length
+                ? `<ul class="analyst-mini-list">${confidence.notes.slice(0, 2).map((note) => `<li>${note}</li>`).join("")}</ul>`
+                : `<p class="meta-text">Live model confidence updates as telemetry fills in.</p>`
+            }
+          </section>
+        </div>
+        <div class="analyst-grid secondary">
+          <section class="analyst-card">
+            <div class="analyst-head">
+              <p class="tempo-label">Tempo</p>
+              <span class="analyst-pill neutral">PACE</span>
+            </div>
+            <div class="analyst-tempo-grid">${tempoCards}</div>
+          </section>
+          <section class="analyst-card">
+            <div class="analyst-head">
+              <p class="tempo-label">Priorities</p>
+              <span class="analyst-pill warn">${checklist.length ? `${checklist.length} live` : "Watch"}</span>
+            </div>
+            ${
+              checklist.length
+                ? `<div class="analyst-checklist">${checklist
+                    .map(
+                      (row, index) => `
+                        <article class="analyst-check ${checklistClass(row.tone)}">
+                          <span class="analyst-check-rank">${index + 1}</span>
+                          <div>
+                            <p class="check-title">${row.title || "Signal"}</p>
+                            <p class="meta-text">${row.detail || "No details provided."}</p>
+                          </div>
+                        </article>
+                      `
+                    )
+                    .join("")}</div>`
+                : `<p class="meta-text">No tactical priorities generated yet.</p>`
+            }
+          </section>
+        </div>
+      </article>
+    `;
+    return;
+  }
+
   const edge = match.edgeMeter;
   if (!edge?.left || !edge?.right) {
     elements.edgeMeterWrap.innerHTML = `<div class="empty">Edge signal unavailable.</div>`;
