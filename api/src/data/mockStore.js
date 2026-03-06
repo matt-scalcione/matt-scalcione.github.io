@@ -921,6 +921,372 @@ function buildOpponentBreakdown(rows = [], maxRows = 6) {
     .slice(0, maxRows);
 }
 
+function parseRequestedFallbackGameNumber(value) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 9) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function fallbackSeriesProgress(seriesScore, bestOf, seriesGames) {
+  const winsNeeded = Math.floor(bestOf / 2) + 1;
+  const leftWins = Number(seriesScore?.left || 0);
+  const rightWins = Number(seriesScore?.right || 0);
+  const completedGames = seriesGames.filter((game) => game.state === "completed").length;
+  const inProgressGames = seriesGames.filter((game) => game.state === "inProgress").length;
+  const skippedGames = seriesGames.filter((game) => game.state === "unneeded").length;
+
+  return {
+    bestOf,
+    winsNeeded,
+    leftWins,
+    rightWins,
+    leftToWin: Math.max(0, winsNeeded - leftWins),
+    rightToWin: Math.max(0, winsNeeded - rightWins),
+    completedGames,
+    inProgressGames,
+    skippedGames,
+    totalScheduledGames: bestOf,
+    decided: leftWins >= winsNeeded || rightWins >= winsNeeded
+  };
+}
+
+function buildFallbackDotaDetailFromSummary(match, options = {}) {
+  if (!match || match.game !== "dota2") {
+    return null;
+  }
+
+  const status = String(match?.status || "upcoming");
+  const bestOf = Math.max(1, Number(match?.bestOf || 1));
+  const seriesScore = {
+    left: Number(match?.seriesScore?.left || 0),
+    right: Number(match?.seriesScore?.right || 0)
+  };
+  const completedWins = seriesScore.left + seriesScore.right;
+  const currentGameNumber =
+    status === "live"
+      ? Math.max(1, completedWins + 1)
+      : status === "completed"
+        ? Math.max(1, completedWins || 1)
+        : 1;
+  const totalSlots = Math.max(bestOf, currentGameNumber);
+  const requestedGameNumber = parseRequestedFallbackGameNumber(options?.gameNumber);
+
+  const seriesGames = [];
+  const startMs = Date.parse(String(match?.startAt || ""));
+  for (let number = 1; number <= totalSlots; number += 1) {
+    let state = "unstarted";
+    if (number < currentGameNumber) {
+      state = "completed";
+    } else if (number === currentGameNumber) {
+      state = status === "live" ? "inProgress" : status === "completed" ? "completed" : "unstarted";
+    }
+
+    if (number > currentGameNumber && completedWins >= Math.floor(bestOf / 2) + 1) {
+      state = "unneeded";
+    }
+
+    const startedAt =
+      Number.isFinite(startMs)
+        ? new Date(startMs + (number - 1) * 45 * 60 * 1000).toISOString()
+        : null;
+
+    seriesGames.push({
+      id: `fallback_dota_game_${number}`,
+      number,
+      state,
+      selected: false,
+      label:
+        state === "completed"
+          ? "Completed game."
+          : state === "inProgress"
+            ? "Currently live."
+            : state === "unneeded"
+              ? "Not played (series already decided)."
+              : "Scheduled next.",
+      winnerTeamId: state === "completed" && number === currentGameNumber ? match?.winnerTeamId || null : null,
+      sideInfo: {
+        leftSide: "radiant",
+        rightSide: "dire"
+      },
+      durationMinutes: state === "completed" ? 40 : null,
+      startedAt,
+      watchUrl: `https://www.opendota.com/matches/${String(match?.providerMatchId || "").trim()}`,
+      watchProvider: "opendota",
+      watchOptions: []
+    });
+  }
+
+  let selectedGame = null;
+  if (requestedGameNumber !== null) {
+    selectedGame = seriesGames.find((game) => game.number === requestedGameNumber) || null;
+  }
+  if (!selectedGame) {
+    selectedGame = seriesGames.find((game) => game.state === "inProgress") || null;
+  }
+  if (!selectedGame) {
+    selectedGame = seriesGames.filter((game) => game.state === "completed").pop() || null;
+  }
+  if (!selectedGame) {
+    selectedGame = seriesGames[0] || null;
+  }
+
+  if (selectedGame) {
+    selectedGame.selected = true;
+  }
+
+  const selectedGameNumber = Number(selectedGame?.number || 1);
+  const selectedState = String(selectedGame?.state || "unstarted");
+  const leftKills = Number(match?.teams?.left?.kills || 0);
+  const rightKills = Number(match?.teams?.right?.kills || 0);
+
+  const selectedSnapshot = {
+    left: {
+      kills: leftKills,
+      towers: Number(match?.teams?.left?.towers || 0),
+      dragons: 0,
+      barons: 0,
+      inhibitors: 0,
+      gold: null
+    },
+    right: {
+      kills: rightKills,
+      towers: Number(match?.teams?.right?.towers || 0),
+      dragons: 0,
+      barons: 0,
+      inhibitors: 0,
+      gold: null
+    }
+  };
+
+  const selectedReason =
+    requestedGameNumber !== null && selectedGame?.number !== requestedGameNumber
+      ? "fallback_nearest"
+      : requestedGameNumber !== null
+        ? "requested"
+        : selectedState === "inProgress"
+          ? "in_progress"
+          : selectedState === "completed"
+            ? "latest_completed"
+            : "first_scheduled";
+
+  const selectedIndex = seriesGames.findIndex((game) => game.number === selectedGameNumber);
+  const previousGameNumber = selectedIndex > 0 ? seriesGames[selectedIndex - 1].number : null;
+  const nextGameNumber =
+    selectedIndex >= 0 && selectedIndex < seriesGames.length - 1
+      ? seriesGames[selectedIndex + 1].number
+      : null;
+  const liveGame = seriesGames.find((game) => game.state === "inProgress") || null;
+
+  const seriesProgress = fallbackSeriesProgress(seriesScore, bestOf, seriesGames);
+  const liveTicker =
+    status === "live"
+      ? [
+          {
+            id: `fallback_start_${selectedGameNumber}`,
+            type: "state",
+            team: null,
+            title: `Game ${selectedGameNumber} in progress`,
+            summary: `${match?.teams?.left?.name || "Radiant"} vs ${match?.teams?.right?.name || "Dire"}`,
+            importance: "high",
+            occurredAt: match?.startAt || new Date().toISOString()
+          }
+        ]
+      : [];
+
+  return {
+    ...match,
+    patch: match?.patch || "unknown",
+    freshness: {
+      source: "provider_fallback",
+      status: "degraded",
+      updatedAt: new Date().toISOString()
+    },
+    keyMoments: [],
+    timeline: [],
+    objectiveTimeline: [],
+    objectiveControl: {
+      left: { towers: 0, dragons: 0, barons: 0, inhibitors: 0, score: 0, controlPct: 50 },
+      right: { towers: 0, dragons: 0, barons: 0, inhibitors: 0, score: 0, controlPct: 50 }
+    },
+    objectiveBreakdown: {
+      left: { total: 0, dragon: 0, baron: 0, tower: 0, inhibitor: 0, other: 0 },
+      right: { total: 0, dragon: 0, baron: 0, tower: 0, inhibitor: 0, other: 0 }
+    },
+    objectiveRuns: [],
+    goldLeadSeries: [],
+    leadTrend: null,
+    playerEconomy: {
+      elapsedSeconds: 0,
+      updatedAt: new Date().toISOString(),
+      left: [],
+      right: []
+    },
+    teamEconomyTotals: {
+      left: { totalGold: 0, totalGpm: 0, avgGpm: 0 },
+      right: { totalGold: 0, totalGpm: 0, avgGpm: 0 }
+    },
+    topPerformers: [],
+    momentum: {
+      leaderTeamId: null,
+      goldLead: 0,
+      goldLeadDeltaWindow: 0,
+      killDiff: leftKills - rightKills,
+      towerDiff: 0,
+      dragonDiff: 0,
+      baronDiff: 0,
+      inhibitorDiff: 0
+    },
+    dataConfidence: {
+      grade: "low",
+      score: 45,
+      telemetry: "fallback",
+      notes: ["OpenDota match detail unavailable; fallback summary applied."]
+    },
+    pulseCard: {
+      tone: "neutral",
+      title: "Fallback Summary",
+      summary: "Detailed telemetry is temporarily unavailable for this map."
+    },
+    edgeMeter: {
+      left: { team: match?.teams?.left?.name || "Radiant", score: 50, drivers: ["Detailed signal unavailable"] },
+      right: { team: match?.teams?.right?.name || "Dire", score: 50, drivers: ["Detailed signal unavailable"] },
+      verdict: "No edge signal without full map telemetry."
+    },
+    tempoSnapshot: {
+      completedGames: seriesProgress.completedGames,
+      averageDurationMinutes: null,
+      shortestDurationMinutes: null,
+      longestDurationMinutes: null,
+      currentGameMinutes: null,
+      objectivePer10Minutes: null,
+      objectiveEvents: 0
+    },
+    tacticalChecklist: [
+      {
+        tone: "neutral",
+        title: "Telemetry degraded",
+        detail: "Provider detail is currently unavailable for this map."
+      }
+    ],
+    storylines: [],
+    teamDraft: null,
+    laneMatchups: [],
+    roleMatchupDeltas: [],
+    seriesPlayerTrends: [],
+    draftDelta: null,
+    objectiveForecast: [],
+    deltaWindow: {
+      selectedGameNumber,
+      referenceGameNumber: null,
+      windowMinutes: 5,
+      updatedAt: new Date().toISOString()
+    },
+    playerDelta: [],
+    watchGuide: {
+      venue: match?.tournament || "Tournament stage",
+      streamUrl: selectedGame?.watchUrl || null,
+      streamLabel: selectedGame?.watchUrl ? "OpenDota Match Page" : "Official stream pending",
+      language: "Global",
+      status
+    },
+    teamForm: null,
+    headToHead: null,
+    prediction: {
+      modelVersion: "fallback-v1",
+      leftWinPct: 50,
+      rightWinPct: 50,
+      favoriteTeamName: "Even",
+      confidence: "low",
+      drivers: ["Insufficient telemetry for predictive signal."]
+    },
+    combatBursts: [],
+    goldMilestones: [],
+    liveAlerts: [],
+    matchupReadiness: null,
+    matchupKeyFactors: [],
+    matchupAlertLevel: null,
+    matchupMeta: null,
+    seriesGames,
+    selectedGame: {
+      number: selectedGameNumber,
+      state: selectedState,
+      label:
+        selectedState === "completed"
+          ? "Completed game."
+          : selectedState === "inProgress"
+            ? "Currently live."
+            : "Scheduled next.",
+      telemetryStatus: "none",
+      telemetryCounts: {
+        tickerEvents: liveTicker.length,
+        objectiveEvents: 0,
+        combatBursts: 0,
+        goldMilestones: 0
+      },
+      snapshot: selectedSnapshot,
+      tips: [],
+      sideSummary: [
+        `${match?.teams?.left?.name || "Radiant"} Radiant`,
+        `${match?.teams?.right?.name || "Dire"} Dire`
+      ],
+      watchUrl: selectedGame?.watchUrl || null,
+      watchOptions: [],
+      startedAt: selectedGame?.startedAt || match?.startAt || null,
+      durationMinutes: selectedGame?.durationMinutes || null,
+      requestedMissing: requestedGameNumber !== null && selectedGameNumber !== requestedGameNumber
+    },
+    gameNavigation: {
+      availableGames: seriesGames,
+      selectedGameNumber,
+      previousGameNumber,
+      nextGameNumber,
+      currentLiveGameNumber: liveGame?.number || null,
+      requestedGameNumber,
+      requestedMissing: requestedGameNumber !== null && selectedGameNumber !== requestedGameNumber,
+      selectedReason
+    },
+    seriesHeader: {
+      headline: `${match?.teams?.left?.name || "Radiant"} ${seriesScore.left} - ${seriesScore.right} ${match?.teams?.right?.name || "Dire"}`,
+      subhead:
+        status === "completed"
+          ? "Series complete"
+          : status === "live"
+            ? "Live series"
+            : "Upcoming series"
+    },
+    seriesProgress,
+    seriesProjection: {
+      matchStartAt: match?.startAt || null,
+      countdownSeconds: Number.isFinite(startMs) ? Math.max(0, Math.round((startMs - Date.now()) / 1000)) : null,
+      estimatedEndAt: null,
+      games: seriesGames.map((game) => ({
+        number: game.number,
+        estimatedStartAt: game.startedAt || null
+      }))
+    },
+    liveTicker
+  };
+}
+
+async function fallbackProviderDotaDetail(matchId, options = {}) {
+  const [liveState, resultsState] = await Promise.all([
+    loadProviderLiveMatches(),
+    loadProviderResults()
+  ]);
+
+  const liveRows = Array.isArray(liveState?.rows) ? liveState.rows : [];
+  const resultRows = Array.isArray(resultsState?.rows) ? resultsState.rows : [];
+  const match = [...liveRows, ...resultRows].find((row) => String(row?.id || "") === String(matchId));
+  if (!match) {
+    return null;
+  }
+
+  return buildFallbackDotaDetailFromSummary(match, options);
+}
+
 async function loadProviderMatchDetail(matchId, options = {}) {
   const cacheKey = matchDetailCacheKey(matchId, options);
 
@@ -935,19 +1301,30 @@ async function loadProviderMatchDetail(matchId, options = {}) {
     }
 
     try {
-      const detail = await openDotaProvider.fetchMatchDetail(matchId);
-      if (!detail) {
+      const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
+      const resolvedDetail = detail || (await fallbackProviderDotaDetail(matchId, options));
+      if (!resolvedDetail) {
         return null;
       }
 
       providerState.detailById.set(cacheKey, {
         fetchedAt: Date.now(),
-        detail
+        detail: resolvedDetail
       });
 
-      return detail;
+      return resolvedDetail;
     } catch {
-      return null;
+      const fallback = await fallbackProviderDotaDetail(matchId, options);
+      if (!fallback) {
+        return null;
+      }
+
+      providerState.detailById.set(cacheKey, {
+        fetchedAt: Date.now(),
+        detail: fallback
+      });
+
+      return fallback;
     }
   }
 
@@ -1084,6 +1461,7 @@ export async function getTeamProfile(teamId, {
   const requestedOpponentId = String(opponentId || "").trim() || null;
   let requestedOpponentName = null;
   const shouldFetchExtendedLolHistory = !game || game === "lol";
+  const shouldFetchExtendedDotaHistory = !game || game === "dota2";
 
   const [baseResultsRows, scheduleRows, liveRows] = await Promise.all([
     listResults({
@@ -1117,6 +1495,18 @@ export async function getTeamProfile(teamId, {
         maxPages: 8
       });
       resultsRows = mergeUniqueMatches(resultsRows, extendedLolResults);
+    } catch {
+      // Keep base rows when extended provider history fails.
+    }
+  }
+
+  if (isProviderModeEnabled() && shouldFetchExtendedDotaHistory) {
+    try {
+      const extendedDotaResults = await openDotaProvider.fetchRecentResults({
+        maxRows: 220,
+        allowedTiers: defaultDotaTiers
+      });
+      resultsRows = mergeUniqueMatches(resultsRows, extendedDotaResults);
     } catch {
       // Keep base rows when extended provider history fails.
     }
