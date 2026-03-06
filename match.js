@@ -2787,10 +2787,15 @@ function renderGameExplorer(match, apiBase) {
     return;
   }
 
+  if (selected.state === "inProgress") {
+    elements.gameContextWrap.innerHTML = "";
+    return;
+  }
+
   elements.gameContextWrap.innerHTML = `
     <article class="game-context-card ${selected.telemetryStatus || "none"}">
       <div class="game-context-top">
-        <p class="game-context-title">Game ${selected.number} · ${String(selected.state || "unstarted").toUpperCase()}</p>
+        <p class="game-context-title">Game ${selected.number} · ${readableGameStateLabel(selected.state)}</p>
         <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
       </div>
       <p class="meta-text">${selected.label || "No game label."}</p>
@@ -2983,6 +2988,35 @@ function displayObjectiveName(type) {
   return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Objective";
 }
 
+function readableGameStateLabel(state) {
+  const normalized = String(state || "").trim();
+  if (normalized === "inProgress") return "In Progress";
+  if (normalized === "completed") return "Completed";
+  if (normalized === "unneeded") return "Skipped";
+  if (normalized === "unstarted") return "Upcoming";
+  if (!normalized) return "Unknown";
+  return normalized
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function isGenericLiveStateTitle(title, selectedNumber = null) {
+  const normalized = String(title || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  if (!normalized) {
+    return false;
+  }
+
+  const gamePattern = Number.isInteger(selectedNumber)
+    ? new RegExp(`^game ${selectedNumber} (in progress|live|started)$`, "i")
+    : /^game \d+ (in progress|live|started)$/i;
+  return gamePattern.test(normalized) || /^map \d+ (in progress|live|started)$/i.test(normalized);
+}
+
 function nextObjectiveWindow(match) {
   const rows = Array.isArray(match?.objectiveForecast) ? match.objectiveForecast : [];
   if (!rows.length) {
@@ -3171,10 +3205,14 @@ function renderGameCommandCenter(match) {
   const fightHint = pulse
     ? `${pulse.team === "both" ? "Both teams" : pulse.team === "left" ? displayTeamName(leftName) : displayTeamName(rightName)} showing live pressure`
     : `${displayTeamName(leftName)} ${deaths.left} down · ${displayTeamName(rightName)} ${deaths.right} down`;
-  const latestEventLabel = latestEvent ? latestEvent.title : "No event yet";
-  const latestEventHint = latestEvent
-    ? `${formatFocusedEventClock(latestEvent, liveContext.timelineAnchor)} · ${latestEvent.phase.label} · ${latestEvent.leadDescriptor.label}`
-    : "Waiting for timeline events.";
+  const genericLiveStateEvent = latestEvent && isGenericLiveStateTitle(latestEvent.title, selected.number);
+  const latestEventLabel = genericLiveStateEvent ? "Waiting for a major moment" : latestEvent ? latestEvent.title : "No event yet";
+  const latestEventHint = genericLiveStateEvent
+    ? `Map is ${readableGameStateLabel(selected.state).toLowerCase()}. Live feed will update once the first meaningful event lands.`
+    : latestEvent
+      ? `${formatFocusedEventClock(latestEvent, liveContext.timelineAnchor)} · ${latestEvent.phase.label} · ${latestEvent.leadDescriptor.label}`
+      : "Waiting for timeline events.";
+  const mapStateLabel = readableGameStateLabel(selected.state);
 
   elements.gameCommandWrap.innerHTML = [
     commandCard(
@@ -3183,7 +3221,7 @@ function renderGameCommandCenter(match) {
       latestEventHint,
       { tone: latestEvent?.leadDescriptor?.tone || "neutral", featured: true }
     ),
-    commandCard("Map State", `Game ${selected.number} · ${String(selected.state || "unstarted").toUpperCase()}`, `${selected.label} · ${selected.telemetryStatus || "none"} telemetry`, {
+    commandCard("Map State", mapStateLabel, `Game ${selected.number} · ${selected.telemetryStatus || "none"} telemetry`, {
       tone: selected.state === "inProgress" ? "live" : selected.state === "completed" ? "neutral" : "warn"
     }),
     commandCard("Clock", liveClock, `Refresh ${refreshSeconds}s · ${tickerEvents} feed signals`, { tone: "neutral" }),
@@ -4919,10 +4957,13 @@ function renderPulseCard(match) {
     const killPace = elapsedMinutes > 0 ? `${((totalKills / elapsedMinutes) * 10).toFixed(2)} / 10m` : "n/a";
     const refreshSeconds = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
     const deaths = playerDeathCounts(match);
-    const latestEventLabel = focusedRow ? focusedRow.title : "No event yet";
-    const latestEventHint = focusedRow
-      ? `${formatFocusedEventClock(focusedRow, liveContext.timelineAnchor)} · ${focusedRow.phase.label} · ${focusedRow.leadDescriptor.label}`
-      : "Waiting for timeline events.";
+    const genericLiveStateEvent = focusedRow && isGenericLiveStateTitle(focusedRow.title, selected.number);
+    const latestEventLabel = genericLiveStateEvent ? "Waiting for a major moment" : focusedRow ? focusedRow.title : "No event yet";
+    const latestEventHint = genericLiveStateEvent
+      ? `Map is ${readableGameStateLabel(selected.state).toLowerCase()}. Live feed will update once the first meaningful event lands.`
+      : focusedRow
+        ? `${formatFocusedEventClock(focusedRow, liveContext.timelineAnchor)} · ${focusedRow.phase.label} · ${focusedRow.leadDescriptor.label}`
+        : "Waiting for timeline events.";
     const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
     const objectiveHint = nextObjective?.note || "Next major map timer from tracked cadence.";
     const fightLabel = pulseState ? "Fight live" : deaths.left + deaths.right > 0 ? "Reset window" : "Calm map";
