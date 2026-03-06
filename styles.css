@@ -1982,6 +1982,35 @@ button.ghost,
   color: var(--muted);
 }
 
+.feed-lead-tag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.02rem 0.26rem;
+  font-size: 0.56rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  letter-spacing: 0.01em;
+  color: #44505d;
+  background: rgba(84, 97, 113, 0.08);
+}
+
+.feed-lead-tag.left {
+  border-color: rgba(31, 123, 194, 0.38);
+  color: #1b639b;
+  background: rgba(31, 123, 194, 0.12);
+}
+
+.feed-lead-tag.right {
+  border-color: rgba(183, 70, 50, 0.38);
+  color: #8f382a;
+  background: rgba(183, 70, 50, 0.12);
+}
+
+.feed-lead-tag.even {
+  border-color: rgba(84, 97, 113, 0.3);
+}
+
 .timeline li {
   display: flex;
   justify-content: space-between;
@@ -2665,6 +2694,14 @@ button.ghost,
   font-size: 0.61rem;
   line-height: 1.25;
   color: var(--muted);
+}
+
+.minimap-focus-note {
+  border: 1px solid rgba(12, 45, 66, 0.18);
+  border-radius: 8px;
+  background: rgba(12, 45, 66, 0.05);
+  padding: 0.2rem 0.34rem;
+  color: #314150;
 }
 
 .minimap-objectives {
@@ -5028,6 +5065,11 @@ button.ghost,
     font-size: 0.5rem;
   }
 
+  .match-page .feed-lead-tag {
+    font-size: 0.5rem;
+    padding: 0.02rem 0.22rem;
+  }
+
   .match-page .tempo-label {
     font-size: 0.64rem;
   }
@@ -5184,6 +5226,11 @@ button.ghost,
 
   .feed-bucket-tag {
     font-size: 0.54rem;
+  }
+
+  .feed-lead-tag {
+    font-size: 0.52rem;
+    padding: 0.02rem 0.2rem;
   }
 
   .follow-item {
@@ -5491,6 +5538,11 @@ button.ghost,
   .feed-game-time {
     font-size: 0.72rem;
     min-width: 2.55rem;
+  }
+
+  .feed-lead-tag {
+    font-size: 0.48rem;
+    padding: 0.02rem 0.18rem;
   }
 
   .trend-storyboard {

@@ -3316,6 +3316,33 @@ function feedRowsWithGameClock(match, rows) {
   };
 }
 
+function feedLeadSeriesRows(match) {
+  return (Array.isArray(match?.goldLeadSeries) ? match.goldLeadSeries : [])
+    .map((row) => ({
+      at: parseIsoTimestamp(row?.at),
+      lead: Number(row?.lead || 0)
+    }))
+    .filter((row) => Number.isFinite(row.at) && Number.isFinite(row.lead))
+    .sort((left, right) => left.at - right.at);
+}
+
+function feedLeadDescriptor(match, leadValue) {
+  if (!Number.isFinite(leadValue) || leadValue === 0) {
+    return {
+      label: "Even",
+      tone: "even"
+    };
+  }
+
+  const leftShort = scoreboardTeamName(match?.teams?.left?.name);
+  const rightShort = scoreboardTeamName(match?.teams?.right?.name);
+  const leader = leadValue > 0 ? leftShort : rightShort;
+  return {
+    label: `${leader} +${compactGold(Math.abs(leadValue))}`,
+    tone: leadValue > 0 ? "left" : "right"
+  };
+}
+
 function ensureStoryFocus(rows) {
   if (!rows.length) {
     uiState.storyFocusEventId = null;
@@ -3332,7 +3359,7 @@ function ensureStoryFocus(rows) {
   return uiState.storyFocusEventId;
 }
 
-function setStoryFocusEvent(eventId) {
+function setStoryFocusEvent(eventId, options = {}) {
   const normalized = String(eventId || "").trim();
   if (!normalized || normalized === uiState.storyFocusEventId) {
     return;
@@ -3342,6 +3369,14 @@ function setStoryFocusEvent(eventId) {
   if (uiState.match) {
     renderLeadTrend(uiState.match);
     renderUnifiedLiveFeed(uiState.match);
+    if (options.scrollFeed) {
+      requestAnimationFrame(() => {
+        const activeRow = elements.liveFeedList?.querySelector(".live-feed-item.active");
+        if (activeRow instanceof Element) {
+          activeRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      });
+    }
   }
 }
 
@@ -3382,9 +3417,19 @@ function renderUnifiedLiveFeed(match) {
   }
 
   const { timelineAnchor, rows: anchoredRows } = feedRowsWithGameClock(match, filtered);
-  const activeEventId = ensureStoryFocus(anchoredRows);
+  const leadRows = feedLeadSeriesRows(match);
+  const rowsWithLead = anchoredRows.map((row) => {
+    const leadAtEvent = Number.isFinite(row.eventTs) && leadRows.length ? leadValueAtTimestamp(leadRows, row.eventTs) : null;
+    const leadDescriptor = feedLeadDescriptor(match, leadAtEvent);
+    return {
+      ...row,
+      leadAtEvent,
+      leadDescriptor
+    };
+  });
+  const activeEventId = ensureStoryFocus(rowsWithLead);
 
-  elements.liveFeedList.innerHTML = anchoredRows
+  elements.liveFeedList.innerHTML = rowsWithLead
     .map(
       (row) => `
       <li class="live-feed-item ${row.team === "left" ? "team-left" : row.team === "right" ? "team-right" : "team-neutral"}${
@@ -3401,7 +3446,7 @@ function renderUnifiedLiveFeed(match) {
               row.team
                 ? ` · ${row.team === "left" ? displayTeamName(match.teams.left.name) : displayTeamName(match.teams.right.name)}`
                 : ""
-            }</p>
+            } · <span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span></p>
           </div>
         </div>
       </li>
@@ -3503,7 +3548,8 @@ function bindFeedControls() {
       return;
     }
 
-    setStoryFocusEvent(eventId);
+    const scrollFeed = Boolean(trigger.closest("#leadTrendWrap"));
+    setStoryFocusEvent(eventId, { scrollFeed });
   };
 
   const storyKeyboardHandler = (event) => {
@@ -3528,7 +3574,8 @@ function bindFeedControls() {
       return;
     }
 
-    setStoryFocusEvent(eventId);
+    const scrollFeed = Boolean(trigger.closest("#leadTrendWrap"));
+    setStoryFocusEvent(eventId, { scrollFeed });
   };
 
   if (!uiState.storyInteractionsBound) {
@@ -4573,10 +4620,14 @@ function buildMiniMap(match) {
   };
 }
 
-function renderMiniMap(match) {
+function renderMiniMap(match, options = {}) {
   const miniMap = buildMiniMap(match);
   const structures = miniMap.structures;
-  const pulse = updateMapPulseState(match);
+  const focusedEvent = options?.focusedEvent || null;
+  const timelineAnchor = options?.timelineAnchor || { estimated: true };
+  const dynamicPulse = updateMapPulseState(match);
+  const focusedTeam = focusedEvent?.team === "left" || focusedEvent?.team === "right" ? focusedEvent.team : null;
+  const pulse = focusedTeam ? { team: focusedTeam, expiresAt: Date.now() + 20_000 } : dynamicPulse;
   const now = Date.now();
   const pulseSecondsLeft = pulse ? Math.max(1, Math.ceil((pulse.expiresAt - now) / 1000)) : 0;
   const objectiveMarkers = objectiveMarkerRows(match);
@@ -4615,6 +4666,19 @@ function renderMiniMap(match) {
   const pulseText = pulse
     ? `Fight pulse: ${pulse.team === "both" ? "both teams" : pulse.team === "left" ? leftName : rightName} · ${pulseSecondsLeft}s`
     : "No active fight pulse";
+  const focusedClock = focusedEvent?.gameClockSeconds === null || focusedEvent?.gameClockSeconds === undefined
+    ? "--:--"
+    : `${timelineAnchor.estimated ? "~" : ""}${formatGameClock(focusedEvent.gameClockSeconds)}`;
+  const focusedTeamLabel = focusedEvent?.team
+    ? focusedEvent.team === "left"
+      ? leftName
+      : focusedEvent.team === "right"
+        ? rightName
+        : "Neutral"
+    : "Neutral";
+  const focusedNote = focusedEvent
+    ? `${focusedClock} · ${feedBucketLabel(focusedEvent.bucket)} · ${focusedTeamLabel}`
+    : null;
   const summary = structures.summary;
   const structureSummary = `${leftName} T ${summary.leftTowers}/${summary.towerTotal} · ${rightName} T ${summary.rightTowers}/${summary.towerTotal} · ${leftName} ${summary.inhibitorLabel} ${summary.leftInhibitors}/${summary.inhibitorTotal} · ${rightName} ${summary.inhibitorLabel} ${summary.rightInhibitors}/${summary.inhibitorTotal}`;
   const objectiveChips =
@@ -4650,6 +4714,7 @@ function renderMiniMap(match) {
       ${objectiveChips}
       <p class="minimap-note">${structureSummary}</p>
       <p class="minimap-note">${modeText} · ${pulseText}</p>
+      ${focusedNote ? `<p class="minimap-note minimap-focus-note">Focused event: ${focusedNote}</p>` : ""}
     </section>
   `;
 }
@@ -4905,9 +4970,9 @@ function renderLeadTrend(match) {
     match.status === "live" && coverageSeconds < 120
       ? "Live feed currently exposes a short window; timeline will expand as additional frames are collected."
       : null;
-  const miniMapMarkup = renderMiniMap(match);
   const trendStory = buildTrendStory(match, chart);
   const activeStory = trendStory.activeRow;
+  const miniMapMarkup = renderMiniMap(match, { focusedEvent: activeStory, timelineAnchor: trendStory.timelineAnchor });
   const activeStoryTeam = activeStory?.team === "left" ? displayTeamName(match.teams.left.name) : activeStory?.team === "right" ? displayTeamName(match.teams.right.name) : "Neutral";
   const activeStoryClock = activeStory?.gameClockSeconds === null || activeStory?.gameClockSeconds === undefined
     ? "--:--"
