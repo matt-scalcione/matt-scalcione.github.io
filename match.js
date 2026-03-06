@@ -116,6 +116,11 @@ const MOBILE_SECTION_HEADINGS = {
   "Series Comparison": { icon: "SC", short: "Series Stats" },
   "Selected Game Recap": { icon: "RC", short: "Game Recap" }
 };
+const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
+const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
+const LOL_CDN_CHAMPION_ICON = "https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{id}.png";
+const DOTA_HERO_STATS_URL = "https://api.opendota.com/api/heroStats";
+const DOTA_ICON_CDN_BASE = "https://cdn.cloudflare.steamstatic.com";
 
 const elements = {
   matchTitle: document.querySelector("#matchTitle"),
@@ -226,6 +231,19 @@ const uiState = {
   leadTrendScaleByContext: {},
   mapPulseByContext: {}
 };
+const heroIconCatalog = {
+  lol: {
+    status: "idle",
+    version: null,
+    map: new Map(),
+    promise: null
+  },
+  dota2: {
+    status: "idle",
+    map: new Map(),
+    promise: null
+  }
+};
 
 try {
   uiState.mobileAdvancedExpanded = localStorage.getItem("pulseboard.mobileAdvancedExpanded") === "1";
@@ -258,6 +276,286 @@ function normalizeTeamKey(name) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
+}
+
+function normalizeLookupKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function normalizeGameKey(game) {
+  const normalized = String(game || "").toLowerCase();
+  if (normalized === "dota" || normalized === "dota2") {
+    return "dota2";
+  }
+  return "lol";
+}
+
+function trackerHeroName(row) {
+  const hero = String(row?.champion || row?.hero || row?.heroName || row?.character || "").trim();
+  return hero || "Unknown";
+}
+
+function roleMeta(role, gameKey = "lol") {
+  const value = String(role || "").toLowerCase().trim();
+  const compactValue = value.replace(/[^a-z0-9]+/g, "");
+  const dotaMode = gameKey === "dota2";
+
+  if (!value) {
+    return { key: "unknown", label: "Unknown", short: "UNK", icon: "?" };
+  }
+
+  if (value === "top") return { key: "top", label: "Top", short: "TOP", icon: "▲" };
+  if (value === "jungle" || value === "jg") return { key: "jungle", label: "Jungle", short: "JG", icon: "◆" };
+  if (value === "mid" || value === "middle") return { key: "mid", label: "Mid", short: "MID", icon: "◇" };
+  if (value === "bottom" || value === "bot" || value === "adc") return { key: "bot", label: "Bottom", short: "BOT", icon: "▼" };
+  if (value === "support" || value === "sup") return { key: "support", label: "Support", short: "SUP", icon: "✚" };
+
+  if (dotaMode && (compactValue === "carry" || compactValue === "position1" || compactValue === "pos1")) {
+    return { key: "pos1", label: "Position 1", short: "P1", icon: "1" };
+  }
+  if (dotaMode && (compactValue === "midlane" || compactValue === "position2" || compactValue === "pos2")) {
+    return { key: "pos2", label: "Position 2", short: "P2", icon: "2" };
+  }
+  if (dotaMode && (compactValue === "offlane" || compactValue === "position3" || compactValue === "pos3")) {
+    return { key: "pos3", label: "Position 3", short: "P3", icon: "3" };
+  }
+  if (
+    dotaMode &&
+    (compactValue === "softsupport" || compactValue === "roamer" || compactValue === "position4" || compactValue === "pos4")
+  ) {
+    return { key: "pos4", label: "Position 4", short: "P4", icon: "4" };
+  }
+  if (
+    dotaMode &&
+    (compactValue === "hardsupport" ||
+      compactValue === "fullsupport" ||
+      compactValue === "position5" ||
+      compactValue === "pos5")
+  ) {
+    return { key: "pos5", label: "Position 5", short: "P5", icon: "5" };
+  }
+
+  return { key: "unknown", label: String(role || "Unknown").toUpperCase(), short: String(role || "UNK").toUpperCase(), icon: "?" };
+}
+
+function roleIconMarkup(role, gameKey = "lol", withText = true) {
+  const meta = roleMeta(role, gameKey);
+  return `
+    <span class="tracker-role-inline">
+      <span class="tracker-role-icon role-${meta.key}" title="${meta.label}">${meta.icon}</span>
+      ${withText ? `<span class="tracker-role-text">${meta.short}</span>` : ""}
+    </span>
+  `;
+}
+
+function trackerAvatarFallback(text) {
+  const cleaned = String(text || "")
+    .replace(/[^A-Za-z0-9\s]/g, " ")
+    .trim();
+  if (!cleaned) {
+    return "?";
+  }
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  }
+
+  return cleaned.replace(/\s+/g, "").slice(0, 2).toUpperCase();
+}
+
+function toAbsoluteAssetUrl(path) {
+  if (!path) {
+    return null;
+  }
+
+  if (String(path).startsWith("http://") || String(path).startsWith("https://")) {
+    return String(path);
+  }
+
+  try {
+    return new URL(path, window.location.href).toString();
+  } catch {
+    return String(path);
+  }
+}
+
+async function loadLolHeroCatalog() {
+  if (heroIconCatalog.lol.status === "ready") {
+    return;
+  }
+  if (heroIconCatalog.lol.promise) {
+    return heroIconCatalog.lol.promise;
+  }
+
+  heroIconCatalog.lol.status = "loading";
+  heroIconCatalog.lol.promise = (async () => {
+    const versionsResponse = await fetch(LOL_CDN_VERSIONS_URL);
+    if (!versionsResponse.ok) {
+      throw new Error("Failed to fetch LoL versions");
+    }
+    const versions = await versionsResponse.json();
+    const version = Array.isArray(versions) && versions.length ? String(versions[0]) : "latest";
+
+    const championDataUrl = LOL_CDN_CHAMPION_DATA.replace("{version}", encodeURIComponent(version));
+    const championResponse = await fetch(championDataUrl);
+    if (!championResponse.ok) {
+      throw new Error("Failed to fetch LoL champion data");
+    }
+
+    const payload = await championResponse.json();
+    const rows = Object.values(payload?.data || {});
+    const map = new Map();
+    for (const row of rows) {
+      const id = String(row?.id || "").trim();
+      const name = String(row?.name || "").trim();
+      if (id) {
+        map.set(normalizeLookupKey(id), id);
+      }
+      if (name) {
+        map.set(normalizeLookupKey(name), id || name);
+      }
+    }
+
+    heroIconCatalog.lol.map = map;
+    heroIconCatalog.lol.version = version;
+    heroIconCatalog.lol.status = "ready";
+  })()
+    .catch(() => {
+      heroIconCatalog.lol.status = "error";
+    })
+    .finally(() => {
+      heroIconCatalog.lol.promise = null;
+    });
+
+  return heroIconCatalog.lol.promise;
+}
+
+async function loadDotaHeroCatalog() {
+  if (heroIconCatalog.dota2.status === "ready") {
+    return;
+  }
+  if (heroIconCatalog.dota2.promise) {
+    return heroIconCatalog.dota2.promise;
+  }
+
+  heroIconCatalog.dota2.status = "loading";
+  heroIconCatalog.dota2.promise = (async () => {
+    const response = await fetch(DOTA_HERO_STATS_URL);
+    if (!response.ok) {
+      throw new Error("Failed to fetch Dota hero data");
+    }
+
+    const rows = await response.json();
+    const map = new Map();
+    for (const row of rows) {
+      const iconPath = String(row?.icon || row?.img || "").trim();
+      if (!iconPath) {
+        continue;
+      }
+
+      const iconUrl = toAbsoluteAssetUrl(
+        iconPath.startsWith("http://") || iconPath.startsWith("https://") ? iconPath : `${DOTA_ICON_CDN_BASE}${iconPath}`
+      );
+      if (!iconUrl) {
+        continue;
+      }
+
+      const localized = String(row?.localized_name || "").trim();
+      const engineName = String(row?.name || "").trim();
+      const engineSlug = engineName.replace(/^npc_dota_hero_/, "").replace(/_/g, " ");
+      const keyCandidates = [localized, engineName, engineSlug];
+      for (const candidate of keyCandidates) {
+        const key = normalizeLookupKey(candidate);
+        if (key) {
+          map.set(key, iconUrl);
+        }
+      }
+    }
+
+    heroIconCatalog.dota2.map = map;
+    heroIconCatalog.dota2.status = "ready";
+  })()
+    .catch(() => {
+      heroIconCatalog.dota2.status = "error";
+    })
+    .finally(() => {
+      heroIconCatalog.dota2.promise = null;
+    });
+
+  return heroIconCatalog.dota2.promise;
+}
+
+function scheduleHeroIconCatalogLoad(match) {
+  const gameKey = normalizeGameKey(match?.game);
+  if (gameKey === "lol") {
+    if (heroIconCatalog.lol.status === "idle") {
+      loadLolHeroCatalog().then(() => {
+        if (uiState.match?.id === match?.id) {
+          renderPlayerTracker(uiState.match);
+        }
+      });
+    }
+    return;
+  }
+
+  if (heroIconCatalog.dota2.status === "idle") {
+    loadDotaHeroCatalog().then(() => {
+      if (uiState.match?.id === match?.id) {
+        renderPlayerTracker(uiState.match);
+      }
+    });
+  }
+}
+
+function lolHeroIconUrl(heroName) {
+  const catalog = heroIconCatalog.lol;
+  if (catalog.status !== "ready" || !catalog.version) {
+    return null;
+  }
+
+  const normalized = normalizeLookupKey(heroName);
+  const championId = catalog.map.get(normalized);
+  if (!championId) {
+    return null;
+  }
+
+  return LOL_CDN_CHAMPION_ICON.replace("{version}", encodeURIComponent(catalog.version)).replace(
+    "{id}",
+    encodeURIComponent(championId)
+  );
+}
+
+function dotaHeroIconUrl(heroName) {
+  const catalog = heroIconCatalog.dota2;
+  if (catalog.status !== "ready") {
+    return null;
+  }
+
+  return catalog.map.get(normalizeLookupKey(heroName)) || null;
+}
+
+function heroIconUrlForRow(match, row) {
+  const heroName = trackerHeroName(row);
+  const gameKey = normalizeGameKey(match?.game);
+  if (gameKey === "dota2") {
+    return dotaHeroIconUrl(heroName);
+  }
+
+  return lolHeroIconUrl(heroName);
+}
+
+function heroIconMarkup(match, row) {
+  const heroName = trackerHeroName(row);
+  const iconUrl = heroIconUrlForRow(match, row);
+  if (iconUrl) {
+    return `<span class="tracker-hero-icon"><img src="${iconUrl}" alt="${heroName} icon" loading="lazy" decoding="async" /></span>`;
+  }
+
+  return `<span class="tracker-hero-icon fallback">${trackerAvatarFallback(heroName)}</span>`;
 }
 
 function shortTeamName(name) {
@@ -295,6 +593,30 @@ function scoreboardTeamName(name) {
   }
 
   return TEAM_HEADER_ABBREVIATIONS[normalizeTeamKey(raw)] || shortTeamName(raw);
+}
+
+function trackerTeamTag(name) {
+  const short = scoreboardTeamName(name);
+  if (short.length <= 4) {
+    return short.toUpperCase();
+  }
+
+  const tokens = short
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  if (tokens.length >= 2) {
+    const acronym = tokens
+      .map((token) => token[0])
+      .join("")
+      .toUpperCase();
+    if (acronym.length >= 2) {
+      return acronym.slice(0, 4);
+    }
+  }
+
+  const compact = short.replace(/[^A-Za-z0-9]+/g, "").toUpperCase();
+  return compact.slice(0, 4) || short.slice(0, 4).toUpperCase();
 }
 
 function compactStatusLabel(status) {
@@ -1810,12 +2132,17 @@ function renderTeamComparison(match) {
 }
 
 function trackerRoleOrder(role) {
-  const value = String(role || "").toLowerCase();
+  const value = normalizeLookupKey(role);
   if (value === "top") return 1;
-  if (value === "jungle") return 2;
-  if (value === "mid") return 3;
+  if (value === "jungle" || value === "jg") return 2;
+  if (value === "mid" || value === "middle") return 3;
   if (value === "bottom" || value === "adc" || value === "bot") return 4;
   if (value === "support" || value === "sup") return 5;
+  if (value === "carry" || value === "position1" || value === "pos1") return 1;
+  if (value === "position2" || value === "pos2") return 2;
+  if (value === "offlane" || value === "position3" || value === "pos3") return 3;
+  if (value === "softsupport" || value === "roamer" || value === "position4" || value === "pos4") return 4;
+  if (value === "hardsupport" || value === "fullsupport" || value === "position5" || value === "pos5") return 5;
   return 99;
 }
 
@@ -1936,6 +2263,8 @@ function renderPlayerTracker(match) {
     return;
   }
 
+  const gameKey = normalizeGameKey(match?.game);
+  scheduleHeroIconCatalogLoad(match);
   const leftRows = Array.isArray(economy.left) ? economy.left : [];
   const rightRows = Array.isArray(economy.right) ? economy.right : [];
   const isLiveMap = String(match?.selectedGame?.state || "") === "inProgress";
@@ -2015,80 +2344,74 @@ function renderPlayerTracker(match) {
   });
 
   if (isCompactUI()) {
-    const teamGroups = [
-      {
-        key: "left",
-        label: scoreboardTeamName(match.teams.left.name),
-        rows: rows.filter((row) => row.team === "left")
-      },
-      {
-        key: "right",
-        label: scoreboardTeamName(match.teams.right.name),
-        rows: rows.filter((row) => row.team === "right")
-      }
-    ];
-
     elements.playerTrackerWrap.innerHTML = `
-      <div class="tracker-mobile-wrap">
-        ${teamGroups
-          .map(
-            (group) => `
-          <article class="tracker-team-group ${group.key}">
-            <p class="tracker-team-header">${group.label}</p>
-            <div class="tracker-player-stack">
-              ${group.rows
-                .map((row) => {
-                  const deltaLabel = Number.isFinite(row.deltaGold) ? signed(Math.round(row.deltaGold)) : "n/a";
-                  const impactLabel = Number.isFinite(row.impact) ? row.impact.toFixed(1) : "n/a";
-                  const isDead = isLiveMap && row.isDead === true;
-                  const hpPct = healthPctForRow(row);
-                  const hpTone = healthToneClass(hpPct, isDead);
-                  const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
-                  const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
-                  const statusLabel = isLiveMap ? (isDead ? "DEAD \u2620" : "ALIVE") : "N/A";
-                  const statusClass = isLiveMap ? (isDead ? "dead" : "alive") : "neutral";
-                  const respawnLabel = isLiveMap ? formatRespawnLabel(row, isDead) : "N/A";
-                  const respawnAtTs = isDead ? Date.parse(String(row?.respawnAt || "")) : Number.NaN;
-                  const respawnAttrs = Number.isFinite(respawnAtTs)
-                    ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}"`
-                    : "";
+      <div class="lane-table-wrap tracker-mobile-wrap">
+        <table class="lane-table tracker-table tracker-table-mobile">
+          <thead>
+            <tr>
+              <th>Tm</th>
+              <th>Player / Hero</th>
+              <th>Role</th>
+              <th>State</th>
+              <th>Resp</th>
+              <th>HP</th>
+              <th>NW</th>
+              <th>KDA</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map((row) => {
+                const teamName = row.team === "left" ? match.teams.left.name : match.teams.right.name;
+                const teamShort = trackerTeamTag(teamName);
+                const teamClass = row.team === "left" ? "win-left" : "win-right";
+                const heroName = trackerHeroName(row);
+                const isDead = isLiveMap && row.isDead === true;
+                const hpPct = healthPctForRow(row);
+                const hpTone = healthToneClass(hpPct, isDead);
+                const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
+                const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
+                const hpCompactLabel = isLiveMap ? (Number.isFinite(hpPct) ? `${Math.round(hpPct)}%` : "n/a") : "N/A";
+                const statusLabel = isLiveMap ? (isDead ? "Dead" : "Alive") : "N/A";
+                const statusClass = isLiveMap ? (isDead ? "dead" : "alive") : "neutral";
+                const respawnLabel = isLiveMap ? formatRespawnLabel(row, isDead) : "N/A";
+                const respawnAtTs = isDead ? Date.parse(String(row?.respawnAt || "")) : Number.NaN;
+                const respawnAttrs = Number.isFinite(respawnAtTs)
+                  ? ` data-respawn-at="${Math.round(respawnAtTs)}" data-respawn-est="${row?.respawnEstimated ? "1" : "0"}"`
+                  : "";
 
-                  return `
-                    <article class="tracker-player-card${isDead ? " dead" : ""}">
-                      <div class="tracker-player-head">
-                        <div class="tracker-player-main">
-                          <span class="tracker-role-pill">${String(row.role || "flex").toUpperCase()}</span>
-                          <p class="tracker-player-name">${row.name || "Player"}</p>
-                          <p class="tracker-player-champion">${row.champion || "Unknown"}</p>
+                return `
+                  <tr class="${isDead ? "tracker-row-dead" : ""}">
+                    <td class="${teamClass}">${teamShort}</td>
+                    <td>
+                      <div class="tracker-player-inline">
+                        ${heroIconMarkup(match, row)}
+                        <div class="tracker-player-inline-meta">
+                          <span class="tracker-player-inline-name">${row.name || "Player"}</span>
+                          <span class="tracker-player-inline-divider">\u00b7</span>
+                          <span class="tracker-player-inline-hero">${heroName}</span>
                         </div>
-                        <span class="tracker-status-badge ${statusClass}">${statusLabel}</span>
                       </div>
-                      <div class="tracker-hp-cell">
+                    </td>
+                    <td>${roleIconMarkup(row.role, gameKey, true)}</td>
+                    <td><span class="tracker-status-badge ${statusClass}">${statusLabel}</span></td>
+                    <td class="tracker-respawn ${statusClass}"${respawnAttrs}>${respawnLabel}</td>
+                    <td>
+                      <div class="tracker-hp-cell compact">
                         <div class="hp-track ${hpTone}">
                           <div class="hp-fill ${hpTone}" style="width:${hpWidth}%"></div>
                         </div>
-                        <span class="tracker-hp-label">${hpLabel}</span>
+                        <span class="tracker-hp-label compact" title="${hpLabel}">${hpCompactLabel}</span>
                       </div>
-                      <div class="tracker-mobile-stats">
-                        <p><span>KDA</span><strong>${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}</strong></p>
-                        <p><span>CS</span><strong>${row.cs ?? "n/a"}</strong></p>
-                        <p><span>Gold</span><strong>${formatNumber(row.goldEarned || 0)}</strong></p>
-                        <p><span>KP</span><strong>${toPercent(row.kp)}</strong></p>
-                        <p><span>GPM</span><strong>${formatNumber(row.gpm || 0)}</strong></p>
-                        <p><span>Items</span><strong>${row.itemCount ?? "n/a"}</strong></p>
-                        <p><span>dGold</span><strong>${deltaLabel}</strong></p>
-                        <p><span>Impact</span><strong>${impactLabel}</strong></p>
-                        <p><span>Respawn</span><strong class="tracker-respawn ${statusClass}"${respawnAttrs}>${respawnLabel}</strong></p>
-                      </div>
-                    </article>
-                  `;
-                })
-                .join("")}
-            </div>
-          </article>
-        `
-          )
-          .join("")}
+                    </td>
+                    <td>${formatNumber(row.goldEarned || 0)}</td>
+                    <td>${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}</td>
+                  </tr>
+                `;
+              })
+              .join("")}
+          </tbody>
+        </table>
       </div>
     `;
 
@@ -2104,13 +2427,13 @@ function renderPlayerTracker(match) {
             <th>Team</th>
             <th>Player</th>
             <th>Role</th>
-            <th>Champion</th>
+            <th>Hero</th>
             <th>HP</th>
             <th>Status</th>
             <th>Respawn</th>
             <th>KDA</th>
             <th>CS</th>
-            <th>Gold</th>
+            <th>Net Worth</th>
             <th>GPM</th>
             <th>KP</th>
             <th>Gold Share</th>
@@ -2124,6 +2447,7 @@ function renderPlayerTracker(match) {
             .map((row) => {
               const teamName = row.team === "left" ? match.teams.left.name : match.teams.right.name;
               const teamClass = row.team === "left" ? "win-left" : "win-right";
+              const heroName = trackerHeroName(row);
               const deltaLabel = Number.isFinite(row.deltaGold) ? signed(Math.round(row.deltaGold)) : "n/a";
               const impactLabel = Number.isFinite(row.impact) ? row.impact.toFixed(1) : "n/a";
               const isDead = isLiveMap && row.isDead === true;
@@ -2143,8 +2467,13 @@ function renderPlayerTracker(match) {
                 <tr class="${isDead ? "tracker-row-dead" : ""}">
                   <td class="${teamClass}">${teamName}</td>
                   <td>${row.name || "Player"}</td>
-                  <td>${String(row.role || "flex").toUpperCase()}</td>
-                  <td>${row.champion || "Unknown"}</td>
+                  <td>${roleIconMarkup(row.role, gameKey, true)}</td>
+                  <td>
+                    <div class="tracker-player-inline">
+                      ${heroIconMarkup(match, row)}
+                      <span class="tracker-player-inline-hero">${heroName}</span>
+                    </div>
+                  </td>
                   <td>
                     <div class="tracker-hp-cell">
                       <div class="hp-track ${hpTone}">
