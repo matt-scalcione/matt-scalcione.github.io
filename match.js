@@ -136,6 +136,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Player Tracker": { icon: "PT", short: "Players" },
   "Live Event Feed": { icon: "FE", short: "Live Feed" },
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
+  "What Matters Now": { icon: "NOW", short: "Now" },
   "Objective Control": { icon: "OBJ", short: "Objective" },
   "Series Games": { icon: "SG", short: "Series Games" },
   "Series Comparison": { icon: "SC", short: "Series Stats" },
@@ -145,7 +146,7 @@ const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State", "Game Explorer
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
   upcoming: new Set(["Upcoming Essentials", "Team Form", "Prediction Model", "Watch Guide"]),
-  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "Pulse Card", "Objective Control"])
+  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "What Matters Now", "Objective Control"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -2564,6 +2565,8 @@ function applyGamePanelVisibility(match) {
   }
 
   if (selectedState === "inProgress") {
+    setTargetVisibility(elements.gameCommandWrap, false);
+    setTargetVisibility(elements.liveAlertsList, false);
     setTargetVisibility(elements.storylinesList, false);
     setTargetVisibility(elements.liveTickerList, hasRows(match?.liveTicker));
     setTargetVisibility(elements.combatBurstsList, hasRows(match?.combatBursts));
@@ -4257,6 +4260,9 @@ function renderPulseCard(match) {
   const focusedRow = liveContext.row;
   const nextObjective = nextObjectiveWindow(match);
   const pulseState = updateMapPulseState(match);
+  const selected = match.selectedGame;
+  const selectedState = String(selected?.state || "");
+  const alerts = buildLiveAlerts(match);
   const chips = [
     focusedRow
       ? {
@@ -4289,6 +4295,77 @@ function renderPulseCard(match) {
         }
       : null
   ].filter(Boolean);
+
+  if (selectedState === "inProgress" && selected) {
+    const leftName = match.teams?.left?.name || "Left Team";
+    const rightName = match.teams?.right?.name || "Right Team";
+    const elapsedSeconds = Number(match?.playerEconomy?.elapsedSeconds || 0);
+    const elapsedMinutes = elapsedSeconds > 0 ? elapsedSeconds / 60 : 0;
+    const leftKills = Number(selected?.snapshot?.left?.kills || 0);
+    const rightKills = Number(selected?.snapshot?.right?.kills || 0);
+    const totalKills = leftKills + rightKills;
+    const killPace = elapsedMinutes > 0 ? `${((totalKills / elapsedMinutes) * 10).toFixed(2)} / 10m` : "n/a";
+    const refreshSeconds = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
+    const deaths = playerDeathCounts(match);
+    const latestEventLabel = focusedRow ? focusedRow.title : "No event yet";
+    const latestEventHint = focusedRow
+      ? `${formatFocusedEventClock(focusedRow, liveContext.timelineAnchor)} · ${focusedRow.phase.label} · ${focusedRow.leadDescriptor.label}`
+      : "Waiting for timeline events.";
+    const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
+    const objectiveHint = nextObjective?.note || "Next major map timer from tracked cadence.";
+    const fightLabel = pulseState ? "Fight live" : deaths.left + deaths.right > 0 ? "Reset window" : "Calm map";
+    const fightHint = pulseState
+      ? `${pulseState.team === "both" ? "Both teams" : pulseState.team === "left" ? displayTeamName(leftName) : displayTeamName(rightName)} showing live pressure`
+      : `${displayTeamName(leftName)} ${deaths.left} down · ${displayTeamName(rightName)} ${deaths.right} down`;
+    const liveClock = elapsedSeconds > 0 ? formatGameClock(elapsedSeconds) : "n/a";
+    const compactAlerts = alerts
+      .slice(0, 2)
+      .map(
+        (alert) => `
+          <article class="pulse-alert importance-${String(alert.importance || "low").toLowerCase()}">
+            <div class="pulse-alert-top">
+              <span class="pulse-alert-severity ${String(alert.importance || "low").toLowerCase()}">${String(alert.importance || "low").toUpperCase()}</span>
+              <strong>${alert.title}</strong>
+            </div>
+            <p class="meta-text">${alert.summary}</p>
+          </article>
+        `
+      )
+      .join("");
+
+    elements.pulseCard.innerHTML = `
+      <article class="pulse ${pulse.tone || "neutral"} pulse-shell">
+        <div class="pulse-head">
+          <div class="pulse-head-copy">
+            <p class="pulse-kicker">What matters now</p>
+            <p class="pulse-title">${pulse.title || "Match Pulse"}</p>
+          </div>
+          <span class="pulse-tone-pill ${pulse.tone || "neutral"}">${String(pulse.tone || "neutral").toUpperCase()}</span>
+        </div>
+        <p class="pulse-body">${pulse.summary || "Signal unavailable."}</p>
+        ${chips.length ? `<div class="pulse-chips">${chips
+          .map((chip) => `<span class="pulse-chip ${chip.tone || "neutral"}">${chip.label}</span>`)
+          .join("")}</div>` : ""}
+        <div class="pulse-command-grid">
+          ${commandCard("Live Focus", latestEventLabel, latestEventHint, {
+            tone: focusedRow?.leadDescriptor?.tone || "neutral",
+            featured: true
+          })}
+          ${commandCard("Clock + Pace", liveClock, `${killPace} · Refresh ${refreshSeconds}s`, {
+            tone: totalKills >= 18 ? "warn" : "neutral"
+          })}
+          ${commandCard("Next Objective", objectiveLabel, objectiveHint, {
+            tone: nextObjective?.state === "available" ? "live" : "warn"
+          })}
+          ${commandCard("Fight State", fightLabel, fightHint, {
+            tone: pulseState ? "warn" : deaths.left + deaths.right > 0 ? "neutral" : "live"
+          })}
+        </div>
+        ${compactAlerts ? `<div class="pulse-alerts">${compactAlerts}</div>` : ""}
+      </article>
+    `;
+    return;
+  }
 
   elements.pulseCard.innerHTML = `
     <article class="pulse ${pulse.tone || "neutral"}">
