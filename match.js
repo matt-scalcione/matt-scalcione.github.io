@@ -2755,7 +2755,7 @@ function applyGamePanelVisibility(match) {
   if (selectedState === "inProgress") {
     setTargetVisibility(elements.gameCommandWrap, false);
     setTargetVisibility(elements.teamCompareWrap, false);
-    setTargetVisibility(elements.liveAlertsList, true);
+    setTargetVisibility(elements.liveAlertsList, false);
     return;
   }
 
@@ -4745,20 +4745,18 @@ function renderPulseCard(match) {
       ? `${pulseState.team === "both" ? "Both teams" : pulseState.team === "left" ? displayTeamName(leftName) : displayTeamName(rightName)} showing live pressure`
       : `${displayTeamName(leftName)} ${deaths.left} down · ${displayTeamName(rightName)} ${deaths.right} down`;
     const liveClock = elapsedSeconds > 0 ? formatGameClock(elapsedSeconds) : "n/a";
-    const compactAlerts = alerts
-      .slice(0, 2)
-      .map(
-        (alert) => `
-          <article class="pulse-alert importance-${String(alert.importance || "low").toLowerCase()}">
-            <div class="pulse-alert-top">
-              <span class="pulse-alert-severity ${String(alert.importance || "low").toLowerCase()}">${String(alert.importance || "low").toUpperCase()}</span>
-              <strong>${alert.title}</strong>
-            </div>
-            <p class="meta-text">${alert.summary}</p>
-          </article>
-        `
-      )
-      .join("");
+    const priorityAlert = alerts.find((alert) => importanceRank(alert?.importance) >= importanceRank("medium")) || alerts[0] || null;
+    const priorityAlertMarkup = priorityAlert
+      ? `
+        <article class="pulse-priority importance-${String(priorityAlert.importance || "low").toLowerCase()}">
+          <div class="pulse-priority-top">
+            <span class="pulse-alert-severity ${String(priorityAlert.importance || "low").toLowerCase()}">${String(priorityAlert.importance || "low").toUpperCase()}</span>
+            <strong>${priorityAlert.title}</strong>
+          </div>
+          <p class="meta-text">${priorityAlert.summary}</p>
+        </article>
+      `
+      : "";
 
     elements.pulseCard.innerHTML = `
       <article class="pulse ${pulse.tone || "neutral"} pulse-shell">
@@ -4773,6 +4771,7 @@ function renderPulseCard(match) {
         ${chips.length ? `<div class="pulse-chips">${chips
           .map((chip) => `<span class="pulse-chip ${chip.tone || "neutral"}">${chip.label}</span>`)
           .join("")}</div>` : ""}
+        ${priorityAlertMarkup}
         <div class="pulse-command-grid">
           ${commandCard("Live Focus", latestEventLabel, latestEventHint, {
             tone: focusedRow?.leadDescriptor?.tone || "neutral",
@@ -4788,7 +4787,6 @@ function renderPulseCard(match) {
             tone: pulseState ? "warn" : deaths.left + deaths.right > 0 ? "neutral" : "live"
           })}
         </div>
-        ${compactAlerts ? `<div class="pulse-alerts">${compactAlerts}</div>` : ""}
       </article>
     `;
     return;
