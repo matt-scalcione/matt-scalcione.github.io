@@ -80,8 +80,7 @@ const MOBILE_GAME_JUMP_TARGETS = [
   { id: "playerTrackerWrap", label: "Players" },
   { id: "leadTrendWrap", label: "Gold" },
   { id: "liveFeedList", label: "Feed" },
-  { id: "liveAlertsList", label: "Alerts" },
-  { id: "objectiveControlWrap", label: "Obj" }
+  { id: "liveAlertsList", label: "Alerts" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Series" },
@@ -112,10 +111,7 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
     "playerTrackerWrap",
     "teamCompareWrap",
     "leadTrendWrap",
-    "liveFeedList",
-    "objectiveControlWrap",
-    "performersWrap",
-    "momentsList"
+    "liveFeedList"
   ],
   unstarted: ["selectedGameRecapWrap", "gameCommandWrap"],
   unneeded: ["selectedGameRecapWrap", "gameCommandWrap"]
@@ -2652,32 +2648,36 @@ function applyGamePanelVisibility(match) {
     return;
   }
 
+  setTargetVisibility(elements.dataConfidenceWrap, false);
+  setTargetVisibility(elements.edgeMeterWrap, false);
+  setTargetVisibility(elements.tempoSnapshotWrap, false);
+  setTargetVisibility(elements.tacticalChecklistWrap, false);
+  setTargetVisibility(elements.storylinesList, false);
+  setTargetVisibility(elements.objectiveControlWrap, false);
+  setTargetVisibility(elements.objectiveBreakdownWrap, false);
+  setTargetVisibility(elements.draftBoardWrap, false);
+  setTargetVisibility(elements.draftDeltaWrap, false);
+  setTargetVisibility(elements.economyBoardWrap, false);
+  setTargetVisibility(elements.laneMatchupsWrap, false);
+  setTargetVisibility(elements.roleDeltaWrap, false);
+  setTargetVisibility(elements.objectiveRunsWrap, false);
+  setTargetVisibility(elements.performersWrap, false);
+  setTargetVisibility(elements.liveTickerList, false);
+  setTargetVisibility(elements.objectiveTimelineList, false);
+  setTargetVisibility(elements.objectiveForecastWrap, false);
+  setTargetVisibility(elements.playerDeltaWrap, false);
+  setTargetVisibility(elements.combatBurstsList, false);
+  setTargetVisibility(elements.goldMilestonesList, false);
+  setTargetVisibility(elements.momentsList, false);
+
   if (selectedState === "inProgress") {
     setTargetVisibility(elements.gameCommandWrap, false);
     setTargetVisibility(elements.teamCompareWrap, false);
     setTargetVisibility(elements.liveAlertsList, true);
-    setTargetVisibility(elements.storylinesList, false);
-    setTargetVisibility(elements.dataConfidenceWrap, false);
-    setTargetVisibility(elements.edgeMeterWrap, false);
-    setTargetVisibility(elements.tempoSnapshotWrap, false);
-    setTargetVisibility(elements.tacticalChecklistWrap, false);
-    setTargetVisibility(elements.objectiveControlWrap, false);
-    setTargetVisibility(elements.objectiveBreakdownWrap, false);
-    setTargetVisibility(elements.draftBoardWrap, false);
-    setTargetVisibility(elements.draftDeltaWrap, false);
-    setTargetVisibility(elements.economyBoardWrap, false);
-    setTargetVisibility(elements.laneMatchupsWrap, false);
-    setTargetVisibility(elements.roleDeltaWrap, false);
-    setTargetVisibility(elements.objectiveRunsWrap, false);
-    setTargetVisibility(elements.performersWrap, false);
-    setTargetVisibility(elements.liveTickerList, false);
-    setTargetVisibility(elements.objectiveTimelineList, false);
-    setTargetVisibility(elements.objectiveForecastWrap, false);
-    setTargetVisibility(elements.playerDeltaWrap, false);
-    setTargetVisibility(elements.combatBurstsList, false);
-    setTargetVisibility(elements.goldMilestonesList, false);
-    setTargetVisibility(elements.momentsList, false);
+    return;
   }
+
+  setTargetVisibility(elements.liveAlertsList, false);
 }
 
 function applySeriesPanelVisibility() {
