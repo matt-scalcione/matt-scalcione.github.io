@@ -25,6 +25,10 @@ jobs:
         env:
           PULSEBOARD_API_BASE: https://pulseboard-api-drq0.onrender.com
           PULSEBOARD_SITE_ORIGIN: https://matt-scalcione.github.io
+      - name: Validate SEO metadata and sitemap
+        run: node scripts/seo-check.mjs
+        env:
+          PULSEBOARD_SITE_ORIGIN: https://matt-scalcione.github.io
       - uses: actions/upload-pages-artifact@v3
         with: { path: . }
   deploy:

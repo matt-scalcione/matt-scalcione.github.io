@@ -48,9 +48,12 @@ Your site URL will be:
 - Sitemap is generated from live API data via [`scripts/generate-sitemap.mjs`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/scripts/generate-sitemap.mjs).
 - Run locally:
   - `node scripts/generate-sitemap.mjs`
+- SEO validation checks (canonical + robots + sitemap):
+  - `node scripts/seo-check.mjs`
 - The Pages workflow also regenerates sitemap automatically:
   - On every push to `main`
   - Every 6 hours (scheduled run)
+  - Deploy is blocked if SEO checks fail
 
 ## 5. Route Mode
 

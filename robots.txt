@@ -1,8 +1,13 @@
 User-agent: *
 Allow: /
+Disallow: /404.html
 Disallow: /follows.html
 Disallow: /*?api=
 Disallow: /*&api=
 Disallow: /*?stream=
 Disallow: /*&stream=
+Disallow: /*?opponent=
+Disallow: /*&opponent=
+Disallow: /*?opponent_id=
+Disallow: /*&opponent_id=
 Sitemap: https://matt-scalcione.github.io/sitemap.xml
