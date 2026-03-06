@@ -31,8 +31,8 @@ This plan tracks how Dota 2 data is integrated into Pulseboard with parity to th
 - [x] Added robust match-detail fallback in data store for provider Dota IDs when detail fetch fails.
 - [x] Added extended Dota results-history merge for team profiles (improves last-match availability).
 - [x] Expanded Dota provider tests for rich detail normalization.
-- [ ] Run full API test suite and validate deployment behavior.
-- [ ] Push to `main` to trigger API redeploy.
+- [x] Run full API test suite and validate deployment behavior.
+- [x] Push to `main` to trigger API redeploy.
 
 ## Validation Criteria
 
