@@ -514,10 +514,12 @@ function applyMatchMobilePanelCollapseState(match = uiState.match) {
     const lockedOpen = MOBILE_MATCH_PANELS_ALWAYS_OPEN.has(headingTitle);
     if (lockedOpen) {
       panelElement.classList.remove("mobile-panel-collapsed");
-      toggleButton.textContent = "Pinned";
-      toggleButton.setAttribute("aria-expanded", "true");
+      toggleButton.hidden = true;
       toggleButton.disabled = true;
-      toggleButton.classList.add("locked");
+      toggleButton.classList.remove("locked");
+      toggleButton.removeAttribute("data-state");
+      toggleButton.removeAttribute("aria-label");
+      toggleButton.removeAttribute("title");
       return;
     }
 
@@ -526,8 +528,11 @@ function applyMatchMobilePanelCollapseState(match = uiState.match) {
       ? Boolean(uiState.mobilePanelCollapsedByKey[panelKey])
       : !shouldMatchPanelBeOpenByDefault(headingTitle, match);
     panelElement.classList.toggle("mobile-panel-collapsed", collapsed);
-    toggleButton.textContent = collapsed ? "Show" : "Hide";
+    toggleButton.innerHTML = `<span class="sr-only">${collapsed ? "Expand section" : "Collapse section"}</span>`;
+    toggleButton.dataset.state = collapsed ? "collapsed" : "expanded";
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
+    toggleButton.setAttribute("aria-label", collapsed ? "Expand section" : "Collapse section");
+    toggleButton.setAttribute("title", collapsed ? "Expand section" : "Collapse section");
     toggleButton.classList.remove("locked");
   });
 }
@@ -543,8 +548,8 @@ function bindMatchMobilePanelControls() {
       return;
     }
 
-    const toggleButton = target.closest(".match-page .panel-section-toggle");
-    if (!toggleButton || toggleButton.disabled || !isCompactUI()) {
+    const toggleButton = target.closest(".panel-section-toggle");
+    if (!toggleButton || toggleButton.disabled || !isCompactUI() || !toggleButton.closest(".match-page")) {
       return;
     }
 
@@ -554,8 +559,14 @@ function bindMatchMobilePanelControls() {
       return;
     }
 
-    const nextCollapsed = !panelElement.classList.contains("mobile-panel-collapsed");
+    const isExpanded = toggleButton.getAttribute("aria-expanded") === "true";
+    const nextCollapsed = isExpanded;
     uiState.mobilePanelCollapsedByKey[panelKey] = nextCollapsed;
+    panelElement.classList.toggle("mobile-panel-collapsed", nextCollapsed);
+    toggleButton.dataset.state = nextCollapsed ? "collapsed" : "expanded";
+    toggleButton.setAttribute("aria-expanded", String(!nextCollapsed));
+    toggleButton.setAttribute("aria-label", nextCollapsed ? "Expand section" : "Collapse section");
+    toggleButton.setAttribute("title", nextCollapsed ? "Expand section" : "Collapse section");
     persistMatchMobilePanelState();
     applyMatchMobilePanelCollapseState(uiState.match);
   });
