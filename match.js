@@ -100,11 +100,10 @@ const MOBILE_UPCOMING_JUMP_TARGETS = [
 const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
   inProgress: [
     "selectedGameRecapWrap",
-    "gameCommandWrap",
-    "teamCompareWrap",
     "playerTrackerWrap",
     "leadTrendWrap",
     "liveFeedList",
+    "pulseCard",
     "objectiveControlWrap"
   ],
   completed: [
@@ -263,6 +262,7 @@ const elements = {
   teamCompareWrap: document.querySelector("#teamCompareWrap"),
   playerTrackerWrap: document.querySelector("#playerTrackerWrap"),
   trackerSort: document.querySelector("#trackerSort"),
+  liveSummaryWrap: document.querySelector("#liveSummaryWrap"),
   liveFeedList: document.querySelector("#liveFeedList"),
   combatBurstsList: document.querySelector("#combatBurstsList"),
   goldMilestonesList: document.querySelector("#goldMilestonesList"),
@@ -2505,6 +2505,13 @@ function applyGamePanelVisibility(match) {
   const telemetryStatus = selected?.telemetryStatus || "none";
   const selectedState = selected?.state || "unstarted";
   const hasRichTelemetry = telemetryStatus === "rich";
+  const setTargetVisibility = (element, visible) => {
+    if (!element) {
+      return;
+    }
+    setPanelVisibility(element.closest("section.panel"), visible);
+  };
+  const hasRows = (rows) => Array.isArray(rows) && rows.length > 0;
 
   for (const panel of elements.gamePanels) {
     setPanelVisibility(panel, true);
@@ -2552,6 +2559,26 @@ function applyGamePanelVisibility(match) {
   if (!hasRichTelemetry) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
+    }
+    return;
+  }
+
+  if (selectedState === "inProgress") {
+    setTargetVisibility(elements.storylinesList, false);
+    setTargetVisibility(elements.liveTickerList, hasRows(match?.liveTicker));
+    setTargetVisibility(elements.combatBurstsList, hasRows(match?.combatBursts));
+    setTargetVisibility(elements.goldMilestonesList, hasRows(match?.goldMilestones));
+    setTargetVisibility(elements.objectiveRunsWrap, hasRows(match?.objectiveRuns));
+    setTargetVisibility(elements.momentsList, hasRows(match?.keyMoments));
+
+    const confidenceScore = Number(match?.dataConfidence?.score);
+    if (Number.isFinite(confidenceScore) && confidenceScore >= 85) {
+      setTargetVisibility(elements.dataConfidenceWrap, false);
+    }
+
+    const completedGames = Number(match?.tempoSnapshot?.completedGames || 0);
+    if (completedGames <= 0) {
+      setTargetVisibility(elements.tempoSnapshotWrap, false);
     }
   }
 }
@@ -2631,10 +2658,9 @@ function focusedLiveEventContext(match) {
 
   const { timelineAnchor, rows } = feedRowsWithGameClock(match, feedRows);
   const enrichedRows = enrichFeedRowsWithState(match, rows);
+  const activeEventId = ensureStoryFocus(enrichedRows);
   const latestRow = enrichedRows[0] || null;
-  const focusedRow =
-    enrichedRows.find((row) => row.eventId === uiState.storyFocusEventId) ||
-    latestRow;
+  const focusedRow = enrichedRows.find((row) => row.eventId === activeEventId) || latestRow;
 
   return {
     timelineAnchor,
@@ -2649,6 +2675,104 @@ function formatFocusedEventClock(row, timelineAnchor) {
   }
 
   return `${timelineAnchor?.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`;
+}
+
+function clampSummaryText(value, limit = 68) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (raw.length <= limit) {
+    return raw;
+  }
+  return `${raw.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
+}
+
+function liveSummaryCardMarkup(label, value, meta, tone = "neutral") {
+  return `
+    <article class="live-summary-card ${tone}">
+      <p class="live-summary-label">${label}</p>
+      <p class="live-summary-value">${value}</p>
+      <p class="live-summary-meta">${meta}</p>
+    </article>
+  `;
+}
+
+function renderLiveFollowSummary(match, rows, timelineAnchor, activeEventId) {
+  if (!elements.liveSummaryWrap) {
+    return;
+  }
+
+  const selectedState = String(match?.selectedGame?.state || "");
+  if (uiState.viewMode !== "game" || selectedState !== "inProgress") {
+    elements.liveSummaryWrap.innerHTML = "";
+    return;
+  }
+
+  const feedRows = Array.isArray(rows) ? rows : [];
+  const focusedRow = feedRows.find((row) => row.eventId === activeEventId) || feedRows[0] || null;
+  const leadRows = feedLeadSeriesRows(match);
+  const currentLead = leadRows.length
+    ? Number(leadRows[leadRows.length - 1].lead || 0)
+    : Number(match?.momentum?.goldLead || 0);
+  const leadDescriptor = focusedRow?.leadDescriptor || feedLeadDescriptor(match, currentLead);
+  const swingDescriptor = focusedRow?.swingDescriptor || { short: "Δ n/a" };
+  const nextObjective = nextObjectiveWindow(match);
+  const alerts = buildLiveAlerts(match);
+  const priorityAlert = alerts.find((alert) => importanceRank(alert?.importance) >= importanceRank("medium")) || alerts[0] || null;
+  const leftShort = scoreboardTeamName(match?.teams?.left?.name);
+  const rightShort = scoreboardTeamName(match?.teams?.right?.name);
+  const deaths = playerDeathCounts(match);
+  const pulse = updateMapPulseState(match);
+
+  const nowValue = clampSummaryText(focusedRow?.title || "Waiting for first tracked event", 60);
+  const nowMeta = [
+    focusedRow ? `${formatFocusedEventClock(focusedRow, timelineAnchor)} ${focusedRow.phase.label}` : "Feed watching for live changes",
+    leadDescriptor.label,
+    swingDescriptor.short
+  ].filter(Boolean).join(" · ");
+
+  const nextValue = clampSummaryText(nextObjective?.label || (nextObjective ? displayObjectiveName(nextObjective.type) : "Objective forecast loading"), 40);
+  const nextMeta = nextObjective
+    ? `${nextObjective.state === "available" ? "Available now" : `ETA ${objectiveEtaLabel(nextObjective)}`}${
+        nextObjective.nextAt ? ` · ${shortTimeLabel(nextObjective.nextAt)}` : ""
+      }`
+    : "Spawn windows appear once cadence is detected";
+
+  let pressureTone = "neutral";
+  let pressureValue = "State stable";
+  let pressureMeta = "No immediate fight or numbers edge.";
+  if (deaths.left && deaths.right) {
+    pressureTone = "warn";
+    pressureValue = `${leftShort} ${deaths.left} down · ${rightShort} ${deaths.right} down`;
+    pressureMeta = "Both teams are playing around respawn timers.";
+  } else if (deaths.left || deaths.right) {
+    const advantaged = deaths.left ? rightShort : leftShort;
+    const punished = deaths.left ? leftShort : rightShort;
+    const playersDown = deaths.left || deaths.right;
+    pressureTone = deaths.left ? "right" : "left";
+    pressureValue = `${advantaged} up ${playersDown}`;
+    pressureMeta = `${punished} has ${playersDown} player${playersDown === 1 ? "" : "s"} dead.`;
+  } else if (pulse?.team === "left" || pulse?.team === "right") {
+    pressureTone = pulse.team;
+    pressureValue = `${pulse.team === "left" ? leftShort : rightShort} has map pressure`;
+    pressureMeta = "Recent events favor that side around the next contest.";
+  } else if (pulse?.team === "both") {
+    pressureTone = "warn";
+    pressureValue = "Fight window open";
+    pressureMeta = "Both sides are contesting the same area right now.";
+  } else if (priorityAlert) {
+    const importance = normalizedImportance(priorityAlert.importance);
+    pressureTone = importance === "critical" ? "critical" : importance === "high" ? "warn" : "neutral";
+    pressureValue = clampSummaryText(priorityAlert.title || "Pressure alert", 44);
+    pressureMeta = clampSummaryText(priorityAlert.summary || "Watch for the next objective setup.", 76);
+  }
+
+  elements.liveSummaryWrap.innerHTML = [
+    liveSummaryCardMarkup("Now", nowValue, nowMeta, focusedRow?.leadDescriptor?.tone || "neutral"),
+    liveSummaryCardMarkup("Next", nextValue, nextMeta, nextObjective?.state === "available" ? "live" : "warn"),
+    liveSummaryCardMarkup("Pressure", pressureValue, pressureMeta, pressureTone)
+  ].join("");
 }
 
 function renderGameCommandCenter(match) {
@@ -3583,6 +3707,10 @@ function setStoryFocusEvent(eventId, options = {}) {
 }
 
 function renderUnifiedLiveFeed(match) {
+  if (elements.liveSummaryWrap && String(match?.selectedGame?.state || "") !== "inProgress") {
+    elements.liveSummaryWrap.innerHTML = "";
+  }
+
   const rows = buildUnifiedFeed(match);
   const nowMs = Date.now();
   const windowMinutes = Number.isFinite(uiState.feedWindowMinutes) ? uiState.feedWindowMinutes : null;
@@ -3615,6 +3743,9 @@ function renderUnifiedLiveFeed(match) {
   if (!filtered.length) {
     uiState.storyFocusEventId = null;
     uiState.storyFocusUserSet = false;
+    if (elements.liveSummaryWrap && String(match?.selectedGame?.state || "") === "inProgress") {
+      renderLiveFollowSummary(match, [], { startTs: null, estimated: true }, null);
+    }
     elements.liveFeedList.innerHTML = `<li>No events match the current feed filters.</li>`;
     return;
   }
@@ -3622,6 +3753,7 @@ function renderUnifiedLiveFeed(match) {
   const { timelineAnchor, rows: anchoredRows } = feedRowsWithGameClock(match, filtered);
   const rowsWithLead = enrichFeedRowsWithState(match, anchoredRows);
   const activeEventId = ensureStoryFocus(rowsWithLead);
+  renderLiveFollowSummary(match, rowsWithLead, timelineAnchor, activeEventId);
 
   elements.liveFeedList.innerHTML = rowsWithLead
     .map(

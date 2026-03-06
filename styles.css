@@ -1889,6 +1889,77 @@ button.ghost,
   color: var(--signal);
 }
 
+.live-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem;
+  margin-bottom: 0.54rem;
+}
+
+.live-summary-strip:empty {
+  display: none;
+}
+
+.live-summary-card {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.56rem 0.6rem;
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.live-summary-card.now,
+.live-summary-card.left {
+  border-color: rgba(31, 123, 194, 0.28);
+  background: linear-gradient(180deg, rgba(31, 123, 194, 0.12), rgba(31, 123, 194, 0.04));
+}
+
+.live-summary-card.right {
+  border-color: rgba(183, 70, 50, 0.3);
+  background: linear-gradient(180deg, rgba(183, 70, 50, 0.12), rgba(183, 70, 50, 0.04));
+}
+
+.live-summary-card.live {
+  border-color: rgba(19, 125, 79, 0.3);
+  background: linear-gradient(180deg, rgba(19, 125, 79, 0.12), rgba(19, 125, 79, 0.04));
+}
+
+.live-summary-card.warn {
+  border-color: rgba(168, 93, 20, 0.3);
+  background: linear-gradient(180deg, rgba(168, 93, 20, 0.12), rgba(168, 93, 20, 0.04));
+}
+
+.live-summary-card.critical {
+  border-color: rgba(164, 47, 23, 0.34);
+  background: linear-gradient(180deg, rgba(164, 47, 23, 0.14), rgba(164, 47, 23, 0.05));
+}
+
+.live-summary-label {
+  margin: 0;
+  font-size: 0.64rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.live-summary-value {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.18;
+  color: var(--accent-strong);
+}
+
+.live-summary-meta {
+  margin: 0;
+  font-size: 0.67rem;
+  line-height: 1.26;
+  color: var(--muted);
+}
+
 .live-feed-list {
   gap: 0.42rem;
 }
@@ -5070,6 +5141,32 @@ button.ghost,
 
   .match-page.mobile-game-mode .panel[data-scope="game"] .section-head {
     margin-bottom: 0.34rem;
+  }
+
+  .live-summary-strip {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(168px, 1fr);
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 0.08rem;
+    margin-bottom: 0.46rem;
+    scrollbar-width: none;
+  }
+
+  .live-summary-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .live-summary-card {
+    padding: 0.52rem 0.56rem;
+  }
+
+  .live-summary-value {
+    font-size: 0.86rem;
+  }
+
+  .live-summary-meta {
+    font-size: 0.64rem;
   }
 
   .match-page.mobile-game-mode .mobile-game-toolbar {
