@@ -2848,6 +2848,48 @@ button.ghost,
   font-size: 0.76rem;
 }
 
+.analyst-race {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.analyst-race-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.analyst-race-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.08rem 0.34rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.56rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: rgba(84, 97, 113, 0.08);
+  color: #44505d;
+}
+
+.analyst-race-chip.left {
+  border-color: rgba(31, 123, 194, 0.34);
+  background: rgba(31, 123, 194, 0.12);
+  color: #1b639b;
+}
+
+.analyst-race-chip.right {
+  border-color: rgba(183, 70, 50, 0.34);
+  background: rgba(183, 70, 50, 0.12);
+  color: #8f382a;
+}
+
+.analyst-race-chip.even {
+  border-color: rgba(84, 97, 113, 0.3);
+}
+
 .analyst-tempo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -5894,6 +5936,15 @@ button.ghost,
 
   .match-page.mobile-game-mode .analyst-mini-list {
     font-size: 0.72rem;
+  }
+
+  .match-page.mobile-game-mode .analyst-race-strip {
+    gap: 0.22rem;
+  }
+
+  .match-page.mobile-game-mode .analyst-race-chip {
+    font-size: 0.5rem;
+    padding: 0.06rem 0.28rem;
   }
 
   .match-page.mobile-game-mode .analyst-check {

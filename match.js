@@ -2652,6 +2652,7 @@ function applyGamePanelVisibility(match) {
 
   if (selectedState === "inProgress") {
     setTargetVisibility(elements.gameCommandWrap, false);
+    setTargetVisibility(elements.teamCompareWrap, false);
     setTargetVisibility(elements.liveAlertsList, false);
     setTargetVisibility(elements.storylinesList, false);
     setTargetVisibility(elements.dataConfidenceWrap, false);
@@ -2940,12 +2941,11 @@ function formatMetricValue(metric, value) {
   return String(Math.round(value));
 }
 
-function renderTeamComparison(match) {
+function buildTeamComparisonRows(match) {
   const selected = match.selectedGame;
   const snapshot = selected?.snapshot;
   if (!snapshot) {
-    elements.teamCompareWrap.innerHTML = `<div class="empty">Team comparison unavailable for this game.</div>`;
-    return;
+    return null;
   }
 
   const rows = [
@@ -2972,6 +2972,57 @@ function renderTeamComparison(match) {
       };
     })
     .filter(Boolean);
+
+  return rows;
+}
+
+function comparisonRaceChip(match, row) {
+  if (!row) {
+    return null;
+  }
+
+  const leftShort = scoreboardTeamName(match?.teams?.left?.name);
+  const rightShort = scoreboardTeamName(match?.teams?.right?.name);
+  const totalValue = Number(row.left || 0) + Number(row.right || 0);
+
+  if (row.key !== "gold" && row.key !== "kills" && totalValue <= 0 && !Number(row.diff)) {
+    return null;
+  }
+
+  if (row.diff === null) {
+    return {
+      label: `${row.label} n/a`,
+      tone: "even"
+    };
+  }
+
+  if (row.diff === 0) {
+    if (row.key === "gold") {
+      return {
+        label: `${row.label} even`,
+        tone: "even"
+      };
+    }
+    return {
+      label: `${row.label} ${formatMetricValue(row.key, row.left)}-${formatMetricValue(row.key, row.right)}`,
+      tone: "even"
+    };
+  }
+
+  const leader = row.diff > 0 ? leftShort : rightShort;
+  const amount = row.key === "gold" ? compactGold(Math.abs(row.diff)) : String(Math.abs(Math.round(row.diff)));
+  return {
+    label: `${row.label} ${leader} +${amount}`,
+    tone: row.diff > 0 ? "left" : "right"
+  };
+}
+
+function renderTeamComparison(match) {
+  const rows = buildTeamComparisonRows(match);
+  if (!rows) {
+    elements.teamCompareWrap.innerHTML = `<div class="empty">Team comparison unavailable for this game.</div>`;
+    return;
+  }
 
   if (!rows.length) {
     elements.teamCompareWrap.innerHTML = `<div class="empty">Not enough team metrics to compare this map.</div>`;
@@ -4667,6 +4718,11 @@ function renderEdgeMeter(match) {
     const confidence = match.dataConfidence;
     const tempo = match.tempoSnapshot;
     const checklist = Array.isArray(match.tacticalChecklist) ? match.tacticalChecklist.slice(0, 3) : [];
+    const comparisonRows = buildTeamComparisonRows(match) || [];
+    const comparisonChips = comparisonRows
+      .map((row) => comparisonRaceChip(match, row))
+      .filter(Boolean)
+      .slice(0, 5);
     const edgeAvailable = Boolean(edge?.left && edge?.right);
     const leftScore = edgeAvailable ? Math.max(0, Math.min(100, Number(edge.left.score || 0))) : 0;
     const rightScore = edgeAvailable ? Math.max(0, Math.min(100, Number(edge.right.score || 0))) : 0;
@@ -4719,6 +4775,18 @@ function renderEdgeMeter(match) {
                     <p class="edge-score">${rightScore}</p>
                   </div>
                   <p class="analyst-verdict">${edge.verdict || "Pressure balance is even."}</p>
+                  ${
+                    comparisonChips.length
+                      ? `<div class="analyst-race">
+                          <p class="tempo-label">Map Race</p>
+                          <div class="analyst-race-strip">
+                            ${comparisonChips
+                              .map((chip) => `<span class="analyst-race-chip ${chip.tone}">${chip.label}</span>`)
+                              .join("")}
+                          </div>
+                        </div>`
+                      : ""
+                  }
                 `
                 : `<p class="analyst-verdict">Edge model is waiting for enough live/control signals.</p>`
             }
