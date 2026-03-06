@@ -1777,6 +1777,7 @@ function renderMatchupConsole(match) {
   }
 
   const edge = matchupEdgeModel(leftProfile, rightProfile, leftName, rightName);
+  const compact = isCompactUI();
   const h2h = leftProfile?.headToHead || null;
   const h2hRows = Array.isArray(h2h?.recentMatches) ? h2h.recentMatches : [];
   const leftWins = Number(h2h?.wins || 0);
@@ -1787,36 +1788,54 @@ function renderMatchupConsole(match) {
   elements.matchupMetaText.textContent = `Model favorite: ${edge.favoriteName} · Confidence ${edge.confidence.toUpperCase()} · H2H sample ${total}`;
 
   const h2hTable = h2hRows.length
-    ? `
-      <div class="lane-table-wrap">
-        <table class="lane-table upcoming-h2h-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Winner</th>
-              <th>Result (${leftName})</th>
-              <th>Score</th>
-              <th>Tournament</th>
-              <th>Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${h2hRows
-              .map((row) => `
-                <tr>
-                  <td>${dateTimeLabel(row.startAt)}</td>
-                  <td>${winnerLabelForH2hRow(row, match)}</td>
-                  <td class="${h2hResultClass(row.result)}">${h2hResultLabel(row.result)}</td>
-                  <td>${row.scoreLabel || "n/a"}</td>
-                  <td>${row.tournament || "Unknown"}</td>
-                  <td>${row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.matchId, uiState.apiBase)}">Open</a>` : `<span class="meta-text">-</span>`}</td>
-                </tr>
-              `)
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    `
+    ? compact
+      ? `
+        <div class="series-h2h-list">
+          ${h2hRows
+            .map((row) => `
+              <article class="series-h2h-item">
+                <div class="series-h2h-top">
+                  <p class="series-h2h-date">${dateTimeCompact(row.startAt)}</p>
+                  <span class="series-h2h-result ${h2hResultClass(row.result)}">${h2hResultLabel(row.result)}</span>
+                </div>
+                <p class="meta-text">${winnerLabelForH2hRow(row, match)}${row.scoreLabel ? ` · ${row.scoreLabel}` : ""}</p>
+                <p class="meta-text">${row.tournament || "Unknown tournament"}</p>
+                ${row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.matchId, uiState.apiBase)}">Open match</a>` : ""}
+              </article>
+            `)
+            .join("")}
+        </div>
+      `
+      : `
+        <div class="lane-table-wrap">
+          <table class="lane-table upcoming-h2h-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Winner</th>
+                <th>Result (${leftName})</th>
+                <th>Score</th>
+                <th>Tournament</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${h2hRows
+                .map((row) => `
+                  <tr>
+                    <td>${dateTimeLabel(row.startAt)}</td>
+                    <td>${winnerLabelForH2hRow(row, match)}</td>
+                    <td class="${h2hResultClass(row.result)}">${h2hResultLabel(row.result)}</td>
+                    <td>${row.scoreLabel || "n/a"}</td>
+                    <td>${row.tournament || "Unknown"}</td>
+                    <td>${row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.matchId, uiState.apiBase)}">Open</a>` : `<span class="meta-text">-</span>`}</td>
+                  </tr>
+                `)
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
     : `<div class="empty">No direct meetings found in the selected sample window.</div>`;
 
   elements.matchupConsoleWrap.innerHTML = `
@@ -4665,9 +4684,27 @@ function renderSeriesComparison(match, apiBase) {
         ? `<span class="meta-text strong">Focused</span>`
         : `<a class="table-link" href="${openHref}">Open</a>`;
 
+      if (compact) {
+        return `
+          <article class="series-compare-item ${game.selected ? "selected" : ""}">
+            <div class="series-compare-item-top">
+              <p class="series-compare-game">G${game.number}</p>
+              <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
+            </div>
+            <p class="meta-text"><strong>Winner:</strong> ${winnerText}</p>
+            <p class="meta-text"><strong>Duration:</strong> ${durationText}</p>
+            <p class="meta-text"><strong>Sides:</strong> ${sideText}</p>
+            <div class="series-compare-links">
+              ${game.watchUrl ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>` : `<span class="meta-text">No VOD</span>`}
+              ${game.selected ? `<span class="meta-text strong">Focused</span>` : `<a class="table-link" href="${openHref}">Open</a>`}
+            </div>
+          </article>
+        `;
+      }
+
       return `
         <tr>
-          <td>${compact ? `G${game.number}` : `Game ${game.number}`}</td>
+          <td>Game ${game.number}</td>
           <td><span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span></td>
           <td>${winnerText}</td>
           <td>${durationText}</td>
@@ -4692,22 +4729,26 @@ function renderSeriesComparison(match, apiBase) {
         )
         .join("")}
     </div>
-    <div class="lane-table-wrap">
-      <table class="lane-table series-compare-table">
-        <thead>
-          <tr>
-            <th>Game</th>
-            <th>State</th>
-            <th>Winner</th>
-            <th>Duration</th>
-            <th>Sides</th>
-            <th>VOD</th>
-            <th>Detail</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
+    ${compact
+      ? `<div class="series-compare-list">${rows}</div>`
+      : `
+        <div class="lane-table-wrap">
+          <table class="lane-table series-compare-table">
+            <thead>
+              <tr>
+                <th>Game</th>
+                <th>State</th>
+                <th>Winner</th>
+                <th>Duration</th>
+                <th>Sides</th>
+                <th>VOD</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `}
   `;
 }
 
@@ -4884,13 +4925,14 @@ function trendSparkline(points = []) {
 }
 
 function renderSeriesPlayerTrends(match) {
+  const compact = isCompactUI();
   const rows = Array.isArray(match.seriesPlayerTrends) ? match.seriesPlayerTrends : [];
   if (!rows.length) {
     elements.seriesPlayerTrendsWrap.innerHTML = `<div class="empty">Cross-map player trends appear when multiple map snapshots are available.</div>`;
     return;
   }
 
-  const topRows = rows.slice(0, 16);
+  const topRows = rows.slice(0, compact ? 12 : 16);
   const tableRows = topRows
     .map((row) => {
       const teamName = row.team === "right" ? match.teams.right.name : match.teams.left.name;
@@ -4919,6 +4961,41 @@ function renderSeriesPlayerTrends(match) {
       `;
     })
     .join("");
+
+  if (compact) {
+    const trendCards = topRows
+      .map((row) => {
+        const teamName = row.team === "right" ? match.teams.right.name : match.teams.left.name;
+        const teamDisplay = displayTeamName(teamName);
+        const winRate = Number.isFinite(row.winRatePct) ? `${row.winRatePct.toFixed(1)}%` : "n/a";
+        const kda = Number.isFinite(row.avgKda) ? row.avgKda.toFixed(2) : "n/a";
+        const avgGpm = Number.isFinite(row.avgGpm) ? formatNumber(Math.round(row.avgGpm)) : "n/a";
+        const avgKp = Number.isFinite(row.avgKillParticipationPct) ? `${row.avgKillParticipationPct.toFixed(1)}%` : "n/a";
+        const champions = Array.isArray(row.champions) ? row.champions.slice(0, 2).join(", ") : "n/a";
+
+        return `
+          <article class="series-trend-card ${row.team === "right" ? "right" : "left"}">
+            <div class="series-trend-head">
+              <p class="series-trend-player">${row.name}</p>
+              <span class="series-trend-role">${String(row.role || "flex").toUpperCase()}</span>
+            </div>
+            <p class="meta-text">${teamDisplay} · Maps ${row.mapsPlayed} · Wins ${row.mapWins}</p>
+            <div class="series-trend-metrics">
+              <span>WR ${winRate}</span>
+              <span>KDA ${kda}</span>
+              <span>KP ${avgKp}</span>
+              <span>GPM ${avgGpm}</span>
+            </div>
+            <p class="meta-text">Picks: ${champions}</p>
+            <div class="series-trend-spark">${trendSparkline(row.mapPoints || [])}</div>
+          </article>
+        `;
+      })
+      .join("");
+
+    elements.seriesPlayerTrendsWrap.innerHTML = `<div class="series-trend-cards">${trendCards}</div>`;
+    return;
+  }
 
   elements.seriesPlayerTrendsWrap.innerHTML = `
     <div class="lane-table-wrap">
