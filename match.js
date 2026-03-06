@@ -2169,13 +2169,24 @@ function renderMatchupTeamCard({ teamName, teamId, opponentId, profile, match, t
   });
   const heading = teamUrl ? `<a class="team-link" href="${teamUrl}">${teamName}</a>` : teamName;
   const summary = profile?.summary || {};
+  const recentForm = String(summary.formLast5 || "n/a").replace(/-/g, "");
 
   return `
-    <article class="form-card ${toneClass}">
-      <h3>${heading}</h3>
-      <p class="meta-text">Series ${seriesRecordLabel(summary)} · WR ${formatRatePct(summary.seriesWinRatePct)}</p>
-      <p class="meta-text">Maps ${summary.mapWins ?? 0}-${summary.mapLosses ?? 0} · WR ${formatRatePct(summary.mapWinRatePct)}</p>
-      <p class="meta-text">Form ${summary.formLast5 || "n/a"} · Streak ${summary.streakLabel || "n/a"}</p>
+    <article class="form-card ${toneClass} matchup-team-card">
+      <div class="matchup-team-head">
+        <h3>${heading}</h3>
+        ${teamUrl ? `<a class="table-link" href="${teamUrl}">Team page</a>` : ""}
+      </div>
+      <div class="form-summary-strip">
+        <span class="form-summary-pill">Series ${seriesRecordLabel(summary)}</span>
+        <span class="form-summary-pill">Series WR ${formatRatePct(summary.seriesWinRatePct)}</span>
+        <span class="form-summary-pill">Maps ${summary.mapWins ?? 0}-${summary.mapLosses ?? 0}</span>
+        <span class="form-summary-pill">Map WR ${formatRatePct(summary.mapWinRatePct)}</span>
+      </div>
+      <div class="matchup-team-notes">
+        <p class="meta-text">Form ${recentForm || "n/a"}</p>
+        <p class="meta-text">Streak ${summary.streakLabel || "n/a"}</p>
+      </div>
     </article>
   `;
 }
@@ -2253,6 +2264,8 @@ function renderMatchupConsole(match) {
   const rightWins = Number(h2h?.losses || 0);
   const draws = Number(h2h?.draws || 0);
   const total = Number(h2h?.matches || h2hRows.length || 0);
+  const favoriteTone =
+    edge.favoriteName === leftName ? "left" : edge.favoriteName === rightName ? "right" : "neutral";
 
   elements.matchupMetaText.textContent = `Model favorite: ${edge.favoriteName} · Confidence ${edge.confidence.toUpperCase()} · H2H sample ${total}`;
 
@@ -2308,19 +2321,18 @@ function renderMatchupConsole(match) {
     : `<div class="empty">No direct meetings found in the selected sample window.</div>`;
 
   elements.matchupConsoleWrap.innerHTML = `
-    <div class="matchup-grid">
-      ${renderMatchupTeamCard({
-        teamName: leftName,
-        teamId: match?.teams?.left?.id,
-        opponentId: match?.teams?.right?.id,
-        profile: leftProfile,
-        match,
-        toneClass: "left"
-      })}
-      <article class="prediction-card">
+    <div class="matchup-console-shell">
+      <article class="prediction-card matchup-overview-card ${favoriteTone}">
+        <div class="matchup-overview-head">
+          <div>
+            <p class="tempo-label">Matchup edge</p>
+            <p class="matchup-overview-title">${scoreboardTeamName(edge.favoriteName)} favored</p>
+          </div>
+          <span class="form-summary-pill">Confidence ${edge.confidence.toUpperCase()}</span>
+        </div>
         <div class="edge-head">
-          <p class="meta-text">${leftName}</p>
-          <p class="meta-text">${rightName}</p>
+          <p class="meta-text">${scoreboardTeamName(leftName)}</p>
+          <p class="meta-text">${scoreboardTeamName(rightName)}</p>
         </div>
         <div class="edge-bars">
           <div class="edge-side left" style="width:${edge.leftEdgePct.toFixed(1)}%"></div>
@@ -2330,9 +2342,23 @@ function renderMatchupConsole(match) {
           <p class="edge-score">${edge.leftEdgePct.toFixed(1)}%</p>
           <p class="edge-score">${edge.rightEdgePct.toFixed(1)}%</p>
         </div>
-        <p class="meta-text">H2H: ${leftWins}-${rightWins}${draws ? `-${draws}` : ""} (${total} meetings)</p>
-        <ul class="confidence-notes">${edge.drivers.map((driver) => `<li>${driver}</li>`).join("")}</ul>
+        <div class="form-summary-strip">
+          <span class="form-summary-pill">H2H ${leftWins}-${rightWins}${draws ? `-${draws}` : ""}</span>
+          <span class="form-summary-pill">Sample ${total}</span>
+          <span class="form-summary-pill">${scoreboardTeamName(leftName)} ${formatRatePct(leftProfile?.summary?.seriesWinRatePct)}</span>
+          <span class="form-summary-pill">${scoreboardTeamName(rightName)} ${formatRatePct(rightProfile?.summary?.seriesWinRatePct)}</span>
+        </div>
+        <ul class="confidence-notes matchup-driver-list">${edge.drivers.map((driver) => `<li>${driver}</li>`).join("")}</ul>
       </article>
+      <div class="matchup-grid matchup-team-grid">
+      ${renderMatchupTeamCard({
+        teamName: leftName,
+        teamId: match?.teams?.left?.id,
+        opponentId: match?.teams?.right?.id,
+        profile: leftProfile,
+        match,
+        toneClass: "left"
+      })}
       ${renderMatchupTeamCard({
         teamName: rightName,
         teamId: match?.teams?.right?.id,
@@ -2341,8 +2367,21 @@ function renderMatchupConsole(match) {
         match,
         toneClass: "right"
       })}
+      </div>
+      <article class="upcoming-note matchup-h2h-shell">
+        <div class="matchup-h2h-head">
+          <div>
+            <p class="tempo-label">Recent meetings</p>
+            <p class="matchup-overview-title">Head-to-head</p>
+          </div>
+          <div class="form-summary-strip">
+            <span class="form-summary-pill">${scoreboardTeamName(leftName)} ${leftWins}</span>
+            <span class="form-summary-pill">${scoreboardTeamName(rightName)} ${rightWins}</span>
+          </div>
+        </div>
+        ${h2hTable}
+      </article>
     </div>
-    ${h2hTable}
   `;
 }
 
@@ -6379,11 +6418,55 @@ function resolveSeriesLineup(match, teamSide = "left") {
   };
 }
 
+function compactLineupSourceLabel(source) {
+  const normalized = String(source || "").toLowerCase();
+  if (normalized.includes("draft")) return "Draft";
+  if (normalized.includes("live")) return "Live";
+  if (normalized.includes("trend")) return "Trend";
+  if (normalized.includes("unavailable")) return "Unavailable";
+  return String(source || "Source");
+}
+
+function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass = "left" }) {
+  const gameKey = normalizeGameKey(match?.game);
+  const normalizedRows = normalizeLineupRows(rows);
+  return `
+    <section class="draft-team series-lineup-card ${toneClass}">
+      <div class="series-lineup-head">
+        <div>
+          <h3>${displayTeamName(teamName)}</h3>
+          <p class="meta-text">${normalizedRows.length} projected starters</p>
+        </div>
+        <span class="form-summary-pill">${compactLineupSourceLabel(source)}</span>
+      </div>
+      ${normalizedRows.length
+        ? normalizedRows
+            .map(
+              (row) => `
+                <article class="draft-row series-lineup-row">
+                  <div class="series-lineup-icons">
+                    ${heroIconMarkup(match, row)}
+                    ${roleIconMarkup(row.role, gameKey, false)}
+                  </div>
+                  <div class="series-lineup-copy">
+                    <p class="series-lineup-player">${displayPlayerHandle(row.name, teamName)}</p>
+                    <p class="meta-text">${row.champion || "Unknown"} · ${roleMeta(row.role, gameKey).label}</p>
+                  </div>
+                </article>
+              `
+            )
+            .join("")
+        : `<div class="empty">No lineup rows.</div>`}
+    </section>
+  `;
+}
+
 function renderSeriesLineups(match) {
   if (!elements.seriesLineupsWrap) {
     return;
   }
 
+  scheduleHeroIconCatalogLoad(match);
   const left = resolveSeriesLineup(match, "left");
   const right = resolveSeriesLineup(match, "right");
   if (!left.rows.length && !right.rows.length) {
@@ -6394,14 +6477,25 @@ function renderSeriesLineups(match) {
   const sources = Array.from(
     new Set([left.source, right.source].filter((value) => value && value !== "Unavailable"))
   );
-  const sourceText = sources.length ? sources.join(" · ") : "Unavailable";
-
+  const sourcePills = sources.length
+    ? sources.map((value) => `<span class="form-summary-pill">${compactLineupSourceLabel(value)}</span>`).join("")
+    : `<span class="form-summary-pill">Unavailable</span>`;
   elements.seriesLineupsWrap.innerHTML = `
-    ${renderDraftTeam(`${match.teams.left.name} Lineup`, left.rows)}
-    ${renderDraftTeam(`${match.teams.right.name} Lineup`, right.rows)}
-    <article class="recap-note">
-      <p class="meta-text">Lineup Source: ${sourceText}</p>
-      <p class="meta-text">Series tab highlights team context; open a game tab for map-specific live stats.</p>
+    ${renderSeriesLineupTeamCard(match, {
+      teamName: match.teams.left.name,
+      rows: left.rows,
+      source: left.source,
+      toneClass: "left"
+    })}
+    ${renderSeriesLineupTeamCard(match, {
+      teamName: match.teams.right.name,
+      rows: right.rows,
+      source: right.source,
+      toneClass: "right"
+    })}
+    <article class="recap-note lineup-source-note">
+      <div class="form-summary-strip">${sourcePills}</div>
+      <p class="meta-text">Series tab shows likely starters. Open a game tab for live map-specific lineups and stats.</p>
     </article>
   `;
 }
