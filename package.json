@@ -7,6 +7,7 @@
     "build": "vite build",
     "postbuild": "node scripts/copy404.cjs",
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
+    "seo:check": "node scripts/seo-check.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --ext .ts,.tsx estate-src",
     "escheck": "es-check es2015 'estate/assets/*.js' || exit 1",

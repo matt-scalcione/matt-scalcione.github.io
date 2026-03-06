@@ -13,3 +13,7 @@ jobs:
             -not -path './.git/*' \
             -not -path './api/node_modules/*' \
             -print0 | xargs -0 -n1 node --check
+      - name: Validate SEO metadata and sitemap
+        run: node scripts/seo-check.mjs
+        env:
+          PULSEBOARD_SITE_ORIGIN: https://matt-scalcione.github.io
