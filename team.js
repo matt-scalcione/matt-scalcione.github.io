@@ -2,6 +2,12 @@ import { resolveInitialApiBase } from "./api-config.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const MOBILE_BREAKPOINT = 760;
+const TEAM_MOBILE_PANELS_DEFAULT_OPEN = new Set([
+  "Team Snapshot",
+  "Performance Insights",
+  "Last Games",
+  "Upcoming Matches"
+]);
 
 const elements = {
   teamTitle: document.querySelector("#teamTitle"),
@@ -45,8 +51,24 @@ const state = {
   teamNameHint: null,
   profile: null,
   pastTournamentSignature: null,
-  pendingOpponentId: null
+  pendingOpponentId: null,
+  mobilePanelCollapsedByKey: {},
+  mobilePanelControlsBound: false
 };
+
+try {
+  const raw = localStorage.getItem("pulseboard.team.mobilePanelCollapsed");
+  const parsed = raw ? JSON.parse(raw) : null;
+  if (parsed && typeof parsed === "object") {
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "boolean") {
+        state.mobilePanelCollapsedByKey[key] = value;
+      }
+    }
+  }
+} catch {
+  state.mobilePanelCollapsedByKey = {};
+}
 
 function readApiBase() {
   return resolveInitialApiBase();
@@ -95,6 +117,114 @@ function setupControlsPanel() {
       // Ignore storage failures in private mode.
     }
   });
+}
+
+function normalizePanelToken(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function teamPanelStorageKey(panelElement, headingTitle) {
+  const normalizedHeading = normalizePanelToken(headingTitle) || "panel";
+  return `team:${normalizedHeading}`;
+}
+
+function persistTeamMobilePanelState() {
+  try {
+    localStorage.setItem("pulseboard.team.mobilePanelCollapsed", JSON.stringify(state.mobilePanelCollapsedByKey));
+  } catch {
+    // Ignore storage failures and keep in-memory state.
+  }
+}
+
+function applyTeamMobilePanelCollapseState() {
+  const compact = isCompactViewport();
+  const panels = Array.from(document.querySelectorAll(".team-page main section.panel:not(.controls)"));
+
+  panels.forEach((panelElement, index) => {
+    const sectionHead = panelElement.querySelector(".section-head");
+    const heading = sectionHead?.querySelector("h2");
+    if (!sectionHead || !heading) {
+      return;
+    }
+
+    const headingTitle = String(heading.dataset.fullTitle || heading.textContent || "").trim();
+    if (!heading.dataset.fullTitle) {
+      heading.dataset.fullTitle = headingTitle;
+    }
+
+    const panelKey = teamPanelStorageKey(panelElement, headingTitle);
+    panelElement.dataset.mobilePanelKey = panelKey;
+    if (!panelElement.id) {
+      panelElement.id = `team-panel-${normalizePanelToken(panelKey) || String(index + 1)}`;
+    }
+
+    let toggleButton = sectionHead.querySelector(".panel-section-toggle");
+    if (!toggleButton) {
+      toggleButton = document.createElement("button");
+      toggleButton.type = "button";
+      toggleButton.className = "ghost panel-section-toggle";
+      sectionHead.append(toggleButton);
+    }
+
+    if (!compact) {
+      panelElement.classList.remove("mobile-collapsible", "mobile-panel-collapsed");
+      toggleButton.hidden = true;
+      toggleButton.disabled = true;
+      toggleButton.removeAttribute("data-panel-key");
+      toggleButton.removeAttribute("aria-controls");
+      toggleButton.removeAttribute("aria-expanded");
+      return;
+    }
+
+    panelElement.classList.add("mobile-collapsible");
+    toggleButton.hidden = false;
+    toggleButton.disabled = false;
+    toggleButton.dataset.panelKey = panelKey;
+    toggleButton.setAttribute("aria-controls", panelElement.id);
+
+    const hasSaved = Object.prototype.hasOwnProperty.call(state.mobilePanelCollapsedByKey, panelKey);
+    const collapsed = hasSaved
+      ? Boolean(state.mobilePanelCollapsedByKey[panelKey])
+      : !TEAM_MOBILE_PANELS_DEFAULT_OPEN.has(headingTitle);
+    panelElement.classList.toggle("mobile-panel-collapsed", collapsed);
+    toggleButton.textContent = collapsed ? "Show" : "Hide";
+    toggleButton.setAttribute("aria-expanded", String(!collapsed));
+  });
+}
+
+function bindTeamMobilePanelControls() {
+  if (state.mobilePanelControlsBound) {
+    return;
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const toggleButton = target.closest(".team-page .panel-section-toggle");
+    if (!toggleButton || toggleButton.disabled || !isCompactViewport()) {
+      return;
+    }
+
+    const panelElement = toggleButton.closest("section.panel");
+    const panelKey = toggleButton.getAttribute("data-panel-key");
+    if (!panelElement || !panelKey) {
+      return;
+    }
+
+    const nextCollapsed = !panelElement.classList.contains("mobile-panel-collapsed");
+    state.mobilePanelCollapsedByKey[panelKey] = nextCollapsed;
+    persistTeamMobilePanelState();
+    applyTeamMobilePanelCollapseState();
+  });
+
+  state.mobilePanelControlsBound = true;
 }
 
 function dateTimeLabel(iso) {
@@ -928,6 +1058,7 @@ async function loadTeamProfile() {
     renderUpcomingMatches(profile, apiBase);
     renderPastMatches(profile, apiBase);
     renderHeadToHead(profile, apiBase);
+    applyTeamMobilePanelCollapseState();
     setStatus("Team profile synced.", "success");
   } catch (error) {
     state.profile = null;
@@ -959,6 +1090,7 @@ async function loadTeamProfile() {
     elements.upcomingMatchesWrap.innerHTML = `<div class="empty">Unable to load upcoming matches.</div>`;
     elements.opponentBreakdownWrap.innerHTML = `<div class="empty">Unable to load past matches.</div>`;
     elements.headToHeadWrap.innerHTML = `<div class="empty">Unable to load head-to-head data.</div>`;
+    applyTeamMobilePanelCollapseState();
   }
 }
 
@@ -1070,8 +1202,14 @@ function boot() {
   state.pastTournamentSignature = null;
 
   setupControlsPanel();
+  bindTeamMobilePanelControls();
+  applyTeamMobilePanelCollapseState();
   installEvents();
   loadTeamProfile();
 }
+
+window.addEventListener("resize", () => {
+  applyTeamMobilePanelCollapseState();
+});
 
 boot();

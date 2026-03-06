@@ -461,6 +461,20 @@ button.ghost,
   margin-bottom: 0.9rem;
 }
 
+.panel-section-toggle {
+  display: none;
+  min-height: 1.8rem;
+  padding: 0.24rem 0.56rem;
+  border-radius: 10px;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.panel-section-toggle.locked {
+  opacity: 0.75;
+  cursor: default;
+}
+
 .live-page .section-head h2,
 .schedule-page .section-head h2,
 .follows-page .section-head h2,
@@ -4204,6 +4218,33 @@ button.ghost,
     overflow: hidden;
   }
 
+  .match-page .section-head,
+  .team-page .section-head {
+    align-items: center;
+  }
+
+  .match-page .panel-section-toggle,
+  .team-page .panel-section-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.72rem;
+    padding: 0.14rem 0.46rem;
+    font-size: 0.56rem;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  .match-page .panel.mobile-collapsible.mobile-panel-collapsed > :not(.section-head),
+  .team-page .panel.mobile-collapsible.mobile-panel-collapsed > :not(.section-head) {
+    display: none !important;
+  }
+
+  .match-page .panel.mobile-collapsible.mobile-panel-collapsed .section-head,
+  .team-page .panel.mobile-collapsible.mobile-panel-collapsed .section-head {
+    margin-bottom: 0;
+  }
+
   .match-page .section-mini-icon {
     width: 1.18rem;
     height: 1.18rem;
@@ -4968,6 +5009,13 @@ button.ghost,
 
   .match-page .section-head h2 {
     font-size: 0.84rem;
+  }
+
+  .match-page .panel-section-toggle,
+  .team-page .panel-section-toggle {
+    min-height: 1.62rem;
+    padding: 0.12rem 0.4rem;
+    font-size: 0.52rem;
   }
 
   .match-page .section-mini-icon {
