@@ -2,6 +2,7 @@ import { resolveInitialApiBase } from "./api-config.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const AUTO_REFRESH_MS = 15000;
+const MOBILE_BREAKPOINT = 760;
 
 const elements = {
   apiBaseInput: document.querySelector("#apiBaseInput"),
@@ -10,9 +11,14 @@ const elements = {
   dotaTiersInput: document.querySelector("#dotaTiersInput"),
   userIdInput: document.querySelector("#userIdInput"),
   followedOnlyInput: document.querySelector("#followedOnlyInput"),
+  controlsPanel: document.querySelector("#controlsPanel"),
+  controlsToggle: document.querySelector("#controlsToggle"),
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
+  mobileLiveNav: document.querySelector("#mobileLiveNav"),
+  mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
+  mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
   refreshButton: document.querySelector("#refreshButton"),
   saveButton: document.querySelector("#saveButton"),
   statusText: document.querySelector("#statusText"),
@@ -73,22 +79,63 @@ function buildQuery({ game, region, dotaTiers, followedOnly, userId }) {
   return params.toString();
 }
 
-function updateNav(apiBase) {
-  if (!elements.scheduleNav || !elements.liveDeskNav || !elements.followsNav) {
+function isCompactViewport() {
+  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+function applyControlsCollapsed(collapsed) {
+  if (!elements.controlsPanel || !elements.controlsToggle) {
     return;
   }
 
+  elements.controlsPanel.classList.toggle("collapsed", collapsed);
+  elements.controlsToggle.textContent = collapsed ? "Show Filters" : "Hide Filters";
+  elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
+}
+
+function setupControlsPanel() {
+  if (!elements.controlsPanel || !elements.controlsToggle) {
+    return;
+  }
+
+  let collapsed = isCompactViewport();
+  try {
+    const saved = localStorage.getItem("pulseboard.live.controlsCollapsed");
+    if (saved === "1" || saved === "0") {
+      collapsed = saved === "1";
+    }
+  } catch {
+    collapsed = isCompactViewport();
+  }
+
+  applyControlsCollapsed(collapsed);
+  elements.controlsToggle.addEventListener("click", () => {
+    const next = !elements.controlsPanel.classList.contains("collapsed");
+    applyControlsCollapsed(next);
+    try {
+      localStorage.setItem("pulseboard.live.controlsCollapsed", next ? "1" : "0");
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+  });
+}
+
+function updateNav(apiBase) {
   const liveUrl = new URL("./index.html", window.location.href);
   liveUrl.searchParams.set("api", apiBase);
-  elements.liveDeskNav.href = liveUrl.toString();
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
   scheduleUrl.searchParams.set("api", apiBase);
-  elements.scheduleNav.href = scheduleUrl.toString();
 
   const followsUrl = new URL("./follows.html", window.location.href);
   followsUrl.searchParams.set("api", apiBase);
-  elements.followsNav.href = followsUrl.toString();
+
+  if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
+  if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
+  if (elements.scheduleNav) elements.scheduleNav.href = scheduleUrl.toString();
+  if (elements.mobileScheduleNav) elements.mobileScheduleNav.href = scheduleUrl.toString();
+  if (elements.followsNav) elements.followsNav.href = followsUrl.toString();
+  if (elements.mobileFollowsNav) elements.mobileFollowsNav.href = followsUrl.toString();
 }
 
 function setStatus(message, tone = "neutral") {
@@ -242,6 +289,7 @@ function boot() {
   const startupApiBase = readApiBase();
   elements.apiBaseInput.value = startupApiBase;
   updateNav(startupApiBase);
+  setupControlsPanel();
   elements.dotaTiersInput.value = "1,2,3,4";
   elements.userIdInput.value = "demo-user";
   installEvents();
