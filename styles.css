@@ -2721,6 +2721,72 @@ button.ghost,
   margin-bottom: 0.6rem;
 }
 
+.feed-controls-shell {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.feed-controls-toggle {
+  display: none;
+}
+
+.feed-controls-toggle[hidden] {
+  display: none !important;
+}
+
+.feed-controls-toggle {
+  width: 100%;
+  border-radius: 12px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.54rem 0.62rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(12, 45, 66, 0.12);
+  text-align: left;
+}
+
+.feed-controls-shell.expanded .feed-controls-toggle {
+  border-color: rgba(31, 123, 194, 0.24);
+  box-shadow: 0 0 0 1px rgba(31, 123, 194, 0.08);
+}
+
+.feed-controls-toggle-label {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.72rem;
+  color: var(--accent-strong);
+  white-space: nowrap;
+}
+
+.feed-controls-toggle-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.24rem;
+  min-width: 0;
+}
+
+.feed-controls-toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(12, 45, 66, 0.05);
+  color: var(--muted);
+  padding: 0.08rem 0.34rem;
+  font-size: 0.58rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.feed-controls-toggle-action {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.62rem;
+  color: #1b639b;
+  white-space: nowrap;
+}
+
 .series-progress {
   display: grid;
 }
@@ -5373,20 +5439,43 @@ button.ghost,
   }
 
   .match-page.mobile-game-mode .feed-controls {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.3rem;
+    grid-template-columns: 1fr;
+    gap: 0.26rem;
     margin-bottom: 0.42rem;
   }
 
   .match-page.mobile-game-mode .feed-controls label {
-    gap: 0.1rem;
-    font-size: 0.56rem;
+    display: grid;
+    grid-template-columns: 3.8rem 1fr;
+    align-items: center;
+    gap: 0.18rem;
+    font-size: 0.58rem;
   }
 
   .match-page.mobile-game-mode .feed-controls select {
-    min-height: 2rem;
-    padding: 0.2rem 0.3rem;
+    min-height: 1.92rem;
+    padding: 0.16rem 0.3rem;
     font-size: 0.68rem;
+  }
+
+  .match-page.mobile-game-mode .feed-controls-shell.compact {
+    gap: 0.34rem;
+  }
+
+  .match-page.mobile-game-mode .feed-controls-shell.compact .feed-controls-toggle {
+    display: flex;
+  }
+
+  .match-page.mobile-game-mode .feed-controls-shell.compact .feed-controls-toggle-summary {
+    justify-content: flex-start;
+    flex: 1;
+  }
+
+  .match-page.mobile-game-mode .feed-controls-shell.compact .feed-controls {
+    padding: 0.48rem 0.52rem;
+    border: 1px solid rgba(12, 45, 66, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
   }
 
   .match-page .snapshot-item {
