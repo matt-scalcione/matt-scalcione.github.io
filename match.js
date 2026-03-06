@@ -72,6 +72,21 @@ const MOBILE_GAME_JUMP_TARGETS = [
   { id: "leadTrendWrap", label: "Gold" },
   { id: "objectiveControlWrap", label: "Obj" }
 ];
+const MOBILE_SERIES_JUMP_TARGETS = [
+  { id: "gameContextWrap", label: "Series" },
+  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "seriesLineupsWrap", label: "Lineups" },
+  { id: "seriesProgressWrap", label: "Progress" },
+  { id: "seriesMomentsList", label: "Highlights" }
+];
+const MOBILE_UPCOMING_JUMP_TARGETS = [
+  { id: "gameContextWrap", label: "Overview" },
+  { id: "upcomingEssentialsWrap", label: "Info" },
+  { id: "upcomingFormWrap", label: "Form" },
+  { id: "upcomingPredictionWrap", label: "Predict" },
+  { id: "upcomingWatchWrap", label: "Watch" },
+  { id: "upcomingH2hWrap", label: "H2H" }
+];
 const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
   inProgress: [
     "selectedGameRecapWrap",
@@ -229,6 +244,7 @@ const elements = {
   seriesHeaderWrap: document.querySelector("#seriesHeaderWrap"),
   gameNavWrap: document.querySelector("#gameNavWrap"),
   gameContextWrap: document.querySelector("#gameContextWrap"),
+  mobileModeToolbar: document.querySelector("#mobileModeToolbar"),
   mobileGameToolbar: document.querySelector("#mobileGameToolbar"),
   gameCommandWrap: document.querySelector("#gameCommandWrap"),
   teamCompareWrap: document.querySelector("#teamCompareWrap"),
@@ -972,13 +988,13 @@ function scrollToTargetId(targetId) {
   window.scrollTo({ top, behavior: "smooth" });
 }
 
-function bindMobileGameToolbar() {
-  if (!elements.mobileGameToolbar || elements.mobileGameToolbar.dataset.bound === "1") {
+function bindMobileJumpContainer(container, { allowAdvanced = false } = {}) {
+  if (!container || container.dataset.bound === "1") {
     return;
   }
 
-  elements.mobileGameToolbar.dataset.bound = "1";
-  elements.mobileGameToolbar.addEventListener("click", (event) => {
+  container.dataset.bound = "1";
+  container.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) {
       return;
@@ -993,7 +1009,7 @@ function bindMobileGameToolbar() {
       return;
     }
 
-    if (!target.closest("[data-advanced-toggle]")) {
+    if (!allowAdvanced || !target.closest("[data-advanced-toggle]")) {
       return;
     }
 
@@ -1008,6 +1024,47 @@ function bindMobileGameToolbar() {
       applyMobileGameEnhancements(uiState.match);
     }
   });
+}
+
+function mobileJumpTargetsForCurrentMode(match) {
+  if (uiState.viewMode === "game") {
+    return MOBILE_GAME_JUMP_TARGETS;
+  }
+
+  if (match?.status === "upcoming") {
+    return MOBILE_UPCOMING_JUMP_TARGETS;
+  }
+
+  return MOBILE_SERIES_JUMP_TARGETS;
+}
+
+function renderMobileModeToolbar(match) {
+  if (!elements.mobileModeToolbar) {
+    return;
+  }
+
+  if (!isCompactUI() || uiState.viewMode === "game") {
+    elements.mobileModeToolbar.hidden = true;
+    elements.mobileModeToolbar.innerHTML = "";
+    return;
+  }
+
+  const jumpButtons = mobileJumpTargetsForCurrentMode(match)
+    .filter((item) => {
+      const panel = panelForTargetId(item.id);
+      return panel && !panel.classList.contains("hidden-panel");
+    })
+    .map((item) => `<button type="button" class="mobile-mode-chip" data-jump-target="${item.id}">${item.label}</button>`)
+    .join("");
+
+  if (!jumpButtons) {
+    elements.mobileModeToolbar.hidden = true;
+    elements.mobileModeToolbar.innerHTML = "";
+    return;
+  }
+
+  elements.mobileModeToolbar.hidden = false;
+  elements.mobileModeToolbar.innerHTML = `<div class="mobile-mode-row">${jumpButtons}</div>`;
 }
 
 function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
@@ -1070,7 +1127,8 @@ function applyMobileGameEnhancements(match) {
     "mobile-game-upcoming",
     compactGameMode && (selectedState === "unstarted" || selectedState === "unneeded")
   );
-  bindMobileGameToolbar();
+  bindMobileJumpContainer(elements.mobileGameToolbar, { allowAdvanced: true });
+  bindMobileJumpContainer(elements.mobileModeToolbar);
 
   const corePanels = new Set(
     mobileCorePanelTargetIds(match)
@@ -1093,6 +1151,7 @@ function applyMobileGameEnhancements(match) {
     compactGameMode,
     advancedVisibleCount
   });
+  renderMobileModeToolbar(match);
 }
 
 function dateTimeLabel(iso) {

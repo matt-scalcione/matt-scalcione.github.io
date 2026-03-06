@@ -22,6 +22,11 @@ const elements = {
   addFollowButton: document.querySelector("#addFollowButton"),
   followsMeta: document.querySelector("#followsMeta"),
   followsList: document.querySelector("#followsList"),
+  followsViewSwitch: document.querySelector("#followsViewSwitch"),
+  followsViewButtons: Array.from(document.querySelectorAll("#followsViewSwitch [data-view]")),
+  followsBlock: document.querySelector("#followsBlock"),
+  prefsBlock: document.querySelector("#prefsBlock"),
+  prefsSectionHead: document.querySelector("#prefsBlock .section-head"),
   webPushInput: document.querySelector("#webPushInput"),
   emailDigestInput: document.querySelector("#emailDigestInput"),
   swingAlertsInput: document.querySelector("#swingAlertsInput"),
@@ -29,6 +34,7 @@ const elements = {
   matchFinalInput: document.querySelector("#matchFinalInput"),
   savePrefsButton: document.querySelector("#savePrefsButton")
 };
+let followsViewMode = "both";
 
 function readApiBase() {
   return resolveInitialApiBase();
@@ -73,6 +79,66 @@ function setupControlsPanel() {
     applyControlsCollapsed(next);
     try {
       localStorage.setItem("pulseboard.follows.controlsCollapsed", next ? "1" : "0");
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+  });
+}
+
+function applyFollowsViewMode(mode) {
+  const normalized =
+    mode === "follows" || mode === "prefs" || mode === "both" ? mode : "both";
+  followsViewMode = normalized;
+
+  const compact = isCompactViewport();
+  const showFollows = !compact || normalized === "both" || normalized === "follows";
+  const showPrefs = !compact || normalized === "both" || normalized === "prefs";
+
+  if (elements.followsBlock) {
+    elements.followsBlock.hidden = !showFollows;
+  }
+  if (elements.prefsBlock) {
+    elements.prefsBlock.hidden = !showPrefs;
+  }
+  if (elements.prefsSectionHead) {
+    elements.prefsSectionHead.classList.toggle("top-space", showFollows && showPrefs);
+  }
+
+  for (const button of elements.followsViewButtons) {
+    const active = button.getAttribute("data-view") === normalized;
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
+function setupFollowsViewSwitch() {
+  if (!elements.followsViewSwitch) {
+    return;
+  }
+
+  try {
+    const saved = localStorage.getItem("pulseboard.follows.mobileView");
+    if (saved === "follows" || saved === "prefs" || saved === "both") {
+      followsViewMode = saved;
+    }
+  } catch {
+    followsViewMode = "both";
+  }
+
+  applyFollowsViewMode(followsViewMode);
+  elements.followsViewSwitch.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const button = target.closest("[data-view]");
+    if (!button) {
+      return;
+    }
+
+    const next = button.getAttribute("data-view") || "both";
+    applyFollowsViewMode(next);
+    try {
+      localStorage.setItem("pulseboard.follows.mobileView", followsViewMode);
     } catch {
       // Ignore storage failures in private mode.
     }
@@ -327,8 +393,13 @@ function boot() {
   elements.userIdInput.value = "demo-user";
   updateNav(startupApiBase);
   setupControlsPanel();
+  setupFollowsViewSwitch();
   installEvents();
   loadAll();
 }
+
+window.addEventListener("resize", () => {
+  applyFollowsViewMode(followsViewMode);
+});
 
 boot();
