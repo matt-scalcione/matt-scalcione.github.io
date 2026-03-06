@@ -1935,6 +1935,43 @@ button.ghost,
   color: var(--signal);
 }
 
+.signal-log-item {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.signal-log-headline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.signal-log-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.04rem 0.32rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.54rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.signal-log-kind.fight {
+  border-color: rgba(168, 93, 20, 0.34);
+  background: rgba(168, 93, 20, 0.12);
+  color: #8c4d10;
+}
+
+.signal-log-kind.gold {
+  border-color: rgba(31, 123, 194, 0.34);
+  background: rgba(31, 123, 194, 0.12);
+  color: #1b639b;
+}
+
 .live-summary-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5934,6 +5971,15 @@ button.ghost,
   .match-page .snapshot-value {
     font-size: 0.84rem;
     margin-top: 0.16rem;
+  }
+
+  .match-page .signal-log-item {
+    gap: 0.2rem;
+  }
+
+  .match-page .signal-log-kind {
+    font-size: 0.5rem;
+    padding: 0.02rem 0.26rem;
   }
 
   .match-page .moments li,

@@ -137,6 +137,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Live Event Feed": { icon: "FE", short: "Live Feed" },
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
   "What Matters Now": { icon: "NOW", short: "Now" },
+  "Signal Log": { icon: "SG", short: "Signals" },
   "Objective Control": { icon: "OBJ", short: "Objective" },
   "Analyst Desk": { icon: "AD", short: "Analyst" },
   "Series Games": { icon: "SG", short: "Series Games" },
@@ -2657,8 +2658,8 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.tempoSnapshotWrap, false);
     setTargetVisibility(elements.tacticalChecklistWrap, false);
     setTargetVisibility(elements.liveTickerList, hasRows(match?.liveTicker));
-    setTargetVisibility(elements.combatBurstsList, hasRows(match?.combatBursts));
-    setTargetVisibility(elements.goldMilestonesList, hasRows(match?.goldMilestones));
+    setTargetVisibility(elements.combatBurstsList, hasRows(match?.combatBursts) || hasRows(match?.goldMilestones));
+    setTargetVisibility(elements.goldMilestonesList, false);
     setTargetVisibility(elements.objectiveRunsWrap, hasRows(match?.objectiveRuns));
     setTargetVisibility(elements.momentsList, hasRows(match?.keyMoments));
   }
@@ -6814,6 +6815,62 @@ function renderLiveTicker(rows, status) {
 }
 
 function renderCombatBursts(rows, match) {
+  if (String(match?.selectedGame?.state || "") === "inProgress") {
+    const burstRows = Array.isArray(rows)
+      ? rows.map((row) => ({
+          kind: "Fight",
+          at: row.occurredAt,
+          title: row.title || "Combat burst",
+          summary: row.summary || "Burst event from kill deltas.",
+          importance: String(row.importance || "medium").toUpperCase(),
+          teamName: row.winnerTeamName || null,
+          tone: "fight"
+        }))
+      : [];
+    const milestoneRows = Array.isArray(match?.goldMilestones)
+      ? match.goldMilestones.map((row) => ({
+          kind: "Gold",
+          at: row.occurredAt,
+          title: row.title || "Gold milestone",
+          summary: row.summary || "Team crossed a major gold threshold.",
+          importance: String(row.importance || "medium").toUpperCase(),
+          teamName: row.teamName || null,
+          tone: "gold"
+        }))
+      : [];
+    const signalRows = [...burstRows, ...milestoneRows]
+      .filter((row) => row.at && row.title)
+      .sort((left, right) => Date.parse(String(right.at || "")) - Date.parse(String(left.at || "")))
+      .slice(0, 6);
+
+    if (!signalRows.length) {
+      elements.combatBurstsList.innerHTML =
+        match.status === "live"
+          ? "<li>Signal log will populate once fights spike or economy checkpoints trigger.</li>"
+          : "<li>Signal log appears during active games.</li>";
+      return;
+    }
+
+    elements.combatBurstsList.innerHTML = signalRows
+      .map(
+        (row) => `
+        <li class="signal-log-item ${row.tone}">
+          <div class="moment-head">
+            <div class="signal-log-headline">
+              <span class="signal-log-kind ${row.tone}">${row.kind}</span>
+              <strong>${row.title}</strong>
+            </div>
+            <span class="importance">${row.importance}</span>
+          </div>
+          <p class="meta-text">${row.summary}</p>
+          <p class="meta-text">${dateTimeLabel(row.at)}${row.teamName ? ` · ${row.teamName}` : ""}</p>
+        </li>
+      `
+      )
+      .join("");
+    return;
+  }
+
   if (!rows.length) {
     elements.combatBurstsList.innerHTML =
       match.status === "live"
