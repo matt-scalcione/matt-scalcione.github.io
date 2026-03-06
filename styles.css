@@ -244,6 +244,12 @@ h2 {
   justify-content: center;
 }
 
+.hub-chip-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .match-page .hero h1 {
   font-size: 0.66rem;
   line-height: 1.1;
@@ -5475,4 +5481,32 @@ button.ghost,
   100% {
     background-position: -100% 0;
   }
+}
+
+body.hub-page {
+  --accent: #236ce5;
+  --accent-strong: #1e4db5;
+  --signal: #ff6d4e;
+  --bg-b: #d7e8ff;
+  --bg-c: #ffe0d1;
+}
+
+body.hub-page[data-game="dota2"] {
+  --accent: #d15241;
+  --accent-strong: #8f2f2e;
+  --signal: #367bff;
+  --bg-b: #ffe0dc;
+  --bg-c: #e0ecff;
+}
+
+.hub-kpi-grid,
+.hub-tournament-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.hub-page .schedule-mobile-list {
+  display: grid;
+  gap: 0.58rem;
 }

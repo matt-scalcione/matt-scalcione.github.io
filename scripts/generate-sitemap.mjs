@@ -7,6 +7,20 @@ const STATIC_LASTMOD = new Date().toISOString().slice(0, 10);
 const MAX_MATCH_URLS = 800;
 const MAX_TEAM_URLS = 500;
 
+function toBoolean(value, fallback = false) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  return fallback;
+}
+
 function normalizeOrigin(raw, fallback) {
   const value = String(raw || "").trim();
   if (!value) {
@@ -76,6 +90,8 @@ function appendStaticEntries(entries, siteOrigin) {
     { loc: `${siteOrigin}/index.html`, lastmod: STATIC_LASTMOD, changefreq: "always", priority: "1.0" },
     { loc: `${siteOrigin}/index.html?title=lol`, lastmod: STATIC_LASTMOD, changefreq: "hourly", priority: "0.95" },
     { loc: `${siteOrigin}/index.html?title=dota2`, lastmod: STATIC_LASTMOD, changefreq: "hourly", priority: "0.95" },
+    { loc: `${siteOrigin}/lol.html`, lastmod: STATIC_LASTMOD, changefreq: "hourly", priority: "0.92" },
+    { loc: `${siteOrigin}/dota2.html`, lastmod: STATIC_LASTMOD, changefreq: "hourly", priority: "0.92" },
     { loc: `${siteOrigin}/schedule.html`, lastmod: STATIC_LASTMOD, changefreq: "hourly", priority: "0.9" },
     { loc: `${siteOrigin}/schedule.html?view=schedule`, lastmod: STATIC_LASTMOD, changefreq: "hourly", priority: "0.85" },
     { loc: `${siteOrigin}/schedule.html?view=results`, lastmod: STATIC_LASTMOD, changefreq: "hourly", priority: "0.85" },
@@ -175,6 +191,7 @@ function dedupeEntries(entries) {
 async function main() {
   const siteOrigin = normalizeOrigin(process.env.PULSEBOARD_SITE_ORIGIN, DEFAULT_SITE_ORIGIN);
   const apiBase = normalizeApiBase(process.env.PULSEBOARD_API_BASE, DEFAULT_API_BASE);
+  const indexDetailPages = toBoolean(process.env.PULSEBOARD_INDEX_DETAIL_PAGES, false);
 
   const now = Date.now();
   const from = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -190,8 +207,10 @@ async function main() {
   const allRows = [...liveRows, ...scheduleRows, ...resultRows];
   const entries = [];
   appendStaticEntries(entries, siteOrigin);
-  addMatchEntries(entries, siteOrigin, allRows);
-  addTeamEntries(entries, siteOrigin, allRows);
+  if (indexDetailPages) {
+    addMatchEntries(entries, siteOrigin, allRows);
+    addTeamEntries(entries, siteOrigin, allRows);
+  }
 
   const finalEntries = dedupeEntries(entries);
   finalEntries.sort((left, right) => {
@@ -211,7 +230,7 @@ async function main() {
   const outputPath = path.resolve(process.cwd(), "sitemap.xml");
   await fs.writeFile(outputPath, xml, "utf8");
   console.log(
-    `Generated sitemap.xml with ${finalEntries.length} URLs (${liveRows.length} live, ${scheduleRows.length} schedule, ${resultRows.length} results).`
+    `Generated sitemap.xml with ${finalEntries.length} URLs (${liveRows.length} live, ${scheduleRows.length} schedule, ${resultRows.length} results, indexDetailPages=${indexDetailPages}).`
   );
 }
 
@@ -219,4 +238,3 @@ main().catch((error) => {
   console.error(`Sitemap generation failed: ${error?.message || error}`);
   process.exitCode = 1;
 });
-

@@ -244,6 +244,8 @@ const elements = {
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
+  lolHubNav: document.querySelector("#lolHubNav"),
+  dotaHubNav: document.querySelector("#dotaHubNav"),
   mobileLiveNav: document.querySelector("#mobileLiveNav"),
   mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
   mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
@@ -1728,7 +1730,10 @@ function refreshMatchSeo(match = null) {
 
   const allowedQueryParams = Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game" ? ["id", "game"] : ["id"];
   const canonicalPath = canonicalMatchPath(matchId, allowedQueryParams.includes("game") ? gameNumber : null);
-  let robots = inferRobotsDirective({ allowedQueryParams });
+  const indexDetailPages =
+    window.PULSEBOARD_CONFIG?.indexDetailPages === true ||
+    window.PULSEBOARD_INDEX_DETAIL_PAGES === true;
+  let robots = indexDetailPages ? inferRobotsDirective({ allowedQueryParams }) : "noindex,follow";
   if (!matchId) {
     robots = "noindex,nofollow";
   }
@@ -5973,6 +5978,8 @@ function applyNavigationLinks(_apiBase) {
   }
 
   const followsUrl = new URL("./follows.html", window.location.href);
+  const lolHubUrl = new URL("./lol.html", window.location.href);
+  const dotaHubUrl = new URL("./dota2.html", window.location.href);
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = backUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = backUrl.toString();
@@ -5980,6 +5987,8 @@ function applyNavigationLinks(_apiBase) {
   if (elements.mobileScheduleNav) elements.mobileScheduleNav.href = scheduleUrl.toString();
   if (elements.followsNav) elements.followsNav.href = followsUrl.toString();
   if (elements.mobileFollowsNav) elements.mobileFollowsNav.href = followsUrl.toString();
+  if (elements.lolHubNav) elements.lolHubNav.href = lolHubUrl.toString();
+  if (elements.dotaHubNav) elements.dotaHubNav.href = dotaHubUrl.toString();
 }
 
 async function fetchMatchSnapshot({ matchId, requestedGameNumber, apiBase }) {

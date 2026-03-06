@@ -4,6 +4,20 @@ import path from "node:path";
 const DEFAULT_SITE_ORIGIN = "https://matt-scalcione.github.io";
 const rootDir = process.cwd();
 
+function toBoolean(value, fallback = false) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  return fallback;
+}
+
 function normalizeOrigin(raw, fallback = DEFAULT_SITE_ORIGIN) {
   const value = String(raw || "").trim();
   if (!value) {
@@ -67,6 +81,8 @@ async function validateHtmlPages(siteOrigin) {
   const errors = [];
   const pages = [
     { file: "index.html", robotsShouldInclude: "index", expectedCanonicalPath: "/index.html" },
+    { file: "lol.html", robotsShouldInclude: "index", expectedCanonicalPath: "/lol.html" },
+    { file: "dota2.html", robotsShouldInclude: "index", expectedCanonicalPath: "/dota2.html" },
     { file: "schedule.html", robotsShouldInclude: "index", expectedCanonicalPath: "/schedule.html" },
     { file: "follows.html", robotsShouldInclude: "noindex", expectedCanonicalPath: "/follows.html" },
     { file: "team.html", robotsShouldInclude: "noindex", expectedCanonicalPath: "/team.html" },
@@ -120,11 +136,16 @@ async function validateRobots(siteOrigin) {
   const requiredLines = [
     "User-agent: *",
     "Allow: /",
+    "Disallow: /404.html",
     "Disallow: /follows.html",
     "Disallow: /*?api=",
     "Disallow: /*&api=",
     "Disallow: /*?stream=",
     "Disallow: /*&stream=",
+    "Disallow: /*?opponent=",
+    "Disallow: /*&opponent=",
+    "Disallow: /*?opponent_id=",
+    "Disallow: /*&opponent_id=",
     `Sitemap: ${siteOrigin}/sitemap.xml`
   ];
 
@@ -137,7 +158,7 @@ async function validateRobots(siteOrigin) {
   return errors;
 }
 
-async function validateSitemap(siteOrigin) {
+async function validateSitemap(siteOrigin, { indexDetailPages = false } = {}) {
   const errors = [];
   const sitemapPath = path.resolve(rootDir, "sitemap.xml");
   const xml = await fs.readFile(sitemapPath, "utf8");
@@ -149,7 +170,11 @@ async function validateSitemap(siteOrigin) {
 
   const seen = new Set();
   const blockedParams = new Set(["api", "stream", "opponent", "opponent_id", "h2h_limit"]);
-  const allowedPaths = new Set(["/index.html", "/schedule.html", "/match.html", "/team.html"]);
+  const allowedPaths = new Set(["/index.html", "/schedule.html", "/lol.html", "/dota2.html"]);
+  if (indexDetailPages) {
+    allowedPaths.add("/match.html");
+    allowedPaths.add("/team.html");
+  }
 
   for (const raw of locEntries) {
     let url;
@@ -181,17 +206,23 @@ async function validateSitemap(siteOrigin) {
       }
     }
 
-    if (url.pathname === "/match.html" && !url.searchParams.get("id")) {
+    if (!indexDetailPages && (url.pathname === "/match.html" || url.pathname === "/team.html")) {
+      errors.push(`sitemap.xml: detail URL should not exist when indexDetailPages=false: ${raw}`);
+    }
+
+    if (url.pathname === "/match.html" && indexDetailPages && !url.searchParams.get("id")) {
       errors.push(`sitemap.xml: match URL missing id param: ${raw}`);
     }
-    if (url.pathname === "/team.html" && !url.searchParams.get("id")) {
+    if (url.pathname === "/team.html" && indexDetailPages && !url.searchParams.get("id")) {
       errors.push(`sitemap.xml: team URL missing id param: ${raw}`);
     }
   }
 
   const mustHave = [
     `${siteOrigin}/index.html`,
-    `${siteOrigin}/schedule.html`
+    `${siteOrigin}/schedule.html`,
+    `${siteOrigin}/lol.html`,
+    `${siteOrigin}/dota2.html`
   ];
   for (const required of mustHave) {
     if (!seen.has(required)) {
@@ -212,6 +243,7 @@ async function validateSitemap(siteOrigin) {
 
 async function main() {
   const siteOrigin = normalizeOrigin(process.env.PULSEBOARD_SITE_ORIGIN, DEFAULT_SITE_ORIGIN);
+  const indexDetailPages = toBoolean(process.env.PULSEBOARD_INDEX_DETAIL_PAGES, false);
   const errors = [];
 
   const htmlErrors = await validateHtmlPages(siteOrigin);
@@ -220,7 +252,7 @@ async function main() {
   const robotsErrors = await validateRobots(siteOrigin);
   errors.push(...robotsErrors);
 
-  const sitemapErrors = await validateSitemap(siteOrigin);
+  const sitemapErrors = await validateSitemap(siteOrigin, { indexDetailPages });
   errors.push(...sitemapErrors);
 
   if (errors.length > 0) {
@@ -236,4 +268,3 @@ main().catch((error) => {
   console.error(`SEO check script failed unexpectedly: ${error?.message || error}`);
   process.exitCode = 1;
 });
-
