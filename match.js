@@ -1900,6 +1900,16 @@ function gameNavPillClass(state, selected) {
   return `${base}${selected ? " selected" : ""}`;
 }
 
+function seriesInfoCard(label, value, note = null) {
+  return `
+    <article class="upcoming-card series-info-card">
+      <p class="tempo-label">${label}</p>
+      <p class="tempo-value">${value}</p>
+      ${note ? `<p class="meta-text">${note}</p>` : ""}
+    </article>
+  `;
+}
+
 function renderGameExplorer(match, apiBase) {
   const nav = match.gameNavigation;
   const selected = match.selectedGame;
@@ -1913,6 +1923,8 @@ function renderGameExplorer(match, apiBase) {
     return;
   }
 
+  const availableGames = Array.isArray(nav.availableGames) ? nav.availableGames : [];
+  const playedOrLiveGames = availableGames.filter((game) => game?.state === "completed" || game?.state === "inProgress");
   const seriesHref = detailUrlForGame(match.id, apiBase, null);
   const seriesPill = `<a class="game-pill complete${!isGameMode ? " selected" : ""}" href="${seriesHref}">${compact ? "S" : "Series"}</a>`;
   const liveGameNumber = firstInProgressGameNumber(match);
@@ -1920,8 +1932,8 @@ function renderGameExplorer(match, apiBase) {
     ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `LIVE NOW · G${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
     : "";
   const navPills = [
-    seriesPill,
-    ...nav.availableGames.map((game) => {
+    ...(isGameMode ? [seriesPill] : []),
+    ...playedOrLiveGames.map((game) => {
       const href = detailUrlForGame(match.id, apiBase, game.number);
       const selectedGamePill = isGameMode && activeGameNumber === game.number;
       const isCurrentLiveGame =
@@ -1939,40 +1951,23 @@ function renderGameExplorer(match, apiBase) {
     })
   ].join("");
 
-  const prevLink = isGameMode && Number.isInteger(nav.previousGameNumber)
-    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">${compact ? `← G${nav.previousGameNumber}` : "Previous Game"}</a>`
-    : `<span class="meta-text">${isGameMode ? "No previous game" : "Series view active"}</span>`;
-  const nextLink = isGameMode && Number.isInteger(nav.nextGameNumber)
-    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">${compact ? `G${nav.nextGameNumber} →` : "Next Game"}</a>`
-    : `<span class="meta-text">${isGameMode ? "No next game" : "Choose a game tab to inspect map-level data"}</span>`;
-  const liveJumpLink = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
-    ? `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Jump G${liveGameNumber}` : `Jump to Live Game ${liveGameNumber}`}</a>`
-    : "";
-  const modeNote = isGameMode
-    ? `<p class="meta-text">${compact ? `Game mode${activeGameNumber ? ` · G${activeGameNumber}` : ""}` : `Game mode active${activeGameNumber ? ` · Game ${activeGameNumber}` : ""}. Switch to Series to review full-match context.`}</p>`
-    : `<p class="meta-text">${compact
-        ? match.status === "completed"
-          ? "Series mode · final context"
-          : match.status === "upcoming"
-            ? "Series mode · pre-match context"
-            : "Series mode · open live game for map stats"
-        : match.status === "completed"
-        ? "Series mode active. Review overall result and open any game for map-level detail."
-        : match.status === "upcoming"
-          ? "Series mode active. Focused on match setup, timing, and matchup context."
-          : "Series mode active. Open the live game for real-time map tracking."
-      }</p>`;
+  const navActions = [];
+  if (isGameMode && Number.isInteger(nav.previousGameNumber)) {
+    navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">${compact ? `← G${nav.previousGameNumber}` : "Previous Game"}</a>`);
+  }
+  if (isGameMode && Number.isInteger(nav.nextGameNumber)) {
+    navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">${compact ? `G${nav.nextGameNumber} →` : "Next Game"}</a>`);
+  }
+  if (!isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)) {
+    navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a>`);
+  }
 
   elements.gameNavWrap.innerHTML = `
-    <div class="game-nav-head">
-      <p class="meta-text">${compact ? `C ${nav.counts?.completed || 0} · L ${nav.counts?.inProgress || 0} · U ${nav.counts?.upcoming || 0}` : `Completed ${nav.counts?.completed || 0} · Live ${nav.counts?.inProgress || 0} · Upcoming ${nav.counts?.upcoming || 0}`}</p>
-      <div class="game-nav-links">${liveJumpLink}${prevLink}${nextLink}</div>
-    </div>
+    ${navActions.length ? `<div class="game-nav-head"><div class="game-nav-links">${navActions.join("")}</div></div>` : ""}
     ${currentLiveCallout}
-    ${modeNote}
-    ${Number.isInteger(uiState.requestedGameFallback) ? `<p class="meta-text">Requested Game ${uiState.requestedGameFallback} could not be loaded. Showing default map context.</p>` : ""}
-    ${nav.requestedMissing ? `<p class="meta-text">Requested Game ${nav.requestedGameNumber} not found. Showing nearest available map.</p>` : ""}
-    <div class="game-pill-row">${navPills}</div>
+    ${Number.isInteger(uiState.requestedGameFallback) ? `<p class="meta-text">Requested Game ${uiState.requestedGameFallback} could not be loaded.</p>` : ""}
+    ${nav.requestedMissing ? `<p class="meta-text">Requested Game ${nav.requestedGameNumber} not found.</p>` : ""}
+    ${navPills ? `<div class="game-pill-row">${navPills}</div>` : ""}
   `;
 
   if (elements.feedTeamFilter) {
@@ -1988,15 +1983,39 @@ function renderGameExplorer(match, apiBase) {
 
   if (!isGameMode) {
     const winner = winnerTeamName(match);
+    const bestOf = Number(match?.bestOf || 1);
+    const startTs = Date.parse(String(match?.startAt || ""));
+    const kickoffDate = Number.isFinite(startTs)
+      ? new Date(startTs).toLocaleDateString(undefined, { month: "short", day: "numeric", year: compact ? undefined : "numeric" })
+      : "TBD";
+    const kickoffTime = Number.isFinite(startTs)
+      ? new Date(startTs).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+      : "TBD";
+    const tournamentName = match.tournament || "Tournament TBD";
+    const matchupLabel = `${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)}`;
+    const projectionCountdown = Number(match?.seriesProjection?.countdownSeconds);
+    const fallbackCountdown = Number.isFinite(startTs) ? Math.max(0, Math.round((startTs - Date.now()) / 1000)) : null;
+    const countdown = Number.isFinite(projectionCountdown) ? projectionCountdown : fallbackCountdown;
+    const liveSeriesGame = (Array.isArray(match.seriesGames) ? match.seriesGames : []).find((game) => game.state === "inProgress");
+    const completedMaps = playedOrLiveGames.filter((game) => game.state === "completed").length;
+    const formatLabel = `Best of ${bestOf}`;
+
     if (match.status === "upcoming") {
       elements.gameContextWrap.innerHTML = `
-        <article class="game-context-card none">
+        <article class="game-context-card none series-context-card">
           <div class="game-context-top">
-            <p class="game-context-title">Series Context · UPCOMING</p>
-            <span class="pill upcoming">series mode</span>
+            <p class="game-context-title">Upcoming Series</p>
           </div>
-          <p class="meta-text">Kickoff: ${match.startAt ? dateTimeLabel(match.startAt) : "TBD"} · Format BO${match.bestOf || 1}</p>
-          <p class="meta-text">${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)} · ${match.tournament || "Tournament TBD"}</p>
+          <div class="series-context-grid">
+            ${seriesInfoCard("Date", kickoffDate)}
+            ${seriesInfoCard("Time", kickoffTime)}
+            ${seriesInfoCard("Matchup", matchupLabel)}
+            ${seriesInfoCard("Format", formatLabel)}
+            ${seriesInfoCard("Tournament", tournamentName)}
+            ${seriesInfoCard("Countdown", countdown !== null ? shortDuration(Math.max(0, countdown)) : "TBD")}
+            ${seriesInfoCard("Patch", match.patch || "unknown")}
+            ${seriesInfoCard("Region", String(match.region || "global").toUpperCase())}
+          </div>
         </article>
       `;
       return;
@@ -2004,25 +2023,49 @@ function renderGameExplorer(match, apiBase) {
 
     if (match.status === "completed") {
       elements.gameContextWrap.innerHTML = `
-        <article class="game-context-card none">
+        <article class="game-context-card none series-context-card">
           <div class="game-context-top">
-            <p class="game-context-title">Series Context · COMPLETED</p>
-            <span class="pill complete">series mode</span>
+            <p class="game-context-title">Series Result</p>
           </div>
-          <p class="meta-text">Final: ${match.seriesScore.left} - ${match.seriesScore.right}${winner ? ` · Winner ${displayTeamName(winner)}` : ""}</p>
-          <p class="meta-text">${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)} · ${match.tournament || "Tournament"}</p>
+          <div class="series-context-grid">
+            ${seriesInfoCard("Final", `${match.seriesScore.left} - ${match.seriesScore.right}`)}
+            ${seriesInfoCard("Winner", winner ? displayTeamName(winner) : "TBD")}
+            ${seriesInfoCard("Matchup", matchupLabel)}
+            ${seriesInfoCard("Format", formatLabel)}
+            ${seriesInfoCard("Tournament", tournamentName)}
+            ${seriesInfoCard("Maps Played", String(completedMaps))}
+            ${seriesInfoCard("Kickoff", `${kickoffDate} · ${kickoffTime}`)}
+            ${seriesInfoCard("Patch", match.patch || "unknown")}
+          </div>
         </article>
       `;
       return;
     }
 
     elements.gameContextWrap.innerHTML = `
-      <article class="game-context-card none">
+      <article class="game-context-card none series-context-card">
         <div class="game-context-top">
-          <p class="game-context-title">Series Context</p>
-          <span class="pill complete">series mode</span>
+          <p class="game-context-title">Series In Progress</p>
         </div>
-        <p class="meta-text">Open a game tab for map-level telemetry.</p>
+        <div class="series-context-grid">
+          ${seriesInfoCard("Current Game", Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber}` : "Live")}
+          ${seriesInfoCard("Series Score", `${match.seriesScore.left} - ${match.seriesScore.right}`)}
+          ${seriesInfoCard("Matchup", matchupLabel)}
+          ${seriesInfoCard("Format", formatLabel)}
+          ${seriesInfoCard("Tournament", tournamentName)}
+          ${seriesInfoCard("Maps Completed", String(completedMaps))}
+          ${seriesInfoCard("Kickoff", `${kickoffDate} · ${kickoffTime}`)}
+          ${seriesInfoCard("Patch", match.patch || "unknown")}
+          ${Number.isFinite(Number(match?.momentum?.goldLead))
+            ? seriesInfoCard("Gold Lead", signed(match.momentum.goldLead))
+            : ""}
+          ${Number.isFinite(Number(match?.momentum?.killDiff))
+            ? seriesInfoCard("Kill Diff", signed(match.momentum.killDiff))
+            : ""}
+          ${liveSeriesGame?.startedAt
+            ? seriesInfoCard("Current Map Start", compact ? dateTimeCompact(liveSeriesGame.startedAt) : dateTimeLabel(liveSeriesGame.startedAt))
+            : ""}
+        </div>
       </article>
     `;
     return;
