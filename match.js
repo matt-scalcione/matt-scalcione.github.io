@@ -146,7 +146,7 @@ const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State", "Game Explorer
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
   upcoming: new Set(["Upcoming Essentials", "Team Form", "Prediction Model", "Watch Guide"]),
-  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "Objective Control"])
+  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "Pulse Card", "Objective Control"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -2570,14 +2570,85 @@ function applyUpcomingPanelVisibility(match) {
   }
 }
 
-function commandCard(label, value, hint) {
+function commandCard(label, value, hint, options = {}) {
+  const tone = String(options.tone || "neutral").toLowerCase();
+  const featuredClass = options.featured ? " featured" : "";
   return `
-    <article class="command-card">
+    <article class="command-card ${tone}${featuredClass}">
       <p class="tempo-label">${label}</p>
       <p class="tempo-value">${value}</p>
       ${hint ? `<p class="meta-text">${hint}</p>` : ""}
     </article>
   `;
+}
+
+function displayObjectiveName(type) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized === "dragon") return "Dragon";
+  if (normalized === "baron") return "Baron";
+  if (normalized === "herald") return "Herald";
+  if (normalized === "tower") return "Tower";
+  if (normalized === "inhibitor") return "Inhib";
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Objective";
+}
+
+function nextObjectiveWindow(match) {
+  const rows = Array.isArray(match?.objectiveForecast) ? match.objectiveForecast : [];
+  if (!rows.length) {
+    return null;
+  }
+
+  return [...rows]
+    .map((row) => ({
+      ...row,
+      safeEta: Number.isFinite(Number(row?.etaSeconds)) ? Number(row.etaSeconds) : Number.MAX_SAFE_INTEGER
+    }))
+    .sort((left, right) => {
+      const leftPriority = left.state === "available" ? -1 : 0;
+      const rightPriority = right.state === "available" ? -1 : 0;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      return left.safeEta - right.safeEta;
+    })[0];
+}
+
+function playerDeathCounts(match) {
+  const left = Array.isArray(match?.playerEconomy?.left) ? match.playerEconomy.left.filter((row) => Boolean(row?.isDead)).length : 0;
+  const right = Array.isArray(match?.playerEconomy?.right) ? match.playerEconomy.right.filter((row) => Boolean(row?.isDead)).length : 0;
+  return { left, right };
+}
+
+function focusedLiveEventContext(match) {
+  const feedRows = buildUnifiedFeed(match);
+  if (!feedRows.length) {
+    return {
+      timelineAnchor: { startTs: null, estimated: true },
+      row: null,
+      latestRow: null
+    };
+  }
+
+  const { timelineAnchor, rows } = feedRowsWithGameClock(match, feedRows);
+  const enrichedRows = enrichFeedRowsWithState(match, rows);
+  const latestRow = enrichedRows[0] || null;
+  const focusedRow =
+    enrichedRows.find((row) => row.eventId === uiState.storyFocusEventId) ||
+    latestRow;
+
+  return {
+    timelineAnchor,
+    row: focusedRow,
+    latestRow
+  };
+}
+
+function formatFocusedEventClock(row, timelineAnchor) {
+  if (!row || row.gameClockSeconds === null || row.gameClockSeconds === undefined) {
+    return "--:--";
+  }
+
+  return `${timelineAnchor?.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`;
 }
 
 function renderGameCommandCenter(match) {
@@ -2600,16 +2671,49 @@ function renderGameCommandCenter(match) {
   const bursts = Number(selected?.telemetryCounts?.combatBursts || 0);
   const milestones = Number(selected?.telemetryCounts?.goldMilestones || 0);
   const refreshSeconds = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
+  const liveContext = focusedLiveEventContext(match);
+  const latestEvent = liveContext.latestRow;
+  const nextObjective = nextObjectiveWindow(match);
+  const deaths = playerDeathCounts(match);
+  const pulse = updateMapPulseState(match);
+  const liveClock = elapsedSeconds > 0 ? formatGameClock(elapsedSeconds) : "n/a";
+  const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
+  const objectiveHint = nextObjective?.note || "Next major map timer from tracked cadence.";
+  const fightLabel = pulse ? "Fight live" : deaths.left + deaths.right > 0 ? "Reset window" : "Calm map";
+  const fightHint = pulse
+    ? `${pulse.team === "both" ? "Both teams" : pulse.team === "left" ? displayTeamName(leftName) : displayTeamName(rightName)} showing live pressure`
+    : `${displayTeamName(leftName)} ${deaths.left} down · ${displayTeamName(rightName)} ${deaths.right} down`;
+  const latestEventLabel = latestEvent ? latestEvent.title : "No event yet";
+  const latestEventHint = latestEvent
+    ? `${formatFocusedEventClock(latestEvent, liveContext.timelineAnchor)} · ${latestEvent.phase.label} · ${latestEvent.leadDescriptor.label}`
+    : "Waiting for timeline events.";
 
   elements.gameCommandWrap.innerHTML = [
-    commandCard("Selected Map", `Game ${selected.number}`, selected.label),
-    commandCard("Game State", String(selected.state || "unstarted").toUpperCase(), `${selected.telemetryStatus || "none"} telemetry`),
-    commandCard("Live Clock", elapsedSeconds > 0 ? shortDuration(elapsedSeconds) : "n/a", "Derived from player economy window"),
-    commandCard("Kill Pace", killPace, `${leftName} ${leftKills} · ${rightKills} ${rightName}`),
-    commandCard("Event Throughput", `${tickerEvents} ticker · ${objectiveEvents} objective`, "Higher values indicate frequent map swings"),
-    commandCard("Burst Windows", `${bursts} detected`, "Multi-kill combat windows from frame deltas"),
-    commandCard("Gold Milestones", `${milestones} reached`, "Team economy thresholds crossed in this map"),
-    commandCard("Refresh Cadence", `Every ${refreshSeconds}s`, "Auto-refresh remains active while this tab is open")
+    commandCard(
+      "Live Focus",
+      latestEventLabel,
+      latestEventHint,
+      { tone: latestEvent?.leadDescriptor?.tone || "neutral", featured: true }
+    ),
+    commandCard("Map State", `Game ${selected.number} · ${String(selected.state || "unstarted").toUpperCase()}`, `${selected.label} · ${selected.telemetryStatus || "none"} telemetry`, {
+      tone: selected.state === "inProgress" ? "live" : selected.state === "completed" ? "neutral" : "warn"
+    }),
+    commandCard("Clock", liveClock, `Refresh ${refreshSeconds}s · ${tickerEvents} feed signals`, { tone: "neutral" }),
+    commandCard("Kills", `${leftKills}-${rightKills}`, `${killPace} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`, {
+      tone: totalKills >= 18 ? "warn" : "neutral"
+    }),
+    commandCard("Next Objective", objectiveLabel, objectiveHint, {
+      tone: nextObjective?.state === "available" ? "live" : "warn"
+    }),
+    commandCard("Fight State", fightLabel, fightHint, {
+      tone: pulse ? "warn" : deaths.left + deaths.right > 0 ? "neutral" : "live"
+    }),
+    commandCard("Players Down", `${deaths.left}-${deaths.right}`, `${displayTeamName(leftName)} · ${displayTeamName(rightName)}`, {
+      tone: deaths.left + deaths.right >= 2 ? "warn" : "neutral"
+    }),
+    commandCard("Throughput", `${objectiveEvents} obj · ${bursts} bursts`, `${milestones} milestones tracked this map`, {
+      tone: bursts >= 2 ? "warn" : "neutral"
+    })
   ].join("");
 }
 
@@ -4017,10 +4121,53 @@ function renderPulseCard(match) {
     return;
   }
 
+  const liveContext = focusedLiveEventContext(match);
+  const focusedRow = liveContext.row;
+  const nextObjective = nextObjectiveWindow(match);
+  const pulseState = updateMapPulseState(match);
+  const chips = [
+    focusedRow
+      ? {
+          label: `${formatFocusedEventClock(focusedRow, liveContext.timelineAnchor)} ${focusedRow.phase.label}`,
+          tone: "neutral"
+        }
+      : null,
+    focusedRow
+      ? {
+          label: focusedRow.leadDescriptor.label,
+          tone: focusedRow.leadDescriptor.tone
+        }
+      : null,
+    focusedRow
+      ? {
+          label: focusedRow.swingDescriptor.short,
+          tone: focusedRow.swingDescriptor.tone
+        }
+      : null,
+    nextObjective
+      ? {
+          label: `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}`,
+          tone: nextObjective.state === "available" ? "live" : "warn"
+        }
+      : null,
+    pulseState
+      ? {
+          label: pulseState.team === "both" ? "Fight both sides" : `${pulseState.team === "left" ? displayTeamName(match.teams.left.name) : displayTeamName(match.teams.right.name)} pressure`,
+          tone: "warn"
+        }
+      : null
+  ].filter(Boolean);
+
   elements.pulseCard.innerHTML = `
     <article class="pulse ${pulse.tone || "neutral"}">
-      <p class="pulse-title">${pulse.title || "Match Pulse"}</p>
+      <div class="pulse-head">
+        <p class="pulse-title">${pulse.title || "Match Pulse"}</p>
+        <span class="pulse-tone-pill ${pulse.tone || "neutral"}">${String(pulse.tone || "neutral").toUpperCase()}</span>
+      </div>
       <p class="pulse-body">${pulse.summary || "Signal unavailable."}</p>
+      ${chips.length ? `<div class="pulse-chips">${chips
+        .map((chip) => `<span class="pulse-chip ${chip.tone || "neutral"}">${chip.label}</span>`)
+        .join("")}</div>` : ""}
     </article>
   `;
 }
@@ -4123,11 +4270,15 @@ function renderTacticalChecklist(match) {
   }
 
   elements.tacticalChecklistWrap.innerHTML = rows
+    .slice(0, 4)
     .map(
-      (row) => `
+      (row, index) => `
       <article class="check-item ${checklistClass(row.tone)}">
-        <p class="check-title">${row.title || "Signal"}</p>
-        <p class="meta-text">${row.detail || "No details provided."}</p>
+        <span class="check-rank">${index + 1}</span>
+        <div class="check-copy">
+          <p class="check-title">${row.title || "Signal"}</p>
+          <p class="meta-text">${row.detail || "No details provided."}</p>
+        </div>
       </article>
     `
     )
@@ -6179,12 +6330,13 @@ function buildLiveAlerts(match) {
 function renderLiveAlerts(match) {
   const alerts = buildLiveAlerts(match);
   elements.liveAlertsList.innerHTML = alerts
+    .slice(0, 4)
     .map(
       (alert) => `
-      <li>
-        <div class="moment-head">
+      <li class="live-alert-item importance-${String(alert.importance || "low").toLowerCase()}">
+        <div class="live-alert-top">
+          <span class="live-alert-severity ${String(alert.importance || "low").toLowerCase()}">${String(alert.importance || "low").toUpperCase()}</span>
           <strong>${alert.title}</strong>
-          <span class="importance">${String(alert.importance || "low").toUpperCase()}</span>
         </div>
         <p class="meta-text">${alert.summary}</p>
       </li>
