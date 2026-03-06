@@ -794,6 +794,8 @@ function scheduleHeroIconCatalogLoad(match) {
         if (uiState.match?.id === match?.id) {
           renderPlayerTracker(uiState.match);
           renderLeadTrend(uiState.match);
+          renderSelectedGameRecap(uiState.match);
+          renderSeriesLineups(uiState.match);
         }
       });
     }
@@ -805,6 +807,8 @@ function scheduleHeroIconCatalogLoad(match) {
       if (uiState.match?.id === match?.id) {
         renderPlayerTracker(uiState.match);
         renderLeadTrend(uiState.match);
+        renderSelectedGameRecap(uiState.match);
+        renderSeriesLineups(uiState.match);
       }
     });
   }
@@ -6592,7 +6596,115 @@ function recapCard(label, value, note = null) {
   `;
 }
 
+function selectedGameHasZeroSnapshot(selectedGame) {
+  const snapshot = selectedGame?.snapshot || {};
+  const left = snapshot.left || {};
+  const right = snapshot.right || {};
+  const fields = ["kills", "towers", "dragons", "barons", "inhibitors"];
+  const hasAnyCount = fields.some((field) => Number(left[field] || 0) > 0 || Number(right[field] || 0) > 0);
+  const hasGold = Number.isFinite(Number(left.gold)) || Number.isFinite(Number(right.gold));
+  return !hasAnyCount && !hasGold;
+}
+
+function defaultDraftRoles(match) {
+  const gameKey = normalizeGameKey(match?.game);
+  if (gameKey === "dota2") {
+    return ["pos1", "pos2", "pos3", "pos4", "pos5"];
+  }
+
+  return ["top", "jungle", "mid", "bot", "support"];
+}
+
+function buildDraftPlaceholderRows(match) {
+  return defaultDraftRoles(match).map((role) => ({
+    role,
+    champion: "Pending",
+    name: "Waiting pick",
+    placeholder: true
+  }));
+}
+
+function inferDraftPreview(match) {
+  const selectedGame = match?.selectedGame;
+  if (!selectedGame || String(selectedGame.state || "") !== "inProgress") {
+    return null;
+  }
+
+  const telemetryStatus = String(selectedGame.telemetryStatus || "").toLowerCase();
+  const leftRows = Array.isArray(match?.teamDraft?.left) ? match.teamDraft.left : [];
+  const rightRows = Array.isArray(match?.teamDraft?.right) ? match.teamDraft.right : [];
+  const hasDraftRows = leftRows.length > 0 || rightRows.length > 0;
+  const zeroSnapshot = selectedGameHasZeroSnapshot(selectedGame);
+  const startedTs = parseIsoTimestamp(selectedGame?.startedAt);
+  const elapsedSeconds = startedTs !== null ? Math.max(0, Math.round((Date.now() - startedTs) / 1000)) : null;
+  const elapsedLabel = Number.isFinite(elapsedSeconds) && elapsedSeconds > 0 ? shortDuration(elapsedSeconds) : null;
+
+  if (telemetryStatus === "pending" && zeroSnapshot) {
+    return {
+      tone: hasDraftRows ? "draft" : "pending",
+      label: hasDraftRows ? "Draft / Loading" : "Likely Draft",
+      badge: hasDraftRows ? "Draft Live" : "Awaiting Frame",
+      summary: hasDraftRows
+        ? "Champion selections are available, but combat telemetry has not started yet."
+        : "Riot has marked this map live, but no in-game frames are available yet. This usually means champion select, loading, or a stage delay.",
+      detail: elapsedLabel ? `Live state opened ${elapsedLabel} ago.` : "Waiting for first confirmed in-game frame.",
+      leftRows: hasDraftRows ? leftRows : buildDraftPlaceholderRows(match),
+      rightRows: hasDraftRows ? rightRows : buildDraftPlaceholderRows(match),
+      hasDraftRows
+    };
+  }
+
+  if (hasDraftRows && telemetryStatus !== "rich") {
+    return {
+      tone: "draft",
+      label: "Draft Snapshot",
+      badge: "Metadata Only",
+      summary: "Current champion selections are available before full live telemetry arrives.",
+      detail: elapsedLabel ? `Map state has been live for ${elapsedLabel}.` : "Waiting for telemetry to stabilize.",
+      leftRows,
+      rightRows,
+      hasDraftRows: true
+    };
+  }
+
+  return null;
+}
+
+function draftPreviewAvatar(match, row) {
+  if (row?.placeholder) {
+    return `<span class="tracker-hero-icon fallback recap-draft-avatar pending">?</span>`;
+  }
+
+  return heroIconMarkup(match, row);
+}
+
+function renderRecapDraftTeam(match, title, rows = []) {
+  const normalized = rows.length ? normalizeLineupRows(rows) : buildDraftPlaceholderRows(match);
+  return `
+    <section class="recap-draft-team">
+      <h3>${title}</h3>
+      ${normalized
+        .map(
+          (row) => `
+            <article class="recap-draft-row${row.placeholder ? " pending" : ""}">
+              <div class="recap-draft-id">
+                ${draftPreviewAvatar(match, row)}
+                ${roleIconMarkup(row.role, normalizeGameKey(match?.game), false)}
+              </div>
+              <div class="recap-draft-copy">
+                <p class="recap-draft-title">${row.champion || "Pending"}</p>
+                <p class="recap-draft-meta">${row.name || "Player"} · ${roleMeta(row.role, normalizeGameKey(match?.game)).label}</p>
+              </div>
+            </article>
+          `
+        )
+        .join("")}
+    </section>
+  `;
+}
+
 function renderSelectedGameRecap(match) {
+  scheduleHeroIconCatalogLoad(match);
   const selectedGame = match.selectedGame;
   if (!selectedGame) {
     elements.selectedGameRecapWrap.innerHTML = `<div class="empty">Select a game to load map-level recap.</div>`;
@@ -6603,9 +6715,10 @@ function renderSelectedGameRecap(match) {
   const winnerName = selectedGameWinnerName(match, selectedSeriesGame, selectedGame);
   const duration = durationLabelFromMinutes(selectedSeriesGame?.durationMinutes);
   const sideSummary = Array.isArray(selectedGame.sideSummary) ? selectedGame.sideSummary : [];
+  const draftPreview = inferDraftPreview(match);
   const cards = [
     recapCard("Map", `Game ${selectedGame.number}`),
-    recapCard("State", stateLabel(selectedGame.state)),
+    recapCard("State", draftPreview?.label || stateLabel(selectedGame.state)),
     recapCard("Winner", winnerName || "TBD"),
     recapCard("Duration", duration),
     recapCard("Telemetry", String(selectedGame.telemetryStatus || "none").toUpperCase())
@@ -6651,6 +6764,32 @@ function renderSelectedGameRecap(match) {
     ? topRows.map((player) => `${player.name} (${player.kills}/${player.deaths}/${player.assists})`).join(" · ")
     : "No top performer snapshot for this map.";
   const tips = Array.isArray(selectedGame.tips) ? selectedGame.tips : [];
+
+  if (draftPreview) {
+    elements.selectedGameRecapWrap.innerHTML = `
+      <div class="recap-grid">${cards.join("")}</div>
+      <article class="recap-draft-state ${draftPreview.tone}">
+        <div>
+          <p class="tempo-label">Map Phase</p>
+          <h3>${draftPreview.label}</h3>
+          <p class="meta-text">${draftPreview.summary}</p>
+        </div>
+        <div class="recap-draft-state-meta">
+          <span class="recap-draft-badge">${draftPreview.badge}</span>
+          <p class="meta-text">${draftPreview.detail}</p>
+        </div>
+      </article>
+      <div class="recap-draft-grid">
+        ${renderRecapDraftTeam(match, match.teams.left.name, draftPreview.leftRows)}
+        ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
+      </div>
+      <article class="recap-note">
+        <p class="meta-text">${sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available."}</p>
+        ${tips.length ? `<p class="meta-text">${tips.join(" · ")}</p>` : ""}
+      </article>
+    `;
+    return;
+  }
 
   elements.selectedGameRecapWrap.innerHTML = `
     <div class="recap-grid">${cards.join("")}</div>
