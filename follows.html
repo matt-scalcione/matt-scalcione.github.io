@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body class="follows-page">
     <div class="noise"></div>
     <header class="hero">
       <h1>Follows & Alerts</h1>
@@ -43,7 +43,7 @@
         <div class="actions">
           <button id="refreshButton" type="button">Reload</button>
           <button id="saveApiButton" type="button" class="ghost api-base-save">Save API Base</button>
-          <p id="statusText" class="status-text">Ready.</p>
+          <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
         </div>
 
         <h2 class="top-space">Add Follow</h2>
@@ -70,7 +70,7 @@
         <div>
           <div class="section-head">
             <h2>Current Follows</h2>
-            <p id="followsMeta" class="meta-text">Waiting for data...</p>
+            <p id="followsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
           </div>
           <div id="followsList" class="follow-list"></div>
         </div>

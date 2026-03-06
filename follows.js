@@ -46,6 +46,31 @@ function updateNav(apiBase) {
   elements.followsNav.href = followsUrl.toString();
 }
 
+function setStatus(message, tone = "neutral") {
+  elements.statusText.textContent = message;
+  elements.statusText.classList.remove("success", "error", "loading");
+  if (tone !== "neutral") {
+    elements.statusText.classList.add(tone);
+  }
+}
+
+function renderLoadingFollows() {
+  elements.followsList.innerHTML = `
+    <div class="loading-grid" aria-hidden="true">
+      ${Array.from({ length: 4 })
+        .map(
+          () => `
+            <article class="follow-item loading">
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function getContext() {
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   const userId = elements.userIdInput.value.trim();
@@ -65,7 +90,12 @@ async function requestJson(url, options = {}) {
 
 function renderFollows(rows) {
   if (!rows.length) {
-    elements.followsList.innerHTML = `<div class="empty">No follows yet.</div>`;
+    elements.followsList.innerHTML = `
+      <div class="empty">
+        <p class="empty-title">No Follows Yet</p>
+        <p class="meta-text">Use Add Follow to track teams, players, or tournaments.</p>
+      </div>
+    `;
     return;
   }
 
@@ -73,9 +103,10 @@ function renderFollows(rows) {
     .map(
       (row) => `
       <article class="follow-item">
-        <div>
-          <p><strong>${row.entityType}</strong>: ${row.entityId}</p>
-          <p class="meta-text">Created ${new Date(row.createdAt).toLocaleString()}</p>
+        <div class="follow-item-head">
+          <span class="follow-entity-chip">${row.entityType}</span>
+          <p class="follow-entity-id">${row.entityId}</p>
+          <p class="meta-text follow-created">Created ${new Date(row.createdAt).toLocaleString()}</p>
         </div>
         <button type="button" class="danger-btn" data-follow-id="${row.id}">Remove</button>
       </article>
@@ -95,11 +126,12 @@ function renderPreferences(pref) {
 async function loadFollows() {
   const { apiBase, userId } = getContext();
   if (!userId) {
-    elements.statusText.textContent = "User ID is required.";
+    setStatus("User ID is required.", "error");
     elements.followsList.innerHTML = `<div class="empty">Add a user ID to load follows.</div>`;
     return;
   }
 
+  renderLoadingFollows();
   const payload = await requestJson(
     `${apiBase}/v1/follows?user_id=${encodeURIComponent(userId)}`
   );
@@ -123,11 +155,11 @@ async function loadAll() {
   try {
     const { apiBase } = getContext();
     updateNav(apiBase);
-    elements.statusText.textContent = "Loading follows and preferences...";
+    setStatus("Loading follows and preferences...", "loading");
     await Promise.all([loadFollows(), loadPreferences()]);
-    elements.statusText.textContent = "Loaded.";
+    setStatus("Follows and preferences loaded.", "success");
   } catch (error) {
-    elements.statusText.textContent = `Error: ${error.message}`;
+    setStatus(`Error: ${error.message}`, "error");
   }
 }
 
@@ -137,12 +169,12 @@ async function addFollow() {
   const entityId = elements.entityIdInput.value.trim();
 
   if (!userId || !entityId) {
-    elements.statusText.textContent = "User ID and Entity ID are required.";
+    setStatus("User ID and Entity ID are required.", "error");
     return;
   }
 
   try {
-    elements.statusText.textContent = "Adding follow...";
+    setStatus("Adding follow...", "loading");
     await requestJson(`${apiBase}/v1/follows`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -155,42 +187,42 @@ async function addFollow() {
 
     elements.entityIdInput.value = "";
     await loadFollows();
-    elements.statusText.textContent = "Follow added.";
+    setStatus("Follow added.", "success");
   } catch (error) {
-    elements.statusText.textContent = `Error: ${error.message}`;
+    setStatus(`Error: ${error.message}`, "error");
   }
 }
 
 async function removeFollow(followId) {
   const { apiBase, userId } = getContext();
   if (!userId) {
-    elements.statusText.textContent = "User ID is required.";
+    setStatus("User ID is required.", "error");
     return;
   }
 
   try {
-    elements.statusText.textContent = "Removing follow...";
+    setStatus("Removing follow...", "loading");
     await requestJson(
       `${apiBase}/v1/follows/${encodeURIComponent(followId)}?user_id=${encodeURIComponent(userId)}`,
       { method: "DELETE" }
     );
 
     await loadFollows();
-    elements.statusText.textContent = "Follow removed.";
+    setStatus("Follow removed.", "success");
   } catch (error) {
-    elements.statusText.textContent = `Error: ${error.message}`;
+    setStatus(`Error: ${error.message}`, "error");
   }
 }
 
 async function savePreferences() {
   const { apiBase, userId } = getContext();
   if (!userId) {
-    elements.statusText.textContent = "User ID is required.";
+    setStatus("User ID is required.", "error");
     return;
   }
 
   try {
-    elements.statusText.textContent = "Saving preferences...";
+    setStatus("Saving preferences...", "loading");
     await requestJson(`${apiBase}/v1/notification-preferences`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -204,9 +236,9 @@ async function savePreferences() {
       })
     });
 
-    elements.statusText.textContent = "Preferences saved.";
+    setStatus("Preferences saved.", "success");
   } catch (error) {
-    elements.statusText.textContent = `Error: ${error.message}`;
+    setStatus(`Error: ${error.message}`, "error");
   }
 }
 
@@ -214,17 +246,26 @@ function installEvents() {
   elements.refreshButton.addEventListener("click", loadAll);
   elements.addFollowButton.addEventListener("click", addFollow);
   elements.savePrefsButton.addEventListener("click", savePreferences);
+  elements.userIdInput.addEventListener("change", loadAll);
+  elements.userIdInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      loadAll();
+    }
+  });
 
   elements.saveApiButton.addEventListener("click", () => {
     const { apiBase } = getContext();
     saveApiBase(apiBase);
     updateNav(apiBase);
-    elements.statusText.textContent = "API base saved locally.";
+    setStatus("API base saved locally.", "success");
   });
 
   elements.followsList.addEventListener("click", (event) => {
     const button = event.target.closest("[data-follow-id]");
     if (!button) return;
+    if (!window.confirm("Remove this follow?")) {
+      return;
+    }
     removeFollow(button.getAttribute("data-follow-id"));
   });
 }

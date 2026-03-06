@@ -34,6 +34,17 @@ function statusPillClass(status) {
   return "complete";
 }
 
+function gameChipMarkup(game) {
+  const normalized = String(game || "").toLowerCase();
+  if (normalized === "lol") {
+    return `<span class="game-chip lol" title="League of Legends">L</span>`;
+  }
+  if (normalized === "dota2") {
+    return `<span class="game-chip dota2" title="Dota 2">D</span>`;
+  }
+  return `<span class="game-chip">${String(game || "?").slice(0, 1).toUpperCase()}</span>`;
+}
+
 function signalLabel(signal) {
   if (!signal) return "No major signal";
   return signal.replaceAll("_", " ");
@@ -80,8 +91,40 @@ function updateNav(apiBase) {
   elements.followsNav.href = followsUrl.toString();
 }
 
+function setStatus(message, tone = "neutral") {
+  elements.statusText.textContent = message;
+  elements.statusText.classList.remove("success", "error", "loading");
+  if (tone !== "neutral") {
+    elements.statusText.classList.add(tone);
+  }
+}
+
+function renderLoadingCards() {
+  elements.cardGrid.innerHTML = `
+    <div class="loading-grid" aria-hidden="true">
+      ${Array.from({ length: 6 })
+        .map(
+          () => `
+            <article class="match-card loading">
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderEmpty(message) {
-  elements.cardGrid.innerHTML = `<div class="empty">${message}</div>`;
+  elements.cardGrid.innerHTML = `
+    <div class="empty">
+      <p class="empty-title">No Matches</p>
+      <p class="meta-text">${message}</p>
+    </div>
+  `;
 }
 
 function renderCards(rows, apiBase) {
@@ -90,32 +133,47 @@ function renderCards(rows, apiBase) {
     return;
   }
 
-  elements.cardGrid.innerHTML = rows
+  const orderedRows = rows
+    .slice()
+    .sort((left, right) => {
+      const rank = (status) => (status === "live" ? 0 : status === "upcoming" ? 1 : 2);
+      const statusDelta = rank(left.status) - rank(right.status);
+      if (statusDelta !== 0) {
+        return statusDelta;
+      }
+      return Date.parse(String(left.startAt || "")) - Date.parse(String(right.startAt || ""));
+    });
+
+  elements.cardGrid.innerHTML = orderedRows
     .map((match, index) => {
       const link = new URL("./match.html", window.location.href);
       link.searchParams.set("id", match.id);
       link.searchParams.set("api", apiBase);
+      const statusClass = statusPillClass(match.status);
+      const statusLabel = String(match.status || "upcoming").toUpperCase();
 
       return `
         <a class="match-card" style="--delay:${index * 55}ms" href="${link.toString()}">
-          <div class="card-top">
-            <span class="pill ${statusPillClass(match.status)}">${match.status}</span>
-            <span class="subline">${match.game.toUpperCase()} · ${match.region.toUpperCase()}</span>
+          <div class="match-card-topline">
+            <span class="pill ${statusClass}">${statusLabel}</span>
+            <span class="subline">${gameChipMarkup(match.game)} ${match.tournament || "Tournament"}</span>
           </div>
-          <div class="teams">
-            <div class="team-line">
+          <div class="match-card-scoreboard">
+            <div class="team-line compact">
               <span class="team-name">${match.teams.left.name}</span>
-              <span>${match.seriesScore.left}</span>
+              <strong>${match.seriesScore.left}</strong>
             </div>
-            <div class="team-line">
+            <div class="team-line compact">
               <span class="team-name">${match.teams.right.name}</span>
-              <span>${match.seriesScore.right}</span>
+              <strong>${match.seriesScore.right}</strong>
             </div>
           </div>
           <p class="signal">${signalLabel(match.keySignal)}</p>
-          <p class="subline">${match.tournament}</p>
-          <p class="subline">Start: ${dateTimeLabel(match.startAt)}</p>
-          <p class="subline">Fresh: ${dateTimeLabel(match.updatedAt)}</p>
+          <div class="match-card-footer">
+            <p class="subline">${dateTimeLabel(match.startAt)}${match.region ? ` · ${String(match.region).toUpperCase()}` : ""}</p>
+            <span class="match-card-cta">Open</span>
+          </div>
+          <p class="subline">Updated ${dateTimeLabel(match.updatedAt)}</p>
         </a>
       `;
     })
@@ -131,7 +189,7 @@ async function loadMatches() {
   const userId = elements.userIdInput.value;
 
   if (followedOnly && !userId.trim()) {
-    elements.statusText.textContent = "User ID is required for followed-only mode.";
+    setStatus("User ID is required for followed-only mode.", "error");
     renderEmpty("Add a User ID to filter by follows.");
     return;
   }
@@ -141,7 +199,8 @@ async function loadMatches() {
   updateNav(apiBase);
 
   try {
-    elements.statusText.textContent = "Loading live matches...";
+    renderLoadingCards();
+    setStatus("Loading live matches...", "loading");
     const response = await fetch(requestUrl);
     const payload = await response.json();
 
@@ -151,9 +210,9 @@ async function loadMatches() {
 
     renderCards(payload.data || [], apiBase);
     elements.metaText.textContent = `Showing ${payload?.meta?.count ?? 0} matches. Updated ${dateTimeLabel(payload?.meta?.generatedAt)}`;
-    elements.statusText.textContent = "Live desk synced.";
+    setStatus("Live desk synced.", "success");
   } catch (error) {
-    elements.statusText.textContent = `Error: ${error.message}`;
+    setStatus(`Error: ${error.message}`, "error");
     renderEmpty("Unable to load matches. Check API base and API server status.");
   }
 }
@@ -164,13 +223,19 @@ function installEvents() {
   elements.saveButton.addEventListener("click", () => {
     const value = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
     saveApiBase(value);
-    elements.statusText.textContent = "API base saved locally.";
+    setStatus("API base saved locally.", "success");
   });
 
   elements.gameSelect.addEventListener("change", loadMatches);
   elements.regionInput.addEventListener("change", loadMatches);
   elements.dotaTiersInput.addEventListener("change", loadMatches);
   elements.followedOnlyInput.addEventListener("change", loadMatches);
+  elements.userIdInput.addEventListener("change", loadMatches);
+  elements.userIdInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      loadMatches();
+    }
+  });
 }
 
 function boot() {

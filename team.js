@@ -78,6 +78,14 @@ function statusPillClass(status) {
   return "complete";
 }
 
+function setStatus(message, tone = "neutral") {
+  elements.statusText.textContent = message;
+  elements.statusText.classList.remove("success", "error", "loading");
+  if (tone !== "neutral") {
+    elements.statusText.classList.add(tone);
+  }
+}
+
 function resultClass(result) {
   if (result === "win") return "win-left";
   if (result === "loss") return "win-right";
@@ -267,7 +275,7 @@ function exportPastMatchesCsv(profile) {
 
   const { rows } = buildPastRows(profile);
   if (!rows.length) {
-    elements.statusText.textContent = "No past matches to export for current filters.";
+    setStatus("No past matches to export for current filters.", "error");
     return;
   }
 
@@ -294,7 +302,7 @@ function exportPastMatchesCsv(profile) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-  elements.statusText.textContent = `Exported ${rows.length} past matches to CSV.`;
+  setStatus(`Exported ${rows.length} past matches to CSV.`, "success");
 }
 
 function buildPastRows(profile) {
@@ -812,13 +820,45 @@ function buildTeamRequestUrl() {
   return url.toString();
 }
 
+function renderTeamLoadingState() {
+  const loadingCard = `
+    <article class="upcoming-card loading">
+      <div class="skeleton-line short"></div>
+      <div class="skeleton-line"></div>
+    </article>
+  `;
+  elements.teamSummaryWrap.innerHTML = `<div class="upcoming-grid">${loadingCard.repeat(6)}</div>`;
+  if (elements.performanceInsightsWrap) {
+    elements.performanceInsightsWrap.innerHTML = `<div class="upcoming-grid">${loadingCard.repeat(4)}</div>`;
+  }
+  if (elements.formTimelineWrap) {
+    elements.formTimelineWrap.innerHTML = `<div class="loading-grid">${loadingCard.repeat(3)}</div>`;
+  }
+  const loadingTable = `
+    <div class="lane-table-wrap">
+      <table class="lane-table">
+        <tbody>
+          <tr><td><div class="skeleton-line"></div></td></tr>
+          <tr><td><div class="skeleton-line short"></div></td></tr>
+          <tr><td><div class="skeleton-line"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  elements.recentMatchesWrap.innerHTML = loadingTable;
+  elements.upcomingMatchesWrap.innerHTML = loadingTable;
+  elements.opponentBreakdownWrap.innerHTML = loadingTable;
+  elements.headToHeadWrap.innerHTML = `<div class="loading-grid">${loadingCard.repeat(2)}</div>`;
+}
+
 async function loadTeamProfile() {
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   updateNav(apiBase);
   buildBackLink(apiBase);
 
   try {
-    elements.statusText.textContent = "Loading team profile...";
+    renderTeamLoadingState();
+    setStatus("Loading team profile...", "loading");
     const response = await fetch(buildTeamRequestUrl());
     const payload = await response.json();
     if (!response.ok) {
@@ -837,11 +877,11 @@ async function loadTeamProfile() {
     renderUpcomingMatches(profile, apiBase);
     renderPastMatches(profile, apiBase);
     renderHeadToHead(profile, apiBase);
-    elements.statusText.textContent = "Team profile synced.";
+    setStatus("Team profile synced.", "success");
   } catch (error) {
     state.profile = null;
     state.pastTournamentSignature = null;
-    elements.statusText.textContent = `Error: ${error.message}`;
+    setStatus(`Error: ${error.message}`, "error");
     elements.teamTitle.textContent = `Error loading team: ${error.message}`;
     elements.teamMetaText.textContent = "";
     if (elements.performanceMetaText) {
@@ -876,7 +916,7 @@ function installEvents() {
   elements.saveButton.addEventListener("click", () => {
     const value = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
     saveApiBase(value);
-    elements.statusText.textContent = "API base saved locally.";
+    setStatus("API base saved locally.", "success");
   });
   elements.gameSelect.addEventListener("change", loadTeamProfile);
   elements.limitSelect.addEventListener("change", loadTeamProfile);
@@ -926,7 +966,7 @@ function boot() {
   const teamId = url.searchParams.get("id");
   if (!teamId) {
     elements.teamTitle.textContent = "Missing team id.";
-    elements.statusText.textContent = "Add ?id=<team-id> to the URL.";
+    setStatus("Add ?id=<team-id> to the URL.", "error");
     return;
   }
 

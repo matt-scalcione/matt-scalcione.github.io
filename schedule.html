@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body class="schedule-page">
     <div class="noise"></div>
     <header class="hero">
       <h1>Schedule & Results</h1>
@@ -63,20 +63,20 @@
         <div class="actions">
           <button id="refreshButton" type="button">Refresh</button>
           <button id="saveButton" type="button" class="ghost api-base-save">Save API Base</button>
-          <p id="statusText" class="status-text">Ready.</p>
+          <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
         </div>
       </section>
 
       <section class="panel">
         <div class="section-head">
           <h2>Schedule</h2>
-          <p id="scheduleMeta" class="meta-text">Waiting for data...</p>
+          <p id="scheduleMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
         </div>
         <div id="scheduleTableWrap" class="table-wrap"></div>
 
         <div class="section-head top-space">
           <h2>Results</h2>
-          <p id="resultsMeta" class="meta-text">Waiting for data...</p>
+          <p id="resultsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
         </div>
         <div id="resultsTableWrap" class="table-wrap"></div>
       </section>
