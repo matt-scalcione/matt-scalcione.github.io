@@ -156,6 +156,38 @@
           <h2>Live Feed</h2>
         </div>
         <div id="leadTrendWrap" class="trend-wrap"></div>
+        <div class="feed-controls-shell live-feed-toolbar-shell">
+          <div id="feedControlsWrap" class="feed-controls live-feed-toolbar" role="group" aria-label="Live feed filters">
+            <select id="feedTypeFilter" aria-label="Filter live feed by event type">
+              <option value="all">All events</option>
+              <option value="combat">Fight</option>
+              <option value="objective">Objective</option>
+              <option value="swing">Gold</option>
+              <option value="moment">Moment</option>
+            </select>
+            <select id="feedTeamFilter" aria-label="Filter live feed by team">
+              <option value="all">Both teams</option>
+              <option value="left">Left team</option>
+              <option value="right">Right team</option>
+            </select>
+            <select id="feedImportanceFilter" aria-label="Filter live feed by importance">
+              <option value="all">Any impact</option>
+              <option value="medium">Med+</option>
+              <option value="high">High+</option>
+              <option value="critical">Critical</option>
+            </select>
+            <select id="feedWindowFilter" aria-label="Filter live feed by time window">
+              <option value="all">All time</option>
+              <option value="30">30m</option>
+              <option value="15">15m</option>
+              <option value="10">10m</option>
+              <option value="5">5m</option>
+            </select>
+            <button id="feedResetFilter" type="button" class="ghost live-feed-reset" hidden aria-label="Reset live feed filters">
+              Reset
+            </button>
+          </div>
+        </div>
         <div id="liveSummaryWrap" class="live-summary-strip"></div>
         <ul id="liveFeedList" class="moments live-feed-list"></ul>
       </section>
