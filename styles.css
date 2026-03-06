@@ -2435,8 +2435,8 @@ button.ghost,
 
 .tracker-table-mobile th,
 .tracker-table-mobile td {
-  padding: 0.2rem 0.2rem;
-  font-size: 0.62rem;
+  padding: 0.26rem 0.2rem;
+  font-size: 0.66rem;
   white-space: nowrap;
   vertical-align: middle;
 }
@@ -2454,7 +2454,7 @@ button.ghost,
 
 .tracker-table-mobile th:nth-child(2),
 .tracker-table-mobile td:nth-child(2) {
-  min-width: 148px;
+  min-width: 140px;
 }
 
 .tracker-table-mobile th:nth-child(3),
@@ -2465,7 +2465,7 @@ button.ghost,
 .tracker-table-mobile td.tracker-player-cell {
   position: relative;
   min-width: 0;
-  padding-right: 2.2rem;
+  padding-right: 0.58rem;
 }
 
 .tracker-player-inline {
@@ -2487,11 +2487,11 @@ button.ghost,
 .tracker-player-inline-name {
   font-weight: 700;
   color: var(--ink);
-  font-size: 0.68rem;
+  font-size: 0.76rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 4.2rem;
+  max-width: 5.2rem;
 }
 
 .tracker-player-inline-divider {
@@ -2501,16 +2501,16 @@ button.ghost,
 
 .tracker-player-inline-hero {
   color: var(--muted);
-  font-size: 0.61rem;
+  font-size: 0.66rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 2.8rem;
+  max-width: 3.5rem;
 }
 
 .tracker-hero-icon {
-  width: 0.94rem;
-  height: 0.94rem;
+  width: 1.02rem;
+  height: 1.02rem;
   border-radius: 0.28rem;
   border: 1px solid rgba(84, 97, 113, 0.28);
   background: rgba(12, 45, 66, 0.08);
@@ -2542,15 +2542,15 @@ button.ghost,
 }
 
 .tracker-role-icon {
-  width: 0.74rem;
-  height: 0.74rem;
+  width: 0.78rem;
+  height: 0.78rem;
   border-radius: 999px;
   border: 1px solid var(--line);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.42rem;
+  font-size: 0.44rem;
   line-height: 1;
 }
 
@@ -2609,16 +2609,16 @@ button.ghost,
 }
 
 .tracker-hp-cell.compact {
-  min-width: 50px;
+  min-width: 40px;
   gap: 0.1rem;
 }
 
 .tracker-hp-cell.compact .hp-track {
-  height: 4px;
+  height: 3px;
 }
 
 .tracker-hp-label.compact {
-  font-size: 0.46rem;
+  font-size: 0.5rem;
   line-height: 1;
 }
 
@@ -2627,15 +2627,15 @@ button.ghost,
 }
 
 .tracker-table-mobile .tracker-player-inline-hero {
-  max-width: 2.8rem;
+  max-width: 3.5rem;
 }
 
 .tracker-table-mobile .tracker-player-inline-name {
-  font-size: 0.62rem;
+  font-size: 0.74rem;
 }
 
 .tracker-table-mobile .tracker-player-inline-hero {
-  font-size: 0.54rem;
+  font-size: 0.64rem;
 }
 
 .tracker-table-mobile .tracker-role-text {
@@ -2646,15 +2646,16 @@ button.ghost,
 .tracker-respawn-overlay {
   position: absolute;
   right: 0.2rem;
-  top: 0.16rem;
+  top: 50%;
+  transform: translateY(-50%);
   border-radius: 999px;
   border: 1px solid rgba(164, 47, 23, 0.45);
   background: rgba(252, 235, 230, 0.95);
   color: #8f2810;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.44rem;
+  font-size: 0.46rem;
   line-height: 1;
-  padding: 0.08rem 0.2rem;
+  padding: 0.08rem 0.22rem;
   pointer-events: none;
 }
 
@@ -4174,36 +4175,36 @@ button.ghost,
 
   .match-page .tracker-table-mobile th,
   .match-page .tracker-table-mobile td {
-    padding: 0.18rem 0.17rem;
-    font-size: 0.53rem;
+    padding: 0.22rem 0.17rem;
+    font-size: 0.6rem;
   }
 
   .match-page .tracker-table-mobile th:nth-child(2),
   .match-page .tracker-table-mobile td:nth-child(2) {
-    min-width: 136px;
+    min-width: 128px;
   }
 
   .match-page .tracker-table-mobile td.tracker-player-cell {
-    padding-right: 2.05rem;
+    padding-right: 0.5rem;
   }
 
   .match-page .tracker-table-mobile .tracker-player-inline-name {
-    font-size: 0.56rem;
+    font-size: 0.68rem;
   }
 
   .match-page .tracker-table-mobile .tracker-player-inline-hero {
-    font-size: 0.49rem;
+    font-size: 0.58rem;
   }
 
   .match-page .tracker-table-mobile .tracker-hero-icon {
-    width: 0.82rem;
-    height: 0.82rem;
+    width: 0.9rem;
+    height: 0.9rem;
   }
 
   .match-page .tracker-table-mobile .tracker-role-icon {
-    width: 0.68rem;
-    height: 0.68rem;
-    font-size: 0.38rem;
+    width: 0.72rem;
+    height: 0.72rem;
+    font-size: 0.4rem;
   }
 
   .match-page .tracker-table-mobile .tracker-role-text {
@@ -4211,7 +4212,7 @@ button.ghost,
   }
 
   .match-page .tracker-table-mobile .tracker-hp-cell.compact {
-    min-width: 46px;
+    min-width: 38px;
   }
 
   .match-page .tracker-table-mobile .tracker-hp-cell.compact .hp-track {
@@ -4219,14 +4220,13 @@ button.ghost,
   }
 
   .match-page .tracker-table-mobile .tracker-hp-label.compact {
-    font-size: 0.42rem;
+    font-size: 0.48rem;
   }
 
   .match-page .tracker-table-mobile .tracker-respawn-overlay {
-    font-size: 0.4rem;
-    padding: 0.05rem 0.16rem;
-    right: 0.1rem;
-    top: 0.12rem;
+    font-size: 0.42rem;
+    padding: 0.06rem 0.16rem;
+    right: 0.08rem;
   }
 
   .match-page .team-box .team-link {
