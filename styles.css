@@ -4202,7 +4202,7 @@ button.ghost,
 
 @media (max-width: 760px) {
   body {
-    padding-bottom: calc(4.8rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
   }
 
   .noise {
@@ -4240,71 +4240,26 @@ button.ghost,
   }
 
   .page-nav {
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 0.24rem;
+    margin-top: 0.4rem;
+    border-radius: 12px;
+    padding: 0.2rem;
+  }
+
+  .page-nav a {
+    min-height: 2.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.66rem;
+    padding: 0.24rem 0.32rem;
   }
 
   .mobile-tabbar {
-    position: fixed;
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
-    z-index: 62;
-    margin-top: 0;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 252, 255, 0.93));
-    border: 1px solid rgba(27, 90, 129, 0.2);
-    border-radius: 16px;
-    box-shadow:
-      0 14px 32px rgba(10, 24, 40, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.78);
-    backdrop-filter: blur(18px);
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.22rem;
-    padding: 0.24rem;
-  }
-
-  .mobile-tab {
-    border: 1px solid transparent;
-    min-height: 2.2rem;
-    border-radius: 10px;
-    font-size: 0.66rem;
-    padding: 0.12rem 0.2rem;
-    display: grid;
-    justify-items: center;
-    align-content: center;
-    gap: 0.12rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    background: rgba(16, 66, 91, 0.06);
-    color: #1e5e67;
-    font-family: "Archivo Black", "Impact", sans-serif;
-    letter-spacing: 0.01em;
-  }
-
-  .mobile-tab-icon {
-    width: 1.05rem;
-    height: 1.05rem;
-    border-radius: 999px;
-    border: 1px solid rgba(30, 94, 103, 0.25);
-    font-size: 0.56rem;
-    line-height: 1;
-    background: rgba(255, 255, 255, 0.72);
-  }
-
-  .mobile-tab[aria-current="page"] {
-    background: linear-gradient(130deg, var(--accent), var(--accent-strong));
-    color: #fff;
-    border-color: rgba(9, 63, 60, 0.3);
-    box-shadow:
-      0 8px 18px color-mix(in srgb, var(--accent-strong) 28%, #0f2d4f 72%),
-      inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  }
-
-  .mobile-tab[aria-current="page"] .mobile-tab-icon {
-    border-color: rgba(255, 255, 255, 0.36);
-    background: rgba(255, 255, 255, 0.22);
-    color: #fff;
+    display: none !important;
   }
 
   .match-page .hero h1 {
