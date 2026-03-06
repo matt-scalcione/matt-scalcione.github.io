@@ -153,6 +153,15 @@
 
       <section class="panel" data-scope="game">
         <div class="section-head">
+          <h2>Live Feed</h2>
+        </div>
+        <div id="leadTrendWrap" class="trend-wrap"></div>
+        <div id="liveSummaryWrap" class="live-summary-strip"></div>
+        <ul id="liveFeedList" class="moments live-feed-list"></ul>
+      </section>
+
+      <section class="panel" data-scope="game">
+        <div class="section-head">
           <h2>Player Tracker</h2>
           <p class="meta-text">All 10 players with economy and impact stats.</p>
         </div>
@@ -168,55 +177,6 @@
           </label>
         </div>
         <div id="playerTrackerWrap" class="player-tracker"></div>
-      </section>
-
-      <section class="panel" data-scope="game">
-        <div class="section-head">
-          <h2>Lead Trend</h2>
-          <p class="meta-text">Gold lead movement in current tracked game.</p>
-        </div>
-        <div id="leadTrendWrap" class="trend-wrap"></div>
-      </section>
-
-      <section class="panel" data-scope="game">
-        <div class="section-head">
-          <h2>Live Event Feed</h2>
-          <p class="meta-text">Timeline anchored to in-game clock for this map.</p>
-        </div>
-        <div id="liveSummaryWrap" class="live-summary-strip"></div>
-        <div class="feed-controls-shell">
-          <button id="feedControlsToggle" class="ghost feed-controls-toggle" type="button" hidden></button>
-          <div id="feedControlsWrap" class="feed-controls">
-            <label>
-              Event Type
-              <select id="feedTypeFilter">
-                <option value="all">All</option>
-                <option value="combat">Combat</option>
-                <option value="objective">Objective</option>
-                <option value="swing">Swing</option>
-                <option value="moment">Moment</option>
-              </select>
-            </label>
-            <label>
-              Team
-              <select id="feedTeamFilter">
-                <option value="all">All Teams</option>
-                <option value="left">Left Team</option>
-                <option value="right">Right Team</option>
-              </select>
-            </label>
-            <label>
-              Window
-              <select id="feedWindowFilter">
-                <option value="all">All Time</option>
-                <option value="2">Last 2 Minutes</option>
-                <option value="5">Last 5 Minutes</option>
-                <option value="10">Last 10 Minutes</option>
-              </select>
-            </label>
-          </div>
-        </div>
-        <ul id="liveFeedList" class="moments live-feed-list"></ul>
       </section>
 
       <section class="panel" data-scope="game">
