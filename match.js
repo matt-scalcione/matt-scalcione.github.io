@@ -489,11 +489,8 @@ function applyMatchMobilePanelCollapseState(match = uiState.match) {
     }
 
     const hiddenByScope = panelElement.classList.contains("hidden-panel");
-    const hiddenAsAdvanced =
-      panelElement.classList.contains("mobile-advanced-collapsed") ||
-      panelElement.classList.contains("mobile-advanced-panel") ||
-      panelElement.classList.contains("mobile-core-panel");
-    const shouldHideControl = !compact || hiddenByScope || (uiState.viewMode === "game" && hiddenAsAdvanced);
+    const hiddenAsAdvanced = panelElement.classList.contains("mobile-advanced-collapsed");
+    const shouldHideControl = !compact || hiddenByScope || hiddenAsAdvanced;
     if (shouldHideControl) {
       panelElement.classList.remove("mobile-collapsible", "mobile-panel-collapsed");
       toggleButton.hidden = true;
