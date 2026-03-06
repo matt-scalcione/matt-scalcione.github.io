@@ -262,6 +262,7 @@ const elements = {
   liveSummaryWrap: document.querySelector("#liveSummaryWrap"),
   feedControlsToggle: document.querySelector("#feedControlsToggle"),
   feedControlsWrap: document.querySelector("#feedControlsWrap"),
+  feedResetFilter: document.querySelector("#feedResetFilter"),
   liveFeedList: document.querySelector("#liveFeedList"),
   combatBurstsList: document.querySelector("#combatBurstsList"),
   goldMilestonesList: document.querySelector("#goldMilestonesList"),
@@ -923,36 +924,38 @@ function feedWindowSummaryLabel(value) {
 }
 
 function renderFeedControlsChrome(match = uiState.match) {
-  const shell = elements.feedControlsWrap?.closest(".feed-controls-shell");
-  if (!elements.feedControlsToggle || !elements.feedControlsWrap || !shell) {
+  if (!elements.feedControlsWrap) {
     return;
   }
 
-  const compact = isCompactUI() && uiState.viewMode === "game";
-  const summaryChips = [
-    feedTypeSummaryLabel(uiState.feedType),
-    feedTeamSummaryLabel(match, uiState.feedTeam),
-    feedWindowSummaryLabel(uiState.feedWindowMinutes)
-  ];
-
-  shell.classList.toggle("compact", compact);
-  shell.classList.toggle("expanded", compact && uiState.feedControlsExpanded);
-  elements.feedControlsToggle.hidden = !compact;
-  elements.feedControlsToggle.setAttribute("aria-expanded", String(!compact || uiState.feedControlsExpanded));
-  elements.feedControlsToggle.innerHTML = `
-    <span class="feed-controls-toggle-label">Filters</span>
-    <span class="feed-controls-toggle-summary">${summaryChips
-      .map((label) => `<span class="feed-controls-toggle-chip">${label}</span>`)
-      .join("")}</span>
-    <span class="feed-controls-toggle-action">${uiState.feedControlsExpanded ? "Hide" : "Edit"}</span>
-  `;
-
-  if (!compact) {
-    elements.feedControlsWrap.hidden = false;
-    return;
+  if (elements.feedTypeFilter) {
+    elements.feedTypeFilter.value = uiState.feedType;
+    elements.feedTypeFilter.title = feedTypeSummaryLabel(uiState.feedType);
   }
 
-  elements.feedControlsWrap.hidden = !uiState.feedControlsExpanded;
+  if (elements.feedTeamFilter) {
+    elements.feedTeamFilter.value = uiState.feedTeam;
+    elements.feedTeamFilter.title = feedTeamSummaryLabel(match, uiState.feedTeam);
+  }
+
+  if (elements.feedImportanceFilter) {
+    elements.feedImportanceFilter.value = uiState.feedImportance;
+  }
+
+  if (elements.feedWindowFilter) {
+    elements.feedWindowFilter.value = uiState.feedWindowMinutes === null ? "all" : String(uiState.feedWindowMinutes);
+    elements.feedWindowFilter.title = feedWindowSummaryLabel(uiState.feedWindowMinutes);
+  }
+
+  const hasActiveFilters =
+    uiState.feedType !== "all" ||
+    uiState.feedTeam !== "all" ||
+    uiState.feedImportance !== "all" ||
+    uiState.feedWindowMinutes !== null;
+  elements.feedControlsWrap.dataset.active = hasActiveFilters ? "1" : "0";
+  if (elements.feedResetFilter) {
+    elements.feedResetFilter.hidden = !hasActiveFilters;
+  }
 }
 
 function trackerTeamTag(name) {
@@ -4487,6 +4490,19 @@ function bindFeedControls() {
     });
   }
 
+  if (elements.feedResetFilter) {
+    elements.feedResetFilter.addEventListener("click", () => {
+      uiState.feedType = "all";
+      uiState.feedTeam = "all";
+      uiState.feedImportance = "all";
+      uiState.feedWindowMinutes = null;
+      renderFeedControlsChrome(uiState.match);
+      if (uiState.match) {
+        renderUnifiedLiveFeed(uiState.match);
+      }
+    });
+  }
+
   if (elements.trackerSort) {
     elements.trackerSort.value = uiState.trackerSort;
     elements.trackerSort.addEventListener("change", () => {
@@ -4713,22 +4729,32 @@ function renderUpcomingWatchGuide(match) {
     .join("");
 }
 
-function formatRecentFormRow(row, apiBase) {
+function formatRecentFormRow(row, apiBase, { match = null, focalTeamId = null } = {}) {
   if (!row) {
     return `<li class="meta-text">No recent result.</li>`;
   }
 
   const resultClass = row.result === "win" ? "win-left" : row.result === "loss" ? "win-right" : "even";
-  const detailLink = row.id
-    ? `<a class="table-link" href="${detailUrlForGame(row.id, apiBase)}">Open</a>`
-    : `<span class="meta-text">-</span>`;
+  const detailLink = row.id ? `<a class="table-link" href="${detailUrlForGame(row.id, apiBase)}">Open</a>` : "";
+  const opponentLink = row.opponentId
+    ? `<a class="team-link" href="${teamDetailUrl(row.opponentId, match?.game, uiState.apiBase, {
+        matchId: match?.id || null,
+        opponentId: focalTeamId,
+        teamName: row.opponentName || null
+      })}">${row.opponentName || "Unknown"}</a>`
+    : row.opponentName || "Unknown";
   return `
-    <li>
-      <span class="${resultClass}">${String(row.result || "unknown").toUpperCase()}</span>
-      <span>${row.scoreLabel || "n/a"}</span>
-      <span>${row.opponentName || "Unknown"}</span>
-      <span>${dateTimeLabel(row.startAt)}</span>
-      <span>${detailLink}</span>
+    <li class="form-match-item">
+      <div class="form-match-top">
+        <span class="series-h2h-result ${resultClass}">${h2hResultLabel(row.result)}</span>
+        <span class="form-match-opponent">${opponentLink}</span>
+        <span class="form-match-score">${row.scoreLabel || "n/a"}</span>
+      </div>
+      <div class="form-match-meta">
+        <span>${isCompactUI() ? dateTimeCompact(row.startAt) : dateTimeLabel(row.startAt)}</span>
+        <span>${row.tournament || "Unknown"}</span>
+        ${detailLink || `<span class="meta-text">-</span>`}
+      </div>
     </li>
   `;
 }
@@ -4758,11 +4784,24 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
   return `
     <article class="form-card ${toneClass}">
       <h3>${headerText}</h3>
-      <p class="meta-text">Series: ${profile.wins ?? 0}-${profile.losses ?? 0} · Win Rate ${Number(profile.seriesWinRatePct || 0).toFixed(1)}%</p>
-      <p class="meta-text">Maps: ${profile.gameWins ?? 0}-${profile.gameLosses ?? 0} · Win Rate ${Number(profile.gameWinRatePct || 0).toFixed(1)}%</p>
-      <p class="meta-text">Streak: ${profile.streakLabel || "n/a"} · Recent Form ${profile.formLabel || "n/a"}</p>
+      <div class="form-summary-strip">
+        <span class="form-summary-pill">Series ${profile.wins ?? 0}-${profile.losses ?? 0}</span>
+        <span class="form-summary-pill">Maps ${profile.gameWins ?? 0}-${profile.gameLosses ?? 0}</span>
+        <span class="form-summary-pill">Win ${Number(profile.seriesWinRatePct || 0).toFixed(0)}%</span>
+        <span class="form-summary-pill">Streak ${profile.streakLabel || "n/a"}</span>
+      </div>
+      <p class="meta-text">Last 5 matches</p>
       <ul class="mini-list form-list">
-        ${recentRows.length ? recentRows.map((row) => formatRecentFormRow(row, uiState.apiBase)).join("") : `<li class="meta-text">No recent matches.</li>`}
+        ${recentRows.length
+          ? recentRows
+              .map((row) =>
+                formatRecentFormRow(row, uiState.apiBase, {
+                  match,
+                  focalTeamId: teamId
+                })
+              )
+              .join("")
+          : `<li class="meta-text">No recent matches.</li>`}
       </ul>
     </article>
   `;
@@ -4810,35 +4849,42 @@ function renderUpcomingHeadToHead(match) {
   }
 
   const rows = h2h.lastMeetings
-    .map(
-      (row) => `
-        <tr>
-          <td>${dateTimeLabel(row.startAt)}</td>
-          <td>${row.winnerName || "TBD"}</td>
-          <td>${row.scoreLabel || "n/a"}</td>
-          <td>${row.tournament || "Unknown"}</td>
-        </tr>
-      `
-    )
+    .map((row) => {
+      const winnerTone =
+        row.winnerName === match?.teams?.left?.name
+          ? "win-left"
+          : row.winnerName === match?.teams?.right?.name
+            ? "win-right"
+            : "even";
+      const detailLink = row.id ? `<a class="table-link" href="${detailUrlForGame(row.id, uiState.apiBase)}">Open</a>` : "";
+      return `
+        <article class="series-h2h-item upcoming-h2h-card">
+          <div class="series-h2h-top">
+            <p class="series-h2h-date">${isCompactUI() ? dateTimeCompact(row.startAt) : dateTimeLabel(row.startAt)}</p>
+            <span class="form-match-score">${row.scoreLabel || "n/a"}</span>
+          </div>
+          <div class="form-match-top">
+            <span class="series-h2h-result ${winnerTone}">${row.winnerName === match?.teams?.left?.name ? scoreboardTeamName(match.teams.left.name) : row.winnerName === match?.teams?.right?.name ? scoreboardTeamName(match.teams.right.name) : "TBD"}</span>
+            <span class="form-match-opponent">${row.winnerName || "TBD"} won</span>
+          </div>
+          <div class="form-match-meta">
+            <span>${row.tournament || "Unknown"}</span>
+            ${detailLink || `<span class="meta-text">-</span>`}
+          </div>
+        </article>
+      `;
+    })
     .join("");
 
   elements.upcomingH2hWrap.innerHTML = `
     <article class="upcoming-note">
-      <p class="meta-text">Meetings: ${h2h.total || 0} · ${match.teams.left.name} wins ${h2h.leftWins || 0} · ${match.teams.right.name} wins ${h2h.rightWins || 0}</p>
+      <div class="form-summary-strip">
+        <span class="form-summary-pill">Meetings ${h2h.total || 0}</span>
+        <span class="form-summary-pill">${scoreboardTeamName(match.teams.left.name)} ${h2h.leftWins || 0}</span>
+        <span class="form-summary-pill">${scoreboardTeamName(match.teams.right.name)} ${h2h.rightWins || 0}</span>
+      </div>
     </article>
-    <div class="lane-table-wrap">
-      <table class="lane-table upcoming-h2h-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Winner</th>
-            <th>Score</th>
-            <th>Tournament</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
+    <div class="series-h2h-list upcoming-h2h-list">${rows}</div>
   `;
 }
 
