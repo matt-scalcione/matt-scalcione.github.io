@@ -4805,6 +4805,120 @@ button.ghost,
   margin: 0;
 }
 
+.recap-draft-state {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 251, 244, 0.98), rgba(255, 246, 234, 0.94));
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.recap-draft-state.draft {
+  border-color: rgba(168, 93, 20, 0.34);
+}
+
+.recap-draft-state.pending {
+  border-color: rgba(109, 126, 145, 0.28);
+}
+
+.recap-draft-state h3 {
+  margin: 0.08rem 0 0;
+  font-size: 1rem;
+}
+
+.recap-draft-state-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.recap-draft-state-meta p {
+  margin: 0;
+}
+
+.recap-draft-badge {
+  border: 1px solid rgba(168, 93, 20, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #8b4b13;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.46rem;
+}
+
+.recap-draft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.62rem;
+}
+
+.recap-draft-team {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.68rem;
+  display: grid;
+  gap: 0.42rem;
+}
+
+.recap-draft-team h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.recap-draft-row {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(248, 252, 255, 0.92);
+  padding: 0.46rem 0.52rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.46rem;
+  align-items: center;
+}
+
+.recap-draft-row.pending {
+  background: rgba(246, 248, 251, 0.9);
+  color: var(--muted);
+}
+
+.recap-draft-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.recap-draft-avatar.pending {
+  background: rgba(12, 45, 66, 0.05);
+  color: rgba(39, 74, 109, 0.68);
+}
+
+.recap-draft-copy {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.recap-draft-title,
+.recap-draft-meta {
+  margin: 0;
+}
+
+.recap-draft-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.recap-draft-meta {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
 .draft-delta {
   display: grid;
   gap: 0.55rem;
@@ -5144,7 +5258,8 @@ button.ghost,
   .objective-breakdown,
   .control-rows,
   .series-compare-summary,
-  .recap-grid {
+  .recap-grid,
+  .recap-draft-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -6126,11 +6241,16 @@ button.ghost,
   .control-rows,
   .series-compare-summary,
   .recap-grid,
+  .recap-draft-grid,
   .delta-grid,
   .objective-forecast,
   .series-games,
   .runs-wrap {
     grid-template-columns: 1fr;
+  }
+
+  .recap-draft-state-meta {
+    align-items: flex-start;
   }
 
   input,
