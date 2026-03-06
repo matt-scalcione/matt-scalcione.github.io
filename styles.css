@@ -1856,6 +1856,29 @@ button.ghost,
   color: var(--muted);
 }
 
+.draft-context-card {
+  gap: 0.58rem;
+}
+
+.game-context-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 0.5rem;
+}
+
+.game-context-info-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.6rem;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.game-context-info-card .tempo-value {
+  font-size: 0.88rem;
+}
+
 .series-context-card {
   gap: 0.52rem;
 }
@@ -5305,6 +5328,7 @@ button.ghost,
 
   .upcoming-grid,
   .series-context-grid,
+  .game-context-grid,
   .snapshot-grid,
   .tempo-grid,
   .command-grid,
@@ -6287,6 +6311,7 @@ button.ghost,
   .past-toolbar,
   .snapshot-grid,
   .series-context-grid,
+  .game-context-grid,
   .upcoming-grid,
   .tempo-grid,
   .command-grid,

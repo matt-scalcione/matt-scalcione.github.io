@@ -2379,6 +2379,16 @@ function seriesInfoCard(label, value, note = null) {
   `;
 }
 
+function gameContextInfoCard(label, value, note = null) {
+  return `
+    <article class="game-context-info-card">
+      <p class="tempo-label">${label}</p>
+      <p class="tempo-value">${value}</p>
+      ${note ? `<p class="meta-text">${note}</p>` : ""}
+    </article>
+  `;
+}
+
 function renderGameExplorer(match, apiBase) {
   const nav = match.gameNavigation;
   const selected = match.selectedGame;
@@ -2551,6 +2561,59 @@ function renderGameExplorer(match, apiBase) {
   const draftPreview = inferDraftPreview(match);
   const compactStateSummary = compact && selected.state !== "inProgress";
   const telemetryCountsLine = `Ticker ${selected.telemetryCounts?.tickerEvents || 0} · Objective ${selected.telemetryCounts?.objectiveEvents || 0} · Bursts ${selected.telemetryCounts?.combatBursts || 0} · Milestones ${selected.telemetryCounts?.goldMilestones || 0}`;
+  const startedLabel = selected.startedAt
+    ? compact
+      ? dateTimeCompact(selected.startedAt)
+      : dateTimeLabel(selected.startedAt)
+    : "Waiting";
+  const sideLabel = sideSummary.length ? sideSummary.join(" · ") : "Sides pending";
+  const tipsList = tips.length ? `<ul class="confidence-notes">${tips.map((tip) => `<li>${tip}</li>`).join("")}</ul>` : "";
+
+  if (draftPreview) {
+    const infoCards = [
+      gameContextInfoCard("Map", `Game ${selected.number}`),
+      gameContextInfoCard("Phase", draftPreview.label),
+      gameContextInfoCard("Started", startedLabel),
+      gameContextInfoCard("Sides", sideLabel),
+      gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine)
+    ];
+
+    if (selected.watchUrl) {
+      infoCards.push(gameContextInfoCard("Watch", "Broadcast / VOD", "Primary link available below"));
+    }
+
+    elements.gameContextWrap.innerHTML = `
+      <article class="game-context-card ${selected.telemetryStatus || "none"} draft-context-card">
+        <div class="game-context-top">
+          <p class="game-context-title">Game ${selected.number} · ${draftPreview.hasDraftRows ? "Draft Live" : "Starting Soon"}</p>
+          <span class="pill live">${draftPreview.badge}</span>
+        </div>
+        <article class="draft-phase-banner ${draftPreview.tone}">
+          <div class="draft-phase-copy">
+            <p class="draft-phase-kicker">${draftPreview.badge}</p>
+            <p class="draft-phase-title">${draftPreview.hasDraftRows ? "Champion select is underway" : "Game start is close"}</p>
+            <p class="meta-text">${draftPreview.summary}</p>
+          </div>
+          <p class="draft-phase-detail">${draftPreview.detail}</p>
+        </article>
+        <div class="game-context-grid">
+          ${infoCards.join("")}
+        </div>
+        <div class="recap-draft-grid">
+          ${renderRecapDraftTeam(match, match.teams.left.name, draftPreview.leftRows)}
+          ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
+        </div>
+        ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Open Primary Stream</a>` : ""}
+        ${watchOptions.length
+          ? `<div class="vod-options">${watchOptions
+              .map((option) => `<a class="vod-link" href="${option.watchUrl}" target="_blank" rel="noreferrer">${compact ? option.shortLabel || option.label : option.label}</a>`)
+              .join("")}</div>`
+          : ""}
+        ${tipsList}
+      </article>
+    `;
+    return;
+  }
 
   elements.gameContextWrap.innerHTML = `
     <article class="game-context-card ${selected.telemetryStatus || "none"}">
@@ -2580,7 +2643,7 @@ function renderGameExplorer(match, apiBase) {
             .map((option) => `<a class="vod-link" href="${option.watchUrl}" target="_blank" rel="noreferrer">${compactStateSummary ? option.shortLabel || option.label : option.label}</a>`)
             .join("")}</div>`
         : ""}
-      ${compactStateSummary ? "" : tips.length ? `<ul class="confidence-notes">${tips.map((tip) => `<li>${tip}</li>`).join("")}</ul>` : ""}
+      ${compactStateSummary ? "" : tipsList}
     </article>
   `;
 }
@@ -2606,6 +2669,7 @@ function applyGamePanelVisibility(match) {
   const telemetryStatus = selected?.telemetryStatus || "none";
   const selectedState = selected?.state || "unstarted";
   const hasRichTelemetry = telemetryStatus === "rich";
+  const draftPreview = inferDraftPreview(match);
   const setTargetVisibility = (element, visible) => {
     if (!element) {
       return;
@@ -2661,6 +2725,8 @@ function applyGamePanelVisibility(match) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
     }
+    setTargetVisibility(elements.gameCommandWrap, !draftPreview);
+    setTargetVisibility(elements.selectedGameRecapWrap, !draftPreview);
     return;
   }
 
