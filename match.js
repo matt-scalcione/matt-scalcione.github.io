@@ -355,6 +355,7 @@ const uiState = {
   leadTrendScaleByContext: {},
   mapPulseByContext: {},
   storyFocusEventId: null,
+  storyFocusUserSet: false,
   storyInteractionsBound: false
 };
 const heroIconCatalog = {
@@ -3326,6 +3327,28 @@ function feedLeadSeriesRows(match) {
     .sort((left, right) => left.at - right.at);
 }
 
+function normalizedImportance(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized === "critical") return "critical";
+  if (normalized === "high") return "high";
+  if (normalized === "medium") return "medium";
+  if (normalized === "low") return "low";
+  return "low";
+}
+
+function feedPhaseDescriptor(gameClockSeconds) {
+  if (!Number.isFinite(gameClockSeconds)) {
+    return { key: "unknown", label: "Phase ?" };
+  }
+  if (gameClockSeconds < 15 * 60) {
+    return { key: "early", label: "Early" };
+  }
+  if (gameClockSeconds < 28 * 60) {
+    return { key: "mid", label: "Mid" };
+  }
+  return { key: "late", label: "Late" };
+}
+
 function feedLeadDescriptor(match, leadValue) {
   if (!Number.isFinite(leadValue) || leadValue === 0) {
     return {
@@ -3343,9 +3366,72 @@ function feedLeadDescriptor(match, leadValue) {
   };
 }
 
+function feedSwingDescriptor(leadRows, eventTs) {
+  if (!Number.isFinite(eventTs) || !Array.isArray(leadRows) || !leadRows.length) {
+    return {
+      label: "Δ n/a",
+      short: "Δ n/a",
+      tone: "even"
+    };
+  }
+
+  const current = leadValueAtTimestamp(leadRows, eventTs);
+  const prior = leadValueAtTimestamp(leadRows, eventTs - 120_000);
+  const delta = current - prior;
+  if (!Number.isFinite(delta) || Math.abs(delta) < 120) {
+    return {
+      label: "Δ Flat",
+      short: "Δ Flat",
+      tone: "even"
+    };
+  }
+
+  const tone = delta > 0 ? "left" : "right";
+  const amount = compactGold(Math.abs(delta));
+  return {
+    label: `Δ ${delta > 0 ? "+" : "-"}${amount} (2m)`,
+    short: `${delta > 0 ? "+" : "-"}${amount}`,
+    tone
+  };
+}
+
+function inferObjectiveKeyFromEvent(row) {
+  if (!row || row.bucket !== "objective") {
+    return null;
+  }
+
+  const source = `${String(row.title || "")} ${String(row.summary || "")}`.toLowerCase();
+  if (source.includes("baron")) return "baron";
+  if (source.includes("dragon") || source.includes("drake")) return "dragon";
+  if (source.includes("herald")) return "herald";
+  return null;
+}
+
+function enrichFeedRowsWithState(match, rows) {
+  const leadRows = feedLeadSeriesRows(match);
+  return rows.map((row) => {
+    const leadAtEvent = Number.isFinite(row.eventTs) && leadRows.length ? leadValueAtTimestamp(leadRows, row.eventTs) : null;
+    const leadDescriptor = feedLeadDescriptor(match, leadAtEvent);
+    const swingDescriptor = feedSwingDescriptor(leadRows, row.eventTs);
+    const phase = feedPhaseDescriptor(row.gameClockSeconds);
+    const importance = normalizedImportance(row.importance);
+    const objectiveKey = inferObjectiveKeyFromEvent(row);
+    return {
+      ...row,
+      leadAtEvent,
+      leadDescriptor,
+      swingDescriptor,
+      phase,
+      importance,
+      objectiveKey
+    };
+  });
+}
+
 function ensureStoryFocus(rows) {
   if (!rows.length) {
     uiState.storyFocusEventId = null;
+    uiState.storyFocusUserSet = false;
     return null;
   }
 
@@ -3354,7 +3440,17 @@ function ensureStoryFocus(rows) {
     return uiState.storyFocusEventId;
   }
 
-  const fallback = String(rows[0].eventId || "");
+  const rankedRows = [...rows].sort((left, right) => {
+    const importanceDelta = importanceRank(right.importance) - importanceRank(left.importance);
+    if (importanceDelta !== 0) {
+      return importanceDelta;
+    }
+    const leftTs = Number(left.eventTs || 0);
+    const rightTs = Number(right.eventTs || 0);
+    return rightTs - leftTs;
+  });
+  const preferred = uiState.storyFocusUserSet ? rows[0] : rankedRows[0] || rows[0];
+  const fallback = String(preferred?.eventId || rows[0].eventId || "");
   uiState.storyFocusEventId = fallback || null;
   return uiState.storyFocusEventId;
 }
@@ -3366,6 +3462,7 @@ function setStoryFocusEvent(eventId, options = {}) {
   }
 
   uiState.storyFocusEventId = normalized;
+  uiState.storyFocusUserSet = true;
   if (uiState.match) {
     renderLeadTrend(uiState.match);
     renderUnifiedLiveFeed(uiState.match);
@@ -3412,21 +3509,13 @@ function renderUnifiedLiveFeed(match) {
 
   if (!filtered.length) {
     uiState.storyFocusEventId = null;
+    uiState.storyFocusUserSet = false;
     elements.liveFeedList.innerHTML = `<li>No events match the current feed filters.</li>`;
     return;
   }
 
   const { timelineAnchor, rows: anchoredRows } = feedRowsWithGameClock(match, filtered);
-  const leadRows = feedLeadSeriesRows(match);
-  const rowsWithLead = anchoredRows.map((row) => {
-    const leadAtEvent = Number.isFinite(row.eventTs) && leadRows.length ? leadValueAtTimestamp(leadRows, row.eventTs) : null;
-    const leadDescriptor = feedLeadDescriptor(match, leadAtEvent);
-    return {
-      ...row,
-      leadAtEvent,
-      leadDescriptor
-    };
-  });
+  const rowsWithLead = enrichFeedRowsWithState(match, anchoredRows);
   const activeEventId = ensureStoryFocus(rowsWithLead);
 
   elements.liveFeedList.innerHTML = rowsWithLead
@@ -3434,11 +3523,12 @@ function renderUnifiedLiveFeed(match) {
       (row) => `
       <li class="live-feed-item ${row.team === "left" ? "team-left" : row.team === "right" ? "team-right" : "team-neutral"}${
         activeEventId && row.eventId === activeEventId ? " active" : ""
-      }" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0" role="button" aria-label="Jump to event in trend">
+      } importance-${row.importance}" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0" role="button" aria-label="Jump to event in trend">
         <div class="live-feed-row">
           <span class="feed-game-time">${row.gameClockSeconds === null ? "--:--" : `${timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`}</span>
           <div class="live-feed-main">
             <p class="live-feed-title">
+              <span class="feed-phase-tag ${row.phase.key}">${row.phase.label}</span>
               <span class="feed-bucket-tag">${feedBucketLabel(row.bucket)}</span>
               <span>${row.title}</span>
             </p>
@@ -3446,7 +3536,7 @@ function renderUnifiedLiveFeed(match) {
               row.team
                 ? ` · ${row.team === "left" ? displayTeamName(match.teams.left.name) : displayTeamName(match.teams.right.name)}`
                 : ""
-            } · <span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span></p>
+            } · <span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span> · <span class="feed-swing-tag ${row.swingDescriptor.tone}">${row.swingDescriptor.label}</span></p>
           </div>
         </div>
       </li>
@@ -4679,6 +4769,7 @@ function renderMiniMap(match, options = {}) {
   const focusedNote = focusedEvent
     ? `${focusedClock} · ${feedBucketLabel(focusedEvent.bucket)} · ${focusedTeamLabel}`
     : null;
+  const focusedObjective = focusedEvent ? inferObjectiveKeyFromEvent(focusedEvent) : null;
   const summary = structures.summary;
   const structureSummary = `${leftName} T ${summary.leftTowers}/${summary.towerTotal} · ${rightName} T ${summary.rightTowers}/${summary.towerTotal} · ${leftName} ${summary.inhibitorLabel} ${summary.leftInhibitors}/${summary.inhibitorTotal} · ${rightName} ${summary.inhibitorLabel} ${summary.rightInhibitors}/${summary.inhibitorTotal}`;
   const objectiveChips =
@@ -4688,7 +4779,9 @@ function renderMiniMap(match, options = {}) {
         ${objectiveMarkers
           .map(
             (marker) => `
-          <span class="objective-chip ${marker.state}${marker.ownerTeam ? ` owned-${marker.ownerTeam}` : ""}">
+          <span class="objective-chip ${marker.state}${marker.ownerTeam ? ` owned-${marker.ownerTeam}` : ""}${
+            focusedObjective && marker.id === focusedObjective ? " focused" : ""
+          }">
             <span class="objective-chip-key">${marker.short}</span>
             <span class="objective-chip-meta">${marker.etaLabel}</span>
           </span>
@@ -4892,7 +4985,8 @@ function buildTrendStory(match, chart) {
   }
 
   const { timelineAnchor, rows } = feedRowsWithGameClock(match, feedRows);
-  const chronologicalRows = rows
+  const enrichedRows = enrichFeedRowsWithState(match, rows);
+  const chronologicalRows = enrichedRows
     .filter((row) => Number.isFinite(row.eventTs))
     .sort((left, right) => left.eventTs - right.eventTs);
   if (!chronologicalRows.length) {
@@ -4982,12 +5076,20 @@ function renderLeadTrend(match) {
     !Number.isFinite(activeStoryLead) || activeStoryLead === 0
       ? "Lead: even"
       : `Lead: ${activeStoryLead > 0 ? `${leftTeamLabel} +` : `${rightTeamLabel} +`}${compactGold(Math.abs(activeStoryLead))}`;
+  const activeStoryMomentumLabel = activeStory?.swingDescriptor?.label || "Δ n/a";
+  const activeStoryPhaseLabel = activeStory?.phase?.label || "Phase ?";
   const activeStoryTone = activeStoryLead > 0 ? "left" : activeStoryLead < 0 ? "right" : "neutral";
+  const activeStoryMarker = trendStory.markers.find((row) => row.eventId === activeStory?.eventId) || null;
+  const activeStoryGuideMarkup = activeStoryMarker
+    ? `<line x1="${activeStoryMarker.chartX.toFixed(2)}" x2="${activeStoryMarker.chartX.toFixed(2)}" y1="${chart.chartBounds.top.toFixed(2)}" y2="${chart.chartBounds.bottom.toFixed(2)}" class="trend-event-guide ${activeStoryTone}"></line>`
+    : "";
   const trendMarkerMarkup = trendStory.markers
     .map((row) => {
       const tone = row.team === "left" ? "left" : row.team === "right" ? "right" : "neutral";
       const isActive = Boolean(activeStory?.eventId) && row.eventId === activeStory.eventId;
-      return `<circle cx="${row.chartX.toFixed(2)}" cy="${row.chartY.toFixed(2)}" r="${isActive ? "1.18" : "0.86"}" class="trend-event-marker ${tone} ${row.bucket}${isActive ? " active" : ""}" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0"></circle>`;
+      const baseRadius = row.importance === "critical" ? 1.02 : row.importance === "high" ? 0.94 : 0.84;
+      const markerRadius = isActive ? baseRadius + 0.36 : baseRadius;
+      return `<circle cx="${row.chartX.toFixed(2)}" cy="${row.chartY.toFixed(2)}" r="${markerRadius.toFixed(2)}" class="trend-event-marker ${tone} ${row.bucket} importance-${row.importance}${isActive ? " active" : ""}" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0"></circle>`;
     })
     .join("");
   const trendStoryListMarkup = trendStory.latestRows
@@ -5002,11 +5104,11 @@ function renderLeadTrend(match) {
       const clockLabel = row.gameClockSeconds === null ? "--:--" : `${trendStory.timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`;
       return `
         <li>
-          <button type="button" class="trend-story-item ${tone}${isActive ? " active" : ""}" data-story-event-id="${encodeStoryEventId(row.eventId)}">
+          <button type="button" class="trend-story-item ${tone}${isActive ? " active" : ""} importance-${row.importance}" data-story-event-id="${encodeStoryEventId(row.eventId)}">
             <span class="trend-story-clock">${clockLabel}</span>
             <span class="trend-story-pill">${feedBucketLabel(row.bucket)}</span>
             <span class="trend-story-text">${row.title}</span>
-            <span class="trend-story-team">${teamLabel}</span>
+            <span class="trend-story-team">${teamLabel} · ${row.phase?.label || "?"} · ${row.swingDescriptor?.short || "Δ n/a"}</span>
           </button>
         </li>
       `;
@@ -5018,7 +5120,7 @@ function renderLeadTrend(match) {
         <article class="trend-story-current ${activeStoryTone}">
           <p class="trend-story-kicker">Live Story</p>
           <p class="trend-story-headline">${activeStory?.title || "No event selected"}</p>
-          <p class="trend-story-meta">${activeStoryClock} · ${activeStoryTeam} · ${activeStory ? feedBucketLabel(activeStory.bucket) : "Event"} · ${activeStoryLeadLabel}</p>
+          <p class="trend-story-meta">${activeStoryClock} · ${activeStoryPhaseLabel} · ${activeStoryTeam} · ${activeStory ? feedBucketLabel(activeStory.bucket) : "Event"} · ${activeStoryLeadLabel} · ${activeStoryMomentumLabel}</p>
         </article>
         <ul class="trend-story-list">${trendStoryListMarkup}</ul>
       </section>
@@ -5046,6 +5148,7 @@ function renderLeadTrend(match) {
               .map((row) => `<text x="${(chart.chartBounds.left + 0.7).toFixed(2)}" y="${(row.y - 0.8).toFixed(2)}" class="trend-grid-label">${row.value === 0 ? "0" : `${row.value > 0 ? "+" : "-"}${compactGold(Math.abs(row.value))}`}</text>`)
               .join("")}
             <line x1="${chart.chartBounds.left}" x2="${chart.chartBounds.right}" y1="${chart.zeroY.toFixed(2)}" y2="${chart.zeroY.toFixed(2)}" class="trend-zero"></line>
+            ${activeStoryGuideMarkup}
             <line x1="${finalPoint.x.toFixed(2)}" x2="${finalPoint.x.toFixed(2)}" y1="${chart.zeroY.toFixed(2)}" y2="${finalPoint.y.toFixed(2)}" class="trend-current-guide ${finalToneClass}"></line>
             <path d="${chart.areaPath}" class="trend-area"></path>
             <path d="${chart.linePath}" class="trend-line"></path>
@@ -5055,7 +5158,7 @@ function renderLeadTrend(match) {
           </svg>
           <div class="trend-axis">
             <span>${shortTimeLabel(new Date(chart.minAt).toISOString())}</span>
-            <span>${coverageLabel} full-game timeline · ${chart.rows.length} samples</span>
+            <span>${coverageLabel} full-game timeline · ${chart.rows.length} samples · tap markers to sync feed</span>
             <span>${shortTimeLabel(new Date(chart.maxAt).toISOString())}</span>
           </div>
         </section>
@@ -6406,6 +6509,8 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   if (uiState.match?.id && uiState.match.id !== match.id) {
     uiState.leadTrendScaleByContext = {};
     uiState.mapPulseByContext = {};
+    uiState.storyFocusEventId = null;
+    uiState.storyFocusUserSet = false;
   }
 
   uiState.match = match;
