@@ -142,7 +142,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Series Comparison": { icon: "SC", short: "Series Stats" },
   "Selected Game Recap": { icon: "RC", short: "Game Recap" }
 };
-const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State", "Game Explorer"]);
+const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
   upcoming: new Set(["Upcoming Essentials", "Team Form", "Prediction Model", "Watch Guide"]),
@@ -474,6 +474,9 @@ function applyMatchMobilePanelCollapseState(match = uiState.match) {
     }
 
     const headingTitle = String(heading.dataset.fullTitle || heading.textContent || "").trim();
+    if (!heading.dataset.fullTitle) {
+      heading.dataset.fullTitle = headingTitle;
+    }
     const panelKey = matchPanelStorageKey(panelElement, headingTitle);
     panelElement.dataset.mobilePanelKey = panelKey;
     if (!panelElement.id) {
@@ -556,14 +559,8 @@ function bindMatchMobilePanelControls() {
       return;
     }
 
-    const isExpanded = toggleButton.getAttribute("aria-expanded") === "true";
-    const nextCollapsed = isExpanded;
+    const nextCollapsed = !panelElement.classList.contains("mobile-panel-collapsed");
     uiState.mobilePanelCollapsedByKey[panelKey] = nextCollapsed;
-    panelElement.classList.toggle("mobile-panel-collapsed", nextCollapsed);
-    toggleButton.dataset.state = nextCollapsed ? "collapsed" : "expanded";
-    toggleButton.setAttribute("aria-expanded", String(!nextCollapsed));
-    toggleButton.setAttribute("aria-label", nextCollapsed ? "Expand section" : "Collapse section");
-    toggleButton.setAttribute("title", nextCollapsed ? "Expand section" : "Collapse section");
     persistMatchMobilePanelState();
     applyMatchMobilePanelCollapseState(uiState.match);
   });
