@@ -3479,6 +3479,56 @@ function feedBucketTagLabel(bucket) {
   return "Event";
 }
 
+function normalizeFeedTitle(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function feedBucketSpecificityRank(bucket) {
+  const normalized = String(bucket || "").toLowerCase();
+  if (normalized === "objective") return 4;
+  if (normalized === "combat") return 3;
+  if (normalized === "swing") return 2;
+  if (normalized === "moment") return 1;
+  return 0;
+}
+
+function feedHasUsefulSummary(row) {
+  const summary = String(row?.summary || "").trim();
+  if (!summary) {
+    return false;
+  }
+
+  const normalized = summary.toLowerCase();
+  if (
+    normalized === "objective timeline event." ||
+    normalized === "team crossed an economy threshold." ||
+    normalized === "multi-kill combat window detected."
+  ) {
+    return false;
+  }
+
+  return normalized !== normalizeFeedTitle(row?.title);
+}
+
+function feedRowPreferenceScore(row) {
+  return importanceRank(row?.importance) * 10 + feedBucketSpecificityRank(row?.bucket) + (feedHasUsefulSummary(row) ? 1 : 0);
+}
+
+function semanticFeedEventKey(row) {
+  const titleKey = normalizeFeedTitle(row?.title);
+  if (!titleKey) {
+    return "";
+  }
+
+  const teamKey = String(row?.team || "none").trim().toLowerCase();
+  const parsedAt = Date.parse(String(row?.at || ""));
+  const timeKey = Number.isFinite(parsedAt) ? String(Math.floor(parsedAt / 10_000)) : String(row?.at || "").trim();
+  return `${teamKey}|${titleKey}|${timeKey}`;
+}
+
 function feedRowContentFingerprint(row) {
   const title = String(row?.title || "").trim().toLowerCase();
   const team = String(row?.team || "none").trim().toLowerCase();
@@ -3520,10 +3570,12 @@ function dedupeUnifiedFeedRows(rows) {
   const deduped = [];
   const seenIds = new Set();
   const seenContent = new Set();
+  const semanticIndexByKey = new Map();
 
   for (const row of rows) {
     const rowId = String(row?.id || "").trim();
     const contentFingerprint = feedRowContentFingerprint(row);
+    const semanticKey = semanticFeedEventKey(row);
     if (rowId && seenIds.has(rowId)) {
       continue;
     }
@@ -3540,6 +3592,21 @@ function dedupeUnifiedFeedRows(rows) {
     }
     if (contentFingerprint) {
       seenContent.add(contentFingerprint);
+    }
+
+    if (semanticKey && semanticIndexByKey.has(semanticKey)) {
+      const existingIndex = semanticIndexByKey.get(semanticKey);
+      if (Number.isInteger(existingIndex) && deduped[existingIndex]) {
+        const existing = deduped[existingIndex];
+        if (feedRowPreferenceScore(row) > feedRowPreferenceScore(existing)) {
+          deduped[existingIndex] = row;
+        }
+      }
+      continue;
+    }
+
+    if (semanticKey) {
+      semanticIndexByKey.set(semanticKey, deduped.length);
     }
     deduped.push(row);
   }
@@ -3696,7 +3763,8 @@ function feedSwingDescriptor(leadRows, eventTs) {
     return {
       label: "Δ n/a",
       short: "Δ n/a",
-      tone: "even"
+      tone: "even",
+      value: 0
     };
   }
 
@@ -3707,7 +3775,8 @@ function feedSwingDescriptor(leadRows, eventTs) {
     return {
       label: "Δ Flat",
       short: "Δ Flat",
-      tone: "even"
+      tone: "even",
+      value: 0
     };
   }
 
@@ -3716,7 +3785,8 @@ function feedSwingDescriptor(leadRows, eventTs) {
   return {
     label: `Δ ${delta > 0 ? "+" : "-"}${amount} (2m)`,
     short: `${delta > 0 ? "+" : "-"}${amount}`,
-    tone
+    tone,
+    value: delta
   };
 }
 
@@ -3732,6 +3802,30 @@ function inferObjectiveKeyFromEvent(row) {
   return null;
 }
 
+function majorFeedEvent(row) {
+  const importance = importanceRank(row?.importance);
+  const swingValue = Math.abs(Number(row?.swingDescriptor?.value || 0));
+  const leadValue = Math.abs(Number(row?.leadAtEvent || 0));
+
+  if (row?.bucket === "objective") {
+    return { kind: "objective", label: "Objective" };
+  }
+  if (importance >= 4) {
+    return { kind: "critical", label: "Critical" };
+  }
+  if (row?.bucket === "swing" && (swingValue >= 1200 || importance >= 3)) {
+    return { kind: "swing", label: "Swing" };
+  }
+  if (row?.bucket === "combat" && importance >= 3) {
+    return { kind: "fight", label: "Fight" };
+  }
+  if (leadValue >= 4000 && importance >= 2) {
+    return { kind: "lead", label: "Lead" };
+  }
+
+  return null;
+}
+
 function enrichFeedRowsWithState(match, rows) {
   const leadRows = feedLeadSeriesRows(match);
   return rows.map((row) => {
@@ -3741,6 +3835,12 @@ function enrichFeedRowsWithState(match, rows) {
     const phase = feedPhaseDescriptor(row.gameClockSeconds);
     const importance = normalizedImportance(row.importance);
     const objectiveKey = inferObjectiveKeyFromEvent(row);
+    const majorEvent = majorFeedEvent({
+      ...row,
+      leadAtEvent,
+      swingDescriptor,
+      importance
+    });
     return {
       ...row,
       leadAtEvent,
@@ -3748,9 +3848,58 @@ function enrichFeedRowsWithState(match, rows) {
       swingDescriptor,
       phase,
       importance,
-      objectiveKey
+      objectiveKey,
+      majorEvent,
+      hasUsefulSummary: feedHasUsefulSummary(row)
     };
   });
+}
+
+function feedClusterKey(row) {
+  if (!row || row.majorEvent || importanceRank(row.importance) > 2 || row.bucket === "objective") {
+    return "";
+  }
+
+  const titleKey = normalizeFeedTitle(row.title);
+  if (!titleKey) {
+    return "";
+  }
+
+  return `${String(row.team || "none").toLowerCase()}|${String(row.bucket || "event").toLowerCase()}|${titleKey}`;
+}
+
+function collapseFeedRowsForDisplay(rows) {
+  const collapsed = [];
+
+  for (const row of rows) {
+    const clusterKey = feedClusterKey(row);
+    const rowTs = Number(row?.eventTs || 0);
+    const previous = collapsed[collapsed.length - 1];
+
+    if (
+      previous &&
+      clusterKey &&
+      previous.clusterKey === clusterKey &&
+      Number.isFinite(rowTs) &&
+      Number.isFinite(previous.latestEventTs) &&
+      Math.abs(previous.latestEventTs - rowTs) <= 75_000
+    ) {
+      previous.clusterCount += 1;
+      previous.clusterEventIds.push(row.eventId);
+      previous.latestEventTs = Math.max(previous.latestEventTs, rowTs);
+      continue;
+    }
+
+    collapsed.push({
+      ...row,
+      clusterKey,
+      clusterCount: 1,
+      clusterEventIds: [row.eventId],
+      latestEventTs: rowTs
+    });
+  }
+
+  return collapsed;
 }
 
 function ensureStoryFocus(rows) {
@@ -3851,14 +4000,28 @@ function renderUnifiedLiveFeed(match) {
   const { timelineAnchor, rows: anchoredRows } = feedRowsWithGameClock(match, filtered);
   const rowsWithLead = enrichFeedRowsWithState(match, anchoredRows);
   const activeEventId = ensureStoryFocus(rowsWithLead);
+  const displayRows = collapseFeedRowsForDisplay(rowsWithLead);
   renderLiveFollowSummary(match, rowsWithLead, timelineAnchor, activeEventId);
 
-  elements.liveFeedList.innerHTML = rowsWithLead
+  elements.liveFeedList.innerHTML = displayRows
     .map(
-      (row) => `
+      (row) => {
+        const active = row.clusterEventIds?.includes(activeEventId);
+        const storyTargetId = active ? activeEventId : row.eventId;
+        const majorClass = row.majorEvent ? ` major-event major-${row.majorEvent.kind}` : "";
+        const clusterChip =
+          row.clusterCount > 1 ? `<span class="feed-cluster-chip">+${row.clusterCount - 1} linked</span>` : "";
+        const majorPill = row.majorEvent ? `<span class="feed-major-pill ${row.majorEvent.kind}">${row.majorEvent.label}</span>` : "";
+        const majorSummary =
+          row.majorEvent && row.hasUsefulSummary
+            ? `<p class="feed-major-summary">${clampSummaryText(row.summary, 108)}</p>`
+            : "";
+        return `
       <li class="live-feed-item ${row.team === "left" ? "team-left" : row.team === "right" ? "team-right" : "team-neutral"}${
-        activeEventId && row.eventId === activeEventId ? " active" : ""
-      } importance-${row.importance}" data-story-event-id="${encodeStoryEventId(row.eventId)}" tabindex="0" role="button" aria-label="Jump to event in trend">
+          active ? " active" : ""
+        } importance-${row.importance}${majorClass}" data-story-event-id="${encodeStoryEventId(
+          storyTargetId
+        )}" tabindex="0" role="button" aria-label="Jump to event in trend">
         <div class="live-feed-row">
           <span class="feed-game-time">${row.gameClockSeconds === null ? "--:--" : `${timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`}</span>
           <div class="live-feed-main">
@@ -3867,8 +4030,12 @@ function renderUnifiedLiveFeed(match) {
                 <span class="feed-priority-dot ${row.importance}" aria-hidden="true"></span>
                 <span>${row.title}</span>
               </p>
-              <span class="feed-absolute-time">${shortTimeLabel(row.at)}</span>
+              <div class="feed-top-side">
+                ${majorPill}
+                <span class="feed-absolute-time">${shortTimeLabel(row.at)}</span>
+              </div>
             </div>
+            ${majorSummary}
             <div class="live-feed-meta-row">
               <span class="feed-phase-tag ${row.phase.key}">${row.phase.label}</span>
               <span class="feed-bucket-tag ${row.bucket}">${feedBucketTagLabel(row.bucket)}</span>
@@ -3881,11 +4048,13 @@ function renderUnifiedLiveFeed(match) {
               }
               <span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span>
               <span class="feed-swing-tag ${row.swingDescriptor.tone}">${row.swingDescriptor.short}</span>
+              ${clusterChip}
             </div>
           </div>
         </div>
       </li>
-    `
+    `;
+      }
     )
     .join("");
 }
