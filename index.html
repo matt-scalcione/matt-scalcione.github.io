@@ -77,6 +77,28 @@
           <h2>Live and Upcoming</h2>
           <p id="metaText" class="meta-text" aria-live="polite">Waiting for data...</p>
         </div>
+        <div class="live-tools">
+          <div id="liveStatusSwitch" class="live-status-switch" aria-label="Live desk quick filter">
+            <button type="button" class="live-status-btn" data-status="all" aria-pressed="true">All</button>
+            <button type="button" class="live-status-btn" data-status="live" aria-pressed="false">Live</button>
+            <button type="button" class="live-status-btn" data-status="upcoming" aria-pressed="false">Next</button>
+            <button type="button" class="live-status-btn" data-status="completed" aria-pressed="false">Final</button>
+          </div>
+          <label class="live-search-field">
+            Search
+            <input
+              id="liveSearchInput"
+              type="search"
+              inputmode="search"
+              autocapitalize="off"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="team or tournament"
+            />
+          </label>
+          <button id="liveResetFiltersButton" type="button" class="ghost live-reset-btn">Clear</button>
+        </div>
+        <p id="liveFilterMeta" class="meta-text"></p>
         <div id="cardGrid" class="card-grid"></div>
       </section>
     </main>

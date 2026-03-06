@@ -23,7 +23,23 @@ const elements = {
   saveButton: document.querySelector("#saveButton"),
   statusText: document.querySelector("#statusText"),
   metaText: document.querySelector("#metaText"),
+  liveStatusSwitch: document.querySelector("#liveStatusSwitch"),
+  liveStatusButtons: Array.from(document.querySelectorAll("#liveStatusSwitch [data-status]")),
+  liveSearchInput: document.querySelector("#liveSearchInput"),
+  liveResetFiltersButton: document.querySelector("#liveResetFiltersButton"),
+  liveFilterMeta: document.querySelector("#liveFilterMeta"),
   cardGrid: document.querySelector("#cardGrid")
+};
+const liveDeskState = {
+  rows: [],
+  statusFilter: "all",
+  searchTerm: ""
+};
+const LIVE_STATUS_LABELS = {
+  all: "All",
+  live: "Live",
+  upcoming: "Next",
+  completed: "Final"
 };
 
 function readApiBase() {
@@ -120,6 +136,89 @@ function setupControlsPanel() {
   });
 }
 
+function normalizeLiveStatus(value) {
+  return value === "live" || value === "upcoming" || value === "completed" ? value : "all";
+}
+
+function applyLiveStatusButtons() {
+  for (const button of elements.liveStatusButtons) {
+    const active = button.getAttribute("data-status") === liveDeskState.statusFilter;
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
+function applyLiveStatusCounts(counts = { all: 0, live: 0, upcoming: 0, completed: 0 }) {
+  for (const button of elements.liveStatusButtons) {
+    const status = normalizeLiveStatus(button.getAttribute("data-status"));
+    const label = LIVE_STATUS_LABELS[status] || "All";
+    const value = Number.isFinite(Number(counts?.[status])) ? Number(counts[status]) : 0;
+    button.textContent = `${label} ${value}`;
+    button.setAttribute("aria-label", `${label} matches ${value}`);
+  }
+}
+
+function statusCounts(rows = []) {
+  const counts = {
+    all: rows.length,
+    live: 0,
+    upcoming: 0,
+    completed: 0
+  };
+
+  for (const row of rows) {
+    const status = String(row?.status || "").toLowerCase();
+    if (status === "live") counts.live += 1;
+    else if (status === "upcoming") counts.upcoming += 1;
+    else counts.completed += 1;
+  }
+  return counts;
+}
+
+function rowMatchesSearch(row, searchTerm) {
+  const normalized = String(searchTerm || "").trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  const haystack = [
+    row?.teams?.left?.name,
+    row?.teams?.right?.name,
+    row?.tournament,
+    row?.region
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+  return haystack.includes(normalized);
+}
+
+function applyClientFilters(rows = []) {
+  return rows.filter((row) => {
+    const status = String(row?.status || "completed").toLowerCase();
+    if (liveDeskState.statusFilter !== "all" && status !== liveDeskState.statusFilter) {
+      return false;
+    }
+    if (!rowMatchesSearch(row, liveDeskState.searchTerm)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function liveFilterSummaryText(filtered, total, counts) {
+  const statusLabel =
+    liveDeskState.statusFilter === "all"
+      ? "all statuses"
+      : liveDeskState.statusFilter === "live"
+        ? "live only"
+        : liveDeskState.statusFilter === "upcoming"
+          ? "upcoming only"
+          : "final only";
+  const searchLabel = liveDeskState.searchTerm.trim()
+    ? ` · search “${liveDeskState.searchTerm.trim()}”`
+    : "";
+  return `Showing ${filtered}/${total} · Live ${counts.live} · Next ${counts.upcoming} · Final ${counts.completed} · ${statusLabel}${searchLabel}`;
+}
+
 function updateNav(apiBase) {
   const liveUrl = new URL("./index.html", window.location.href);
   liveUrl.searchParams.set("api", apiBase);
@@ -175,11 +274,6 @@ function renderEmpty(message) {
 }
 
 function renderCards(rows, apiBase) {
-  if (!rows.length) {
-    renderEmpty("No matches found for the selected filters.");
-    return;
-  }
-
   const orderedRows = rows
     .slice()
     .sort((left, right) => {
@@ -227,6 +321,32 @@ function renderCards(rows, apiBase) {
     .join("");
 }
 
+function renderLiveDesk(apiBase) {
+  const totalRows = liveDeskState.rows.length;
+  const counts = statusCounts(liveDeskState.rows);
+  const filteredRows = applyClientFilters(liveDeskState.rows);
+
+  if (!filteredRows.length) {
+    if (totalRows === 0) {
+      renderEmpty("No matches found for the selected filters.");
+    } else {
+      renderEmpty("No matches for this quick filter. Try `All` or clear search.");
+    }
+  } else {
+    renderCards(filteredRows, apiBase);
+  }
+
+  if (elements.liveFilterMeta) {
+    elements.liveFilterMeta.textContent = liveFilterSummaryText(
+      filteredRows.length,
+      totalRows,
+      counts
+    );
+  }
+  applyLiveStatusCounts(counts);
+  applyLiveStatusButtons();
+}
+
 async function loadMatches() {
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   const game = elements.gameSelect.value;
@@ -255,11 +375,16 @@ async function loadMatches() {
       throw new Error(payload?.error?.message || "API request failed.");
     }
 
-    renderCards(payload.data || [], apiBase);
+    liveDeskState.rows = Array.isArray(payload.data) ? payload.data : [];
+    renderLiveDesk(apiBase);
     elements.metaText.textContent = `Showing ${payload?.meta?.count ?? 0} matches. Updated ${dateTimeLabel(payload?.meta?.generatedAt)}`;
     setStatus("Live desk synced.", "success");
   } catch (error) {
     setStatus(`Error: ${error.message}`, "error");
+    liveDeskState.rows = [];
+    if (elements.liveFilterMeta) {
+      elements.liveFilterMeta.textContent = "";
+    }
     renderEmpty("Unable to load matches. Check API base and API server status.");
   }
 }
@@ -283,6 +408,56 @@ function installEvents() {
       loadMatches();
     }
   });
+
+  if (elements.liveStatusSwitch) {
+    elements.liveStatusSwitch.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const button = target.closest("[data-status]");
+      if (!button) {
+        return;
+      }
+
+      liveDeskState.statusFilter = normalizeLiveStatus(button.getAttribute("data-status"));
+      try {
+        localStorage.setItem("pulseboard.live.quickStatus", liveDeskState.statusFilter);
+      } catch {
+        // Ignore storage failures.
+      }
+      renderLiveDesk(elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+    });
+  }
+
+  if (elements.liveSearchInput) {
+    elements.liveSearchInput.addEventListener("input", () => {
+      liveDeskState.searchTerm = String(elements.liveSearchInput.value || "").trim();
+      try {
+        localStorage.setItem("pulseboard.live.quickSearch", liveDeskState.searchTerm);
+      } catch {
+        // Ignore storage failures.
+      }
+      renderLiveDesk(elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+    });
+  }
+
+  if (elements.liveResetFiltersButton) {
+    elements.liveResetFiltersButton.addEventListener("click", () => {
+      liveDeskState.statusFilter = "all";
+      liveDeskState.searchTerm = "";
+      if (elements.liveSearchInput) {
+        elements.liveSearchInput.value = "";
+      }
+      try {
+        localStorage.removeItem("pulseboard.live.quickStatus");
+        localStorage.removeItem("pulseboard.live.quickSearch");
+      } catch {
+        // Ignore storage failures.
+      }
+      renderLiveDesk(elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+    });
+  }
 }
 
 function boot() {
@@ -290,6 +465,21 @@ function boot() {
   elements.apiBaseInput.value = startupApiBase;
   updateNav(startupApiBase);
   setupControlsPanel();
+  try {
+    liveDeskState.statusFilter = normalizeLiveStatus(localStorage.getItem("pulseboard.live.quickStatus"));
+  } catch {
+    liveDeskState.statusFilter = "all";
+  }
+  try {
+    liveDeskState.searchTerm = String(localStorage.getItem("pulseboard.live.quickSearch") || "").trim();
+  } catch {
+    liveDeskState.searchTerm = "";
+  }
+  if (elements.liveSearchInput) {
+    elements.liveSearchInput.value = liveDeskState.searchTerm;
+  }
+  applyLiveStatusCounts(statusCounts([]));
+  applyLiveStatusButtons();
   elements.dotaTiersInput.value = "1,2,3,4";
   elements.userIdInput.value = "demo-user";
   installEvents();
