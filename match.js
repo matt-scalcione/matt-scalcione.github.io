@@ -1,4 +1,12 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import {
+  applySeo,
+  gameLabel,
+  inferRobotsDirective,
+  normalizeGameKey as normalizeSeoGameKey,
+  setJsonLd,
+  toAbsoluteSiteUrl
+} from "./seo.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
@@ -1626,10 +1634,9 @@ function normalizeApiBase(base) {
   }
 }
 
-function detailUrlForGame(matchId, apiBase, gameNumber = null) {
+function detailUrlForGame(matchId, _apiBase, gameNumber = null) {
   const url = new URL("./match.html", window.location.href);
   url.searchParams.set("id", matchId);
-  url.searchParams.set("api", apiBase);
 
   if (Number.isInteger(gameNumber) && gameNumber > 0) {
     url.searchParams.set("game", String(gameNumber));
@@ -1643,12 +1650,11 @@ function detailUrlForGame(matchId, apiBase, gameNumber = null) {
 function teamDetailUrl(
   teamId,
   game,
-  apiBase,
+  _apiBase,
   { matchId = null, gameNumber = null, opponentId = null, teamName = null } = {}
 ) {
   const url = new URL("./team.html", window.location.href);
   url.searchParams.set("id", teamId);
-  url.searchParams.set("api", apiBase);
   if (game) {
     url.searchParams.set("game", game);
   }
@@ -1666,6 +1672,149 @@ function teamDetailUrl(
   }
 
   return url.toString();
+}
+
+function canonicalMatchPath(matchId, gameNumber = null) {
+  const params = new URLSearchParams();
+  if (matchId) {
+    params.set("id", String(matchId));
+  }
+  if (Number.isInteger(gameNumber) && gameNumber > 0) {
+    params.set("game", String(gameNumber));
+  }
+  const query = params.toString();
+  return `/match.html${query ? `?${query}` : ""}`;
+}
+
+function eventStatusForMatch(match) {
+  const status = String(match?.status || "").toLowerCase();
+  if (status === "live") {
+    return "https://schema.org/EventInProgress";
+  }
+  if (status === "completed") {
+    return "https://schema.org/EventCompleted";
+  }
+  return "https://schema.org/EventScheduled";
+}
+
+function refreshMatchSeo(match = null) {
+  const pageUrl = new URL(window.location.href);
+  const matchId = String(match?.id || pageUrl.searchParams.get("id") || "").trim();
+  const requestedGame = parseRequestedGameNumber(pageUrl.searchParams.get("game"));
+  const selectedGame = contextGameNumber();
+  const gameNumber = Number.isInteger(selectedGame) ? selectedGame : requestedGame;
+  const seoGameKey = normalizeSeoGameKey(match?.game || pageUrl.searchParams.get("title") || pageUrl.searchParams.get("game"));
+  const gameName = gameLabel(seoGameKey || "esports");
+  const leftName = String(match?.teams?.left?.name || "Team A").trim();
+  const rightName = String(match?.teams?.right?.name || "Team B").trim();
+  const matchup = `${leftName} vs ${rightName}`;
+
+  let pageTitle = "Match Detail | Pulseboard";
+  let description = "Series context, live map stats, and outcomes for esports matches on Pulseboard.";
+  if (matchId && !match) {
+    pageTitle = `Match ${matchId} | Pulseboard`;
+  }
+
+  if (match) {
+    const status = String(match.status || "").toLowerCase();
+    const tournament = String(match.tournament || "Tournament").trim();
+    const bestOf = Number(match.bestOf || 1);
+    if (Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game") {
+      const selectedState = String(match?.selectedGame?.state || status);
+      const stateLabel = selectedState === "inProgress" ? "Live" : selectedState === "completed" ? "Final" : "Preview";
+      pageTitle = `${matchup} Game ${gameNumber} ${stateLabel} | Pulseboard`;
+      description = `${stateLabel} game ${gameNumber} tracker for ${matchup} at ${tournament}: player stats, objective control, and lead trend.`;
+    } else if (status === "live") {
+      pageTitle = `${matchup} Live Series | Pulseboard`;
+      description = `Live ${gameName} series tracking for ${matchup} at ${tournament}, including current map context and series score.`;
+    } else if (status === "completed") {
+      pageTitle = `${matchup} Final Result | Pulseboard`;
+      description = `Final ${gameName} series result for ${matchup} at ${tournament} with map-by-map recap and team comparison.`;
+    } else {
+      pageTitle = `${matchup} Match Preview | Pulseboard`;
+      description = `Upcoming ${gameName} series preview for ${matchup} at ${tournament}, including form, head-to-head, and kickoff timing.`;
+    }
+
+    if (bestOf > 1) {
+      description = `${description} Format: Best of ${bestOf}.`;
+    }
+  }
+
+  const allowedQueryParams = Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game" ? ["id", "game"] : ["id"];
+  const canonicalPath = canonicalMatchPath(matchId, allowedQueryParams.includes("game") ? gameNumber : null);
+  let robots = inferRobotsDirective({ allowedQueryParams });
+  if (!matchId) {
+    robots = "noindex,nofollow";
+  }
+
+  applySeo({
+    title: pageTitle,
+    description,
+    canonicalPath,
+    robots,
+    ogType: "article"
+  });
+
+  if (!match) {
+    setJsonLd("match-event", null);
+    setJsonLd("match-games", null);
+    return;
+  }
+
+  const startDate = String(match.startAt || "").trim();
+  const selectedGameState = String(match?.selectedGame?.state || "").toLowerCase();
+  const eventUrl = toAbsoluteSiteUrl(canonicalMatchPath(match.id, Number.isInteger(gameNumber) && gameNumber > 0 ? gameNumber : null));
+  const eventName =
+    Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game"
+      ? `${matchup} - Game ${gameNumber}`
+      : matchup;
+  const eventDescription =
+    Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game"
+      ? `Map ${gameNumber} ${selectedGameState === "inprogress" ? "live" : selectedGameState || "status"} details for ${matchup}.`
+      : `${gameName} series between ${matchup}.`;
+
+  setJsonLd("match-event", {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    name: eventName,
+    sport: gameName,
+    description: eventDescription,
+    eventStatus: eventStatusForMatch(match),
+    startDate: startDate || undefined,
+    location: {
+      "@type": "Place",
+      name: String(match.tournament || "Esports Tournament")
+    },
+    competitor: [
+      {
+        "@type": "SportsTeam",
+        name: leftName
+      },
+      {
+        "@type": "SportsTeam",
+        name: rightName
+      }
+    ],
+    url: eventUrl
+  });
+
+  const games = Array.isArray(match?.seriesGames) ? match.seriesGames : [];
+  if (!games.length) {
+    setJsonLd("match-games", null);
+    return;
+  }
+
+  setJsonLd("match-games", {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${matchup} games`,
+    itemListElement: games.map((game, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: `Game ${game?.number || index + 1} ${String(game?.state || "").toLowerCase() || ""}`.trim(),
+      url: toAbsoluteSiteUrl(canonicalMatchPath(match.id, Number(game?.number || index + 1)))
+    }))
+  });
 }
 
 function normalizeMatchupLimit(value) {
@@ -5803,16 +5952,20 @@ function renderTimeline(rows) {
     .join("");
 }
 
-function applyNavigationLinks(apiBase) {
+function applyNavigationLinks(_apiBase) {
   const backUrl = new URL("./index.html", window.location.href);
-  backUrl.searchParams.set("api", apiBase);
+  const matchGame = normalizeSeoGameKey(uiState.match?.game);
+  if (matchGame) {
+    backUrl.searchParams.set("title", matchGame);
+  }
   elements.backLink.href = backUrl.toString();
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  scheduleUrl.searchParams.set("api", apiBase);
+  if (matchGame) {
+    scheduleUrl.searchParams.set("title", matchGame);
+  }
 
   const followsUrl = new URL("./follows.html", window.location.href);
-  followsUrl.searchParams.set("api", apiBase);
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = backUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = backUrl.toString();
@@ -5867,7 +6020,8 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   elements.freshnessText.textContent = isCompactUI()
     ? `${String(match.freshness.source || "polling").toUpperCase()} · ${String(match.freshness.status || "syncing").toUpperCase()} · ${dateTimeCompact(match.freshness.updatedAt)}`
     : `Source: ${match.freshness.source} · ${match.freshness.status} · Updated ${dateTimeLabel(match.freshness.updatedAt)}`;
-  document.title = `${match.teams.left.name} vs ${match.teams.right.name}${focusedLabel} | Pulseboard`;
+  applyNavigationLinks(apiBase);
+  refreshMatchSeo(match);
 
   renderScoreboard(match);
   renderStreamStatus(match);
@@ -6052,6 +6206,7 @@ async function loadMatch() {
   }
   bindFeedControls();
   applyNavigationLinks(apiBase);
+  refreshMatchSeo(null);
 
   if (!matchId) {
     closeMatchStream();
@@ -6061,6 +6216,7 @@ async function loadMatch() {
     uiState.activeGameNumber = null;
     resetMatchupState();
     elements.matchTitle.textContent = "Missing match id.";
+    refreshMatchSeo(null);
     renderStreamStatus(null);
     renderMatchupConsole(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);
@@ -6113,6 +6269,7 @@ async function loadMatch() {
     uiState.activeGameNumber = null;
     resetMatchupState();
     elements.matchTitle.textContent = `Error loading match: ${error.message}`;
+    refreshMatchSeo(null);
     renderStreamStatus(null);
     renderMatchupConsole(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /follows.html
+Disallow: /*?api=
+Disallow: /*&api=
+Disallow: /*?stream=
+Disallow: /*&stream=
+Sitemap: https://matt-scalcione.github.io/sitemap.xml

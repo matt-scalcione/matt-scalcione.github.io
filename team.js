@@ -1,4 +1,13 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import {
+  applySeo,
+  buildCanonicalPath,
+  gameLabel,
+  inferRobotsDirective,
+  normalizeGameKey,
+  setJsonLd,
+  toAbsoluteSiteUrl
+} from "./seo.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const MOBILE_BREAKPOINT = 760;
@@ -65,6 +74,71 @@ const state = {
   mobilePanelCollapsedByKey: {},
   mobilePanelControlsBound: false
 };
+
+function canonicalTeamPath() {
+  const params = new URLSearchParams();
+  params.set("id", String(state.teamId || ""));
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  if (game) {
+    params.set("game", game);
+  }
+  return `/team.html?${params.toString()}`;
+}
+
+function refreshTeamSeo(profile = null) {
+  const game = normalizeGameKey(elements.gameSelect?.value || profile?.game || "");
+  const teamName = String(profile?.name || state.teamNameHint || state.teamId || "Team").trim();
+  const title = `${teamName}${game ? ` ${gameLabel(game)}` : ""} Team Profile | Pulseboard`;
+  const description = profile
+    ? `${teamName} recent series form, past matches, and upcoming schedule on Pulseboard.`
+    : `Team profile and recent series context for ${teamName} on Pulseboard.`;
+  const hasFaceting = Boolean(
+    new URL(window.location.href).searchParams.get("opponent") ||
+      new URL(window.location.href).searchParams.get("opponent_id")
+  );
+  const robotsBase = inferRobotsDirective({
+    allowedQueryParams: ["id", "game", "team_name", "match", "limit"]
+  });
+  const robots = hasFaceting ? "noindex,follow" : robotsBase;
+
+  applySeo({
+    title,
+    description,
+    canonicalPath: canonicalTeamPath(),
+    robots
+  });
+
+  if (!profile) {
+    setJsonLd("team-organization", null);
+    setJsonLd("team-recent", null);
+    return;
+  }
+
+  setJsonLd("team-organization", {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: teamName,
+    url: toAbsoluteSiteUrl(canonicalTeamPath())
+  });
+
+  const recent = Array.isArray(profile?.recentMatches) ? profile.recentMatches.slice(0, 8) : [];
+  if (!recent.length) {
+    setJsonLd("team-recent", null);
+    return;
+  }
+
+  setJsonLd("team-recent", {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${teamName} recent matches`,
+    itemListElement: recent.map((row, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: toAbsoluteSiteUrl(`/match.html?id=${encodeURIComponent(String(row?.matchId || ""))}`),
+      name: `${teamName} vs ${row?.opponentName || "Opponent"}`
+    }))
+  });
+}
 
 try {
   const raw = localStorage.getItem("pulseboard.team.mobilePanelCollapsed");
@@ -351,13 +425,15 @@ function resultClass(result) {
 
 function updateNav(apiBase) {
   const liveUrl = new URL("./index.html", window.location.href);
-  liveUrl.searchParams.set("api", apiBase);
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  scheduleUrl.searchParams.set("api", apiBase);
 
   const followsUrl = new URL("./follows.html", window.location.href);
-  followsUrl.searchParams.set("api", apiBase);
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  if (game) {
+    liveUrl.searchParams.set("title", game);
+    scheduleUrl.searchParams.set("title", game);
+  }
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -373,7 +449,6 @@ function buildBackLink(apiBase) {
   if (fromMatch) {
     const matchUrl = new URL("./match.html", window.location.href);
     matchUrl.searchParams.set("id", fromMatch);
-    matchUrl.searchParams.set("api", apiBase);
     const gameNumber = url.searchParams.get("game_number");
     if (gameNumber) {
       matchUrl.searchParams.set("game", gameNumber);
@@ -384,7 +459,10 @@ function buildBackLink(apiBase) {
   }
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  scheduleUrl.searchParams.set("api", apiBase);
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  if (game) {
+    scheduleUrl.searchParams.set("title", game);
+  }
   elements.backLink.href = scheduleUrl.toString();
   elements.backLink.textContent = "Back to Schedule";
 }
@@ -392,7 +470,6 @@ function buildBackLink(apiBase) {
 function matchDetailUrl(matchId, apiBase) {
   const url = new URL("./match.html", window.location.href);
   url.searchParams.set("id", matchId);
-  url.searchParams.set("api", apiBase);
   return url.toString();
 }
 
@@ -410,7 +487,6 @@ function teamDetailUrl({
 
   const url = new URL("./team.html", window.location.href);
   url.searchParams.set("id", teamId);
-  url.searchParams.set("api", apiBase);
   if (game) {
     url.searchParams.set("game", game);
   }
@@ -1114,6 +1190,11 @@ function renderTeamLoadingState() {
 
 async function loadTeamProfile() {
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
+  try {
+    localStorage.setItem("pulseboard.apiBase", apiBase);
+  } catch {
+    // Ignore storage failures in private mode.
+  }
   updateNav(apiBase);
   buildBackLink(apiBase);
 
@@ -1138,6 +1219,7 @@ async function loadTeamProfile() {
     renderUpcomingMatches(profile, apiBase);
     renderPastMatches(profile, apiBase);
     renderHeadToHead(profile, apiBase);
+    refreshTeamSeo(profile);
     applyTeamMobilePanelCollapseState();
     renderTeamQuickJump();
     setStatus("Team profile synced.", "success");
@@ -1171,6 +1253,7 @@ async function loadTeamProfile() {
     elements.upcomingMatchesWrap.innerHTML = `<div class="empty">Unable to load upcoming matches.</div>`;
     elements.opponentBreakdownWrap.innerHTML = `<div class="empty">Unable to load past matches.</div>`;
     elements.headToHeadWrap.innerHTML = `<div class="empty">Unable to load head-to-head data.</div>`;
+    refreshTeamSeo(null);
     applyTeamMobilePanelCollapseState();
     renderTeamQuickJump();
   }
@@ -1288,6 +1371,7 @@ function boot() {
   bindTeamQuickJump();
   applyTeamMobilePanelCollapseState();
   renderTeamQuickJump();
+  refreshTeamSeo(null);
   installEvents();
   loadTeamProfile();
 }
