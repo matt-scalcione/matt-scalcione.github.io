@@ -1,4 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import { buildMatchUrl, buildTeamUrl } from "./routes.js";
 import {
   applySeo,
   buildCanonicalPath,
@@ -256,9 +257,7 @@ function buildQuery() {
 }
 
 function rowLink(id) {
-  const url = new URL("./match.html", window.location.href);
-  url.searchParams.set("id", id);
-  return url.toString();
+  return buildMatchUrl({ matchId: id });
 }
 
 function isCompactViewport() {
@@ -375,22 +374,14 @@ function teamLink({
     return teamName || "Unknown";
   }
 
-  const url = new URL("./team.html", window.location.href);
-  url.searchParams.set("id", teamId);
-  if (game) {
-    url.searchParams.set("game", game);
-  }
-  if (matchId) {
-    url.searchParams.set("match", matchId);
-  }
-  if (opponentId) {
-    url.searchParams.set("opponent", opponentId);
-  }
-  if (teamName) {
-    url.searchParams.set("team_name", teamName);
-  }
-
-  return `<a class="team-link" href="${url.toString()}">${label || teamName || teamId}</a>`;
+  const url = buildTeamUrl({
+    teamId,
+    game,
+    matchId,
+    opponentId,
+    teamName
+  });
+  return `<a class="team-link" href="${url}">${label || teamName || teamId}</a>`;
 }
 
 function updateNav() {

@@ -39,8 +39,10 @@
           break;
         }
 
-        if (search && !destination.includes("?")) {
-          destination = `${destination}${search}`;
+        if (search) {
+          destination = destination.includes("?")
+            ? `${destination}&${search.slice(1)}`
+            : `${destination}${search}`;
         }
 
         window.location.replace(destination);
