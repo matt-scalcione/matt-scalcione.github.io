@@ -77,9 +77,8 @@ const TEAM_LOGO_BY_KEY = {
 const MOBILE_GAME_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Game" },
   { id: "selectedGameRecapWrap", label: "Recap" },
+  { id: "leadTrendWrap", label: "Live" },
   { id: "playerTrackerWrap", label: "Players" },
-  { id: "leadTrendWrap", label: "Gold" },
-  { id: "liveFeedList", label: "Feed" },
   { id: "liveAlertsList", label: "Alerts" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
@@ -131,7 +130,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Game Command Center": { icon: "CC", short: "Command" },
   "Team Comparison": { icon: "TC", short: "Team Compare" },
   "Player Tracker": { icon: "PT", short: "Players" },
-  "Live Event Feed": { icon: "FE", short: "Live Feed" },
+  "Live Feed": { icon: "FE", short: "Live Feed" },
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
   "What Matters Now": { icon: "NOW", short: "Now" },
   "Live Alerts": { icon: "AL", short: "Alerts" },
@@ -146,7 +145,7 @@ const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
   upcoming: new Set(["Upcoming Essentials", "Team Form", "Prediction Model", "Watch Guide"]),
-  game: new Set(["Selected Game Recap", "Player Tracker", "Lead Trend", "Live Event Feed", "What Matters Now", "Live Alerts"])
+  game: new Set(["Selected Game Recap", "Live Feed", "Player Tracker", "What Matters Now", "Live Alerts"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -4057,7 +4056,7 @@ function renderUnifiedLiveFeed(match) {
     if (elements.liveSummaryWrap && String(match?.selectedGame?.state || "") === "inProgress") {
       renderLiveFollowSummary(match, [], { startTs: null, estimated: true }, null);
     }
-    elements.liveFeedList.innerHTML = `<li>No events match the current feed filters.</li>`;
+    elements.liveFeedList.innerHTML = `<li>No live events yet.</li>`;
     return;
   }
 
@@ -5552,15 +5551,9 @@ function renderMiniMap(match, options = {}) {
   const miniMap = buildMiniMap(match);
   const structures = miniMap.structures;
   const focusedEvent = options?.focusedEvent || null;
-  const timelineAnchor = options?.timelineAnchor || { estimated: true };
   const dynamicPulse = updateMapPulseState(match);
   const focusedTeam = focusedEvent?.team === "left" || focusedEvent?.team === "right" ? focusedEvent.team : null;
   const pulse = focusedTeam ? { team: focusedTeam, expiresAt: Date.now() + 20_000 } : dynamicPulse;
-  const now = Date.now();
-  const pulseSecondsLeft = pulse ? Math.max(1, Math.ceil((pulse.expiresAt - now) / 1000)) : 0;
-  const objectiveMarkers = objectiveMarkerRows(match);
-  const leftName = displayTeamName(match?.teams?.left?.name);
-  const rightName = displayTeamName(match?.teams?.right?.name);
   const structureNodes = structures.markers
     .map(
       (marker) => `
@@ -5585,50 +5578,6 @@ function renderMiniMap(match, options = {}) {
     `;
     })
     .join("");
-  const modeText =
-    miniMap.mode === "exact"
-      ? "Exact player coordinates are live."
-      : miniMap.mode === "no_exact"
-        ? "Player icons hidden until exact coordinates are available."
-        : "No player telemetry for this game yet.";
-  const pulseText = pulse
-    ? `Fight pulse: ${pulse.team === "both" ? "both teams" : pulse.team === "left" ? leftName : rightName} · ${pulseSecondsLeft}s`
-    : "No active fight pulse";
-  const focusedClock = focusedEvent?.gameClockSeconds === null || focusedEvent?.gameClockSeconds === undefined
-    ? "--:--"
-    : `${timelineAnchor.estimated ? "~" : ""}${formatGameClock(focusedEvent.gameClockSeconds)}`;
-  const focusedTeamLabel = focusedEvent?.team
-    ? focusedEvent.team === "left"
-      ? leftName
-      : focusedEvent.team === "right"
-        ? rightName
-        : "Neutral"
-    : "Neutral";
-  const focusedNote = focusedEvent
-    ? `${focusedClock} · ${feedBucketLabel(focusedEvent.bucket)} · ${focusedTeamLabel}`
-    : null;
-  const focusedObjective = focusedEvent ? inferObjectiveKeyFromEvent(focusedEvent) : null;
-  const summary = structures.summary;
-  const structureSummary = `${leftName} T ${summary.leftTowers}/${summary.towerTotal} · ${rightName} T ${summary.rightTowers}/${summary.towerTotal} · ${leftName} ${summary.inhibitorLabel} ${summary.leftInhibitors}/${summary.inhibitorTotal} · ${rightName} ${summary.inhibitorLabel} ${summary.rightInhibitors}/${summary.inhibitorTotal}`;
-  const objectiveChips =
-    miniMap.gameKey === "lol"
-      ? `
-      <div class="minimap-objectives">
-        ${objectiveMarkers
-          .map(
-            (marker) => `
-          <span class="objective-chip ${marker.state}${marker.ownerTeam ? ` owned-${marker.ownerTeam}` : ""}${
-            focusedObjective && marker.id === focusedObjective ? " focused" : ""
-          }">
-            <span class="objective-chip-key">${marker.short}</span>
-            <span class="objective-chip-meta">${marker.etaLabel}</span>
-          </span>
-        `
-          )
-          .join("")}
-      </div>
-    `
-      : "";
 
   return `
     <section class="minimap-card${pulse ? ` fight-${pulse.team}` : ""}">
@@ -5638,14 +5587,6 @@ function renderMiniMap(match, options = {}) {
         <div class="minimap-overlay minimap-structures-layer">${structureNodes}</div>
         <div class="minimap-overlay minimap-players-layer">${playerNodes}</div>
       </div>
-      <div class="minimap-legend">
-        <span class="minimap-chip left">${leftName}</span>
-        <span class="minimap-chip right">${rightName}</span>
-      </div>
-      ${objectiveChips}
-      <p class="minimap-note">${structureSummary}</p>
-      <p class="minimap-note">${modeText} · ${pulseText}</p>
-      ${focusedNote ? `<p class="minimap-note minimap-focus-note">Focused event: ${focusedNote}</p>` : ""}
     </section>
   `;
 }
@@ -5855,8 +5796,6 @@ function buildTrendStory(match, chart) {
 }
 
 function renderLeadTrend(match) {
-  const leftTeamLabel = displayTeamName(match.teams.left.name);
-  const rightTeamLabel = displayTeamName(match.teams.right.name);
   const series = Array.isArray(match.goldLeadSeries) ? match.goldLeadSeries : [];
   const trend = match.leadTrend;
   if (!series.length || !trend) {
@@ -5875,13 +5814,8 @@ function renderLeadTrend(match) {
   uiState.leadTrendScaleByContext[trendScaleKey] = chart.displayAbsLead;
 
   const leadCallout = trendLeadCallout(match, Number(trend.finalLead || 0));
-  const coverageSeconds = Math.max(0, Math.round((chart.maxAt - chart.minAt) / 1000));
-  const coverageLabel = coverageSeconds > 0 ? shortDuration(coverageSeconds) : "<1m";
-  const leftPeakLead = Math.max(0, Math.round(chart.rawMaxLead));
-  const rightPeakLead = Math.max(0, Math.round(Math.abs(chart.rawMinLead)));
   const finalPoint = chart.points[chart.points.length - 1];
   const finalToneClass = leadCallout.tone === "left" ? "left" : leadCallout.tone === "right" ? "right" : "even";
-  const zeroLineLabel = `0 (${leftTeamLabel} above · ${rightTeamLabel} below)`;
   const currentLead = Number(trend.finalLead || 0);
   const currentLeadLabel =
     !Number.isFinite(currentLead) || currentLead === 0
@@ -5895,31 +5829,10 @@ function renderLeadTrend(match) {
     chart.chartBounds.top + 2.2,
     Math.min(chart.chartBounds.bottom - 1.3, finalPoint.y - 1.2)
   );
-  const limitedWindowNote =
-    match.status === "live" && coverageSeconds < 120
-      ? "Live feed currently exposes a short window; timeline will expand as additional frames are collected."
-      : null;
   const trendStory = buildTrendStory(match, chart);
   const activeStory = trendStory.activeRow;
-  const miniMapMarkup = renderMiniMap(match, { focusedEvent: activeStory, timelineAnchor: trendStory.timelineAnchor });
-  const activeStoryLead = Number.isFinite(activeStory?.eventTs) ? leadValueAtTimestamp(chart.rows, Number(activeStory.eventTs)) : null;
-  const activeStoryClock = activeStory?.gameClockSeconds === null || activeStory?.gameClockSeconds === undefined
-    ? "--:--"
-    : `${trendStory.timelineAnchor.estimated ? "~" : ""}${formatGameClock(activeStory.gameClockSeconds)}`;
-  const activeStoryLeadLabel =
-    !Number.isFinite(activeStoryLead) || activeStoryLead === 0
-      ? "Even"
-      : `${activeStoryLead > 0 ? leftTeamLabel : rightTeamLabel} +${compactGold(Math.abs(activeStoryLead))}`;
-  const activeStoryTeamLabel =
-    activeStory?.team === "left"
-      ? leftTeamLabel
-      : activeStory?.team === "right"
-        ? rightTeamLabel
-        : "Neutral";
-  const activeStoryFocusLine = activeStory
-    ? `${activeStoryClock} · ${activeStory.phase?.label || "Phase ?"} · ${activeStoryTeamLabel} · ${feedBucketLabel(activeStory.bucket)} · ${activeStoryLeadLabel} · ${activeStory.swingDescriptor?.short || "Δ n/a"}`
-    : "No focused event selected";
-  const activeStoryTone = activeStoryLead > 0 ? "left" : activeStoryLead < 0 ? "right" : "neutral";
+  const miniMapMarkup = renderMiniMap(match, { focusedEvent: activeStory });
+  const activeStoryTone = activeStory?.team === "left" ? "left" : activeStory?.team === "right" ? "right" : "neutral";
   const activeStoryMarker = trendStory.markers.find((row) => row.eventId === activeStory?.eventId) || null;
   const activeStoryGuideMarkup = activeStoryMarker
     ? `<line x1="${activeStoryMarker.chartX.toFixed(2)}" x2="${activeStoryMarker.chartX.toFixed(2)}" y1="${chart.chartBounds.top.toFixed(2)}" y2="${chart.chartBounds.bottom.toFixed(2)}" class="trend-event-guide ${activeStoryTone}"></line>`
@@ -5938,10 +5851,6 @@ function renderLeadTrend(match) {
     <article class="trend-card">
       <p class="trend-headline ${finalToneClass}">${leadCallout.headline}</p>
       <p class="meta-text">${leadCallout.detail}</p>
-      <div class="trend-legend">
-        <span class="chip left">${leftTeamLabel} Advantage</span>
-        <span class="chip right">${rightTeamLabel} Advantage</span>
-      </div>
       <div class="trend-split">
         ${miniMapMarkup}
         <section class="trend-chart-panel">
@@ -5965,18 +5874,9 @@ function renderLeadTrend(match) {
           </svg>
           <div class="trend-axis">
             <span>${shortTimeLabel(new Date(chart.minAt).toISOString())}</span>
-            <span>${coverageLabel} full-game timeline · ${chart.rows.length} samples · tap markers to sync feed</span>
             <span>${shortTimeLabel(new Date(chart.maxAt).toISOString())}</span>
           </div>
         </section>
-      </div>
-      <div class="trend-stats">
-        <p class="meta-text trend-focus-line">Focused Event: ${activeStoryFocusLine}</p>
-        <p class="meta-text">Peak ${leftTeamLabel}: +${compactGold(leftPeakLead)} · Peak ${rightTeamLabel}: +${compactGold(rightPeakLead)}</p>
-        <p class="meta-text">Fixed scale: ±${compactGold(chart.displayAbsLead)} around center 0</p>
-        <p class="meta-text">Largest swing: ${formatNumber(Math.abs(Math.round(trend.largestSwing || 0)))} gold</p>
-        <p class="meta-text">${zeroLineLabel}</p>
-        ${limitedWindowNote ? `<p class="meta-text">${limitedWindowNote}</p>` : ""}
       </div>
     </article>
   `;
