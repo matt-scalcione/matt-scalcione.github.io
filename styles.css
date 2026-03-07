@@ -1428,6 +1428,99 @@ button.ghost,
   margin-top: 1.1rem;
 }
 
+.follow-summary-hero {
+  display: grid;
+}
+
+.follow-summary-main {
+  border: 1px solid rgba(95, 132, 170, 0.2);
+  border-radius: 14px;
+  background: rgba(244, 249, 255, 0.92);
+  padding: 0.74rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.9fr);
+  gap: 0.72rem;
+  align-items: center;
+}
+
+.follow-summary-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.follow-summary-kicker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.follow-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+  color: #294458;
+  padding: 0.12rem 0.48rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.follow-summary-user {
+  border-color: rgba(31, 98, 189, 0.22);
+  background: rgba(44, 112, 255, 0.1);
+  color: var(--accent-strong);
+}
+
+.follow-summary-title {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 1.08rem;
+  line-height: 1.1;
+  color: #17324b;
+}
+
+.follow-summary-subline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.32;
+}
+
+.follow-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.follow-summary-stat {
+  border: 1px solid rgba(95, 132, 170, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 0.54rem 0.58rem;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.follow-summary-label {
+  margin: 0;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--muted) 86%, #1d3d63 14%);
+}
+
+.follow-summary-value {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 1rem;
+  line-height: 1.04;
+  color: #17324b;
+}
+
 .stack {
   display: grid;
   gap: 0.6rem;
@@ -1500,13 +1593,13 @@ button.ghost,
   display: flex;
   justify-content: space-between;
   gap: 0.8rem;
-  align-items: center;
+  align-items: flex-start;
   box-shadow: none;
 }
 
 .follow-item-head {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.28rem;
 }
 
 .follow-item p {
@@ -1533,7 +1626,8 @@ button.ghost,
 }
 
 .follow-created {
-  font-size: 0.74rem;
+  font-size: 0.68rem;
+  line-height: 1.26;
 }
 
 .prefs-grid {
@@ -8708,6 +8802,28 @@ button.ghost,
   .live-alert-severity {
     font-size: 0.48rem;
     padding: 0.06rem 0.28rem;
+  }
+
+  .follow-summary-main {
+    grid-template-columns: 1fr;
+    gap: 0.54rem;
+    padding: 0.64rem;
+  }
+
+  .follow-summary-title {
+    font-size: 0.96rem;
+  }
+
+  .follow-summary-subline {
+    font-size: 0.68rem;
+  }
+
+  .follow-summary-stats {
+    gap: 0.32rem;
+  }
+
+  .follow-summary-stat {
+    padding: 0.48rem 0.52rem;
   }
 
   .follow-item {
