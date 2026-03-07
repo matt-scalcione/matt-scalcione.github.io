@@ -23,7 +23,7 @@ const TEAM_MOBILE_JUMP_TARGETS = [
   { id: "teamSummaryWrap", label: "Snapshot" },
   { id: "performanceInsightsWrap", label: "Insights" },
   { id: "formTimelineWrap", label: "Form" },
-  { id: "recentMatchesWrap", label: "Last" },
+  { id: "recentMatchesWrap", label: "Recent" },
   { id: "upcomingMatchesWrap", label: "Upcoming" },
   { id: "opponentBreakdownWrap", label: "Past" },
   { id: "headToHeadWrap", label: "H2H" }
@@ -828,6 +828,64 @@ function pastMatchRowMarkup(row, profile, apiBase) {
   `;
 }
 
+function teamOpponentLabel(row, profile, apiBase) {
+  const opponentUrl = teamDetailUrl({
+    teamId: row.opponentId,
+    teamName: row.opponentName,
+    game: row.game || profile.game,
+    apiBase,
+    matchId: row.matchId,
+    opponentId: state.teamId
+  });
+
+  return opponentUrl
+    ? `<a class="team-link" href="${opponentUrl}">${row.opponentName || "Unknown"}</a>`
+    : (row.opponentName || "Unknown");
+}
+
+function teamMatchDetailLink(row, apiBase, label = "Open Match") {
+  if (!row?.matchId) {
+    return `<span class="meta-text">Match link unavailable</span>`;
+  }
+
+  return `<a class="table-link" href="${matchDetailUrl(row.matchId, apiBase)}">${label}</a>`;
+}
+
+function teamMatchCard(row, profile, apiBase, options = {}) {
+  const mode = String(options.mode || "recent");
+  const opponentLabel = teamOpponentLabel(row, profile, apiBase);
+  const result = resultLabel(row);
+  const score = seriesScoreLabel(row);
+  const relativeLabel = relativeStartLabel(row.startAt);
+  const bestOf = Number(row?.bestOf || 0);
+  const topChips = [];
+
+  if (mode === "upcoming") {
+    topChips.push(`<span class="pill ${statusPillClass(row.status)}">${escapeHtml(String(row.status || "upcoming"))}</span>`);
+    topChips.push(`<span class="team-match-chip">${escapeHtml(relativeLabel)}</span>`);
+    if (bestOf > 0) {
+      topChips.push(`<span class="team-match-chip">BO${bestOf}</span>`);
+    }
+  } else {
+    topChips.push(`<span class="series-h2h-result ${resultClass(row.result)}">${escapeHtml(result)}</span>`);
+    topChips.push(`<span class="team-match-score-pill">${escapeHtml(score)}</span>`);
+  }
+
+  return `
+    <article class="team-match-card ${mode}">
+      <div class="team-match-card-top">
+        <div class="team-match-chip-row">${topChips.join("")}</div>
+        ${teamMatchDetailLink(row, apiBase, mode === "upcoming" ? "Open Match" : "Open")}
+      </div>
+      <p class="team-match-opponent-line">${opponentLabel}</p>
+      <div class="team-match-meta">
+        <span>${dateTimeLabel(row.startAt)}</span>
+        <span>${row.tournament || "Unknown"}</span>
+      </div>
+    </article>
+  `;
+}
+
 function insightCard(label, value, note = null) {
   return `
     <article class="upcoming-card">
@@ -941,6 +999,15 @@ function renderRecentMatches(profile, apiBase) {
     return;
   }
 
+  if (isCompactViewport()) {
+    elements.recentMatchesWrap.innerHTML = `
+      <div class="team-match-list">
+        ${rows.map((row) => teamMatchCard(row, profile, apiBase, { mode: "recent" })).join("")}
+      </div>
+    `;
+    return;
+  }
+
   elements.recentMatchesWrap.innerHTML = `
     <div class="lane-table-wrap">
       <table class="lane-table">
@@ -992,6 +1059,15 @@ function renderUpcomingMatches(profile, apiBase) {
   const rows = Array.isArray(profile.upcomingMatches) ? profile.upcomingMatches : [];
   if (!rows.length) {
     elements.upcomingMatchesWrap.innerHTML = `<div class="empty">No upcoming matches on file.</div>`;
+    return;
+  }
+
+  if (isCompactViewport()) {
+    elements.upcomingMatchesWrap.innerHTML = `
+      <div class="team-match-list">
+        ${rows.map((row) => teamMatchCard(row, profile, apiBase, { mode: "upcoming" })).join("")}
+      </div>
+    `;
     return;
   }
 
@@ -1056,6 +1132,15 @@ function renderPastMatches(profile, apiBase) {
 
   if (!rows.length) {
     elements.opponentBreakdownWrap.innerHTML = `<div class="empty">No matches match the selected filters.</div>`;
+    return;
+  }
+
+  if (isCompactViewport()) {
+    elements.opponentBreakdownWrap.innerHTML = `
+      <div class="team-match-list">
+        ${rows.map((row) => teamMatchCard(row, profile, apiBase, { mode: "past" })).join("")}
+      </div>
+    `;
     return;
   }
 
@@ -1211,7 +1296,11 @@ function renderHeadToHead(profile, apiBase) {
       </article>
     </div>
     ${ordered.length
-      ? `<div class="lane-table-wrap">
+      ? isCompactViewport()
+        ? `<div class="team-match-list">${ordered
+            .map((row) => teamMatchCard(row, profile, apiBase, { mode: "h2h" }))
+            .join("")}</div>`
+        : `<div class="lane-table-wrap">
           <table class="lane-table">
             <thead>
               <tr>
@@ -1485,6 +1574,14 @@ function boot() {
 }
 
 window.addEventListener("resize", () => {
+  if (state.profile) {
+    const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
+    renderSummary(state.profile);
+    renderRecentMatches(state.profile, apiBase);
+    renderUpcomingMatches(state.profile, apiBase);
+    renderPastMatches(state.profile, apiBase);
+    renderHeadToHead(state.profile, apiBase);
+  }
   applyTeamMobilePanelCollapseState();
   renderTeamQuickJump();
 });
