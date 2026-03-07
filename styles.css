@@ -579,6 +579,7 @@ button.ghost,
 }
 
 .live-page .section-head h2,
+.hub-page .section-head h2,
 .schedule-page .section-head h2,
 .follows-page .section-head h2,
 .team-page .section-head h2 {
@@ -588,6 +589,7 @@ button.ghost,
 }
 
 .live-page .section-head h2::before,
+.hub-page .section-head h2::before,
 .schedule-page .section-head h2::before,
 .follows-page .section-head h2::before,
 .team-page .section-head h2::before,
@@ -9518,6 +9520,41 @@ body.hub-page[data-game="dota2"] {
   --bg-c: #e0ecff;
 }
 
+body.hub-page .panel {
+  background: rgba(251, 253, 255, 0.92);
+  border-color: rgba(95, 132, 170, 0.18);
+}
+
+body.hub-page #hubOverviewPanel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 252, 255, 0.96)),
+    rgba(251, 253, 255, 0.92);
+}
+
+.hub-page #hubOverviewPanel .section-head,
+.hub-page #hubLivePanel .section-head,
+.hub-page #hubUpcomingPanel .section-head,
+.hub-page #hubResultsPanel .section-head,
+.hub-page #hubRadarPanel .section-head {
+  gap: 0.3rem;
+}
+
+.hub-page #hubLivePanel .section-head h2::before {
+  background: rgba(27, 141, 86, 0.78);
+}
+
+.hub-page #hubUpcomingPanel .section-head h2::before {
+  background: rgba(182, 112, 30, 0.76);
+}
+
+.hub-page #hubResultsPanel .section-head h2::before {
+  background: rgba(79, 94, 119, 0.74);
+}
+
+.hub-page #hubRadarPanel .section-head h2::before {
+  background: rgba(48, 107, 194, 0.76);
+}
+
 .hub-kpi-grid,
 .hub-tournament-grid {
   display: grid;
@@ -9525,7 +9562,157 @@ body.hub-page[data-game="dota2"] {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
+.hub-kpi-card {
+  padding: 0.72rem 0.74rem;
+  gap: 0.22rem;
+  border-radius: 14px;
+}
+
+.hub-kpi-card.live {
+  background: rgba(240, 252, 245, 0.96);
+  border-color: rgba(27, 141, 86, 0.2);
+}
+
+.hub-kpi-card.upcoming {
+  background: rgba(255, 248, 240, 0.96);
+  border-color: rgba(182, 112, 30, 0.18);
+}
+
+.hub-kpi-card.result {
+  background: rgba(247, 249, 252, 0.96);
+  border-color: rgba(79, 94, 119, 0.18);
+}
+
+.hub-kpi-card.radar {
+  background: rgba(244, 249, 255, 0.96);
+  border-color: rgba(48, 107, 194, 0.18);
+}
+
 .hub-page .schedule-mobile-list {
   display: grid;
   gap: 0.58rem;
+}
+
+.hub-match-card {
+  gap: 0.42rem;
+  padding: 0.74rem;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.hub-match-board .schedule-card-team {
+  gap: 0.28rem;
+}
+
+.hub-match-card .schedule-card-badge {
+  min-width: 2.2rem;
+  min-height: 2.2rem;
+}
+
+.hub-match-card .schedule-card-name {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.hub-match-card .schedule-card-center {
+  min-width: 4.4rem;
+}
+
+.hub-match-card-recap {
+  min-height: 2.5em;
+}
+
+.hub-match-card-foot {
+  padding-top: 0.16rem;
+}
+
+.hub-radar-card {
+  padding: 0.74rem;
+  gap: 0.42rem;
+}
+
+.hub-radar-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.hub-radar-total {
+  margin: 0;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.78rem;
+  line-height: 1;
+  color: var(--accent-strong);
+}
+
+.hub-radar-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.hub-radar-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.44rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(95, 132, 170, 0.14);
+  background: rgba(247, 250, 255, 0.88);
+  color: #39526a;
+}
+
+.hub-radar-pill.live {
+  background: rgba(239, 251, 244, 0.92);
+  border-color: rgba(27, 141, 86, 0.18);
+  color: #166743;
+}
+
+.hub-radar-pill.upcoming {
+  background: rgba(255, 248, 240, 0.94);
+  border-color: rgba(182, 112, 30, 0.18);
+  color: #9a5a18;
+}
+
+.hub-radar-pill.final {
+  background: rgba(246, 248, 251, 0.94);
+  border-color: rgba(79, 94, 119, 0.16);
+  color: #556276;
+}
+
+.hub-page .schedule-mobile-list {
+  display: grid;
+  gap: 0.58rem;
+}
+
+@media (min-width: 980px) {
+  .hub-page .schedule-mobile-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .hub-kpi-card,
+  .hub-radar-card,
+  .hub-match-card {
+    padding: 0.66rem;
+  }
+
+  .hub-match-card .schedule-card-badge {
+    min-width: 2rem;
+    min-height: 2rem;
+  }
+
+  .hub-match-card .schedule-card-score {
+    font-size: 1rem;
+  }
+
+  .hub-match-card .schedule-card-meta.secondary {
+    white-space: normal;
+  }
 }

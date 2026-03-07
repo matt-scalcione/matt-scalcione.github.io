@@ -1,5 +1,6 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { buildMatchUrl, buildTeamUrl } from "./routes.js";
+import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -152,6 +153,15 @@ function dateTimeLabel(iso) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function shortTeamName(name) {
   const raw = String(name || "").trim();
   if (!raw) {
@@ -182,6 +192,32 @@ function winnerName(row) {
   }
 
   return "No winner";
+}
+
+function teamShortLabel(team) {
+  const code = resolveLocalTeamCode({
+    game: state.gameKey,
+    id: team?.id,
+    name: team?.name,
+    code: team?.code
+  });
+  if (code && code.length <= 6) {
+    return code;
+  }
+  return shortTeamName(team?.name || "Team");
+}
+
+function teamBadgeMarkup(team) {
+  const label = String(team?.name || "Team");
+  const logo = resolveLocalTeamLogo({
+    game: state.gameKey,
+    id: team?.id,
+    name: team?.name
+  });
+  if (logo) {
+    return `<span class="schedule-card-badge has-logo"><img src="${logo}" alt="${escapeHtml(label)} logo" loading="lazy" decoding="async" /></span>`;
+  }
+  return `<span class="schedule-card-badge">${escapeHtml(teamShortLabel(team).slice(0, 4).toUpperCase())}</span>`;
 }
 
 function formatLabel(bestOf) {
@@ -231,6 +267,11 @@ function statusLabel(status) {
 function matchCard(row, type) {
   const left = row?.teams?.left || {};
   const right = row?.teams?.right || {};
+  const scoreLeft = Number(row?.seriesScore?.left || 0);
+  const scoreRight = Number(row?.seriesScore?.right || 0);
+  const normalizedType = String(type || "").toLowerCase();
+  const effectiveStatus = normalizedType === "results" ? "completed" : row?.status;
+  const status = String(effectiveStatus || "").toLowerCase();
   const detailUrl = buildMatchUrl({ matchId: row?.id || "" });
   const leftTeamUrl = buildTeamUrl({
     teamId: left.id,
@@ -246,16 +287,39 @@ function matchCard(row, type) {
     matchId: row?.id || "",
     opponentId: left.id
   });
+  const footPrimary = row?.tournament || "Event";
+  const footSecondary =
+    normalizedType === "live"
+      ? `${formatLabel(row?.bestOf)} · Live now`
+      : normalizedType === "upcoming"
+        ? `${formatLabel(row?.bestOf)} · Starts ${dateTimeLabel(row?.startAt)}`
+        : `Winner · ${shortTeamName(winnerName(row))}`;
 
   return `
-    <article class="schedule-row-card schedule-${String(type === "results" ? "completed" : row?.status || type).toLowerCase()}">
+    <article class="schedule-row-card hub-match-card schedule-${status}">
       <div class="schedule-card-top">
         <div class="schedule-card-game"><span class="game-chip ${state.gameKey === "lol" ? "lol" : "dota2"}">${state.gameKey === "lol" ? "L" : "D"}</span> <span>${dateTimeLabel(row?.startAt)}</span></div>
-        <span class="pill ${statusClass(type === "results" ? "completed" : row?.status)} schedule-card-status">${statusLabel(type === "results" ? "completed" : row?.status)}</span>
+        <span class="pill ${statusClass(effectiveStatus)} schedule-card-status">${statusLabel(effectiveStatus)}</span>
       </div>
-      <p class="schedule-card-match"><a class="team-link" href="${leftTeamUrl}">${shortTeamName(left.name)}</a> <span>vs</span> <a class="team-link" href="${rightTeamUrl}">${shortTeamName(right.name)}</a></p>
-      <p class="schedule-card-score">${Number(row?.seriesScore?.left || 0)}-${Number(row?.seriesScore?.right || 0)}</p>
-      <p class="schedule-card-meta">${recapTemplate(row, type)}</p>
+      <div class="schedule-card-board hub-match-board">
+        <div class="schedule-card-team">
+          ${teamBadgeMarkup(left)}
+          <a class="schedule-card-name team-link" href="${leftTeamUrl}">${escapeHtml(shortTeamName(left.name))}</a>
+        </div>
+        <div class="schedule-card-center">
+          <p class="schedule-card-score">${scoreLeft}-${scoreRight}</p>
+          <p class="schedule-card-center-meta">${escapeHtml(formatLabel(row?.bestOf))}</p>
+        </div>
+        <div class="schedule-card-team right">
+          ${teamBadgeMarkup(right)}
+          <a class="schedule-card-name team-link" href="${rightTeamUrl}">${escapeHtml(shortTeamName(right.name))}</a>
+        </div>
+      </div>
+      <p class="schedule-card-meta hub-match-card-recap">${escapeHtml(recapTemplate(row, type))}</p>
+      <div class="schedule-card-foot hub-match-card-foot">
+        <p class="schedule-card-meta primary">${escapeHtml(footPrimary)}</p>
+        <p class="schedule-card-meta secondary">${escapeHtml(footSecondary)}</p>
+      </div>
       <p class="meta-text"><a class="table-link" href="${detailUrl}">Open match</a></p>
     </article>
   `;
@@ -319,10 +383,17 @@ function renderTournamentRadar(rows) {
       ${rows
         .map(
           (row) => `
-          <article class="upcoming-card">
-            <p class="tempo-label">${row.name}</p>
-            <p class="tempo-value">${row.total}</p>
-            <p class="meta-text">Live ${row.live} · Next ${row.upcoming} · Final ${row.results}</p>
+          <article class="upcoming-card hub-radar-card">
+            <div class="hub-radar-card-head">
+              <p class="tempo-label">Tournament</p>
+              <p class="hub-radar-total">${row.total}</p>
+            </div>
+            <p class="tempo-value">${escapeHtml(row.name)}</p>
+            <div class="hub-radar-pills">
+              <span class="hub-radar-pill live">Live ${row.live}</span>
+              <span class="hub-radar-pill upcoming">Next ${row.upcoming}</span>
+              <span class="hub-radar-pill final">Final ${row.results}</span>
+            </div>
           </article>
         `
         )
@@ -346,25 +417,25 @@ function renderKpis() {
   ]).length;
 
   elements.hubKpis.innerHTML = `
-    <article class="upcoming-card">
-      <p class="tempo-label">Live Series</p>
+    <article class="upcoming-card hub-kpi-card live">
+      <p class="tempo-label">On Now</p>
       <p class="tempo-value">${liveCount}</p>
-      <p class="meta-text">In progress right now</p>
+      <p class="meta-text">Series currently live</p>
     </article>
-    <article class="upcoming-card">
-      <p class="tempo-label">Upcoming</p>
+    <article class="upcoming-card hub-kpi-card upcoming">
+      <p class="tempo-label">Next Up</p>
       <p class="tempo-value">${upcomingCount}</p>
-      <p class="meta-text">Scheduled in next 7 days</p>
+      <p class="meta-text">Scheduled over the next week</p>
     </article>
-    <article class="upcoming-card">
-      <p class="tempo-label">Recent Results</p>
+    <article class="upcoming-card hub-kpi-card result">
+      <p class="tempo-label">Finals</p>
       <p class="tempo-value">${resultCount}</p>
-      <p class="meta-text">Completed in last 7 days</p>
+      <p class="meta-text">Series completed in the last week</p>
     </article>
-    <article class="upcoming-card">
-      <p class="tempo-label">Active Tournaments</p>
+    <article class="upcoming-card hub-kpi-card radar">
+      <p class="tempo-label">Radar</p>
       <p class="tempo-value">${tournamentCount}</p>
-      <p class="meta-text">Across live, upcoming, and final</p>
+      <p class="meta-text">Active tournaments in the current window</p>
     </article>
   `;
 }
