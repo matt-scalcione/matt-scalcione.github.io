@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulseboard Logo Admin</title>
+    <meta
+      name="description"
+      content="Internal logo coverage view for Pulseboard team assets across generated, manual, and fallback sources."
+    />
+    <meta name="robots" content="noindex,follow" />
+    <link rel="canonical" href="https://matt-scalcione.github.io/logos.html" />
+    <meta property="og:site_name" content="Pulseboard" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Pulseboard Logo Admin" />
+    <meta
+      property="og:description"
+      content="Internal logo coverage view for generated, manual, and fallback team assets."
+    />
+    <meta property="og:url" content="https://matt-scalcione.github.io/logos.html" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pulseboard Logo Admin" />
+    <meta
+      name="twitter:description"
+      content="Internal logo coverage view for generated, manual, and fallback team assets."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="logo-admin-page">
+    <div class="noise"></div>
+    <header class="hero">
+      <h1>Logo Admin</h1>
+      <p class="subtitle">
+        Audit current team asset coverage, fallback usage, and the next manual-backfill queue.
+      </p>
+      <nav class="page-nav">
+        <a id="liveDeskNav" href="./index.html">Live Desk</a>
+        <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
+        <a id="followsNav" href="./follows.html">Follows & Alerts</a>
+        <a id="lolHubNav" href="./lol.html">LoL Hub</a>
+        <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="panel controls" id="controlsPanel">
+        <div class="controls-head">
+          <h2>Audit Controls</h2>
+          <button
+            id="controlsToggle"
+            type="button"
+            class="ghost controls-toggle"
+            aria-expanded="true"
+            aria-controls="controlsBody"
+          >
+            Hide Panel
+          </button>
+        </div>
+        <div class="controls-body" id="controlsBody">
+          <div class="controls-grid">
+            <label class="api-base-field">
+              API Base
+              <input id="apiBaseInput" type="text" placeholder="https://pulseboard-api.onrender.com" />
+            </label>
+            <label>
+              Game
+              <select id="gameFilterSelect">
+                <option value="">All games</option>
+                <option value="lol">League of Legends</option>
+                <option value="dota2">Dota 2</option>
+              </select>
+            </label>
+            <label>
+              Asset Type
+              <select id="assetFilterSelect">
+                <option value="">All asset types</option>
+                <option value="generated">Generated</option>
+                <option value="manual">Manual</option>
+                <option value="fallback">Fallback</option>
+                <option value="static">Static</option>
+                <option value="missing">Missing</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="refreshButton" type="button">Refresh</button>
+            <button id="saveButton" type="button" class="ghost api-base-save">Save API Base</button>
+            <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Current Coverage</h2>
+          <p id="logoCurrentMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
+        </div>
+        <div id="logoCurrentSummary" class="hub-kpi-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Fallback Queue</h2>
+          <p id="logoFallbackMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
+        </div>
+        <div id="logoFallbackQueue" class="logo-team-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Collection Breakdown</h2>
+          <p class="meta-text">Current live, schedule, and results payloads by asset type.</p>
+        </div>
+        <div id="logoCollectionBreakdown" class="card-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Manifest Inventory</h2>
+          <p class="meta-text">Local asset inventory by game and storage class.</p>
+        </div>
+        <div id="logoManifestBreakdown" class="card-grid"></div>
+      </section>
+    </main>
+
+    <nav class="mobile-tabbar" aria-label="Primary">
+      <a id="mobileLiveNav" class="mobile-tab" href="./index.html">
+        <span class="mobile-tab-icon">L</span>
+        <span>Live</span>
+      </a>
+      <a id="mobileScheduleNav" class="mobile-tab" href="./schedule.html">
+        <span class="mobile-tab-icon">S</span>
+        <span>Schedule</span>
+      </a>
+      <a id="mobileFollowsNav" class="mobile-tab" href="./follows.html">
+        <span class="mobile-tab-icon">F</span>
+        <span>Follows</span>
+      </a>
+    </nav>
+
+    <script src="./site-config.js"></script>
+    <script type="module" src="./logos-admin.js"></script>
+  </body>
+</html>

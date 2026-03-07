@@ -33,6 +33,23 @@ export function normalizeTeamLogoKey(value) {
     .replace(/\s+/g, " ")
 }
 
+export function classifyLocalTeamLogoPath(value) {
+  const pathValue = String(value || "").trim()
+  if (!pathValue) {
+    return "missing"
+  }
+  if (pathValue.includes("/generated/")) {
+    return "generated"
+  }
+  if (pathValue.includes("/manual/")) {
+    return "manual"
+  }
+  if (pathValue.includes("/fallback/")) {
+    return "fallback"
+  }
+  return "static"
+}
+
 function normalizeAliasTeamLogoKey(value) {
   return normalizeTeamLogoKey(value)
     .replace(/\b(esports?|e-sports?|gaming|club|kia|honda|kalunga)\b/gi, " ")
@@ -98,6 +115,7 @@ export function resolveLocalTeamMeta({ game, id, name, code } = {}) {
   const record = lookupLogoRecord({ game, id, name })
   return {
     code: String(code || "").trim() || record?.code || null,
-    logoUrl: record?.path || null
+    logoUrl: record?.path || null,
+    assetType: classifyLocalTeamLogoPath(record?.path || null)
   }
 }
