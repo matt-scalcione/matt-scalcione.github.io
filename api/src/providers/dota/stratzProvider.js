@@ -285,6 +285,17 @@ function normalizeLiveRow(node) {
   };
 }
 
+function isPulseboardMatchDetail(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      value.game === "dota2" &&
+      value.teams &&
+      value.selectedGame &&
+      value.seriesScore
+  );
+}
+
 export class StratzProvider {
   constructor({ timeoutMs = 15000 } = {}) {
     this.timeoutMs = timeoutMs;
@@ -302,7 +313,8 @@ export class StratzProvider {
       liveQueryConfigured: Boolean(STRATZ_LIVE_QUERY),
       detailQueryConfigured: Boolean(STRATZ_MATCH_DETAIL_QUERY),
       liveEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_LIVE_QUERY),
-      detailEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_MATCH_DETAIL_QUERY)
+      detailEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_MATCH_DETAIL_QUERY),
+      detailContractMode: "pulseboard_contract_only"
     };
   }
 
@@ -399,6 +411,6 @@ export class StratzProvider {
       timeoutMs: this.timeoutMs
     });
 
-    return data || null;
+    return isPulseboardMatchDetail(data) ? data : null;
   }
 }

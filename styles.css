@@ -10039,3 +10039,140 @@ body.hub-page #hubOverviewPanel {
     white-space: normal;
   }
 }
+
+.provider-admin-page .provider-source-grid {
+  display: grid;
+  gap: 0.72rem;
+}
+
+@media (min-width: 980px) {
+  .provider-admin-page .provider-source-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.provider-source-card {
+  display: grid;
+  gap: 0.72rem;
+  padding: 0.9rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(128, 150, 176, 0.18);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.provider-source-card.primary {
+  background: linear-gradient(180deg, rgba(244, 249, 255, 0.98), rgba(255, 255, 255, 0.95));
+}
+
+.provider-source-card.summary {
+  background: linear-gradient(180deg, rgba(242, 250, 246, 0.98), rgba(255, 255, 255, 0.95));
+}
+
+.provider-source-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.provider-source-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.provider-source-body {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.provider-mini-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  font-size: 0.82rem;
+}
+
+.provider-mini-stat span {
+  color: #5d6b7f;
+}
+
+.provider-mini-stat strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  text-align: right;
+}
+
+.provider-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.18);
+  background: rgba(246, 249, 253, 0.94);
+  color: #47607a;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.provider-status-pill.success {
+  background: rgba(237, 248, 240, 0.94);
+  border-color: rgba(40, 128, 83, 0.18);
+  color: #1d6a44;
+}
+
+.provider-status-pill.disabled,
+.provider-status-pill.error {
+  background: rgba(253, 244, 243, 0.96);
+  border-color: rgba(182, 93, 80, 0.18);
+  color: #a44839;
+}
+
+.provider-status-pill.stale,
+.provider-status-pill.unknown {
+  background: rgba(250, 246, 239, 0.96);
+  border-color: rgba(181, 135, 63, 0.18);
+  color: #976121;
+}
+
+.provider-json-block {
+  margin: 0;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(124, 144, 170, 0.18);
+  background: rgba(247, 250, 255, 0.92);
+  color: #284157;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  .provider-source-card {
+    padding: 0.76rem;
+    border-radius: 1rem;
+  }
+
+  .provider-source-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .provider-mini-stat {
+    grid-template-columns: none;
+    flex-wrap: wrap;
+  }
+
+  .provider-json-block {
+    font-size: 0.68rem;
+  }
+}

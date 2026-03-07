@@ -96,7 +96,9 @@ describe("LiquipediaDotaScheduleProvider", () => {
   it("uses the API-only parse payload, caches it, and preserves premium-tier heuristics over weaker known mappings", async () => {
     const originalFetch = global.fetch;
     let fetchCalls = 0;
-    const html = `${sampleMatchHtml}
+    const futureTimestamp = Math.floor((Date.now() + 2 * 60 * 60 * 1000) / 1000);
+    const freshHtml = sampleMatchHtml.replace("1772899200", String(futureTimestamp));
+    const html = `${freshHtml}
     <div class="match-info">
       <span class="match-info-countdown">
         <span class="timer-object" data-format="full" data-timestamp="1772600000">March 4, 2026 - 06:53 EET</span>
@@ -245,6 +247,8 @@ describe("mockStore Dota upcoming detail fallback", () => {
 
   it("backfills Dota team profiles from team-specific OpenDota history when schedule ids are Liquipedia-derived", async () => {
     const originalFetch = global.fetch;
+    const futureTimestamp = Math.floor((Date.now() + 2 * 60 * 60 * 1000) / 1000);
+    const futureHtml = sampleMatchHtml.replace("1772899200", String(futureTimestamp));
     global.fetch = async (url) => {
       const target = String(url);
 
@@ -254,7 +258,7 @@ describe("mockStore Dota upcoming detail fallback", () => {
           async json() {
             return {
               parse: {
-                text: sampleMatchHtml
+                text: futureHtml
               }
             };
           }
