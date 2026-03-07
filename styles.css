@@ -7306,6 +7306,11 @@ button.ghost,
     font-size: 0.54rem;
   }
 
+  .match-page .match-state-panel .stream-card.compact {
+    justify-content: flex-start;
+    gap: 0.16rem;
+  }
+
   .match-page .stream-title {
     font-size: 0.76rem;
   }
@@ -7692,6 +7697,20 @@ button.ghost,
     padding: 0.36rem 0.44rem;
   }
 
+  .schedule-page .hero .subtitle {
+    font-size: 0.7rem;
+    max-width: 34ch;
+  }
+
+  .schedule-page .section-head {
+    margin-bottom: 0.4rem;
+  }
+
+  .schedule-page .section-head .meta-text {
+    font-size: 0.66rem;
+    line-height: 1.18;
+  }
+
   .tracker-table-mobile {
     min-width: 486px;
   }
@@ -7827,10 +7846,42 @@ button.ghost,
     font-size: 0.92rem;
   }
 
+  .match-page .pulse.compact {
+    padding: 0.56rem;
+    gap: 0.44rem;
+  }
+
+  .match-page .pulse.compact .pulse-kicker {
+    display: none;
+  }
+
+  .match-page .pulse.compact .pulse-body {
+    margin-top: 0;
+    font-size: 0.78rem;
+    line-height: 1.28;
+  }
+
+  .match-page .pulse.compact .pulse-chips {
+    margin-top: 0.12rem;
+    gap: 0.24rem;
+  }
+
   .match-page .pulse-tone-pill,
   .match-page .pulse-chip,
   .match-page .live-alert-severity {
     font-size: 0.5rem;
+  }
+
+  .match-page .pulse.compact .pulse-command-grid .command-card.featured {
+    grid-column: auto;
+  }
+
+  .match-page .pulse.compact .pulse-command-grid .command-card .meta-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.18;
   }
 
   .match-page .check-rank {
