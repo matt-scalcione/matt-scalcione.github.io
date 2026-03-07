@@ -208,15 +208,16 @@ body:not(.match-page) .hero h1 {
 }
 
 h2 {
-  font-size: 1.12rem;
+  font-size: 1.18rem;
+  line-height: 1.04;
 }
 
 .subtitle {
   margin: 0.16rem 0 0;
   max-width: 62ch;
   color: color-mix(in srgb, var(--muted) 88%, #203555 12%);
-  line-height: 1.42;
-  font-size: 0.95rem;
+  line-height: 1.36;
+  font-size: 0.92rem;
 }
 
 .page-nav {
@@ -474,8 +475,8 @@ button.ghost,
 .meta-text {
   margin: 0;
   color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.4;
+  font-size: 0.78rem;
+  line-height: 1.34;
 }
 
 .status-text {
@@ -506,10 +507,15 @@ button.ghost,
 
 .section-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.96rem;
+  margin-bottom: 0.82rem;
+  flex-wrap: wrap;
+}
+
+.section-head .meta-text {
+  max-width: 48ch;
 }
 
 .sr-only {
@@ -1339,9 +1345,9 @@ button.ghost,
 }
 
 .schedule-card-name {
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   font-weight: 800;
-  line-height: 1.12;
+  line-height: 1.16;
   color: #17324b;
   white-space: nowrap;
   overflow: hidden;
@@ -1358,7 +1364,7 @@ button.ghost,
 .schedule-card-score {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 1rem;
+  font-size: 1.08rem;
   color: var(--accent-strong);
   white-space: nowrap;
 }
@@ -1366,9 +1372,9 @@ button.ghost,
 .schedule-card-center-meta {
   margin: 0;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .schedule-card-status {
@@ -1379,20 +1385,22 @@ button.ghost,
 .schedule-card-match {
   margin: 0;
   font-weight: 600;
-  font-size: 0.83rem;
-  line-height: 1.2;
+  font-size: 0.8rem;
+  line-height: 1.18;
 }
 
 .schedule-card-match span {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .schedule-card-meta {
   margin: 0;
   color: var(--muted);
-  font-size: 0.69rem;
+  font-size: 0.66rem;
+  line-height: 1.28;
 }
 
 .schedule-card-foot {
@@ -2045,17 +2053,17 @@ button.ghost,
 
 .team-context-title {
   margin: 0;
-  font-size: 1.06rem;
+  font-size: 1.14rem;
   font-weight: 800;
   color: #17324b;
-  line-height: 1.24;
+  line-height: 1.18;
 }
 
 .team-summary-subline {
   margin: 0;
   color: var(--muted);
-  font-size: 0.76rem;
-  line-height: 1.34;
+  font-size: 0.72rem;
+  line-height: 1.3;
 }
 
 .team-summary-actions {
@@ -2087,17 +2095,17 @@ button.ghost,
 }
 
 .team-summary-label {
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--muted) 86%, #1d3d63 14%);
 }
 
 .team-summary-value {
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.92rem;
-  line-height: 1.08;
+  font-size: 1rem;
+  line-height: 1.04;
   color: #17324b;
 }
 
@@ -2114,7 +2122,7 @@ button.ghost,
 }
 
 .team-summary-mini .tempo-value {
-  font-size: 0.98rem;
+  font-size: 1.02rem;
 }
 
 .team-summary-mini .meta-text {
@@ -2172,10 +2180,10 @@ button.ghost,
 
 .team-match-opponent-line {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: #17324b;
-  line-height: 1.2;
+  line-height: 1.16;
 }
 
 .team-match-opponent-row {
@@ -2208,7 +2216,8 @@ button.ghost,
   gap: 0.42rem;
   flex-wrap: wrap;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
+  line-height: 1.26;
 }
 
 .upcoming-watch {
@@ -2793,7 +2802,8 @@ button.ghost,
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
   color: var(--accent-strong);
-  font-size: 1rem;
+  font-size: 1.06rem;
+  line-height: 1.08;
 }
 
 .game-nav {
@@ -3051,7 +3061,7 @@ button.ghost,
 }
 
 .game-context-info-card .tempo-value {
-  font-size: 0.88rem;
+  font-size: 0.96rem;
 }
 
 .completed-context-card {
@@ -3084,16 +3094,17 @@ button.ghost,
 
 .completed-result-kicker {
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .completed-result-title {
-  font-size: 1rem;
+  font-size: 1.08rem;
   font-weight: 700;
   color: #1e3346;
+  line-height: 1.12;
 }
 
 .completed-spotlights {
@@ -3120,10 +3131,10 @@ button.ghost,
 
 .completed-story-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.06rem;
   font-weight: 800;
   color: var(--text);
-  line-height: 1.25;
+  line-height: 1.18;
 }
 
 .completed-story-pills {
@@ -3551,25 +3562,25 @@ button.ghost,
 
 .live-summary-label {
   margin: 0;
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--muted);
 }
 
 .live-summary-value {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.92rem;
-  line-height: 1.18;
+  font-size: 1rem;
+  line-height: 1.12;
   color: var(--accent-strong);
 }
 
 .live-summary-meta {
   margin: 0;
-  font-size: 0.67rem;
-  line-height: 1.26;
+  font-size: 0.63rem;
+  line-height: 1.22;
   color: var(--muted);
 }
 
@@ -3686,10 +3697,10 @@ button.ghost,
   display: flex;
   align-items: center;
   gap: 0.34rem;
-  font-size: 0.79rem;
-  line-height: 1.22;
+  font-size: 0.83rem;
+  line-height: 1.18;
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
   min-width: 0;
 }
 
@@ -3763,8 +3774,8 @@ button.ghost,
 
 .feed-major-summary {
   margin: 0;
-  font-size: 0.67rem;
-  line-height: 1.28;
+  font-size: 0.63rem;
+  line-height: 1.24;
   color: var(--muted);
 }
 
@@ -3976,16 +3987,17 @@ button.ghost,
 .snapshot-label {
   margin: 0;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
 }
 
 .snapshot-value {
   margin: 0.24rem 0 0;
   color: var(--accent-strong);
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 1rem;
+  font-size: 1.08rem;
+  line-height: 1.06;
 }
 
 .confidence-wrap {
@@ -4068,9 +4080,9 @@ button.ghost,
 
 .pulse-kicker {
   margin: 0;
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--muted);
 }
 
@@ -4087,7 +4099,8 @@ button.ghost,
 .pulse-title {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 1rem;
+  font-size: 1.06rem;
+  line-height: 1.12;
 }
 
 .pulse-tone-pill,
@@ -4140,7 +4153,8 @@ button.ghost,
 .pulse-body {
   margin: 0.32rem 0 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 .pulse-chips {
@@ -4521,15 +4535,17 @@ button.ghost,
 .tempo-label {
   margin: 0;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.64rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
 }
 
 .tempo-value {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
   color: var(--accent-strong);
+  font-size: 0.98rem;
+  line-height: 1.08;
 }
 
 .checklist {
@@ -6135,14 +6151,16 @@ button.ghost,
 .series-game-title {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.96rem;
   color: var(--accent-strong);
+  line-height: 1.1;
 }
 
 .series-game-status {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: var(--muted);
+  line-height: 1.24;
 }
 
 .series-game-winner {
