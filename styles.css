@@ -1526,6 +1526,62 @@ button.ghost,
   margin: 0;
 }
 
+.team-context-card {
+  border: 1px solid rgba(95, 132, 170, 0.22);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(243, 249, 255, 0.96), rgba(236, 245, 255, 0.92));
+  padding: 0.68rem;
+  display: grid;
+  gap: 0.46rem;
+  box-shadow: 0 6px 14px rgba(20, 44, 70, 0.1);
+}
+
+.team-context-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.56rem;
+}
+
+.team-context-copy {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.team-context-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #17324b;
+  line-height: 1.24;
+}
+
+.team-context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.34rem;
+}
+
+.team-context-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+.team-context-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.7rem;
+  padding: 0.16rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.24);
+  background: rgba(255, 255, 255, 0.84);
+  color: #274258;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .upcoming-watch {
   display: grid;
   gap: 0.52rem;
@@ -6322,6 +6378,25 @@ button.ghost,
     top: calc(4.1rem + env(safe-area-inset-top, 0px));
     z-index: 23;
     margin-top: -0.12rem;
+  }
+
+  .team-context-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .team-context-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .team-context-title {
+    font-size: 0.92rem;
+  }
+
+  .team-context-pill {
+    min-height: 1.58rem;
+    font-size: 0.62rem;
   }
 
   .match-page .mobile-mode-toolbar {
