@@ -229,6 +229,141 @@ function shortTeamName(name) {
   return raw;
 }
 
+function scheduleBadgeToken(name) {
+  const short = shortTeamName(name);
+  if (short.length <= 4) {
+    return short;
+  }
+
+  const tokens = short.split(/\s+/).filter(Boolean);
+  if (tokens.length >= 2) {
+    return tokens
+      .slice(0, 3)
+      .map((token) => token[0])
+      .join("")
+      .toUpperCase();
+  }
+
+  return short.replace(/[^a-z0-9]/gi, "").slice(0, 3).toUpperCase();
+}
+
+function timeOnlyLabel(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(iso || "");
+    }
+
+    return parsed.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function scheduleDayKey(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(iso || "");
+    }
+
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function scheduleDayLabel(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(iso || "");
+    }
+
+    const target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()).getTime();
+    const today = new Date();
+    const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const deltaDays = Math.round((target - startToday) / 86_400_000);
+
+    if (deltaDays === 0) return "Today";
+    if (deltaDays === 1) return "Tomorrow";
+    if (deltaDays === -1) return "Yesterday";
+
+    return parsed.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric"
+    });
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function groupRowsByDay(rows = []) {
+  const groups = new Map();
+  for (const row of rows) {
+    const key = scheduleDayKey(row?.startAt);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        label: scheduleDayLabel(row?.startAt),
+        rows: []
+      });
+    }
+    groups.get(key).rows.push(row);
+  }
+  return Array.from(groups.values());
+}
+
+function scheduleCardState(row, type) {
+  return String(row?.status || (type === "result" ? "completed" : "upcoming")).toLowerCase();
+}
+
+function scheduleCardStatusLabel(row, type) {
+  if (type === "result") return "FINAL";
+  return row?.status === "live" ? "LIVE" : "UP NEXT";
+}
+
+function scheduleCardCenter(row, type, scoreLabel) {
+  const formatLabel = `BO${Math.max(1, Number(row?.bestOf || 1))}`;
+  const hasSeriesScore = scoreLabel !== "—";
+  if (type === "result") {
+    return {
+      main: hasSeriesScore ? scoreLabel : formatLabel,
+      sub: "Final score"
+    };
+  }
+
+  if (row?.status === "live") {
+    return {
+      main: hasSeriesScore ? scoreLabel : formatLabel,
+      sub: hasSeriesScore ? "Series live" : "Starting soon"
+    };
+  }
+
+  return {
+    main: formatLabel,
+    sub: "Series format"
+  };
+}
+
+function scheduleCardMeta(row, type, winnerShort) {
+  const tournament = row?.tournament || gameLabel(row?.game) || "Tournament";
+  const formatLabel = `BO${Math.max(1, Number(row?.bestOf || 1))}`;
+  if (type === "result") {
+    return winnerShort && winnerShort !== "—" ? `${tournament} · Winner ${winnerShort}` : `${tournament} · Final`;
+  }
+
+  if (row?.status === "live") {
+    return `${tournament} · ${formatLabel} live`;
+  }
+
+  return `${tournament} · ${formatLabel}`;
+}
+
 function gameChipMarkup(game) {
   const normalized = String(game || "").toLowerCase();
   if (normalized === "lol") {
@@ -510,35 +645,68 @@ function renderTable(container, rows, type) {
     .join("");
 
   const mobileCards = rows
-    .map((row) => {
-      const detailUrl = rowLink(row.id);
-      const hubUrl = hubUrlForGame(row.game);
-      const leftShort = shortTeamName(row.teams.left.name);
-      const rightShort = shortTeamName(row.teams.right.name);
-      const winnerLong =
-        row.winnerTeamId === row.teams.left.id
-          ? row.teams.left.name
-          : row.winnerTeamId === row.teams.right.id
-            ? row.teams.right.name
-            : null;
-      const winnerShort = winnerLong ? shortTeamName(winnerLong) : "—";
-      const scoreLabel = seriesScoreLabel(row, type);
-      const statusLabel = type === "result" ? "FINAL" : String(row.status || "upcoming").toUpperCase();
-      const statusClass = type === "result" ? "complete" : row.status === "live" ? "live" : "upcoming";
+    .length
+    ? groupRowsByDay(rows)
+        .map((group) => {
+          const cards = group.rows
+            .map((row) => {
+              const detailUrl = rowLink(row.id);
+              const leftShort = shortTeamName(row.teams.left.name);
+              const rightShort = shortTeamName(row.teams.right.name);
+              const leftBadge = scheduleBadgeToken(row.teams.left.name);
+              const rightBadge = scheduleBadgeToken(row.teams.right.name);
+              const winnerLong =
+                row.winnerTeamId === row.teams.left.id
+                  ? row.teams.left.name
+                  : row.winnerTeamId === row.teams.right.id
+                    ? row.teams.right.name
+                    : null;
+              const winnerShort = winnerLong ? shortTeamName(winnerLong) : "—";
+              const scoreLabel = seriesScoreLabel(row, type);
+              const statusLabel = scheduleCardStatusLabel(row, type);
+              const statusClass = type === "result" ? "complete" : row.status === "live" ? "live" : "upcoming";
+              const stateClass = scheduleCardState(row, type);
+              const center = scheduleCardCenter(row, type, scoreLabel);
+              const meta = scheduleCardMeta(row, type, winnerShort);
 
-      return `
-        <a class="schedule-row-card schedule-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
-          <div class="schedule-card-top">
-            <div class="schedule-card-game"><span class="hub-chip-link" title="${gameLabel(row.game)}">${gameChipMarkup(row.game)}</span> <span>${dateTimeCompact(row.startAt)}</span></div>
-            <span class="pill ${statusClass} schedule-card-status">${statusLabel}</span>
-          </div>
-          <p class="schedule-card-match">${leftShort} <span>vs</span> ${rightShort}</p>
-          <p class="schedule-card-score">${scoreLabel}</p>
-          <p class="schedule-card-meta">${type === "result" ? `Winner: ${winnerShort}` : "Tap for full match context"}</p>
-        </a>
-      `;
-    })
-    .join("");
+              return `
+                <a class="schedule-row-card schedule-${stateClass}" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
+                  <div class="schedule-card-top">
+                    <div class="schedule-card-game">
+                      <span class="schedule-card-game-icon" title="${gameLabel(row.game)}">${gameChipMarkup(row.game)}</span>
+                      <span class="schedule-card-time">${timeOnlyLabel(row.startAt)}</span>
+                    </div>
+                    <span class="pill ${statusClass} schedule-card-status">${statusLabel}</span>
+                  </div>
+                  <div class="schedule-card-board">
+                    <div class="schedule-card-team left">
+                      <span class="schedule-card-badge">${leftBadge}</span>
+                      <span class="schedule-card-name">${leftShort}</span>
+                    </div>
+                    <div class="schedule-card-center">
+                      <p class="schedule-card-score">${center.main}</p>
+                      <p class="schedule-card-center-meta">${center.sub}</p>
+                    </div>
+                    <div class="schedule-card-team right">
+                      <span class="schedule-card-badge">${rightBadge}</span>
+                      <span class="schedule-card-name">${rightShort}</span>
+                    </div>
+                  </div>
+                  <p class="schedule-card-meta">${meta}</p>
+                </a>
+              `;
+            })
+            .join("");
+
+          return `
+            <section class="schedule-day-group">
+              <div class="schedule-day-label">${group.label}</div>
+              <div class="schedule-day-list">${cards}</div>
+            </section>
+          `;
+        })
+        .join("")
+    : "";
 
   container.innerHTML = `
     <div class="table-wrap schedule-desktop-wrap">

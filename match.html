@@ -191,16 +191,24 @@
         <div class="section-head">
           <h2>Player Tracker</h2>
         </div>
-        <div class="feed-controls">
-          <label>
-            Sort Players
-            <select id="trackerSort">
-              <option value="role">By Role</option>
-              <option value="gold">By Gold</option>
-              <option value="kp">By Kill Participation</option>
-              <option value="impact">By Impact</option>
-            </select>
-          </label>
+        <div class="tracker-sort-shell">
+          <div id="trackerSortButtons" class="tracker-sort-row" role="group" aria-label="Sort players">
+            <button type="button" class="tracker-sort-chip" data-sort="role">Role</button>
+            <button type="button" class="tracker-sort-chip" data-sort="gold">Gold</button>
+            <button type="button" class="tracker-sort-chip" data-sort="kp">KP</button>
+            <button type="button" class="tracker-sort-chip" data-sort="impact">Impact</button>
+          </div>
+          <div class="feed-controls tracker-sort-select">
+            <label>
+              Sort Players
+              <select id="trackerSort">
+                <option value="role">By Role</option>
+                <option value="gold">By Gold</option>
+                <option value="kp">By Kill Participation</option>
+                <option value="impact">By Impact</option>
+              </select>
+            </label>
+          </div>
         </div>
         <div id="playerTrackerWrap" class="player-tracker"></div>
       </section>
