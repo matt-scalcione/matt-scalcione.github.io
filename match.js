@@ -1565,6 +1565,7 @@ function selectedGameScoreContext(match) {
 
 function renderScoreboard(match) {
   const compact = isCompactUI();
+  const isSeriesView = uiState.viewMode === "series";
   const winner = winnerTeamName(match);
   const winnerLabel = winner ? scoreboardTeamName(winner) : null;
   const leftRawName = String(match?.teams?.left?.name || "Unknown");
@@ -1635,9 +1636,22 @@ function renderScoreboard(match) {
     seriesSubline = compact ? "Final" : `${completedMaps || bestOf} maps recorded`;
   }
 
-  const seriesCenterLabel = compact ? formatLabel : "Series Score";
+  if (isSeriesView) {
+    if (match.status === "upcoming") {
+      seriesSubline = compact ? "Upcoming" : `${formatLabel} · Upcoming`;
+    } else if (match.status === "live") {
+      seriesSubline = compact
+        ? (Number.isInteger(liveGameNumber) ? `G${liveGameNumber} live` : "Live")
+        : `${formatLabel} · Live`;
+    } else if (match.status === "completed") {
+      seriesSubline = compact ? "Final" : `${formatLabel} · Final`;
+    }
+  }
 
-  elements.scoreboard.innerHTML = `
+  const seriesCenterLabel = compact ? formatLabel : "Series Score";
+  const phaseBannerMarkup = isSeriesView
+    ? ""
+    : `
     <article class="match-phase-banner ${statusTone}">
       <div class="match-phase-copy">
         <p class="match-phase-kicker">${phaseKicker}</p>
@@ -1648,22 +1662,9 @@ function renderScoreboard(match) {
         ${phasePills.map((pill) => `<span class="match-phase-pill">${pill}</span>`).join("")}
       </div>
     </article>
-    <article class="score-strip series-strip ${statusTone}">
-      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
-        ${teamBadgeMarkup(leftRawName)}
-        <span class="score-team-name">${leftDisplayName}</span>
-      </a>
-      <div class="score-center">
-        <p class="score-center-label">${seriesCenterLabel}</p>
-        <p class="score-center-main">${match.seriesScore.left}<span class="score-divider">-</span>${match.seriesScore.right}</p>
-        <p class="score-center-sub">${seriesSubline}</p>
-      </div>
-      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
-        ${teamBadgeMarkup(rightRawName)}
-        <span class="score-team-name">${rightDisplayName}</span>
-      </a>
-    </article>
-    ${gameContext
+  `;
+  const gameStripMarkup =
+    gameContext && !isSeriesView
       ? `
     <article class="score-strip game-strip ${gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming"}">
       <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
@@ -1683,7 +1684,28 @@ function renderScoreboard(match) {
       </a>
     </article>
     `
-      : ""}
+      : "";
+
+  elements.scoreboard.classList.toggle("scoreboard-series-only", isSeriesView);
+
+  elements.scoreboard.innerHTML = `
+    ${phaseBannerMarkup}
+    <article class="score-strip series-strip ${statusTone}">
+      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
+        ${teamBadgeMarkup(leftRawName)}
+        <span class="score-team-name">${leftDisplayName}</span>
+      </a>
+      <div class="score-center">
+        <p class="score-center-label">${seriesCenterLabel}</p>
+        <p class="score-center-main">${match.seriesScore.left}<span class="score-divider">-</span>${match.seriesScore.right}</p>
+        <p class="score-center-sub">${seriesSubline}</p>
+      </div>
+      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
+        ${teamBadgeMarkup(rightRawName)}
+        <span class="score-team-name">${rightDisplayName}</span>
+      </a>
+    </article>
+    ${gameStripMarkup}
   `;
 }
 
