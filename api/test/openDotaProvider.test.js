@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeMatchDetail, normalizeSeriesScore } from "../src/providers/dota/openDotaProvider.js";
+import {
+  buildSeriesSummaries,
+  normalizeMatchDetail,
+  normalizeSeriesScore
+} from "../src/providers/dota/openDotaProvider.js";
 
 describe("normalizeSeriesScore", () => {
   it("uses provided series wins when present", () => {
@@ -34,6 +38,91 @@ describe("normalizeSeriesScore", () => {
   });
 });
 
+describe("buildSeriesSummaries", () => {
+  it("groups map rows into a completed BO3 series using series_id", () => {
+    const rows = [
+      {
+        match_id: 1001,
+        series_id: 5001,
+        series_type: 1,
+        leagueid: 77,
+        league_name: "Wallachia",
+        start_time: 1_700_000_000,
+        duration: 2100,
+        radiant_team_id: 10,
+        dire_team_id: 20,
+        radiant_name: "Aurora",
+        dire_name: "MOUZ",
+        radiant_win: true
+      },
+      {
+        match_id: 1002,
+        series_id: 5001,
+        series_type: 1,
+        leagueid: 77,
+        league_name: "Wallachia",
+        start_time: 1_700_002_600,
+        duration: 2200,
+        radiant_team_id: 20,
+        dire_team_id: 10,
+        radiant_name: "MOUZ",
+        dire_name: "Aurora",
+        radiant_win: false
+      },
+      {
+        match_id: 1003,
+        series_id: 5001,
+        series_type: 1,
+        leagueid: 77,
+        league_name: "Wallachia",
+        start_time: 1_700_005_300,
+        duration: 2000,
+        radiant_team_id: 20,
+        dire_team_id: 10,
+        radiant_name: "MOUZ",
+        dire_name: "Aurora",
+        radiant_win: true
+      }
+    ];
+
+    const summaries = buildSeriesSummaries(rows, new Map([[77, 1]]));
+
+    assert.equal(summaries.length, 1);
+    assert.equal(summaries[0].id, "dota_od_series_5001");
+    assert.equal(summaries[0].bestOf, 3);
+    assert.equal(summaries[0].status, "completed");
+    assert.deepEqual(summaries[0].seriesScore, { left: 2, right: 1 });
+    assert.equal(summaries[0].winnerTeamId, summaries[0].teams.left.id);
+  });
+
+  it("keeps recent incomplete series live", () => {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const rows = [
+      {
+        match_id: 2001,
+        series_id: 6001,
+        series_type: 1,
+        leagueid: 88,
+        league_name: "DreamLeague",
+        start_time: nowSeconds - 3600,
+        duration: 2100,
+        radiant_team_id: 30,
+        dire_team_id: 40,
+        radiant_name: "Team A",
+        dire_name: "Team B",
+        radiant_win: true
+      }
+    ];
+
+    const summaries = buildSeriesSummaries(rows, new Map([[88, 2]]));
+
+    assert.equal(summaries.length, 1);
+    assert.equal(summaries[0].status, "live");
+    assert.equal(summaries[0].bestOf, 3);
+    assert.deepEqual(summaries[0].seriesScore, { left: 1, right: 0 });
+  });
+});
+
 describe("normalizeMatchDetail", () => {
   it("builds rich Dota detail fields used by match page", () => {
     const payload = {
@@ -42,7 +131,7 @@ describe("normalizeMatchDetail", () => {
       league: { name: "DreamLeague S26" },
       start_time: 1_700_000_000,
       duration: 2100,
-      series_type: 2,
+      series_type: 1,
       radiant_series_wins: 1,
       dire_series_wins: 1,
       radiant_win: true,
@@ -173,7 +262,7 @@ describe("normalizeMatchDetail", () => {
       leagueid: 9988,
       start_time: 1_700_000_500,
       duration: 1200,
-      series_type: 2,
+      series_type: 1,
       radiant_series_wins: 1,
       dire_series_wins: 0,
       radiant_score: 8,
