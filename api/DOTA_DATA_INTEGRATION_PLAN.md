@@ -1,5 +1,11 @@
 # Dota Data Integration Plan (Executed)
 
+Note:
+
+- This document covers the OpenDota-first integration work that has already been completed.
+- The current forward-looking architecture for free live Dota coverage now lives in:
+  - [DOTA_FREE_LIVE_PROVIDER_PLAN.md](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/DOTA_FREE_LIVE_PROVIDER_PLAN.md)
+
 This plan tracks how Dota 2 data is integrated into Pulseboard with parity to the League of Legends match experience.
 
 ## Goals
