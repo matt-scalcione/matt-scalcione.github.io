@@ -42,6 +42,7 @@ const elements = {
   liveSearchInput: document.querySelector("#liveSearchInput"),
   liveResetFiltersButton: document.querySelector("#liveResetFiltersButton"),
   liveFilterMeta: document.querySelector("#liveFilterMeta"),
+  liveDeskSummary: document.querySelector("#liveDeskSummary"),
   cardGrid: document.querySelector("#cardGrid")
 };
 const liveDeskState = {
@@ -124,6 +125,15 @@ function gameChipMarkup(game) {
   return `<span class="game-chip">${String(game || "?").slice(0, 1).toUpperCase()}</span>`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function signalLabel(signal) {
   if (!signal) return "No major signal";
   return signal.replaceAll("_", " ");
@@ -163,9 +173,176 @@ function teamBadgeMarkup(team, game) {
     name: team?.name
   });
   if (logo) {
-    return `<span class="team-badge has-logo"><img src="${logo}" alt="${label} logo" loading="lazy" decoding="async" /></span>`;
+    return `<span class="team-badge has-logo"><img src="${logo}" alt="${escapeHtml(label)} logo" loading="lazy" decoding="async" /></span>`;
   }
-  return `<span class="team-badge">${teamShortLabel(team, game).slice(0, 3).toUpperCase()}</span>`;
+  return `<span class="team-badge">${escapeHtml(teamShortLabel(team, game).slice(0, 3).toUpperCase())}</span>`;
+}
+
+function bestOfCompactLabel(bestOf) {
+  const value = Number(bestOf || 0);
+  return value > 1 ? `BO${value}` : "Map";
+}
+
+function sortDeskRows(rows = []) {
+  return rows
+    .slice()
+    .sort((left, right) => {
+      const rank = (status) => (status === "live" ? 0 : status === "upcoming" ? 1 : 2);
+      const statusDelta = rank(left?.status) - rank(right?.status);
+      if (statusDelta !== 0) {
+        return statusDelta;
+      }
+      return Date.parse(String(left?.startAt || "")) - Date.parse(String(right?.startAt || ""));
+    });
+}
+
+function matchTimeLabel(match = {}) {
+  const status = String(match?.status || "").toLowerCase();
+  if (status === "live") {
+    return `Updated ${dateTimeLabel(match?.updatedAt || match?.startAt)}`;
+  }
+  if (status === "upcoming") {
+    return `Starts ${dateTimeLabel(match?.startAt)}`;
+  }
+  return `Final ${dateTimeLabel(match?.updatedAt || match?.startAt)}`;
+}
+
+function matchSummaryLead(match = {}) {
+  const status = String(match?.status || "").toLowerCase();
+  const leftScore = Number(match?.seriesScore?.left || 0);
+  const rightScore = Number(match?.seriesScore?.right || 0);
+  if (status === "live") {
+    return `Series ${leftScore}-${rightScore} live`;
+  }
+  if (status === "upcoming") {
+    return `${bestOfCompactLabel(match?.bestOf)} · ${dateTimeLabel(match?.startAt)}`;
+  }
+  return `Final ${leftScore}-${rightScore}`;
+}
+
+function featuredHeadline(rows = [], counts = { live: 0, upcoming: 0, completed: 0 }) {
+  const tournamentCount = new Set(
+    rows
+      .map((row) => String(row?.tournament || "").trim())
+      .filter(Boolean)
+  ).size;
+  if (counts.live > 0) {
+    return `${counts.live} live now across ${Math.max(tournamentCount, 1)} tournaments`;
+  }
+  if (counts.upcoming > 0) {
+    return `${counts.upcoming} upcoming series on deck`;
+  }
+  if (counts.completed > 0) {
+    return `${counts.completed} recent finals in view`;
+  }
+  return "No matches in the current view";
+}
+
+function renderLiveDeskSummary(totalRows, filteredRows, counts) {
+  if (!elements.liveDeskSummary) {
+    return;
+  }
+
+  const activeGame = normalizeGameKey(elements.gameSelect?.value || "");
+  const searchTerm = String(liveDeskState.searchTerm || "").trim();
+  const hasNarrowing = liveDeskState.statusFilter !== "all" || Boolean(searchTerm);
+  const visibleRows = filteredRows.length ? filteredRows : hasNarrowing ? [] : totalRows;
+  const visibleCounts = statusCounts(visibleRows);
+  const featured = sortDeskRows(visibleRows)[0] || null;
+  const tournaments = new Set(
+    totalRows
+      .map((row) => String(row?.tournament || "").trim())
+      .filter(Boolean)
+  ).size;
+
+  if (!totalRows.length) {
+    elements.liveDeskSummary.innerHTML = `
+      <div class="desk-summary-hero empty">
+        <div class="desk-summary-main">
+          <div class="desk-summary-kicker-row">
+            <span class="desk-summary-chip neutral">Live Desk</span>
+          </div>
+          <h3 class="desk-summary-title">No matches in view</h3>
+          <p class="desk-summary-subline">When live or upcoming series are available, they will appear here with instant match context.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const visibleCount = filteredRows.length;
+  const filterLabel =
+    liveDeskState.statusFilter === "all"
+      ? "All"
+      : liveDeskState.statusFilter === "live"
+        ? "Live"
+        : liveDeskState.statusFilter === "upcoming"
+          ? "Next"
+          : "Final";
+  const featuredLink = featured ? buildMatchUrl({ matchId: featured.id }) : "#";
+
+  elements.liveDeskSummary.innerHTML = `
+    <div class="desk-summary-hero">
+      <div class="desk-summary-main">
+        <div class="desk-summary-kicker-row">
+          <span class="desk-summary-chip ${counts.live > 0 ? "live" : "neutral"}">${filterLabel} view</span>
+          ${activeGame ? `<span class="desk-summary-chip game">${escapeHtml(gameLabel(activeGame))}</span>` : ""}
+          ${searchTerm ? `<span class="desk-summary-chip search">Search: ${escapeHtml(searchTerm)}</span>` : ""}
+        </div>
+        <h3 class="desk-summary-title">${escapeHtml(visibleRows.length ? featuredHeadline(visibleRows, visibleCounts) : "No matches in the current filter")}</h3>
+        <p class="desk-summary-subline">${
+          visibleRows.length
+            ? `Showing ${visibleCount}/${totalRows.length} matches across ${Math.max(tournaments, 1)} tournaments.`
+            : `No matches currently fit this filter. Clear the search or switch status to widen the view.`
+        }</p>
+        <div class="desk-summary-stats">
+          <article class="desk-summary-stat live">
+            <p class="desk-summary-label">Live</p>
+            <p class="desk-summary-value">${counts.live}</p>
+          </article>
+          <article class="desk-summary-stat upcoming">
+            <p class="desk-summary-label">Next</p>
+            <p class="desk-summary-value">${counts.upcoming}</p>
+          </article>
+          <article class="desk-summary-stat final">
+            <p class="desk-summary-label">Final</p>
+            <p class="desk-summary-value">${counts.completed}</p>
+          </article>
+          <article class="desk-summary-stat total">
+            <p class="desk-summary-label">Tournaments</p>
+            <p class="desk-summary-value">${tournaments}</p>
+          </article>
+        </div>
+      </div>
+      ${
+        featured
+          ? `
+            <a class="desk-featured-card ${escapeHtml(String(featured.status || "upcoming").toLowerCase())}" href="${featuredLink}">
+              <div class="desk-featured-top">
+                <span class="pill ${statusPillClass(featured.status)}">${escapeHtml(String(featured.status || "upcoming").toUpperCase())}</span>
+                <span class="subline">${gameChipMarkup(featured.game)} ${escapeHtml(featured.tournament || "Tournament")}</span>
+              </div>
+              <p class="desk-featured-matchup">${escapeHtml(teamShortLabel(featured.teams.left, featured.game))} vs ${escapeHtml(teamShortLabel(featured.teams.right, featured.game))}</p>
+              <div class="desk-featured-scoreboard">
+                <div class="desk-featured-team">
+                  <span class="desk-featured-team-main">${teamBadgeMarkup(featured.teams.left, featured.game)}<span class="team-name">${escapeHtml(teamShortLabel(featured.teams.left, featured.game))}</span></span>
+                  <strong class="desk-featured-score">${Number(featured?.seriesScore?.left || 0)}</strong>
+                </div>
+                <div class="desk-featured-team">
+                  <span class="desk-featured-team-main">${teamBadgeMarkup(featured.teams.right, featured.game)}<span class="team-name">${escapeHtml(teamShortLabel(featured.teams.right, featured.game))}</span></span>
+                  <strong class="desk-featured-score">${Number(featured?.seriesScore?.right || 0)}</strong>
+                </div>
+              </div>
+              <div class="desk-featured-foot">
+                <span>${escapeHtml(matchSummaryLead(featured))}</span>
+                <span class="desk-featured-open">${escapeHtml(matchTimeLabel(featured))}</span>
+              </div>
+            </a>
+          `
+          : ""
+      }
+    </div>
+  `;
 }
 
 function buildQuery({ game, region, dotaTiers, followedOnly, userId }) {
@@ -363,45 +540,41 @@ function renderEmpty(message) {
 }
 
 function renderCards(rows) {
-  const orderedRows = rows
-    .slice()
-    .sort((left, right) => {
-      const rank = (status) => (status === "live" ? 0 : status === "upcoming" ? 1 : 2);
-      const statusDelta = rank(left.status) - rank(right.status);
-      if (statusDelta !== 0) {
-        return statusDelta;
-      }
-      return Date.parse(String(left.startAt || "")) - Date.parse(String(right.startAt || ""));
-    });
+  const orderedRows = sortDeskRows(rows);
 
   elements.cardGrid.innerHTML = orderedRows
     .map((match, index) => {
       const link = buildMatchUrl({ matchId: match.id });
       const statusClass = statusPillClass(match.status);
       const statusLabel = String(match.status || "upcoming").toUpperCase();
+      const signal = String(match?.keySignal || "").trim();
+      const featured = index === 0 && String(match?.status || "").toLowerCase() === "live" && orderedRows.length > 1;
 
       return `
-        <a class="match-card" style="--delay:${index * 55}ms" href="${link}">
+        <a class="match-card${featured ? " featured" : ""}" style="--delay:${index * 55}ms" href="${link}">
           <div class="match-card-topline">
             <span class="pill ${statusClass}">${statusLabel}</span>
-            <span class="subline"><span class="hub-chip-link" title="${gameLabel(match.game)}">${gameChipMarkup(match.game)}</span> ${match.tournament || "Tournament"}</span>
+            <span class="subline"><span class="hub-chip-link" title="${escapeHtml(gameLabel(match.game))}">${gameChipMarkup(match.game)}</span> ${escapeHtml(match.tournament || "Tournament")}</span>
           </div>
           <div class="match-card-scoreboard">
             <div class="team-line compact">
-              <span class="team-line-main">${teamBadgeMarkup(match.teams.left, match.game)}<span class="team-name">${teamShortLabel(match.teams.left, match.game)}</span></span>
-              <strong>${match.seriesScore.left}</strong>
+              <span class="team-line-main">${teamBadgeMarkup(match.teams.left, match.game)}<span class="team-name">${escapeHtml(teamShortLabel(match.teams.left, match.game))}</span></span>
+              <strong>${Number(match?.seriesScore?.left || 0)}</strong>
             </div>
             <div class="team-line compact">
-              <span class="team-line-main">${teamBadgeMarkup(match.teams.right, match.game)}<span class="team-name">${teamShortLabel(match.teams.right, match.game)}</span></span>
-              <strong>${match.seriesScore.right}</strong>
+              <span class="team-line-main">${teamBadgeMarkup(match.teams.right, match.game)}<span class="team-name">${escapeHtml(teamShortLabel(match.teams.right, match.game))}</span></span>
+              <strong>${Number(match?.seriesScore?.right || 0)}</strong>
             </div>
           </div>
-          <p class="signal">${signalLabel(match.keySignal)}</p>
-          <div class="match-card-footer">
-            <p class="subline">${dateTimeLabel(match.startAt)}${match.region ? ` · ${String(match.region).toUpperCase()}` : ""}</p>
-            <span class="match-card-cta">Open</span>
+          <div class="match-card-rail">
+            <span class="match-card-chip emphasis">${escapeHtml(bestOfCompactLabel(match.bestOf))}</span>
+            ${match.region ? `<span class="match-card-chip">${escapeHtml(String(match.region).toUpperCase())}</span>` : ""}
+            ${signal ? `<span class="match-card-chip signal">${escapeHtml(signalLabel(signal))}</span>` : ""}
           </div>
-          <p class="subline">Updated ${dateTimeLabel(match.updatedAt)}</p>
+          <div class="match-card-footer">
+            <p class="subline">${escapeHtml(matchTimeLabel(match))}</p>
+            <span class="match-card-cta">Open match</span>
+          </div>
         </a>
       `;
     })
@@ -433,6 +606,7 @@ function renderLiveDesk() {
   const totalRows = liveDeskState.rows.length;
   const counts = statusCounts(liveDeskState.rows);
   const filteredRows = applyClientFilters(liveDeskState.rows);
+  renderLiveDeskSummary(liveDeskState.rows, filteredRows, counts);
 
   if (!filteredRows.length) {
     if (totalRows === 0) {
@@ -497,6 +671,7 @@ async function loadMatches() {
   } catch (error) {
     setStatus(`Error: ${error.message}`, "error");
     liveDeskState.rows = [];
+    renderLiveDeskSummary([], [], statusCounts([]));
     if (elements.liveFilterMeta) {
       elements.liveFilterMeta.textContent = "";
     }
