@@ -26,6 +26,13 @@ cd /Users/admin/Documents/GitHub/matt-scalcione.github.io/api
 npm test
 ```
 
+Provider coverage quick check:
+
+```bash
+cd /Users/admin/Documents/GitHub/matt-scalcione.github.io/api
+npm run providers:check
+```
+
 ## Implemented Endpoints
 
 - `GET /health`
@@ -94,6 +101,8 @@ Optional provider settings:
 - `STRATZ_API_TOKEN`
 - `STRATZ_DOTA_LIVE_QUERY`
 - `STRATZ_DOTA_MATCH_DETAIL_QUERY`
+- `STRATZ_DOTA_LIVE_QUERY_FILE`
+- `STRATZ_DOTA_MATCH_DETAIL_QUERY_FILE`
 
 Dota provider precedence:
 1. `STRATZ` for live telemetry when configured
@@ -101,6 +110,10 @@ Dota provider precedence:
 3. `Liquipedia API` for future schedule and watch metadata
 
 Use `GET /v1/provider-coverage` to inspect which Dota provider path is active.
+
+Activation references:
+- [.env example](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/.env.example)
+- [Dota provider activation checklist](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/DOTA_PROVIDER_ACTIVATION_CHECKLIST.md)
 
 ## Deploy (Render)
 

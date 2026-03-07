@@ -1,5 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 function restoreEnv(key, value) {
@@ -107,6 +110,58 @@ describe("StratzProvider", () => {
       global.fetch = originalFetch;
       restoreEnv("STRATZ_API_TOKEN", previousToken);
       restoreEnv("STRATZ_DOTA_LIVE_QUERY", previousLiveQuery);
+    }
+  });
+
+  it("can load the live query from a file path instead of an inline env value", async () => {
+    const originalFetch = global.fetch;
+    const previousToken = process.env.STRATZ_API_TOKEN;
+    const previousLiveQuery = process.env.STRATZ_DOTA_LIVE_QUERY;
+    const previousLiveQueryFile = process.env.STRATZ_DOTA_LIVE_QUERY_FILE;
+    const tempDir = mkdtempSync(join(tmpdir(), "pulseboard-stratz-"));
+    const queryFile = join(tempDir, "live.graphql");
+
+    writeFileSync(queryFile, "query LiveMatches { liveMatches { id } }\n", "utf8");
+    process.env.STRATZ_API_TOKEN = "test-token";
+    delete process.env.STRATZ_DOTA_LIVE_QUERY;
+    process.env.STRATZ_DOTA_LIVE_QUERY_FILE = queryFile;
+
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("api.stratz.com/graphql")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              data: {
+                liveMatches: []
+              }
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/providers/dota/stratzProvider.js"
+      ).href;
+      const { StratzProvider } = await import(`${moduleUrl}?fileQuery=${Date.now()}`);
+      const provider = new StratzProvider({ timeoutMs: 1000 });
+      const capabilities = provider.getCapabilities();
+
+      assert.equal(capabilities.liveQueryConfigured, true);
+      assert.equal(capabilities.liveQuerySource, "file");
+
+      const rows = await provider.fetchLiveMatches();
+      assert.deepEqual(rows, []);
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("STRATZ_API_TOKEN", previousToken);
+      restoreEnv("STRATZ_DOTA_LIVE_QUERY", previousLiveQuery);
+      restoreEnv("STRATZ_DOTA_LIVE_QUERY_FILE", previousLiveQueryFile);
     }
   });
 

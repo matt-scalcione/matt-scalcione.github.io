@@ -17,6 +17,7 @@ Thumbs.db
 # Local env files
 api/.env
 api/.env.*
+!api/.env.example
 
 # Legacy folder
 /estate
