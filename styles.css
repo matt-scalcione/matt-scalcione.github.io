@@ -87,6 +87,14 @@ body.follows-page {
   --bg-c: #ffdce8;
 }
 
+body.logo-admin-page {
+  --accent: #b86516;
+  --accent-strong: #7d4213;
+  --signal: #e25638;
+  --bg-b: #ffe9cf;
+  --bg-c: #e1f0ff;
+}
+
 body.team-page,
 body.match-page {
   --accent: #0f8f84;
@@ -539,7 +547,8 @@ button.ghost,
 .live-page .section-head h2::before,
 .schedule-page .section-head h2::before,
 .follows-page .section-head h2::before,
-.team-page .section-head h2::before {
+.team-page .section-head h2::before,
+.logo-admin-page .section-head h2::before {
   content: "";
   width: 0.36rem;
   height: 0.9rem;
@@ -847,6 +856,144 @@ button.ghost,
 .table-link:hover {
   color: var(--accent);
   text-decoration-color: var(--accent);
+}
+
+.logo-team-grid {
+  display: grid;
+  gap: 0.72rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.logo-team-card {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 253, 255, 0.94));
+  padding: 0.82rem;
+  display: grid;
+  gap: 0.58rem;
+  box-shadow: 0 8px 18px rgba(10, 24, 40, 0.08);
+}
+
+.logo-team-topline,
+.logo-team-main,
+.logo-team-actions,
+.logo-breakdown-row,
+.logo-source-row,
+.logo-team-markers {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.logo-team-topline,
+.logo-team-actions {
+  justify-content: space-between;
+}
+
+.logo-team-main {
+  align-items: center;
+}
+
+.logo-team-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.logo-team-copy strong {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  color: var(--accent-strong);
+  font-size: 0.92rem;
+  line-height: 1.08;
+}
+
+.team-badge-wrap {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.logo-missing-badge {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 1px solid rgba(83, 108, 138, 0.18);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(237, 244, 255, 0.9));
+  color: var(--accent-strong);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.66rem;
+}
+
+.logo-asset-chip,
+.logo-source-chip,
+.logo-count-pill,
+.logo-mini-chip {
+  border-radius: 999px;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.logo-asset-chip,
+.logo-source-chip,
+.logo-mini-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.16rem;
+  border: 1px solid rgba(90, 124, 161, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  color: #314963;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.63rem;
+}
+
+.logo-count-pill {
+  background: linear-gradient(130deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  padding: 0.22rem 0.54rem;
+  font-size: 0.64rem;
+}
+
+.logo-asset-chip.generated,
+.logo-mini-chip.generated {
+  border-color: rgba(26, 105, 189, 0.2);
+  background: rgba(223, 239, 255, 0.9);
+  color: #174d8d;
+}
+
+.logo-asset-chip.manual,
+.logo-mini-chip.manual {
+  border-color: rgba(32, 129, 91, 0.2);
+  background: rgba(222, 247, 233, 0.92);
+  color: #176646;
+}
+
+.logo-asset-chip.fallback,
+.logo-mini-chip.fallback {
+  border-color: rgba(179, 96, 22, 0.22);
+  background: rgba(255, 237, 212, 0.94);
+  color: #8a4c17;
+}
+
+.logo-asset-chip.static,
+.logo-mini-chip.static {
+  border-color: rgba(94, 88, 173, 0.2);
+  background: rgba(234, 230, 255, 0.92);
+  color: #4c3f9b;
+}
+
+.logo-asset-chip.missing,
+.logo-mini-chip.missing {
+  border-color: rgba(173, 62, 62, 0.22);
+  background: rgba(255, 228, 228, 0.92);
+  color: #953737;
+}
+
+.logo-source-row,
+.logo-breakdown-row {
+  flex-wrap: wrap;
 }
 
 .schedule-desktop-wrap {
