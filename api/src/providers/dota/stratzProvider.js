@@ -1,14 +1,41 @@
+import { readFileSync } from "node:fs";
 import { fetchGraphql } from "../shared/http.js";
 
 const STRATZ_GRAPHQL_URL = process.env.STRATZ_GRAPHQL_URL || "https://api.stratz.com/graphql";
 const STRATZ_API_TOKEN = String(process.env.STRATZ_API_TOKEN || "").trim();
 const STRATZ_USER_AGENT =
   process.env.STRATZ_USER_AGENT || "Pulseboard/1.0 (https://matt-scalcione.github.io)";
-const STRATZ_LIVE_QUERY = String(process.env.STRATZ_DOTA_LIVE_QUERY || "").trim();
-const STRATZ_MATCH_DETAIL_QUERY = String(process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY || "").trim();
+const STRATZ_LIVE_QUERY_FILE = String(process.env.STRATZ_DOTA_LIVE_QUERY_FILE || "").trim();
+const STRATZ_MATCH_DETAIL_QUERY_FILE = String(
+  process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY_FILE || ""
+).trim();
 const STRATZ_LIVE_CACHE_MS = Math.max(
   10000,
   Number.parseInt(process.env.STRATZ_DOTA_LIVE_CACHE_MS || "15000", 10)
+);
+
+function loadQueryText(inlineValue, filePath) {
+  const inline = String(inlineValue || "").trim();
+  if (inline) {
+    return inline;
+  }
+
+  const targetFile = String(filePath || "").trim();
+  if (!targetFile) {
+    return "";
+  }
+
+  try {
+    return String(readFileSync(targetFile, "utf8") || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+const STRATZ_LIVE_QUERY = loadQueryText(process.env.STRATZ_DOTA_LIVE_QUERY, STRATZ_LIVE_QUERY_FILE);
+const STRATZ_MATCH_DETAIL_QUERY = loadQueryText(
+  process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY,
+  STRATZ_MATCH_DETAIL_QUERY_FILE
 );
 
 function toOptionalNumber(value) {
@@ -312,6 +339,10 @@ export class StratzProvider {
       tokenConfigured: Boolean(STRATZ_API_TOKEN),
       liveQueryConfigured: Boolean(STRATZ_LIVE_QUERY),
       detailQueryConfigured: Boolean(STRATZ_MATCH_DETAIL_QUERY),
+      liveQuerySource: STRATZ_LIVE_QUERY ? (String(process.env.STRATZ_DOTA_LIVE_QUERY || "").trim() ? "env" : STRATZ_LIVE_QUERY_FILE ? "file" : "unknown") : "missing",
+      detailQuerySource: STRATZ_MATCH_DETAIL_QUERY
+        ? (String(process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY || "").trim() ? "env" : STRATZ_MATCH_DETAIL_QUERY_FILE ? "file" : "unknown")
+        : "missing",
       liveEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_LIVE_QUERY),
       detailEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_MATCH_DETAIL_QUERY),
       detailContractMode: "pulseboard_contract_only"

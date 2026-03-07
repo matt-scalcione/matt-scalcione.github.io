@@ -60,6 +60,7 @@ Your site URL will be:
 
 - LoL hub: `https://matt-scalcione.github.io/lol.html`
 - Dota 2 hub: `https://matt-scalcione.github.io/dota2.html`
+- Provider admin: `https://matt-scalcione.github.io/providers.html`
 - Hubs include:
   - Live cards
   - Upcoming preview templates

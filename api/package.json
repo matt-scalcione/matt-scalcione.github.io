@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "ESPORTS_DATA_MODE=mock node --test"
+    "test": "ESPORTS_DATA_MODE=mock node --test",
+    "providers:check": "node scripts/verify-provider-coverage.mjs"
   }
 }
