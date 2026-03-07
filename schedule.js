@@ -103,6 +103,10 @@ const elements = {
   resultsTableWrap: document.querySelector("#resultsTableWrap")
 };
 let scheduleViewMode = "both";
+const scheduleCollectionState = {
+  scheduleMeta: null,
+  resultsMeta: null
+};
 const SCHEDULE_RANGE_PRESETS = {
   live: { pastHours: 12, futureHours: 18 },
   "24h": { pastHours: 0, futureHours: 24 },
@@ -652,6 +656,30 @@ function setStatus(message, tone = "neutral") {
   }
 }
 
+function scheduleMetaText(meta, kind) {
+  const count = Number(meta?.count || 0);
+  const generatedAt = meta?.generatedAt || null;
+  if (isCompactViewport()) {
+    const noun = kind === "results"
+      ? count === 1 ? "result" : "results"
+      : count === 1 ? "match" : "matches";
+    return [count > 0 ? `${count} ${noun}` : `0 ${noun}`, generatedAt ? timeOnlyLabel(generatedAt) : null]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  return `Showing ${count} matches · Updated ${generatedAt ? dateTimeCompact(generatedAt) : "n/a"}`;
+}
+
+function renderScheduleCollectionMeta() {
+  if (elements.scheduleMeta && scheduleCollectionState.scheduleMeta) {
+    elements.scheduleMeta.textContent = scheduleMetaText(scheduleCollectionState.scheduleMeta, "schedule");
+  }
+  if (elements.resultsMeta && scheduleCollectionState.resultsMeta) {
+    elements.resultsMeta.textContent = scheduleMetaText(scheduleCollectionState.resultsMeta, "results");
+  }
+}
+
 function renderLoadingTable(container) {
   container.innerHTML = `
     <div class="schedule-mobile-list loading-grid" aria-hidden="true">
@@ -899,15 +927,17 @@ async function loadCollections() {
     renderTable(elements.resultsTableWrap, resultRows, "result");
     applyScheduleStructuredData(scheduleRows, resultRows);
     refreshScheduleSeo();
-
-    elements.scheduleMeta.textContent = `Showing ${schedulePayload.meta.count} matches · Updated ${dateTimeCompact(schedulePayload.meta.generatedAt)}`;
-    elements.resultsMeta.textContent = `Showing ${resultsPayload.meta.count} matches · Updated ${dateTimeCompact(resultsPayload.meta.generatedAt)}`;
+    scheduleCollectionState.scheduleMeta = schedulePayload.meta || null;
+    scheduleCollectionState.resultsMeta = resultsPayload.meta || null;
+    renderScheduleCollectionMeta();
     setStatus("Schedule and results synced.", "success");
   } catch (error) {
     setStatus(`Error: ${error.message}`, "error");
     elements.scheduleTableWrap.innerHTML = `<div class="empty">Unable to load schedule.</div>`;
     elements.resultsTableWrap.innerHTML = `<div class="empty">Unable to load results.</div>`;
     setJsonLd("schedule-itemlist", null);
+    scheduleCollectionState.scheduleMeta = null;
+    scheduleCollectionState.resultsMeta = null;
     refreshScheduleSeo();
   }
 }
@@ -986,6 +1016,7 @@ function boot() {
 
 window.addEventListener("resize", () => {
   applyScheduleViewMode(scheduleViewMode);
+  renderScheduleCollectionMeta();
 });
 
 boot();

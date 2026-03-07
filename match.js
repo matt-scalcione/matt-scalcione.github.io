@@ -1609,7 +1609,7 @@ function renderScoreboard(match) {
   const phaseKicker = match.status === "live" ? "Live series" : match.status === "completed" ? "Final result" : "Upcoming series";
   let phaseTitle = `${leftDisplayName} vs ${rightDisplayName}`;
   let phaseSubline = tournamentName;
-  const phasePills = [`${formatLabel}`, compact ? null : tournamentName, match.patch ? `Patch ${match.patch}` : null].filter(Boolean);
+  const phasePills = [`${formatLabel}`, compact ? null : tournamentName, !compact && match.patch ? `Patch ${match.patch}` : null].filter(Boolean);
   let seriesSubline = compactStatusLabel(match.status);
 
   if (match.status === "upcoming") {
@@ -1781,6 +1781,18 @@ function readableMetaToken(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function compactFreshnessToken(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) {
+    return "Sync";
+  }
+  if (normalized.includes("fresh")) return "Fresh";
+  if (normalized.includes("stale") || normalized.includes("delay") || normalized.includes("lag")) return "Lag";
+  if (normalized.includes("sync")) return "Sync";
+  if (normalized.includes("live")) return "Live";
+  return readableMetaToken(value).split(" ")[0] || "Sync";
+}
+
 function renderStreamStatus(match) {
   if (!elements.streamStatusWrap) {
     return;
@@ -1801,6 +1813,25 @@ function renderStreamStatus(match) {
       ? `Err ${errorSeconds}s`
       : `Stream error ${dateTimeCompact(lastErrorAt)}`
     : null;
+  if (compact) {
+    const primaryCompact = uiState.stream.source === "sse"
+      ? uiState.stream.connected
+        ? "LIVE"
+        : uiState.stream.reconnectAttempt > 0
+          ? `RETRY ${uiState.stream.reconnectAttempt}`
+          : "SYNC"
+      : `${Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS)}s`;
+    elements.streamStatusWrap.innerHTML = `
+      <article class="stream-card ${badge} stream-inline-card compact">
+        <span class="stream-chip primary ${badge}">${primaryCompact}</span>
+        <span class="stream-chip">${streamStatusDetail()}</span>
+        <span class="stream-chip freshness">${compactFreshnessToken(match?.freshness?.status)}</span>
+        ${errorText ? `<span class="stream-chip error">${errorText}</span>` : ""}
+      </article>
+    `;
+    return;
+  }
+
   elements.streamStatusWrap.innerHTML = `
     <article class="stream-card ${badge} stream-inline-card">
       <span class="stream-chip primary ${badge}">${streamStatusText(match)}</span>
@@ -5407,6 +5438,7 @@ function renderPulseCard(match) {
     return;
   }
 
+  const compact = isCompactUI();
   const liveContext = focusedLiveEventContext(match);
   const focusedRow = liveContext.row;
   const nextObjective = nextObjectiveWindow(match);
@@ -5446,6 +5478,7 @@ function renderPulseCard(match) {
         }
       : null
   ].filter(Boolean);
+  const visibleChips = compact ? chips.slice(0, 3) : chips;
 
   if (selectedState === "inProgress" && selected) {
     const leftName = match.teams?.left?.name || "Left Team";
@@ -5479,37 +5512,59 @@ function renderPulseCard(match) {
             <span class="pulse-alert-severity ${String(priorityAlert.importance || "low").toLowerCase()}">${String(priorityAlert.importance || "low").toUpperCase()}</span>
             <strong>${priorityAlert.title}</strong>
           </div>
-          <p class="meta-text">${priorityAlert.summary}</p>
+          <p class="meta-text">${compact ? clampSummaryText(priorityAlert.summary, 74) : priorityAlert.summary}</p>
         </article>
       `
       : "";
+    const pulseTitle = compact
+      ? pulse.title && pulse.title !== "Match Pulse"
+        ? clampSummaryText(pulse.title, 56)
+        : "Live read"
+      : pulse.title || "Match Pulse";
+    const pulseBody = compact
+      ? clampSummaryText(pulse.summary || "Signal unavailable.", 96)
+      : pulse.summary || "Signal unavailable.";
+    const latestHintCompact = genericLiveStateEvent
+      ? "Waiting for feed"
+      : focusedRow
+        ? `${formatFocusedEventClock(focusedRow, liveContext.timelineAnchor)} · ${focusedRow.leadDescriptor.label}`
+        : "Waiting";
+    const stateHintCompact = `${leftKills}-${rightKills} · ${killPace}`;
+    const nextHintCompact = nextObjective
+      ? `${objectiveEtaLabel(nextObjective)}${nextObjective.nextAt ? ` · ${shortTimeLabel(nextObjective.nextAt)}` : ""}`
+      : "Waiting";
+    const pressureHintCompact = pulseState
+      ? pulseState.team === "both"
+        ? "Contest live"
+        : `${pulseState.team === "left" ? displayTeamName(leftName) : displayTeamName(rightName)} pressure`
+      : `${deaths.left}-${deaths.right} down`;
 
     elements.pulseCard.innerHTML = `
-      <article class="pulse ${pulse.tone || "neutral"} pulse-shell">
+      <article class="pulse ${pulse.tone || "neutral"} pulse-shell${compact ? " compact" : ""}">
         <div class="pulse-head">
           <div class="pulse-head-copy">
             <p class="pulse-kicker">What matters now</p>
-            <p class="pulse-title">${pulse.title || "Match Pulse"}</p>
+            <p class="pulse-title">${pulseTitle}</p>
           </div>
           <span class="pulse-tone-pill ${pulse.tone || "neutral"}">${String(pulse.tone || "neutral").toUpperCase()}</span>
         </div>
-        <p class="pulse-body">${pulse.summary || "Signal unavailable."}</p>
-        ${chips.length ? `<div class="pulse-chips">${chips
+        <p class="pulse-body">${pulseBody}</p>
+        ${visibleChips.length ? `<div class="pulse-chips">${visibleChips
           .map((chip) => `<span class="pulse-chip ${chip.tone || "neutral"}">${chip.label}</span>`)
           .join("")}</div>` : ""}
         ${priorityAlertMarkup}
         <div class="pulse-command-grid">
-          ${commandCard("What Changed", latestEventLabel, latestEventHint, {
+          ${commandCard(compact ? "Changed" : "What Changed", latestEventLabel, compact ? latestHintCompact : latestEventHint, {
             tone: focusedRow?.leadDescriptor?.tone || "neutral",
             featured: true
           })}
-          ${commandCard("Current State", liveClock, `${leftKills}-${rightKills} kills · ${killPace}`, {
+          ${commandCard(compact ? "State" : "Current State", liveClock, compact ? stateHintCompact : `${leftKills}-${rightKills} kills · ${killPace}`, {
             tone: totalKills >= 18 ? "warn" : "neutral"
           })}
-          ${commandCard("Next", objectiveLabel, objectiveHint, {
+          ${commandCard("Next", objectiveLabel, compact ? nextHintCompact : objectiveHint, {
             tone: nextObjective?.state === "available" ? "live" : "warn"
           })}
-          ${commandCard("Pressure", fightLabel, fightHint, {
+          ${commandCard("Pressure", fightLabel, compact ? pressureHintCompact : fightHint, {
             tone: pulseState ? "warn" : deaths.left + deaths.right > 0 ? "neutral" : "live"
           })}
         </div>
