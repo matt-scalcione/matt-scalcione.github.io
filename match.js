@@ -9,7 +9,7 @@ import {
   setJsonLd,
   toAbsoluteSiteUrl
 } from "./seo.js";
-import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
+import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
@@ -1534,14 +1534,37 @@ function teamLogoUrl(teamOrName, game = null) {
   return TEAM_LOGO_BY_KEY[normalizeTeamKey(raw)] || null;
 }
 
+function teamLogoAssetMeta(teamOrName, game = null) {
+  return resolveLocalTeamMeta({
+    game,
+    id: teamOrName && typeof teamOrName === "object" ? teamOrName.id : null,
+    name: teamNameValue(teamOrName),
+    code: teamOrName && typeof teamOrName === "object" ? teamOrName.code || teamOrName.tag : null
+  });
+}
+
+function teamLogoAssetLabel(assetType) {
+  const normalized = String(assetType || "").trim().toLowerCase();
+  if (normalized === "generated") return "Generated logo";
+  if (normalized === "manual") return "Manual logo";
+  if (normalized === "fallback") return "Fallback badge";
+  if (normalized === "static") return "Static logo";
+  if (normalized === "missing") return "No logo";
+  return "Logo";
+}
+
 function teamBadgeMarkup(teamOrName, game = null) {
+  const meta = teamLogoAssetMeta(teamOrName, game);
+  const assetType = String(meta?.assetType || "missing").trim().toLowerCase();
+  const label = scoreboardTeamName(teamOrName, game);
+  const title = `${label} · ${teamLogoAssetLabel(assetType)}`;
+  const classes = ["team-badge", `asset-${assetType}`];
   const logo = teamLogoUrl(teamOrName, game);
   if (logo) {
-    const label = scoreboardTeamName(teamOrName, game);
-    return `<span class="team-badge has-logo"><img src="${logo}" alt="${label} logo" loading="lazy" decoding="async" /></span>`;
+    return `<span class="${classes.join(" ")} has-logo" title="${escapeHtml(title)}"><img src="${logo}" alt="${label} logo" loading="lazy" decoding="async" /></span>`;
   }
 
-  return `<span class="team-badge">${teamBadgeText(teamOrName, game)}</span>`;
+  return `<span class="${classes.join(" ")}" title="${escapeHtml(title)}">${teamBadgeText(teamOrName, game)}</span>`;
 }
 
 function selectedGameScoreContext(match) {
