@@ -852,12 +852,51 @@ button.ghost,
   color: #325b88;
 }
 
+.live-tools-shell {
+  display: grid;
+  gap: 0.52rem;
+  margin-bottom: 0.62rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid rgba(95, 132, 170, 0.16);
+  border-radius: 18px;
+  background: rgba(250, 253, 255, 0.9);
+}
+
+.live-tools-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.72rem;
+}
+
+.live-tools-kicker {
+  margin: 0;
+  color: color-mix(in srgb, var(--muted) 78%, #224565 22%);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.live-tools-copy {
+  margin: 0.12rem 0 0;
+  color: color-mix(in srgb, var(--muted) 82%, #214362 18%);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.live-filter-meta {
+  margin: 0;
+  min-height: 0;
+  text-align: right;
+  font-size: 0.72rem;
+}
+
 .live-tools {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 0.8fr) auto;
   gap: 0.52rem;
   align-items: end;
-  margin-bottom: 0.5rem;
 }
 
 .live-status-switch {
@@ -922,11 +961,6 @@ button.ghost,
   padding: 0.44rem 0.66rem;
   font-size: 0.7rem;
   line-height: 1;
-}
-
-#liveFilterMeta {
-  margin-bottom: 0.58rem;
-  min-height: 1.12rem;
 }
 
 .match-card {
@@ -1372,6 +1406,11 @@ button.ghost,
 
 .schedule-desktop-wrap {
   display: block;
+  border: 1px solid rgba(95, 132, 170, 0.14);
+  border-radius: 16px;
+  background: rgba(250, 253, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(10, 24, 40, 0.03);
+  overflow: hidden;
 }
 
 .schedule-mobile-list {
@@ -1451,6 +1490,9 @@ button.ghost,
 .schedule-table {
   min-width: 0;
   table-layout: fixed;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .schedule-table th,
@@ -1464,6 +1506,10 @@ button.ghost,
   font-size: 0.66rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(239, 245, 252, 0.96);
 }
 
 .schedule-row {
@@ -1473,6 +1519,7 @@ button.ghost,
 .schedule-row td {
   transition: background-color 120ms ease;
   vertical-align: middle;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .schedule-row:hover td {
@@ -1500,6 +1547,11 @@ button.ghost,
   width: 7.2rem;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+.schedule-time-label {
+  color: #183752;
+  font-weight: 700;
 }
 
 .schedule-game-cell {
@@ -1530,11 +1582,35 @@ button.ghost,
   white-space: nowrap;
 }
 
+.schedule-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  min-height: 1.72rem;
+  padding: 0 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.16);
+  background: rgba(245, 248, 253, 0.96);
+  color: #1d4ea1;
+  line-height: 1;
+}
+
 .schedule-winner-cell {
   width: 7rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.schedule-winner-text {
+  color: #17324b;
+  font-weight: 700;
+}
+
+.schedule-winner-text.placeholder {
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .vs-token {
@@ -7477,6 +7553,11 @@ button.ghost,
     gap: 0.44rem;
   }
 
+  .live-tools-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .live-status-switch {
     min-height: 2.4rem;
   }
@@ -9161,6 +9242,22 @@ button.ghost,
 
   .live-desk-summary {
     margin-bottom: 0.58rem;
+  }
+
+  .live-tools-shell {
+    padding: 0.6rem;
+    gap: 0.46rem;
+    border-radius: 16px;
+  }
+
+  .live-tools-head {
+    display: grid;
+    gap: 0.28rem;
+  }
+
+  .live-tools-copy,
+  .live-filter-meta {
+    font-size: 0.7rem;
   }
 
   .desk-summary-hero {

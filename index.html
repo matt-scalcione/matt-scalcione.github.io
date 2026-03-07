@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260307t" />
+    <link rel="stylesheet" href="./styles.css?v=20260307u" />
   </head>
   <body class="live-page">
     <div class="noise"></div>
@@ -100,28 +100,36 @@
           <p id="metaText" class="meta-text" aria-live="polite">Waiting for data...</p>
         </div>
         <div id="liveDeskSummary" class="live-desk-summary" aria-live="polite"></div>
-        <div class="live-tools">
-          <div id="liveStatusSwitch" class="live-status-switch" aria-label="Live desk quick filter">
-            <button type="button" class="live-status-btn" data-status="all" aria-pressed="true">All</button>
-            <button type="button" class="live-status-btn" data-status="live" aria-pressed="false">Live</button>
-            <button type="button" class="live-status-btn" data-status="upcoming" aria-pressed="false">Next</button>
-            <button type="button" class="live-status-btn" data-status="completed" aria-pressed="false">Final</button>
+        <div class="live-tools-shell">
+          <div class="live-tools-head">
+            <div>
+              <p class="live-tools-kicker">Quick filters</p>
+              <p class="live-tools-copy">Zero in by status or search for the series you want.</p>
+            </div>
+            <p id="liveFilterMeta" class="meta-text live-filter-meta"></p>
           </div>
-          <label class="live-search-field">
-            Search
-            <input
-              id="liveSearchInput"
-              type="search"
-              inputmode="search"
-              autocapitalize="off"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="team or tournament"
-            />
-          </label>
-          <button id="liveResetFiltersButton" type="button" class="ghost live-reset-btn">Clear</button>
+          <div class="live-tools">
+            <div id="liveStatusSwitch" class="live-status-switch" aria-label="Live desk quick filter">
+              <button type="button" class="live-status-btn" data-status="all" aria-pressed="true">All</button>
+              <button type="button" class="live-status-btn" data-status="live" aria-pressed="false">Live</button>
+              <button type="button" class="live-status-btn" data-status="upcoming" aria-pressed="false">Next</button>
+              <button type="button" class="live-status-btn" data-status="completed" aria-pressed="false">Final</button>
+            </div>
+            <label class="live-search-field">
+              Search
+              <input
+                id="liveSearchInput"
+                type="search"
+                inputmode="search"
+                autocapitalize="off"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="team or tournament"
+              />
+            </label>
+            <button id="liveResetFiltersButton" type="button" class="ghost live-reset-btn">Reset</button>
+          </div>
         </div>
-        <p id="liveFilterMeta" class="meta-text"></p>
         <div id="cardGrid" class="card-grid"></div>
       </section>
     </main>
@@ -140,7 +148,7 @@
       </a>
     </nav>
 
-    <script src="./site-config.js?v=20260307t"></script>
-    <script type="module" src="./main.js?v=20260307t"></script>
+    <script src="./site-config.js?v=20260307u"></script>
+    <script type="module" src="./main.js?v=20260307u"></script>
   </body>
 </html>

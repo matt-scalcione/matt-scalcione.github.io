@@ -789,11 +789,11 @@ function renderTable(container, rows, type) {
 
       return `
         <tr class="schedule-row schedule-row-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftName} vs ${rightName}">
-          <td class="schedule-time-cell">${dateTimeCompact(row.startAt)}</td>
+          <td class="schedule-time-cell"><span class="schedule-time-label">${dateTimeCompact(row.startAt)}</span></td>
           <td class="schedule-game-cell"><a class="hub-chip-link" href="${hubUrl}" aria-label="Open ${gameLabel(row.game)} hub">${gameChipMarkup(row.game)}</a></td>
           <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
-          <td class="schedule-score-cell">${scoreLabel}</td>
-          <td class="schedule-winner-cell">${type === "result" ? winnerLong : "—"}</td>
+          <td class="schedule-score-cell"><span class="schedule-score-pill">${scoreLabel}</span></td>
+          <td class="schedule-winner-cell"><span class="schedule-winner-text${type === "result" && winnerLong !== "TBD" ? "" : " placeholder"}">${type === "result" ? winnerLong : "—"}</span></td>
         </tr>
       `;
     })
