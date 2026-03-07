@@ -165,6 +165,10 @@ function teamShortLabel(team, game) {
   return String(team?.name || "Team");
 }
 
+function teamDisplayName(team) {
+  return String(team?.name || "Team").trim() || "Team";
+}
+
 function teamBadgeMarkup(team, game) {
   const label = String(team?.name || "Team");
   const logo = resolveLocalTeamLogo({
@@ -320,22 +324,27 @@ function renderLiveDeskSummary(totalRows, filteredRows, counts) {
             <a class="desk-featured-card ${escapeHtml(String(featured.status || "upcoming").toLowerCase())}" href="${featuredLink}">
               <div class="desk-featured-top">
                 <span class="pill ${statusPillClass(featured.status)}">${escapeHtml(String(featured.status || "upcoming").toUpperCase())}</span>
-                <span class="subline">${gameChipMarkup(featured.game)} ${escapeHtml(featured.tournament || "Tournament")}</span>
+                <span class="desk-featured-time">${escapeHtml(matchTimeLabel(featured))}</span>
               </div>
-              <p class="desk-featured-matchup">${escapeHtml(teamShortLabel(featured.teams.left, featured.game))} vs ${escapeHtml(teamShortLabel(featured.teams.right, featured.game))}</p>
+              <p class="desk-featured-event"><span class="hub-chip-link" title="${escapeHtml(gameLabel(featured.game))}">${gameChipMarkup(featured.game)}</span><span>${escapeHtml(featured.tournament || "Tournament")}</span></p>
               <div class="desk-featured-scoreboard">
                 <div class="desk-featured-team">
-                  <span class="desk-featured-team-main">${teamBadgeMarkup(featured.teams.left, featured.game)}<span class="team-name">${escapeHtml(teamShortLabel(featured.teams.left, featured.game))}</span></span>
+                  <span class="desk-featured-team-main">${teamBadgeMarkup(featured.teams.left, featured.game)}<span class="desk-featured-team-name">${escapeHtml(teamDisplayName(featured.teams.left))}</span></span>
                   <strong class="desk-featured-score">${Number(featured?.seriesScore?.left || 0)}</strong>
                 </div>
                 <div class="desk-featured-team">
-                  <span class="desk-featured-team-main">${teamBadgeMarkup(featured.teams.right, featured.game)}<span class="team-name">${escapeHtml(teamShortLabel(featured.teams.right, featured.game))}</span></span>
+                  <span class="desk-featured-team-main">${teamBadgeMarkup(featured.teams.right, featured.game)}<span class="desk-featured-team-name">${escapeHtml(teamDisplayName(featured.teams.right))}</span></span>
                   <strong class="desk-featured-score">${Number(featured?.seriesScore?.right || 0)}</strong>
                 </div>
               </div>
+              <div class="desk-featured-rail">
+                <span class="match-card-chip emphasis">${escapeHtml(bestOfCompactLabel(featured.bestOf))}</span>
+                ${featured.region ? `<span class="match-card-chip">${escapeHtml(String(featured.region).toUpperCase())}</span>` : ""}
+                ${featured.keySignal ? `<span class="match-card-chip signal">${escapeHtml(signalLabel(String(featured.keySignal).trim()))}</span>` : ""}
+              </div>
               <div class="desk-featured-foot">
-                <span>${escapeHtml(matchSummaryLead(featured))}</span>
-                <span class="desk-featured-open">${escapeHtml(matchTimeLabel(featured))}</span>
+                <span class="desk-featured-note">${escapeHtml(matchSummaryLead(featured))}</span>
+                <span class="desk-featured-open">Open match</span>
               </div>
             </a>
           `
@@ -554,15 +563,16 @@ function renderCards(rows) {
         <a class="match-card${featured ? " featured" : ""}" style="--delay:${index * 55}ms" href="${link}">
           <div class="match-card-topline">
             <span class="pill ${statusClass}">${statusLabel}</span>
-            <span class="subline"><span class="hub-chip-link" title="${escapeHtml(gameLabel(match.game))}">${gameChipMarkup(match.game)}</span> ${escapeHtml(match.tournament || "Tournament")}</span>
+            <span class="match-card-time">${escapeHtml(matchTimeLabel(match))}</span>
           </div>
+          <p class="match-card-event"><span class="hub-chip-link" title="${escapeHtml(gameLabel(match.game))}">${gameChipMarkup(match.game)}</span><span>${escapeHtml(match.tournament || "Tournament")}</span></p>
           <div class="match-card-scoreboard">
             <div class="team-line compact">
-              <span class="team-line-main">${teamBadgeMarkup(match.teams.left, match.game)}<span class="team-name">${escapeHtml(teamShortLabel(match.teams.left, match.game))}</span></span>
+              <span class="team-line-main">${teamBadgeMarkup(match.teams.left, match.game)}<span class="match-card-team-name">${escapeHtml(teamDisplayName(match.teams.left))}</span></span>
               <strong>${Number(match?.seriesScore?.left || 0)}</strong>
             </div>
             <div class="team-line compact">
-              <span class="team-line-main">${teamBadgeMarkup(match.teams.right, match.game)}<span class="team-name">${escapeHtml(teamShortLabel(match.teams.right, match.game))}</span></span>
+              <span class="team-line-main">${teamBadgeMarkup(match.teams.right, match.game)}<span class="match-card-team-name">${escapeHtml(teamDisplayName(match.teams.right))}</span></span>
               <strong>${Number(match?.seriesScore?.right || 0)}</strong>
             </div>
           </div>
@@ -572,8 +582,8 @@ function renderCards(rows) {
             ${signal ? `<span class="match-card-chip signal">${escapeHtml(signalLabel(signal))}</span>` : ""}
           </div>
           <div class="match-card-footer">
-            <p class="subline">${escapeHtml(matchTimeLabel(match))}</p>
-            <span class="match-card-cta">Open match</span>
+            <p class="match-card-summary">${escapeHtml(matchSummaryLead(match))}</p>
+            <span class="match-card-cta">Open</span>
           </div>
         </a>
       `;
