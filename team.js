@@ -10,6 +10,7 @@ import {
   setJsonLd,
   toAbsoluteSiteUrl
 } from "./seo.js";
+import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const MOBILE_BREAKPOINT = 760;
@@ -548,6 +549,36 @@ function teamInitials(value) {
     .toUpperCase();
 }
 
+function teamBadgeMarkup({
+  game,
+  teamId,
+  teamName,
+  code,
+  className = ""
+} = {}) {
+  const label = String(teamName || "").trim() || "Team";
+  const logo = resolveLocalTeamLogo({
+    game,
+    id: teamId,
+    name: teamName
+  });
+  const resolvedCode = resolveLocalTeamCode({
+    game,
+    id: teamId,
+    name: teamName,
+    code
+  });
+  const classes = ["team-badge"];
+  if (className) {
+    classes.push(className);
+  }
+  if (logo) {
+    classes.push("has-logo");
+    return `<span class="${classes.join(" ")}"><img src="${logo}" alt="${escapeHtml(label)} logo" loading="lazy" decoding="async" /></span>`;
+  }
+  return `<span class="${classes.join(" ")}">${escapeHtml(resolvedCode || teamInitials(label))}</span>`;
+}
+
 function formatSeriesRecord(wins, losses, draws = 0) {
   return `${wins ?? 0}-${losses ?? 0}${draws ? `-${draws}` : ""}`;
 }
@@ -618,7 +649,13 @@ function renderTeamContextCard(profile, apiBase) {
     <article class="team-summary-hero">
       <div class="team-summary-main">
         <div class="team-summary-identity">
-          <span class="team-badge team-summary-badge">${escapeHtml(teamInitials(heroTitle))}</span>
+          ${teamBadgeMarkup({
+            game,
+            teamId: profile?.id || state.teamId,
+            teamName: heroTitle,
+            code: profile?.code,
+            className: "team-summary-badge"
+          })}
           <div class="team-summary-copy">
             <div class="team-summary-kicker-row">
               ${game ? `<span class="team-summary-game-pill">${escapeHtml(gameLabel(game))}</span>` : ""}
@@ -980,6 +1017,13 @@ function teamMatchDetailLink(row, apiBase, label = "Open Match") {
 function teamMatchCard(row, profile, apiBase, options = {}) {
   const mode = String(options.mode || "recent");
   const opponentLabel = teamOpponentLabel(row, profile, apiBase);
+  const opponentBadge = teamBadgeMarkup({
+    game: row.game || profile.game,
+    teamId: row.opponentId,
+    teamName: row.opponentName,
+    code: row.opponentCode,
+    className: "team-match-opponent-badge"
+  });
   const result = resultLabel(row);
   const score = seriesScoreLabel(row);
   const relativeLabel = relativeStartLabel(row.startAt);
@@ -1003,7 +1047,10 @@ function teamMatchCard(row, profile, apiBase, options = {}) {
         <div class="team-match-chip-row">${topChips.join("")}</div>
         ${teamMatchDetailLink(row, apiBase, mode === "upcoming" ? "Open Match" : "Open")}
       </div>
-      <p class="team-match-opponent-line">${opponentLabel}</p>
+      <div class="team-match-opponent-row">
+        ${opponentBadge}
+        <p class="team-match-opponent-line">${opponentLabel}</p>
+      </div>
       <div class="team-match-meta">
         <span>${dateTimeLabel(row.startAt)}</span>
         <span>${row.tournament || "Unknown"}</span>
@@ -1437,13 +1484,23 @@ function renderHeadToHead(profile, apiBase) {
     apiBase,
     opponentId: state.teamId
   });
+  const opponentBadge = teamBadgeMarkup({
+    game: profile.game,
+    teamId: h2h.opponentId,
+    teamName: h2h.opponentName,
+    code: h2h.opponentCode,
+    className: "team-match-opponent-badge"
+  });
   const opponentLabel = opponentUrl
     ? `<a class="team-link" href="${opponentUrl}">${h2h.opponentName || h2h.opponentId || "Unknown"}</a>`
     : (h2h.opponentName || h2h.opponentId || "Unknown");
 
   elements.headToHeadWrap.innerHTML = `
     <article class="upcoming-note">
-      <p class="meta-text">Opponent: ${opponentLabel}</p>
+      <div class="team-match-opponent-row">
+        ${opponentBadge}
+        <p class="meta-text">Opponent: ${opponentLabel}</p>
+      </div>
       <p class="meta-text">Matches ${h2h.matches ?? 0} · W ${h2h.wins ?? 0} · L ${h2h.losses ?? 0} · D ${h2h.draws ?? 0}</p>
     </article>
     <div class="upcoming-grid">

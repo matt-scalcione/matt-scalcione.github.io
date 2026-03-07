@@ -702,6 +702,20 @@ button.ghost,
   align-items: center;
 }
 
+.team-line-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.46rem;
+  min-width: 0;
+}
+
+.team-line .team-badge {
+  width: 1.42rem;
+  height: 1.42rem;
+  font-size: 0.52rem;
+  flex: 0 0 auto;
+}
+
 .team-line.compact strong {
   font-family: "Archivo Black", "Impact", sans-serif;
   font-size: 0.92rem;
@@ -1089,6 +1103,18 @@ button.ghost,
   font-family: "Archivo Black", "Impact", sans-serif;
   font-size: 0.68rem;
   line-height: 1;
+}
+
+.schedule-card-badge.has-logo {
+  padding: 0.16rem;
+  overflow: hidden;
+}
+
+.schedule-card-badge.has-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .schedule-card-name {
@@ -1838,6 +1864,20 @@ button.ghost,
   font-weight: 800;
   color: #17324b;
   line-height: 1.2;
+}
+
+.team-match-opponent-row {
+  display: flex;
+  align-items: center;
+  gap: 0.54rem;
+  min-width: 0;
+}
+
+.team-match-opponent-badge {
+  width: 1.72rem;
+  height: 1.72rem;
+  font-size: 0.62rem;
+  flex: 0 0 auto;
 }
 
 .team-match-opponent-line .team-link {
