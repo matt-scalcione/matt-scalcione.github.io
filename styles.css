@@ -1167,6 +1167,10 @@ button.ghost,
   gap: 0.56rem;
 }
 
+.scoreboard.scoreboard-series-only {
+  gap: 0.34rem;
+}
+
 .match-phase-banner {
   border: 1px solid var(--line);
   border-radius: 14px;
