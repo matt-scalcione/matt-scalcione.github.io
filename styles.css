@@ -861,6 +861,33 @@ button.ghost,
   gap: 0.42rem;
 }
 
+.schedule-range-row {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.56rem;
+}
+
+.schedule-range-chip {
+  min-height: 1.92rem;
+  padding: 0.16rem 0.56rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.22);
+  background: rgba(255, 255, 255, 0.88);
+  color: #294458;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+}
+
+.schedule-range-chip.active,
+.schedule-range-chip[aria-pressed="true"] {
+  border-color: rgba(12, 110, 102, 0.34);
+  background: rgba(12, 110, 102, 0.12);
+  color: var(--accent-strong);
+}
+
 .schedule-table {
   min-width: 0;
   table-layout: fixed;
@@ -7540,7 +7567,7 @@ button.ghost,
   }
 
   .match-page.mobile-game-mode .live-feed-list .live-feed-item {
-    padding: 0.38rem 0.44rem;
+    padding: 0.4rem 0.46rem;
     gap: 0.06rem;
   }
 
@@ -7550,21 +7577,23 @@ button.ghost,
   }
 
   .match-page.mobile-game-mode .live-feed-row {
-    gap: 0.38rem;
+    gap: 0.34rem;
   }
 
   .match-page.mobile-game-mode .feed-game-time {
-    min-width: 2.38rem;
-    font-size: 0.72rem;
+    min-width: 2.46rem;
+    font-size: 0.74rem;
+    font-weight: 700;
   }
 
   .match-page.mobile-game-mode .live-feed-main {
-    gap: 0.14rem;
+    gap: 0.12rem;
   }
 
   .match-page.mobile-game-mode .live-feed-title {
-    font-size: 0.74rem;
-    line-height: 1.18;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    font-weight: 700;
   }
 
   .match-page.mobile-game-mode .feed-absolute-time {
@@ -7577,22 +7606,157 @@ button.ghost,
   }
 
   .match-page.mobile-game-mode .live-feed-meta-row {
-    gap: 0.2rem;
+    gap: 0.18rem;
   }
 
   .match-page.mobile-game-mode .feed-phase-tag,
-  .match-page.mobile-game-mode .feed-bucket-tag,
+  .match-page.mobile-game-mode .feed-bucket-tag {
+    display: none;
+  }
+
   .match-page.mobile-game-mode .feed-team-tag,
   .match-page.mobile-game-mode .feed-lead-tag,
   .match-page.mobile-game-mode .feed-swing-tag {
-    font-size: 0.52rem;
-    padding: 0.02rem 0.22rem;
+    font-size: 0.54rem;
+    padding: 0.03rem 0.24rem;
   }
 
   .match-page.mobile-game-mode .feed-major-pill,
   .match-page.mobile-game-mode .feed-cluster-chip {
-    font-size: 0.5rem;
-    padding: 0.02rem 0.2rem;
+    font-size: 0.52rem;
+    padding: 0.02rem 0.22rem;
+  }
+
+  .schedule-page .controls {
+    gap: 0.42rem;
+  }
+
+  .schedule-page .controls-body {
+    gap: 0.44rem;
+  }
+
+  .schedule-page .schedule-range-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-bottom: 0.24rem;
+  }
+
+  .schedule-page .schedule-range-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .schedule-page .schedule-range-chip {
+    flex: 0 0 auto;
+    min-height: 1.84rem;
+    padding: 0.12rem 0.5rem;
+    font-size: 0.62rem;
+  }
+
+  .schedule-page .controls-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.42rem;
+  }
+
+  .schedule-page .controls-grid label {
+    gap: 0.18rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+  }
+
+  .schedule-page .controls-grid input,
+  .schedule-page .controls-grid select {
+    min-height: 2.28rem;
+    font-size: 0.76rem;
+    padding: 0.42rem 0.5rem;
+  }
+
+  .schedule-page .controls .actions {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.36rem;
+    margin-top: 0.16rem;
+  }
+
+  .schedule-page .controls .actions button {
+    min-height: 2.2rem;
+    padding-inline: 0.7rem;
+  }
+
+  .schedule-page .controls .status-text {
+    min-height: 2.2rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.7rem;
+    padding: 0.36rem 0.44rem;
+  }
+
+  .tracker-table-mobile {
+    min-width: 486px;
+  }
+
+  .tracker-table-mobile th,
+  .tracker-table-mobile td {
+    padding: 0.4rem 0.22rem;
+  }
+
+  .tracker-table-mobile th:nth-child(2),
+  .tracker-table-mobile td:nth-child(2) {
+    min-width: 6.2rem;
+    max-width: 6.2rem;
+  }
+
+  .tracker-table-mobile th:nth-child(3),
+  .tracker-table-mobile td:nth-child(3) {
+    min-width: 2.7rem;
+    max-width: 2.7rem;
+  }
+
+  .tracker-table-mobile th:nth-child(4),
+  .tracker-table-mobile td:nth-child(4) {
+    min-width: 3.2rem;
+    max-width: 3.2rem;
+  }
+
+  .tracker-table-mobile th:nth-child(5),
+  .tracker-table-mobile td:nth-child(5) {
+    min-width: 3.7rem;
+    max-width: 3.7rem;
+  }
+
+  .tracker-player-inline {
+    gap: 0.26rem;
+  }
+
+  .tracker-player-inline-name {
+    font-size: 0.88rem;
+    font-weight: 800;
+    max-width: 4.2rem;
+  }
+
+  .tracker-hero-icon {
+    width: 1.12rem;
+    height: 1.12rem;
+  }
+
+  .tracker-role-icon {
+    width: 0.86rem;
+    height: 0.86rem;
+  }
+
+  .tracker-hp-cell.compact {
+    min-width: 2.15rem;
+    gap: 0.08rem;
+  }
+
+  .tracker-hp-cell.compact .hp-track {
+    max-width: 2.12rem;
+  }
+
+  .tracker-hp-label.compact {
+    font-size: 0.6rem;
+    font-weight: 700;
   }
 
   .match-page .snapshot-item {

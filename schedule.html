@@ -63,6 +63,12 @@
           </button>
         </div>
         <div class="controls-body" id="controlsBody">
+          <div id="scheduleRangePresets" class="schedule-range-row" role="group" aria-label="Quick date ranges">
+            <button type="button" class="schedule-range-chip" data-range="live">Live</button>
+            <button type="button" class="schedule-range-chip" data-range="24h">24h</button>
+            <button type="button" class="schedule-range-chip" data-range="3d">3d</button>
+            <button type="button" class="schedule-range-chip" data-range="7d">7d</button>
+          </div>
           <div class="controls-grid">
             <label class="api-base-field">
               API Base
@@ -80,16 +86,16 @@
               Region
               <input id="regionInput" type="text" placeholder="na, eu, kr..." />
             </label>
-            <label>
+            <label class="schedule-dota-only">
               Dota Tiers
               <input id="dotaTiersInput" type="text" placeholder="1,2,3,4" value="1,2,3,4" />
             </label>
             <label>
-              Date From
+              From
               <input id="dateFromInput" type="datetime-local" />
             </label>
             <label>
-              Date To
+              To
               <input id="dateToInput" type="datetime-local" />
             </label>
           </div>
