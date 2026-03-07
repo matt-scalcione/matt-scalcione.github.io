@@ -10,7 +10,7 @@ import {
   setJsonLd,
   toAbsoluteSiteUrl
 } from "./seo.js";
-import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
+import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const MOBILE_BREAKPOINT = 760;
@@ -583,11 +583,27 @@ function formatSeriesRecord(wins, losses, draws = 0) {
   return `${wins ?? 0}-${losses ?? 0}${draws ? `-${draws}` : ""}`;
 }
 
+function teamLogoAssetLabel(assetType) {
+  const normalized = String(assetType || "").trim().toLowerCase();
+  if (normalized === "generated") return "Generated logo";
+  if (normalized === "manual") return "Manual logo";
+  if (normalized === "fallback") return "Fallback badge";
+  if (normalized === "static") return "Static logo";
+  if (normalized === "missing") return "No logo";
+  return "Logo";
+}
+
 function renderTeamContextCard(profile, apiBase) {
   const summary = profile.summary || {};
   const opponentId = String(state.pendingOpponentId || profile?.headToHead?.opponentId || "").trim();
   const opponentName = resolveProfileOpponentName(profile, opponentId);
   const game = normalizeGameKey(profile?.game || elements.gameSelect?.value || "");
+  const logoMeta = resolveLocalTeamMeta({
+    game,
+    id: profile?.id || state.teamId,
+    name: profile?.name || state.teamNameHint,
+    code: profile?.code
+  });
   const recentCount = Array.isArray(profile?.recentMatches) ? profile.recentMatches.length : 0;
   const upcomingRows = Array.isArray(profile?.upcomingMatches) ? profile.upcomingMatches.slice() : [];
   const nextMatch = upcomingRows
@@ -660,6 +676,11 @@ function renderTeamContextCard(profile, apiBase) {
             <div class="team-summary-kicker-row">
               ${game ? `<span class="team-summary-game-pill">${escapeHtml(gameLabel(game))}</span>` : ""}
               ${opponentName ? `<span class="team-summary-context-pill">Matchup</span>` : ""}
+              ${
+                logoMeta?.assetType
+                  ? `<span class="team-summary-context-pill team-summary-logo-pill ${escapeHtml(logoMeta.assetType)}">${escapeHtml(teamLogoAssetLabel(logoMeta.assetType))}</span>`
+                  : ""
+              }
             </div>
             <p class="team-context-title">${escapeHtml(heroTitle)}</p>
             <p class="team-summary-subline">${escapeHtml(heroSubline)}</p>
