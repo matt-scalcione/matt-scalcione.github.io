@@ -1659,6 +1659,7 @@ function buildPlayerEconomy(payload, teams, heroMap) {
       deaths,
       assists,
       cs: toCount(row?.last_hits),
+      denies: toCount(row?.denies),
       gpm: toCount(row?.gold_per_min),
       xpm: toCount(row?.xp_per_min),
       level: toCount(row?.level),

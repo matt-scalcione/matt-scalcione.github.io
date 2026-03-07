@@ -2426,6 +2426,7 @@ async function ensureMatchupData(match, apiBase) {
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
+    renderGameContext(uiState.match || match);
   } catch (error) {
     if (token !== uiState.matchupRequestToken) {
       return;
@@ -2441,6 +2442,7 @@ async function ensureMatchupData(match, apiBase) {
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
+    renderGameContext(uiState.match || match);
   }
 }
 
@@ -2812,13 +2814,33 @@ function renderGameExplorer(match, apiBase) {
 
     if (match.status === "upcoming") {
       const intel = upcomingIntel(match);
+      const matchupState = currentMatchupState(match);
       const essentials = intel?.essentials || {};
       const scheduledAt = essentials.scheduledAt || match.startAt;
       const estimatedEndAt = essentials.estimatedEndAt || match?.seriesProjection?.estimatedEndAt || null;
       const watchOptions = Array.isArray(intel?.watchOptions) ? intel.watchOptions : [];
       const featuredWatchOptions = watchOptions.slice(0, compact ? 2 : 3);
       const overflowWatchCount = Math.max(0, watchOptions.length - featuredWatchOptions.length);
-      const prediction = intel?.prediction || null;
+      const edgeForecast =
+        matchupState?.leftProfile && matchupState?.rightProfile
+          ? (() => {
+              const edge = matchupEdgeModel(
+                matchupState.leftProfile,
+                matchupState.rightProfile,
+                match.teams.left.name,
+                match.teams.right.name
+              );
+              return {
+                leftWinPct: edge.leftEdgePct,
+                rightWinPct: edge.rightEdgePct,
+                favoriteTeamName: edge.favoriteName,
+                confidence: edge.confidence,
+                drivers: edge.drivers,
+                modelVersion: "matchup-edge-v1"
+              };
+            })()
+          : null;
+      const prediction = edgeForecast || intel?.prediction || null;
       const leftPct = prediction ? Math.max(0, Math.min(100, Number(prediction.leftWinPct || 0))) : null;
       const rightPct = prediction ? Math.max(0, Math.min(100, Number(prediction.rightWinPct || 0))) : null;
       const drivers = prediction && Array.isArray(prediction.drivers) ? prediction.drivers.slice(0, compact ? 2 : 3) : [];
@@ -4188,6 +4210,7 @@ function renderPlayerTracker(match) {
   }
 
   const gameKey = normalizeGameKey(match?.game);
+  const isDota = gameKey === "dota2";
   scheduleHeroIconCatalogLoad(match);
   const leftRows = Array.isArray(economy.left) ? economy.left : [];
   const rightRows = Array.isArray(economy.right) ? economy.right : [];
@@ -4297,6 +4320,9 @@ function renderPlayerTracker(match) {
                 const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
                 const hpCompactLabel = isLiveMap ? (Number.isFinite(hpPct) ? `${Math.round(hpPct)}%` : "n/a") : "N/A";
                 const compactMetricValue = compactTrackerUsesGpm ? formatNumber(row.gpm || 0) : hpCompactLabel;
+                const compactSubline = isDota
+                  ? `<span class="tracker-player-inline-sub" title="LH/DN ${row.cs ?? 0}/${row.denies ?? 0} · XPM ${formatNumber(row.xpm || 0)}">LH/DN ${row.cs ?? 0}/${row.denies ?? 0} · XPM ${formatNumber(row.xpm || 0)}</span>`
+                  : "";
                 const respawnAtTs = isDead ? respawnTargetMsForRow(row, renderNowMs) : null;
                 const respawnLabel = isLiveMap && isDead ? formatRespawnLabel(row, isDead, renderNowMs, respawnAtTs) : "";
                 const respawnAttrs = Number.isFinite(respawnAtTs)
@@ -4315,6 +4341,7 @@ function renderPlayerTracker(match) {
                         ${roleIconMarkup(row.role, gameKey, false)}
                         <div class="tracker-player-inline-meta">
                           <span class="tracker-player-inline-name" title="${playerName}">${playerName}</span>
+                          ${compactSubline}
                         </div>
                       </div>
                       ${respawnOverlay}
@@ -4357,9 +4384,9 @@ function renderPlayerTracker(match) {
             <th>Status</th>
             <th>Respawn</th>
             <th>KDA</th>
-            <th>CS</th>
+            <th>${isDota ? "LH/DN" : "CS"}</th>
             <th>Net Worth</th>
-            <th>GPM</th>
+            <th>${isDota ? "GPM/XPM" : "GPM"}</th>
             <th>KP</th>
             <th>Gold Share</th>
             <th>Items</th>
@@ -4411,9 +4438,9 @@ function renderPlayerTracker(match) {
                   <td><span class="tracker-status-badge ${statusClass}">${statusLabel}</span></td>
                   <td class="tracker-respawn ${statusClass}"${respawnAttrs}>${respawnLabel}</td>
                   <td>${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}</td>
-                  <td>${row.cs ?? "n/a"}</td>
+                  <td>${isDota ? `${row.cs ?? 0}/${row.denies ?? 0}` : row.cs ?? "n/a"}</td>
                   <td>${formatNumber(row.goldEarned || 0)}</td>
-                  <td>${formatNumber(row.gpm || 0)}</td>
+                  <td>${isDota ? `${formatNumber(row.gpm || 0)} / ${formatNumber(row.xpm || 0)}` : formatNumber(row.gpm || 0)}</td>
                   <td>${toPercent(row.kp)}</td>
                   <td>${toPercent(row.goldShare)}</td>
                   <td>${row.itemCount ?? "n/a"}</td>
