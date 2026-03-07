@@ -6,6 +6,15 @@ import {
   parseLiquipediaMatchesHtml
 } from "../src/providers/dota/liquipediaScheduleProvider.js";
 
+function restoreEnv(key, value) {
+  if (value === undefined) {
+    delete process.env[key];
+    return;
+  }
+
+  process.env[key] = value;
+}
+
 const sampleMatchHtml = `
 <div class="match-info">
   <span class="match-info-countdown">
@@ -84,8 +93,9 @@ describe("parseLiquipediaMatchesHtml", () => {
 });
 
 describe("LiquipediaDotaScheduleProvider", () => {
-  it("filters stale rows and preserves premium-tier heuristics over weaker known mappings", async () => {
+  it("uses the API-only parse payload, caches it, and preserves premium-tier heuristics over weaker known mappings", async () => {
     const originalFetch = global.fetch;
+    let fetchCalls = 0;
     const html = `${sampleMatchHtml}
     <div class="match-info">
       <span class="match-info-countdown">
@@ -117,20 +127,25 @@ describe("LiquipediaDotaScheduleProvider", () => {
       <div class="match-info-links"></div>
     </div>`;
 
-    global.fetch = async () => ({
-      ok: true,
-      async json() {
-        return {
-          parse: {
-            text: html
-          }
-        };
-      }
-    });
+    global.fetch = async () => {
+      fetchCalls += 1;
+      return {
+        ok: true,
+        async json() {
+          return {
+            parse: {
+              text: {
+                "*": html
+              }
+            }
+          };
+        }
+      };
+    };
 
     try {
       const provider = new LiquipediaDotaScheduleProvider({ timeoutMs: 1000 });
-      const rows = await provider.fetchScheduleMatches({
+      const firstRows = await provider.fetchScheduleMatches({
         knownRows: [
           {
             game: "dota2",
@@ -143,11 +158,16 @@ describe("LiquipediaDotaScheduleProvider", () => {
           }
         ]
       });
+      const secondRows = await provider.fetchScheduleMatches({
+        knownRows: []
+      });
 
-      assert.equal(rows.length, 1);
-      assert.equal(rows[0].tournament, "PGL Wallachia S7 - Round 1");
-      assert.equal(rows[0].competitiveTier, 1);
-      assert.equal(rows[0].teams.left.id, "team_liq");
+      assert.equal(fetchCalls, 1);
+      assert.equal(firstRows.length, 1);
+      assert.equal(secondRows.length, 1);
+      assert.equal(firstRows[0].tournament, "PGL Wallachia S7 - Round 1");
+      assert.equal(firstRows[0].competitiveTier, 1);
+      assert.equal(firstRows[0].teams.left.id, "team_liq");
     } finally {
       global.fetch = originalFetch;
     }
@@ -219,7 +239,7 @@ describe("mockStore Dota upcoming detail fallback", () => {
       assert.equal(detail.selectedGame.watchOptions.length, 2);
     } finally {
       global.fetch = originalFetch;
-      process.env.ESPORTS_DATA_MODE = previousMode;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
     }
   });
 
@@ -391,7 +411,7 @@ describe("mockStore Dota upcoming detail fallback", () => {
       );
     } finally {
       global.fetch = originalFetch;
-      process.env.ESPORTS_DATA_MODE = previousMode;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
     }
   });
 
@@ -465,7 +485,7 @@ describe("mockStore Dota upcoming detail fallback", () => {
       assert.equal(detail.selectedGame.state, "inProgress");
     } finally {
       global.fetch = originalFetch;
-      process.env.ESPORTS_DATA_MODE = previousMode;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
     }
   });
 });

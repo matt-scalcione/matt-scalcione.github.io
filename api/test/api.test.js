@@ -216,6 +216,19 @@ describe("results", () => {
   });
 });
 
+describe("provider coverage", () => {
+  it("returns provider coverage metadata", async () => {
+    const result = await routeRequest({
+      method: "GET",
+      url: "/v1/provider-coverage"
+    });
+
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.payload.data.dota.stratz.provider, "stratz");
+    assert.equal(result.payload.data.dota.liquipedia.apiOnly, true);
+  });
+});
+
 describe("notification preferences", () => {
   it("gets and updates preferences", async () => {
     const getInitial = await routeRequest({

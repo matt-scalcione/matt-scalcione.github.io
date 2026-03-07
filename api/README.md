@@ -5,7 +5,7 @@ Dependency-light API scaffold for LoL + Dota 2 live scores.
 ## Run
 
 ```bash
-cd /Users/admin/Documents/Roblox/esports-live/services/api
+cd /Users/admin/Documents/GitHub/matt-scalcione.github.io/api
 npm start
 ```
 
@@ -15,14 +15,14 @@ Default address:
 ## Development Mode
 
 ```bash
-cd /Users/admin/Documents/Roblox/esports-live/services/api
+cd /Users/admin/Documents/GitHub/matt-scalcione.github.io/api
 npm run dev
 ```
 
 ## Test
 
 ```bash
-cd /Users/admin/Documents/Roblox/esports-live/services/api
+cd /Users/admin/Documents/GitHub/matt-scalcione.github.io/api
 npm test
 ```
 
@@ -36,6 +36,7 @@ npm test
   - query: `game`, `region`, `dota_tiers`, `date_from`, `date_to`
 - `GET /v1/results`
   - query: `game`, `region`, `dota_tiers`, `date_from`, `date_to`
+- `GET /v1/provider-coverage`
 - `GET /v1/follows?user_id=...`
 - `POST /v1/follows`
 - `DELETE /v1/follows/:id?user_id=...`
@@ -81,12 +82,25 @@ Environment variable `ESPORTS_DATA_MODE` controls source behavior:
 
 Optional provider settings:
 - `PROVIDER_CACHE_MS` (default `30000`)
-- `PROVIDER_TIMEOUT_MS` (default `4500`)
+- `PROVIDER_TIMEOUT_MS` (default `15000`)
 - `OPENDOTA_BASE_URL` (default `https://api.opendota.com/api`)
 - `LOL_ESPORTS_API_BASE_URL` (default `https://esports-api.lolesports.com/persisted/gw`)
 - `LOL_ESPORTS_API_KEY` (defaults to the public LoL esports web key)
 - `LOL_ESPORTS_LOCALE` (default `en-US`)
 - `DOTA_TIERS` (default `1,2,3,4`)
+- `LIQUIPEDIA_DOTA_API_URL` (default `action=parse` endpoint for `Liquipedia:Matches`)
+- `LIQUIPEDIA_DOTA_API_CACHE_MS` (default `30000`)
+- `STRATZ_GRAPHQL_URL` (default `https://api.stratz.com/graphql`)
+- `STRATZ_API_TOKEN`
+- `STRATZ_DOTA_LIVE_QUERY`
+- `STRATZ_DOTA_MATCH_DETAIL_QUERY`
+
+Dota provider precedence:
+1. `STRATZ` for live telemetry when configured
+2. `OpenDota` for live/results/history fallback
+3. `Liquipedia API` for future schedule and watch metadata
+
+Use `GET /v1/provider-coverage` to inspect which Dota provider path is active.
 
 ## Deploy (Render)
 
