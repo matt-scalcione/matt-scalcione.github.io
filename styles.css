@@ -2298,6 +2298,16 @@ button.ghost,
   align-items: center;
 }
 
+.series-context-hero.live {
+  border-color: rgba(31, 123, 194, 0.18);
+  background: linear-gradient(135deg, rgba(237, 246, 255, 0.96), rgba(248, 251, 255, 0.96));
+}
+
+.series-context-hero.result {
+  border-color: rgba(95, 132, 170, 0.18);
+  background: linear-gradient(135deg, rgba(244, 247, 252, 0.96), rgba(251, 252, 255, 0.96));
+}
+
 .series-context-headline,
 .series-context-timing {
   display: grid;
@@ -2366,6 +2376,14 @@ button.ghost,
   font-family: "Archivo Black", "Impact", sans-serif;
   color: #0f6942;
   font-size: 1rem;
+}
+
+.series-context-countdown.live {
+  color: #1b639b;
+}
+
+.series-context-countdown.final {
+  color: #24384b;
 }
 
 .series-context-tags {

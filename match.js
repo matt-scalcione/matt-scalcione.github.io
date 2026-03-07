@@ -88,6 +88,20 @@ const MOBILE_SERIES_JUMP_TARGETS = [
   { id: "seriesProgressWrap", label: "Progress" },
   { id: "seriesMomentsList", label: "Highlights" }
 ];
+const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
+  { id: "gameContextWrap", label: "Series" },
+  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "seriesGamesWrap", label: "Maps" },
+  { id: "seriesProgressWrap", label: "Progress" },
+  { id: "seriesMomentsList", label: "Story" }
+];
+const MOBILE_COMPLETED_SERIES_JUMP_TARGETS = [
+  { id: "gameContextWrap", label: "Result" },
+  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "seriesGamesWrap", label: "Maps" },
+  { id: "seriesCompareWrap", label: "Stats" },
+  { id: "seriesPlayerTrendsWrap", label: "Trends" }
+];
 const MOBILE_UPCOMING_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Overview" },
   { id: "matchupConsoleWrap", label: "Matchup" },
@@ -120,6 +134,8 @@ const MOBILE_SECTION_HEADINGS = {
   "Match Snapshot": { icon: "SN", short: "Snapshot" },
   "Matchup Console": { icon: "H2H", short: "Matchup" },
   "Series Lineups": { icon: "LU", short: "Lineups" },
+  "Series Progress": { icon: "PG", short: "Progress" },
+  "Series Highlights": { icon: "HL", short: "Highlights" },
   "Upcoming Essentials": { icon: "UP", short: "Upcoming" },
   "Watch Guide": { icon: "TV", short: "Watch" },
   "Team Form": { icon: "FM", short: "Form" },
@@ -139,11 +155,14 @@ const MOBILE_SECTION_HEADINGS = {
   "Analyst Desk": { icon: "AD", short: "Analyst" },
   "Series Games": { icon: "SG", short: "Series Games" },
   "Series Comparison": { icon: "SC", short: "Series Stats" },
+  "Series Player Trends": { icon: "TR", short: "Trends" },
   "Selected Game Recap": { icon: "RC", short: "Game Recap" },
   "Final Recap": { icon: "RC", short: "Recap" }
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
+  seriesLive: new Set(["Matchup Console", "Series Games", "Series Progress", "Series Highlights"]),
+  seriesCompleted: new Set(["Matchup Console", "Series Games", "Series Comparison", "Series Player Trends"]),
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
   upcoming: new Set(["Game Explorer", "Matchup Console", "Series Lineups", "Team Form", "Head-To-Head"]),
   game: new Set(["Selected Game Recap", "Live Feed", "Player Tracker", "What Matters Now", "Live Alerts"])
@@ -459,7 +478,15 @@ function shouldMatchPanelBeOpenByDefault(headingTitle, match) {
     return true;
   }
 
-  const mode = uiState.viewMode === "game" ? "game" : match?.status === "upcoming" ? "upcoming" : "series";
+  const mode = uiState.viewMode === "game"
+    ? "game"
+    : match?.status === "upcoming"
+      ? "upcoming"
+      : match?.status === "completed"
+        ? "seriesCompleted"
+        : match?.status === "live"
+          ? "seriesLive"
+          : "series";
   return MOBILE_MATCH_PANELS_DEFAULT_OPEN[mode]?.has(headingTitle) || false;
 }
 
@@ -1170,6 +1197,14 @@ function mobileJumpTargetsForCurrentMode(match) {
 
   if (match?.status === "upcoming") {
     return MOBILE_UPCOMING_JUMP_TARGETS;
+  }
+
+  if (match?.status === "completed") {
+    return MOBILE_COMPLETED_SERIES_JUMP_TARGETS;
+  }
+
+  if (match?.status === "live") {
+    return MOBILE_LIVE_SERIES_JUMP_TARGETS;
   }
 
   return MOBILE_SERIES_JUMP_TARGETS;
@@ -2757,14 +2792,40 @@ function renderGameExplorer(match, apiBase) {
     }
 
     if (match.status === "completed") {
+      const winnerShort = winner ? displayTeamName(winner) : "TBD";
+      const finalScoreLabel = `${match.seriesScore.left} - ${match.seriesScore.right}`;
+      const completedHeroTags = [
+        formatLabel,
+        tournamentName,
+        match.patch ? `Patch ${match.patch}` : null,
+        `${completedMaps} maps played`
+      ].filter(Boolean);
       elements.gameContextWrap.innerHTML = `
-        <article class="game-context-card none series-context-card">
+        <article class="game-context-card none series-context-card completed-series-card">
           <div class="game-context-top">
             <p class="game-context-title">Series Result</p>
           </div>
+          <article class="series-context-hero result">
+            <div class="series-context-headline">
+              <div class="series-context-matchup">
+                <span class="series-context-team left">${scoreboardTeamName(match.teams.left.name)}</span>
+                <span class="series-context-vs">vs</span>
+                <span class="series-context-team right">${scoreboardTeamName(match.teams.right.name)}</span>
+              </div>
+              <p class="series-context-fullname">${winnerShort !== "TBD" ? `${winnerShort} won the series` : matchupLabel}</p>
+            </div>
+            <div class="series-context-timing">
+              <p class="series-context-kicker">Final result</p>
+              <p class="series-context-countdown final">${finalScoreLabel}</p>
+              <p class="meta-text">${completedMaps} maps complete · Started ${kickoffDate}</p>
+            </div>
+          </article>
+          <div class="series-context-tags">
+            ${completedHeroTags.map((tag) => `<span class="series-context-tag">${tag}</span>`).join("")}
+          </div>
           <div class="series-context-grid">
-            ${seriesInfoCard("Final", `${match.seriesScore.left} - ${match.seriesScore.right}`)}
-            ${seriesInfoCard("Winner", winner ? displayTeamName(winner) : "TBD")}
+            ${seriesInfoCard("Final", finalScoreLabel)}
+            ${seriesInfoCard("Winner", winnerShort)}
             ${seriesInfoCard("Matchup", matchupLabel)}
             ${seriesInfoCard("Format", formatLabel)}
             ${seriesInfoCard("Tournament", tournamentName)}
@@ -2777,22 +2838,51 @@ function renderGameExplorer(match, apiBase) {
       return;
     }
 
+    const liveScoreLabel = `${match.seriesScore.left} - ${match.seriesScore.right}`;
+    const liveLeadValue = Number(match?.momentum?.goldLead);
+    const liveLeadLabel = Number.isFinite(liveLeadValue) ? feedLeadDescriptor(match, liveLeadValue).label : "Lead forming";
+    const liveKickoffLabel = `${kickoffDate} · ${kickoffTime}`;
+    const liveHeroTags = [
+      formatLabel,
+      tournamentName,
+      match.patch ? `Patch ${match.patch}` : null,
+      liveSeriesGame?.startedAt ? `Started ${compact ? dateTimeCompact(liveSeriesGame.startedAt) : dateTimeLabel(liveSeriesGame.startedAt)}` : null
+    ].filter(Boolean);
+
     elements.gameContextWrap.innerHTML = `
-      <article class="game-context-card none series-context-card">
+      <article class="game-context-card none series-context-card live-series-card">
         <div class="game-context-top">
           <p class="game-context-title">Series In Progress</p>
         </div>
+        <article class="series-context-hero live">
+          <div class="series-context-headline">
+            <div class="series-context-matchup">
+              <span class="series-context-team left">${scoreboardTeamName(match.teams.left.name)}</span>
+              <span class="series-context-vs">vs</span>
+              <span class="series-context-team right">${scoreboardTeamName(match.teams.right.name)}</span>
+            </div>
+            <p class="series-context-fullname">${Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} is live now` : "Series is live"}</p>
+          </div>
+          <div class="series-context-timing">
+            <p class="series-context-kicker">${liveLeadLabel}</p>
+            <p class="series-context-countdown live">${liveScoreLabel}</p>
+            <p class="meta-text">${Number.isInteger(liveGameNumber) ? `Current map: Game ${liveGameNumber}` : "Current map live"} · ${completedMaps} complete</p>
+          </div>
+        </article>
+        <div class="series-context-tags">
+          ${liveHeroTags.map((tag) => `<span class="series-context-tag">${tag}</span>`).join("")}
+        </div>
         <div class="series-context-grid">
           ${seriesInfoCard("Current Game", Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber}` : "Live")}
-          ${seriesInfoCard("Series Score", `${match.seriesScore.left} - ${match.seriesScore.right}`)}
+          ${seriesInfoCard("Series Score", liveScoreLabel)}
           ${seriesInfoCard("Matchup", matchupLabel)}
           ${seriesInfoCard("Format", formatLabel)}
           ${seriesInfoCard("Tournament", tournamentName)}
           ${seriesInfoCard("Maps Completed", String(completedMaps))}
-          ${seriesInfoCard("Kickoff", `${kickoffDate} · ${kickoffTime}`)}
+          ${seriesInfoCard("Kickoff", liveKickoffLabel)}
           ${seriesInfoCard("Patch", match.patch || "unknown")}
           ${Number.isFinite(Number(match?.momentum?.goldLead))
-            ? seriesInfoCard("Gold Lead", signed(match.momentum.goldLead))
+            ? seriesInfoCard("Gold Lead", liveLeadLabel)
             : ""}
           ${Number.isFinite(Number(match?.momentum?.killDiff))
             ? seriesInfoCard("Kill Diff", signed(match.momentum.killDiff))
@@ -3124,11 +3214,36 @@ function applyGamePanelVisibility(match) {
   setTargetVisibility(elements.liveAlertsList, false);
 }
 
-function applySeriesPanelVisibility() {
+function applySeriesPanelVisibility(match = uiState.match) {
   const showSeriesPanels = uiState.viewMode === "series";
   for (const panel of elements.seriesPanels) {
     setPanelVisibility(panel, showSeriesPanels);
   }
+
+  if (!showSeriesPanels) {
+    return;
+  }
+
+  const status = String(match?.status || "");
+  const seriesGames = Array.isArray(match?.seriesGames) ? match.seriesGames : [];
+  const completedGames = seriesGames.filter((game) => game?.state === "completed").length;
+  const hasSeriesMoments = Array.isArray(match?.seriesMoments) && match.seriesMoments.length > 0;
+  const hasPlayerTrends = Array.isArray(match?.seriesPlayerTrends) && match.seriesPlayerTrends.length > 0;
+  const setSeriesVisibility = (element, visible) => {
+    const panel = element?.closest("section.panel");
+    if (!panel) {
+      return;
+    }
+    setPanelVisibility(panel, visible);
+  };
+
+  setSeriesVisibility(elements.matchupConsoleWrap, true);
+  setSeriesVisibility(elements.seriesLineupsWrap, true);
+  setSeriesVisibility(elements.seriesProgressWrap, status === "live");
+  setSeriesVisibility(elements.seriesMomentsList, hasSeriesMoments && (status === "live" || status === "completed"));
+  setSeriesVisibility(elements.seriesGamesWrap, status === "live" || status === "completed");
+  setSeriesVisibility(elements.seriesCompareWrap, status === "completed" && completedGames > 0);
+  setSeriesVisibility(elements.seriesPlayerTrendsWrap, status === "completed" && hasPlayerTrends);
 }
 
 function applyUpcomingPanelVisibility(match) {
@@ -8211,7 +8326,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   renderMoments(match.keyMoments || []);
   renderTimeline(match.timeline || []);
   applyGamePanelVisibility(match);
-  applySeriesPanelVisibility();
+  applySeriesPanelVisibility(match);
   applyUpcomingPanelVisibility(match);
   applyGameStateSectionTitles(match);
   applyMobileGameEnhancements(match);
