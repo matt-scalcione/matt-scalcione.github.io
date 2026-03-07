@@ -4,6 +4,7 @@ import {
   canonicalDotaTournamentKey,
   LiquipediaDotaScheduleProvider
 } from "../providers/dota/liquipediaScheduleProvider.js";
+import { StratzProvider } from "../providers/dota/stratzProvider.js";
 import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
 
 const now = Date.now();
@@ -30,6 +31,9 @@ const providerTimeoutMs = Number.parseInt(process.env.PROVIDER_TIMEOUT_MS || "15
 const openDotaProvider = new OpenDotaProvider({
   timeoutMs: providerTimeoutMs
 });
+const stratzProvider = new StratzProvider({
+  timeoutMs: providerTimeoutMs
+});
 const liquipediaDotaScheduleProvider = new LiquipediaDotaScheduleProvider({
   timeoutMs: providerTimeoutMs
 });
@@ -54,6 +58,11 @@ const providerState = {
     rows: []
   },
   live: {
+    fetchedAt: 0,
+    status: "stale",
+    rows: []
+  },
+  stratzLive: {
     fetchedAt: 0,
     status: "stale",
     rows: []
@@ -584,6 +593,46 @@ async function loadProviderLiveMatches() {
   };
 }
 
+async function loadProviderStratzLiveMatches() {
+  if (!isProviderModeEnabled()) {
+    return { status: "disabled", rows: [] };
+  }
+
+  if (!stratzProvider.getCapabilities().liveEnabled) {
+    return { status: "disabled", rows: [] };
+  }
+
+  const ageMs = Date.now() - providerState.stratzLive.fetchedAt;
+  if (ageMs <= providerCacheMs && providerState.stratzLive.status !== "stale") {
+    return {
+      status: providerState.stratzLive.status,
+      rows: providerState.stratzLive.rows
+    };
+  }
+
+  try {
+    const rows = await stratzProvider.fetchLiveMatches({
+      allowedTiers: defaultDotaTiers
+    });
+    providerState.stratzLive = {
+      fetchedAt: Date.now(),
+      status: "success",
+      rows
+    };
+  } catch {
+    providerState.stratzLive = {
+      fetchedAt: Date.now(),
+      status: "error",
+      rows: []
+    };
+  }
+
+  return {
+    status: providerState.stratzLive.status,
+    rows: providerState.stratzLive.rows
+  };
+}
+
 async function loadProviderResults() {
   if (!isProviderModeEnabled()) {
     return { status: "disabled", rows: [] };
@@ -846,6 +895,25 @@ function mergeDotaScheduleRows(liveRows = [], upcomingRows = []) {
     }
 
     if (normalizedLiveRows.some((liveRow) => sameDotaSeries(liveRow, row))) {
+      continue;
+    }
+
+    merged.push(row);
+  }
+
+  return dedupeRowsById(merged);
+}
+
+function mergeDotaLiveRows(primaryRows = [], secondaryRows = []) {
+  const normalizedPrimaryRows = Array.isArray(primaryRows) ? primaryRows : [];
+  const merged = [...normalizedPrimaryRows];
+
+  for (const row of Array.isArray(secondaryRows) ? secondaryRows : []) {
+    if (!row?.id) {
+      continue;
+    }
+
+    if (normalizedPrimaryRows.some((primaryRow) => sameDotaSeries(primaryRow, row))) {
       continue;
     }
 
@@ -1816,18 +1884,20 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
 }
 
 async function fallbackProviderDotaDetail(matchId, options = {}) {
-  const [liveState, resultsState] = await Promise.all([
+  const [stratzLiveState, liveState, resultsState] = await Promise.all([
+    loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
     loadProviderResults()
   ]);
+  const mergedProviderDotaLiveRows = mergeDotaLiveRows(stratzLiveState.rows, liveState.rows);
   const scheduleState = await loadProviderDotaScheduleMatches({
     knownRows: dedupeRowsById([
-      ...(Array.isArray(liveState?.rows) ? liveState.rows : []),
+      ...mergedProviderDotaLiveRows,
       ...(Array.isArray(resultsState?.rows) ? resultsState.rows : [])
     ])
   });
 
-  const liveRows = Array.isArray(liveState?.rows) ? liveState.rows : [];
+  const liveRows = mergedProviderDotaLiveRows;
   const scheduleRows = canonicalizeDotaScheduleRows(scheduleState?.rows, {
     liveRows,
     resultRows: Array.isArray(resultsState?.rows) ? resultsState.rows : []
@@ -1882,6 +1952,20 @@ async function loadProviderMatchDetail(matchId, options = {}) {
     const cached = providerState.detailById.get(cacheKey);
     if (cached && Date.now() - cached.fetchedAt <= providerCacheMs) {
       return cached.detail;
+    }
+
+    try {
+      const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
+      if (stratzDetail) {
+        providerState.detailById.set(cacheKey, {
+          fetchedAt: Date.now(),
+          detail: stratzDetail
+        });
+
+        return stratzDetail;
+      }
+    } catch {
+      // Fall through to the OpenDota / fallback detail path.
     }
 
     if (String(matchId).startsWith("dota_od_")) {
@@ -1959,7 +2043,8 @@ export async function listLiveMatches({
   userId = null,
   dotaTiers
 }) {
-  const [providerDotaLiveState, providerLolLiveState] = await Promise.all([
+  const [providerStratzLiveState, providerDotaLiveState, providerLolLiveState] = await Promise.all([
+    loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
     loadProviderLolLiveMatches()
   ]);
@@ -1967,24 +2052,30 @@ export async function listLiveMatches({
     loadProviderResults(),
     loadProviderDotaScheduleMatches({
       knownRows: dedupeRowsById([
+        ...(Array.isArray(providerStratzLiveState?.rows) ? providerStratzLiveState.rows : []),
         ...(Array.isArray(providerDotaLiveState?.rows) ? providerDotaLiveState.rows : [])
       ])
     })
   ]);
+  const mergedProviderDotaLiveRows = mergeDotaLiveRows(
+    providerStratzLiveState.rows,
+    providerDotaLiveState.rows
+  );
 
   let rows = liveMatches.slice();
   rows = replaceFallbackRowsForGame(rows, "lol", providerLolLiveState);
   if (
+    providerStratzLiveState.status === "success" ||
     providerDotaLiveState.status === "success" ||
     providerDotaScheduleState.status === "success"
   ) {
     const syntheticLiveRows = canonicalizeDotaScheduleRows(providerDotaScheduleState.rows, {
-      liveRows: providerDotaLiveState.rows,
+      liveRows: mergedProviderDotaLiveRows,
       resultRows: providerDotaResultsState.rows
     }).filter((row) => row.status === "live");
     rows = rows
       .filter((row) => row.game !== "dota2")
-      .concat(mergeDotaScheduleRows(providerDotaLiveState.rows, syntheticLiveRows));
+      .concat(mergeDotaScheduleRows(mergedProviderDotaLiveRows, syntheticLiveRows));
   } else if (shouldHideFallbackDotaRows()) {
     rows = stripFallbackDotaRows(rows);
   }
@@ -2005,28 +2096,37 @@ export async function listLiveMatches({
 }
 
 export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }) {
-  const [providerDotaLiveState, providerDotaResultsState, providerLolScheduleState] = await Promise.all([
+  const [providerStratzLiveState, providerDotaLiveState, providerDotaResultsState, providerLolScheduleState] = await Promise.all([
+    loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
     loadProviderResults(),
     loadProviderLolScheduleMatches()
   ]);
+  const mergedProviderDotaLiveRows = mergeDotaLiveRows(
+    providerStratzLiveState.rows,
+    providerDotaLiveState.rows
+  );
   const providerDotaScheduleState = await loadProviderDotaScheduleMatches({
     knownRows: dedupeRowsById([
-      ...(Array.isArray(providerDotaLiveState?.rows) ? providerDotaLiveState.rows : []),
+      ...mergedProviderDotaLiveRows,
       ...(Array.isArray(providerDotaResultsState?.rows) ? providerDotaResultsState.rows : [])
     ])
   });
   const canonicalDotaScheduleRows = canonicalizeDotaScheduleRows(providerDotaScheduleState.rows, {
-    liveRows: providerDotaLiveState.rows,
+    liveRows: mergedProviderDotaLiveRows,
     resultRows: providerDotaResultsState.rows
   });
 
   let rows = scheduleMatches.slice();
   rows = replaceFallbackRowsForGame(rows, "lol", providerLolScheduleState);
-  if (providerDotaLiveState.status === "success" || providerDotaScheduleState.status === "success") {
+  if (
+    providerStratzLiveState.status === "success" ||
+    providerDotaLiveState.status === "success" ||
+    providerDotaScheduleState.status === "success"
+  ) {
     rows = rows
       .filter((row) => row.game !== "dota2")
-      .concat(mergeDotaScheduleRows(providerDotaLiveState.rows, canonicalDotaScheduleRows));
+      .concat(mergeDotaScheduleRows(mergedProviderDotaLiveRows, canonicalDotaScheduleRows));
   } else if (shouldHideFallbackDotaRows()) {
     rows = stripFallbackDotaRows(rows);
   }
@@ -2317,6 +2417,71 @@ export async function getTeamProfile(teamId, {
     upcomingMatches: upcoming.slice(0, 5),
     opponentBreakdown,
     headToHead
+  };
+}
+
+export async function getProviderCoverageReport() {
+  const [stratzLiveState, openDotaLiveState, openDotaResultsState, lolLiveState, lolScheduleState, lolResultsState] =
+    await Promise.all([
+      loadProviderStratzLiveMatches(),
+      loadProviderLiveMatches(),
+      loadProviderResults(),
+      loadProviderLolLiveMatches(),
+      loadProviderLolScheduleMatches(),
+      loadProviderLolResults()
+    ]);
+  const mergedProviderDotaLiveRows = mergeDotaLiveRows(stratzLiveState.rows, openDotaLiveState.rows);
+  const dotaScheduleState = await loadProviderDotaScheduleMatches({
+    knownRows: dedupeRowsById([
+      ...mergedProviderDotaLiveRows,
+      ...(Array.isArray(openDotaResultsState?.rows) ? openDotaResultsState.rows : [])
+    ])
+  });
+  const canonicalDotaScheduleRows = canonicalizeDotaScheduleRows(dotaScheduleState.rows, {
+    liveRows: mergedProviderDotaLiveRows,
+    resultRows: openDotaResultsState.rows
+  });
+  const syntheticLiveRows = canonicalDotaScheduleRows.filter((row) => row.status === "live");
+  const unresolvedScheduledTeams = canonicalDotaScheduleRows.reduce((total, row) => {
+    const ids = [row?.teams?.left?.id, row?.teams?.right?.id];
+    return total + ids.filter((id) => !/^\d+$/.test(String(id || ""))).length;
+  }, 0);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    providerMode: dataMode,
+    dota: {
+      stratz: {
+        ...stratzProvider.getCapabilities(),
+        cacheStatus: stratzLiveState.status,
+        liveRows: Array.isArray(stratzLiveState.rows) ? stratzLiveState.rows.length : 0
+      },
+      openDota: {
+        cacheStatus: openDotaLiveState.status,
+        liveRows: Array.isArray(openDotaLiveState.rows) ? openDotaLiveState.rows.length : 0,
+        resultStatus: openDotaResultsState.status,
+        resultRows: Array.isArray(openDotaResultsState.rows) ? openDotaResultsState.rows.length : 0
+      },
+      liquipedia: {
+        apiOnly: true,
+        cacheStatus: dotaScheduleState.status,
+        scheduleRows: Array.isArray(dotaScheduleState.rows) ? dotaScheduleState.rows.length : 0,
+        unresolvedScheduledTeams
+      },
+      effectiveLiveCoverage: {
+        mergedLiveRows: mergedProviderDotaLiveRows.length,
+        syntheticPromotions: syntheticLiveRows.length,
+        effectiveLiveRows: mergeDotaScheduleRows(mergedProviderDotaLiveRows, syntheticLiveRows).length
+      }
+    },
+    lol: {
+      liveStatus: lolLiveState.status,
+      liveRows: Array.isArray(lolLiveState.rows) ? lolLiveState.rows.length : 0,
+      scheduleStatus: lolScheduleState.status,
+      scheduleRows: Array.isArray(lolScheduleState.rows) ? lolScheduleState.rows.length : 0,
+      resultsStatus: lolResultsState.status,
+      resultRows: Array.isArray(lolResultsState.rows) ? lolResultsState.rows.length : 0
+    }
   };
 }
 

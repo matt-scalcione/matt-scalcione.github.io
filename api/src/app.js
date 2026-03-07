@@ -4,6 +4,7 @@ import {
   addFollow,
   deleteFollowById,
   getMatchDetail,
+  getProviderCoverageReport,
   getTeamProfile,
   getNotificationPreferences,
   listFollows,
@@ -413,6 +414,17 @@ export async function routeRequest({
     });
 
     return okResponse(buildCollectionResponse(rows));
+  }
+
+  if (pathname === "/v1/provider-coverage") {
+    if (normalizedMethod !== "GET") {
+      return methodNotAllowed(["GET"]);
+    }
+
+    const report = await getProviderCoverageReport();
+    return okResponse({
+      data: report
+    });
   }
 
   if (pathParts[0] === "v1" && pathParts[1] === "matches" && pathParts.length === 3) {

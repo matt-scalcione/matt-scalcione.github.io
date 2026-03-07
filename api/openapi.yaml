@@ -87,6 +87,20 @@ paths:
                 $ref: "#/components/schemas/CollectionResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+  /v1/provider-coverage:
+    get:
+      summary: Provider coverage and source-health summary
+      responses:
+        "200":
+          description: Provider coverage payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
   /v1/matches/{id}:
     get:
       summary: Match detail

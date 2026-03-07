@@ -27,6 +27,7 @@ describe("openapi coverage", () => {
       "/v1/live-matches:",
       "/v1/schedule:",
       "/v1/results:",
+      "/v1/provider-coverage:",
       "/v1/matches/{id}:",
       "/v1/teams/{id}:",
       "/v1/stream/matches/{id}:",

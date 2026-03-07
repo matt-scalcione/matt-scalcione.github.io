@@ -5,15 +5,15 @@ const LIQUIPEDIA_API_URL =
   process.env.LIQUIPEDIA_DOTA_API_URL ||
   process.env.LIQUIDPEDIA_DOTA_API_URL ||
   "https://liquipedia.net/dota2/api.php?action=parse&page=Liquipedia:Matches&prop=text&formatversion=2&format=json";
-const LIQUIPEDIA_RENDER_URL =
-  process.env.LIQUIPEDIA_DOTA_RENDER_URL || "https://liquipedia.net/dota2/Liquipedia:Matches?action=render";
-const LIQUIPEDIA_PAGE_URL =
-  process.env.LIQUIPEDIA_DOTA_PAGE_URL || "https://liquipedia.net/dota2/Liquipedia:Matches";
 const LIQUIPEDIA_USER_AGENT =
   process.env.LIQUIDPEDIA_USER_AGENT || "Pulseboard/1.0 (https://matt-scalcione.github.io)";
 const LIQUIPEDIA_SCHEDULE_LOOKBACK_MS = Number.parseInt(
   process.env.LIQUIPEDIA_DOTA_SCHEDULE_LOOKBACK_MS || String(2 * 60 * 60 * 1000),
   10
+);
+const LIQUIPEDIA_API_CACHE_MS = Math.max(
+  30000,
+  Number.parseInt(process.env.LIQUIPEDIA_DOTA_API_CACHE_MS || "30000", 10)
 );
 
 function normalizeWhitespace(value) {
@@ -21,25 +21,6 @@ function normalizeWhitespace(value) {
     .replace(/&nbsp;/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-async function fetchText(url, { headers = {}, timeoutMs = 15000 } = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      headers,
-      signal: controller.signal
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} for ${url}`);
-    }
-
-    return await response.text();
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 function decodeHtmlEntities(value) {
@@ -402,43 +383,58 @@ export function parseLiquipediaMatchesHtml(
 export class LiquipediaDotaScheduleProvider {
   constructor({ timeoutMs = 15000 } = {}) {
     this.timeoutMs = timeoutMs;
+    this.scheduleCache = {
+      fetchedAt: 0,
+      html: "",
+      error: null
+    };
+  }
+
+  extractParseHtml(payload) {
+    const direct = payload?.parse?.text;
+    if (typeof direct === "string") {
+      return direct;
+    }
+
+    if (direct && typeof direct === "object" && typeof direct["*"] === "string") {
+      return direct["*"];
+    }
+
+    return "";
+  }
+
+  async fetchScheduleHtml() {
+    const ageMs = Date.now() - this.scheduleCache.fetchedAt;
+    if (ageMs <= LIQUIPEDIA_API_CACHE_MS && this.scheduleCache.html) {
+      return this.scheduleCache.html;
+    }
+
+    const headers = {
+      "user-agent": LIQUIPEDIA_USER_AGENT,
+      accept: "application/json",
+      "accept-language": "en-US,en;q=0.9"
+    };
+
+    const payload = await fetchJson(LIQUIPEDIA_API_URL, {
+      timeoutMs: this.timeoutMs,
+      headers
+    });
+    const html = this.extractParseHtml(payload);
+    if (!html || !html.includes("match-info")) {
+      throw new Error("Liquipedia parse API returned no usable Dota schedule markup.");
+    }
+
+    this.scheduleCache = {
+      fetchedAt: Date.now(),
+      html,
+      error: null
+    };
+
+    return html;
   }
 
   async fetchScheduleMatches({ knownRows = [], allowedTiers = [1, 2, 3, 4] } = {}) {
-    const headers = {
-      "user-agent": LIQUIPEDIA_USER_AGENT,
-      "accept-encoding": "gzip",
-      accept: "application/json,text/html,*/*",
-      "accept-language": "en-US,en;q=0.9"
-    };
-    let html = "";
-
-    try {
-      const payload = await fetchJson(LIQUIPEDIA_API_URL, {
-        timeoutMs: this.timeoutMs,
-        headers
-      });
-      html = String(payload?.parse?.text || "");
-    } catch {
-      html = "";
-    }
-
-    if (!html || !html.includes("match-info")) {
-      for (const fallbackUrl of [LIQUIPEDIA_RENDER_URL, LIQUIPEDIA_PAGE_URL]) {
-        try {
-          const fallbackHtml = await fetchText(fallbackUrl, {
-            timeoutMs: this.timeoutMs,
-            headers
-          });
-          if (fallbackHtml && fallbackHtml.includes("match-info")) {
-            html = fallbackHtml;
-            break;
-          }
-        } catch {
-          // Try the next fallback source.
-        }
-      }
-    }
+    const html = await this.fetchScheduleHtml();
 
     const teamIdMap = new Map();
     const tournamentTierMap = new Map();
