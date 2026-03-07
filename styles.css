@@ -6177,8 +6177,9 @@ button.ghost,
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 0.15rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
   overflow: hidden;
 }
 
@@ -6190,6 +6191,17 @@ button.ghost,
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 4.5rem;
+}
+
+.tracker-player-inline-sub {
+  display: block;
+  color: var(--muted);
+  font-size: 0.56rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 4.8rem;
 }
 
 .tracker-player-inline-divider {
@@ -9734,6 +9746,11 @@ button.ghost,
 
   .match-page .tracker-table-mobile .tracker-player-inline-name {
     font-size: 0.76rem;
+  }
+
+  .match-page .tracker-table-mobile .tracker-player-inline-sub {
+    font-size: 0.5rem;
+    max-width: 5rem;
   }
 
   .match-page .tracker-table-mobile .tracker-hero-icon {
