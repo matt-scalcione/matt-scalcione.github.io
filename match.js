@@ -1498,9 +1498,6 @@ function renderScoreboard(match) {
   const compact = isCompactUI();
   const winner = winnerTeamName(match);
   const winnerLabel = winner ? scoreboardTeamName(winner) : null;
-  const seriesSubline = compact
-    ? compactStatusLabel(match.status)
-    : `${compactStatusLabel(match.status)}${winnerLabel ? ` · ${winnerLabel}` : ""}`;
   const leftRawName = String(match?.teams?.left?.name || "Unknown");
   const rightRawName = String(match?.teams?.right?.name || "Unknown");
   const leftDisplayName = scoreboardTeamName(leftRawName);
@@ -1541,20 +1538,32 @@ function renderScoreboard(match) {
   const phaseKicker = match.status === "live" ? "Live series" : match.status === "completed" ? "Final result" : "Upcoming series";
   let phaseTitle = `${leftDisplayName} vs ${rightDisplayName}`;
   let phaseSubline = tournamentName;
-  const phasePills = [`${formatLabel}`, tournamentName, match.patch ? `Patch ${match.patch}` : null].filter(Boolean);
+  const phasePills = [`${formatLabel}`, compact ? null : tournamentName, match.patch ? `Patch ${match.patch}` : null].filter(Boolean);
+  let seriesSubline = compactStatusLabel(match.status);
 
   if (match.status === "upcoming") {
     phaseTitle = countdown !== null ? `Starts in ${countdownLabel}` : "Start time pending";
-    phaseSubline = startLabel;
+    phaseSubline = compact ? `${tournamentName} · ${startLabel}` : startLabel;
+    seriesSubline = compact ? startLabel : `Starts ${startLabel}`;
   } else if (match.status === "live") {
     phaseTitle = Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} live now` : "Series live";
-    phaseSubline = `Series ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps complete` : ""}`;
+    phaseSubline = compact
+      ? `${tournamentName} · ${match.seriesScore.left}-${match.seriesScore.right}`
+      : `Series ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps complete` : ""}`;
+    seriesSubline = Number.isInteger(liveGameNumber)
+      ? compact
+        ? `G${liveGameNumber} live`
+        : `Current game ${liveGameNumber} live`
+      : compactStatusLabel(match.status);
     if (Number.isFinite(Number(match?.momentum?.goldLead))) {
       phasePills.push(`Lead ${signed(match.momentum.goldLead)}`);
     }
   } else if (match.status === "completed") {
     phaseTitle = winnerLabel ? `${winnerLabel} won the series` : "Series complete";
-    phaseSubline = `Final ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps played` : ""}`;
+    phaseSubline = compact
+      ? `${tournamentName} · ${match.seriesScore.left}-${match.seriesScore.right}`
+      : `Final ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps played` : ""}`;
+    seriesSubline = compact ? "Final" : `${completedMaps || bestOf} maps recorded`;
   }
 
   const seriesCenterLabel = compact ? formatLabel : "Series Score";
@@ -1667,6 +1676,19 @@ function streamStatusDetail() {
   return compact ? `${ageSeconds}s ago` : `Last snapshot ${ageSeconds}s ago`;
 }
 
+function readableMetaToken(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return "Unknown";
+  }
+
+  return normalized
+    .replace(/[+_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function renderStreamStatus(match) {
   if (!elements.streamStatusWrap) {
     return;
@@ -1676,15 +1698,24 @@ function renderStreamStatus(match) {
   const lastErrorAt = Number(uiState.stream.lastErrorAt || 0);
   const errorSeconds = lastErrorAt ? Math.max(0, Math.round((Date.now() - lastErrorAt) / 1000)) : null;
   const badge = streamBadge(uiState.stream.connected ? "connected" : uiState.stream.source === "sse" ? "reconnecting" : "polling");
+  const freshnessStatus = readableMetaToken(match?.freshness?.status || "syncing");
+  const freshnessUpdatedAt = match?.freshness?.updatedAt
+    ? compact
+      ? dateTimeCompact(match.freshness.updatedAt)
+      : dateTimeLabel(match.freshness.updatedAt)
+    : null;
   const errorText = lastErrorAt
     ? compact
-      ? ` · Err ${errorSeconds}s`
-      : ` · Last stream error ${dateTimeLabel(lastErrorAt)}`
-    : "";
+      ? `Err ${errorSeconds}s`
+      : `Stream error ${dateTimeCompact(lastErrorAt)}`
+    : null;
   elements.streamStatusWrap.innerHTML = `
-    <article class="stream-card ${badge}">
-      <p class="stream-title">${streamStatusText(match)}</p>
-      <p class="meta-text">${streamStatusDetail()}${errorText}</p>
+    <article class="stream-card ${badge} stream-inline-card">
+      <span class="stream-chip primary ${badge}">${streamStatusText(match)}</span>
+      <span class="stream-chip">${streamStatusDetail()}</span>
+      <span class="stream-chip freshness">${freshnessStatus}</span>
+      ${freshnessUpdatedAt ? `<span class="stream-chip">${compact ? freshnessUpdatedAt : `Updated ${freshnessUpdatedAt}`}</span>` : ""}
+      ${errorText ? `<span class="stream-chip error">${errorText}</span>` : ""}
     </article>
   `;
 }
@@ -7921,9 +7952,10 @@ function renderMatchPayload(match, apiBase, source = "polling") {
     ? ` · ${isCompactUI() ? `G${uiState.activeGameNumber}` : `Game ${uiState.activeGameNumber}`}`
     : "";
   elements.matchTitle.textContent = `${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)} · ${match.tournament}${focusedLabel}`;
-  elements.freshnessText.textContent = isCompactUI()
-    ? `${String(match.freshness.source || "polling").toUpperCase()} · ${String(match.freshness.status || "syncing").toUpperCase()} · ${dateTimeCompact(match.freshness.updatedAt)}`
-    : `Source: ${match.freshness.source} · ${match.freshness.status} · Updated ${dateTimeLabel(match.freshness.updatedAt)}`;
+  if (elements.freshnessText) {
+    elements.freshnessText.textContent = "";
+    elements.freshnessText.hidden = true;
+  }
   applyNavigationLinks(apiBase);
   refreshMatchSeo(match);
 
