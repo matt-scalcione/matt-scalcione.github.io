@@ -425,6 +425,16 @@ function formatPercent(value) {
   return `${num.toFixed(1)}%`;
 }
 
+function formatSignedNumber(value, digits = 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "n/a";
+  }
+
+  const rendered = digits > 0 ? num.toFixed(digits) : String(Math.round(num));
+  return num > 0 ? `+${rendered}` : rendered;
+}
+
 function statusPillClass(status) {
   if (status === "live") return "live";
   if (status === "upcoming") return "upcoming";
@@ -847,9 +857,10 @@ function buildPastRows(profile) {
 
 function renderFormTimeline(profile) {
   const rows = Array.isArray(profile?.recentMatches) ? profile.recentMatches.slice(0, 12) : [];
+  const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   if (elements.formTimelineMeta) {
     elements.formTimelineMeta.textContent = rows.length
-      ? `${rows.length} recent series in current window`
+      ? `${rows.length} completed series in order`
       : "No completed series in the current window";
   }
 
@@ -862,16 +873,58 @@ function renderFormTimeline(profile) {
     return;
   }
 
+  const recentWindow = rows.slice(0, 5);
+  const first = rows[0];
+  const firstResult = String(first?.result || "").toLowerCase();
+  let runCount = 0;
+  for (const row of rows) {
+    if (String(row?.result || "").toLowerCase() !== firstResult) {
+      break;
+    }
+    runCount += 1;
+  }
+  const runLabel = first ? `${resultLabel(first)}${runCount}` : "n/a";
+  const lastFiveResults = recentWindow.map((row) => resultLabel(row)).join("") || "n/a";
+  const lastFiveWins = recentWindow.filter((row) => String(row?.result || "").toLowerCase() === "win").length;
+  const lastFiveMapDiff = recentWindow.reduce(
+    (sum, row) => sum + Number(row?.ownScore || 0) - Number(row?.oppScore || 0),
+    0
+  );
+  const latestLine = first
+    ? `${resultLabel(first)} ${seriesScoreLabel(first)} vs ${first.opponentName || "Unknown"} · ${dateTimeLabel(first.startAt)}`
+    : "";
+
   elements.formTimelineWrap.innerHTML = `
-    <div class="form-timeline">
-      ${rows
-        .map((row) => {
-          const tone = resultClass(row.result);
-          const marker = resultLabel(row);
-          const label = `${marker} ${seriesScoreLabel(row)} vs ${row.opponentName || "Unknown"} · ${dateTimeLabel(row.startAt)}`;
-          return `<span class="timeline-chip ${tone}" title="${escapeHtml(label)}">${marker} ${seriesScoreLabel(row)}</span>`;
-        })
-        .join("")}
+    <div class="team-form-shell">
+      <article class="team-form-hero">
+        <div class="team-form-hero-copy">
+          <p class="tempo-label">Form Read</p>
+          <p class="team-form-hero-title">${escapeHtml(runLabel)} current run</p>
+          <p class="meta-text">${escapeHtml(latestLine)}</p>
+        </div>
+        <div class="team-form-hero-badges">
+          <span class="team-form-badge">Last 5 ${escapeHtml(lastFiveResults)}</span>
+          <span class="team-form-badge">Wins ${lastFiveWins}/${Math.max(1, recentWindow.length)}</span>
+          <span class="team-form-badge">Map diff ${escapeHtml(formatSignedNumber(lastFiveMapDiff))}</span>
+        </div>
+      </article>
+      <div class="team-form-rail">
+        ${rows
+          .map((row) => {
+            const tone = resultClass(row.result);
+            return `
+              <article class="team-form-stop ${tone}">
+                <div class="team-form-stop-top">
+                  <span class="team-form-stop-result ${tone}">${escapeHtml(resultLabel(row))}</span>
+                  <span class="team-form-stop-score">${escapeHtml(seriesScoreLabel(row))}</span>
+                </div>
+                <p class="team-form-stop-opponent">${teamOpponentLabel(row, profile, apiBase)}</p>
+                <p class="team-form-stop-meta">${escapeHtml(dateTimeLabel(row.startAt))}</p>
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
     </div>
   `;
 }
@@ -961,7 +1014,7 @@ function teamMatchCard(row, profile, apiBase, options = {}) {
 
 function insightCard(label, value, note = null) {
   return `
-    <article class="upcoming-card">
+    <article class="team-analysis-metric">
       <p class="tempo-label">${label}</p>
       <p class="tempo-value">${value}</p>
       ${note ? `<p class="meta-text">${note}</p>` : ""}
@@ -1004,35 +1057,65 @@ function renderPerformanceInsights(profile) {
   const topScorelines = Array.from(scorelineCounts.entries())
     .sort((left, right) => right[1] - left[1])
     .slice(0, 5);
+  const closeSeriesRate = closeSeries / Math.max(1, total);
+  const deciderRate = deciders / Math.max(1, total);
+  const lastFiveResults = rows.slice(0, 5).map((row) => resultLabel(row)).join("") || "n/a";
+  const mapDiff = mapWins - mapLosses;
+  let headline = "Recent profile is balanced";
+  if (cleanWins >= Math.max(2, Math.ceil(total * 0.35))) {
+    headline = "Converts leads into clean series wins";
+  } else if (deciderRate >= 0.45) {
+    headline = "Recent sets often go the distance";
+  } else if (closeSeriesRate >= 0.55) {
+    headline = "Most recent series stay close";
+  } else if (avgMargin >= 1) {
+    headline = "Usually controls maps with room to spare";
+  } else if (avgMargin <= -1) {
+    headline = "Recent losses have come by margin";
+  } else if (gotSwept >= Math.max(2, Math.ceil(total * 0.25))) {
+    headline = "Recent floor has been shaky";
+  }
 
   if (elements.performanceMetaText) {
-    elements.performanceMetaText.textContent = `Computed from ${rows.length} most recent completed series`;
+    elements.performanceMetaText.textContent = `${rows.length} completed series in view`;
   }
 
   elements.performanceInsightsWrap.innerHTML = `
-    <div class="upcoming-grid">
-      ${insightCard("Avg Maps / Series", avgMapsPerSeries.toFixed(2))}
-      ${insightCard("Avg Map Margin", avgMargin.toFixed(2), "Positive means stronger map control")}
-      ${insightCard("Close Series Rate", formatPercent((closeSeries / Math.max(1, total)) * 100))}
-      ${insightCard("Decider Rate", formatPercent((deciders / Math.max(1, total)) * 100))}
-      ${insightCard("Clean Wins", String(cleanWins), "Series won without dropping a map")}
-      ${insightCard("Got Swept", String(gotSwept), "Series losses with 0 map wins")}
-    </div>
-    <article class="upcoming-note top-space">
-      <p class="meta-text strong">Frequent Scorelines</p>
-      <div class="form-timeline">
+    <div class="team-analysis-shell">
+      <article class="team-analysis-hero">
+        <div class="team-analysis-copy">
+          <p class="tempo-label">Team Read</p>
+          <p class="team-analysis-title">${escapeHtml(headline)}</p>
+          <p class="meta-text">Last 5 ${escapeHtml(lastFiveResults)} · Map diff ${escapeHtml(formatSignedNumber(mapDiff))}</p>
+        </div>
+        <div class="team-analysis-badges">
+          <span class="team-analysis-badge">Deciders ${escapeHtml(formatPercent(deciderRate * 100))}</span>
+          <span class="team-analysis-badge">Close ${escapeHtml(formatPercent(closeSeriesRate * 100))}</span>
+          <span class="team-analysis-badge">Sweeps ${cleanWins}-${gotSwept}</span>
+        </div>
+      </article>
+      <div class="team-analysis-grid">
+        ${insightCard("Avg Maps", avgMapsPerSeries.toFixed(2), "How long recent sets run")}
+        ${insightCard("Map Margin", formatSignedNumber(avgMargin, 2), "Average map differential per series")}
+        ${insightCard("Clean Wins", String(cleanWins), "Series won without dropping a map")}
+        ${insightCard("Swept", String(gotSwept), "Series lost without a map win")}
+      </div>
+      <article class="team-analysis-footer">
+        <p class="tempo-label">Common Results</p>
+        <div class="team-analysis-chip-row">
         ${
           topScorelines.length
             ? topScorelines
                 .map(
                   ([label, count]) =>
-                    `<span class="timeline-chip">${escapeHtml(label)} · ${count}</span>`
+                    `<span class="team-analysis-chip">${escapeHtml(label)} · ${count}</span>`
                 )
                 .join("")
             : `<span class="meta-text">No scoreline distribution available.</span>`
         }
-      </div>
-    </article>
+        </div>
+      </article>
+    </div>
   `;
 }
 
