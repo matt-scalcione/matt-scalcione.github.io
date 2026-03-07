@@ -10,6 +10,7 @@ import {
   setJsonLd,
   toAbsoluteSiteUrl
 } from "./seo.js";
+import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const AUTO_REFRESH_MS = 15000;
@@ -139,6 +140,32 @@ function dateTimeLabel(iso) {
   } catch {
     return iso;
   }
+}
+
+function teamShortLabel(team, game) {
+  const code = resolveLocalTeamCode({
+    game,
+    id: team?.id,
+    name: team?.name,
+    code: team?.code
+  });
+  if (code && code.length <= 6) {
+    return code;
+  }
+  return String(team?.name || "Team");
+}
+
+function teamBadgeMarkup(team, game) {
+  const label = String(team?.name || "Team");
+  const logo = resolveLocalTeamLogo({
+    game,
+    id: team?.id,
+    name: team?.name
+  });
+  if (logo) {
+    return `<span class="team-badge has-logo"><img src="${logo}" alt="${label} logo" loading="lazy" decoding="async" /></span>`;
+  }
+  return `<span class="team-badge">${teamShortLabel(team, game).slice(0, 3).toUpperCase()}</span>`;
 }
 
 function buildQuery({ game, region, dotaTiers, followedOnly, userId }) {
@@ -361,11 +388,11 @@ function renderCards(rows) {
           </div>
           <div class="match-card-scoreboard">
             <div class="team-line compact">
-              <span class="team-name">${match.teams.left.name}</span>
+              <span class="team-line-main">${teamBadgeMarkup(match.teams.left, match.game)}<span class="team-name">${teamShortLabel(match.teams.left, match.game)}</span></span>
               <strong>${match.seriesScore.left}</strong>
             </div>
             <div class="team-line compact">
-              <span class="team-name">${match.teams.right.name}</span>
+              <span class="team-line-main">${teamBadgeMarkup(match.teams.right, match.game)}<span class="team-name">${teamShortLabel(match.teams.right, match.game)}</span></span>
               <strong>${match.seriesScore.right}</strong>
             </div>
           </div>

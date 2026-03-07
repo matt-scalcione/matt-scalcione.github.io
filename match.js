@@ -9,6 +9,7 @@ import {
   setJsonLd,
   toAbsoluteSiteUrl
 } from "./seo.js";
+import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
@@ -890,10 +891,27 @@ function heroIconMarkup(match, row) {
   return `<span class="tracker-hero-icon fallback">${trackerAvatarFallback(heroName)}</span>`;
 }
 
-function shortTeamName(name) {
-  const raw = String(name || "").trim();
+function teamNameValue(teamOrName) {
+  if (teamOrName && typeof teamOrName === "object") {
+    return String(teamOrName.name || "").trim();
+  }
+  return String(teamOrName || "").trim();
+}
+
+function shortTeamName(teamOrName, game = null) {
+  const raw = teamNameValue(teamOrName);
   if (!raw) {
     return "TBD";
+  }
+
+  const providerCode = resolveLocalTeamCode({
+    game,
+    id: teamOrName && typeof teamOrName === "object" ? teamOrName.id : null,
+    name: raw,
+    code: teamOrName && typeof teamOrName === "object" ? teamOrName.code : null
+  });
+  if (providerCode && providerCode.length <= 6) {
+    return providerCode;
   }
 
   const mapped = TEAM_SHORT_NAMES[normalizeTeamKey(raw)];
@@ -914,14 +932,24 @@ function shortTeamName(name) {
   return raw;
 }
 
-function displayTeamName(name) {
-  return isCompactUI() ? shortTeamName(name) : String(name || "Unknown");
+function displayTeamName(teamOrName, game = null) {
+  return isCompactUI() ? shortTeamName(teamOrName, game) : teamNameValue(teamOrName) || "Unknown";
 }
 
-function scoreboardTeamName(name) {
-  const raw = String(name || "").trim();
+function scoreboardTeamName(teamOrName, game = null) {
+  const raw = teamNameValue(teamOrName);
   if (!raw) {
     return "TBD";
+  }
+
+  const providerCode = resolveLocalTeamCode({
+    game,
+    id: teamOrName && typeof teamOrName === "object" ? teamOrName.id : null,
+    name: raw,
+    code: teamOrName && typeof teamOrName === "object" ? teamOrName.code : null
+  });
+  if (providerCode && providerCode.length <= 6) {
+    return providerCode;
   }
 
   return TEAM_HEADER_ABBREVIATIONS[normalizeTeamKey(raw)] || shortTeamName(raw);
@@ -1464,8 +1492,8 @@ function winnerTeamName(match) {
   return null;
 }
 
-function teamBadgeText(name) {
-  const short = shortTeamName(name)
+function teamBadgeText(teamOrName, game = null) {
+  const short = shortTeamName(teamOrName, game)
     .replace(/[^A-Za-z0-9\s.]/g, " ")
     .trim();
   if (!short) {
@@ -1488,8 +1516,17 @@ function teamBadgeText(name) {
   return letters.slice(0, Math.min(3, letters.length)).toUpperCase();
 }
 
-function teamLogoUrl(name) {
-  const raw = String(name || "").trim();
+function teamLogoUrl(teamOrName, game = null) {
+  const raw = teamNameValue(teamOrName);
+  const localLogo = resolveLocalTeamLogo({
+    game,
+    id: teamOrName && typeof teamOrName === "object" ? teamOrName.id : null,
+    name: raw
+  });
+  if (localLogo) {
+    return localLogo;
+  }
+
   if (!raw) {
     return null;
   }
@@ -1497,14 +1534,14 @@ function teamLogoUrl(name) {
   return TEAM_LOGO_BY_KEY[normalizeTeamKey(raw)] || null;
 }
 
-function teamBadgeMarkup(name) {
-  const logo = teamLogoUrl(name);
+function teamBadgeMarkup(teamOrName, game = null) {
+  const logo = teamLogoUrl(teamOrName, game);
   if (logo) {
-    const label = scoreboardTeamName(name);
+    const label = scoreboardTeamName(teamOrName, game);
     return `<span class="team-badge has-logo"><img src="${logo}" alt="${label} logo" loading="lazy" decoding="async" /></span>`;
   }
 
-  return `<span class="team-badge">${teamBadgeText(name)}</span>`;
+  return `<span class="team-badge">${teamBadgeText(teamOrName, game)}</span>`;
 }
 
 function selectedGameScoreContext(match) {
@@ -1669,7 +1706,7 @@ function renderScoreboard(match) {
       ? `
     <article class="score-strip game-strip ${gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming"}">
       <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
-        ${teamBadgeMarkup(leftRawName)}
+        ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
         <span class="score-team-side ${gameContext.leftSide === "BLUE" ? "blue" : gameContext.leftSide === "RED" ? "red" : ""}">${gameContext.leftSide}</span>
         <span class="score-team-name">${leftDisplayName}</span>
       </a>
@@ -1679,7 +1716,7 @@ function renderScoreboard(match) {
         <p class="score-center-sub">${compact ? "Kills" : "Kills this game"}</p>
       </div>
       <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
-        ${teamBadgeMarkup(rightRawName)}
+        ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
         <span class="score-team-side ${gameContext.rightSide === "BLUE" ? "blue" : gameContext.rightSide === "RED" ? "red" : ""}">${gameContext.rightSide}</span>
         <span class="score-team-name">${rightDisplayName}</span>
       </a>
@@ -1693,7 +1730,7 @@ function renderScoreboard(match) {
     ${phaseBannerMarkup}
     <article class="score-strip series-strip ${statusTone}">
       <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
-        ${teamBadgeMarkup(leftRawName)}
+        ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
         <span class="score-team-name">${leftDisplayName}</span>
       </a>
       <div class="score-center">
@@ -1702,7 +1739,7 @@ function renderScoreboard(match) {
         <p class="score-center-sub">${seriesSubline}</p>
       </div>
       <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
-        ${teamBadgeMarkup(rightRawName)}
+        ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
         <span class="score-team-name">${rightDisplayName}</span>
       </a>
     </article>

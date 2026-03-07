@@ -10,6 +10,7 @@ import {
   setJsonLd,
   toAbsoluteSiteUrl
 } from "./seo.js";
+import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const MOBILE_BREAKPOINT = 760;
@@ -218,10 +219,39 @@ function normalizeTeamKey(name) {
     .replace(/\s+/g, " ");
 }
 
-function shortTeamName(name) {
-  const raw = String(name || "").trim();
+function teamNameValue(teamOrName) {
+  if (teamOrName && typeof teamOrName === "object") {
+    return String(teamOrName.name || "").trim();
+  }
+  return String(teamOrName || "").trim();
+}
+
+function teamCodeValue(teamOrName, game = null) {
+  return resolveLocalTeamCode({
+    game,
+    id: teamOrName && typeof teamOrName === "object" ? teamOrName.id : null,
+    name: teamNameValue(teamOrName),
+    code: teamOrName && typeof teamOrName === "object" ? teamOrName.code : null
+  });
+}
+
+function teamLogoUrl(teamOrName, game = null) {
+  return resolveLocalTeamLogo({
+    game,
+    id: teamOrName && typeof teamOrName === "object" ? teamOrName.id : null,
+    name: teamNameValue(teamOrName)
+  });
+}
+
+function shortTeamName(teamOrName, game = null) {
+  const raw = teamNameValue(teamOrName);
   if (!raw) {
     return "TBD";
+  }
+
+  const providerCode = teamCodeValue(teamOrName, game);
+  if (providerCode && providerCode.length <= 6) {
+    return providerCode;
   }
 
   const mapped = TEAM_SHORT_NAMES[normalizeTeamKey(raw)];
@@ -241,8 +271,8 @@ function shortTeamName(name) {
   return raw;
 }
 
-function scheduleBadgeToken(name) {
-  const short = shortTeamName(name);
+function scheduleBadgeToken(teamOrName, game = null) {
+  const short = shortTeamName(teamOrName, game);
   if (short.length <= 4) {
     return short;
   }
@@ -257,6 +287,15 @@ function scheduleBadgeToken(name) {
   }
 
   return short.replace(/[^a-z0-9]/gi, "").slice(0, 3).toUpperCase();
+}
+
+function scheduleBadgeMarkup(team, game = null) {
+  const logo = teamLogoUrl(team, game);
+  const label = teamNameValue(team) || "Team";
+  if (logo) {
+    return `<span class="schedule-card-badge has-logo"><img src="${logo}" alt="${label} logo" loading="lazy" decoding="async" /></span>`;
+  }
+  return `<span class="schedule-card-badge">${scheduleBadgeToken(team, game)}</span>`;
 }
 
 function timeOnlyLabel(iso) {
@@ -714,9 +753,9 @@ function renderTable(container, rows, type) {
           : row.winnerTeamId === row.teams.right.id
             ? row.teams.right.name
             : "TBD";
-      const leftShort = shortTeamName(row.teams.left.name);
-      const rightShort = shortTeamName(row.teams.right.name);
-      const winnerShort = winnerLong === "TBD" ? "—" : shortTeamName(winnerLong);
+      const leftShort = shortTeamName(row.teams.left, row.game);
+      const rightShort = shortTeamName(row.teams.right, row.game);
+      const winnerShort = winnerLong === "TBD" ? "—" : shortTeamName(winnerLong, row.game);
       const scoreLabel = seriesScoreLabel(row, type);
       const leftTeam = teamLink({
         teamId: row.teams.left.id,
@@ -754,10 +793,10 @@ function renderTable(container, rows, type) {
           const cards = group.rows
             .map((row) => {
               const detailUrl = rowLink(row.id);
-              const leftShort = shortTeamName(row.teams.left.name);
-              const rightShort = shortTeamName(row.teams.right.name);
-              const leftBadge = scheduleBadgeToken(row.teams.left.name);
-              const rightBadge = scheduleBadgeToken(row.teams.right.name);
+              const leftShort = shortTeamName(row.teams.left, row.game);
+              const rightShort = shortTeamName(row.teams.right, row.game);
+              const leftBadge = scheduleBadgeMarkup(row.teams.left, row.game);
+              const rightBadge = scheduleBadgeMarkup(row.teams.right, row.game);
               const winnerLong =
                 row.winnerTeamId === row.teams.left.id
                   ? row.teams.left.name
@@ -783,7 +822,7 @@ function renderTable(container, rows, type) {
                   </div>
                   <div class="schedule-card-board">
                     <div class="schedule-card-team left">
-                      <span class="schedule-card-badge">${leftBadge}</span>
+                      ${leftBadge}
                       <span class="schedule-card-name">${leftShort}</span>
                     </div>
                     <div class="schedule-card-center">
@@ -791,7 +830,7 @@ function renderTable(container, rows, type) {
                       <p class="schedule-card-center-meta">${center.sub}</p>
                     </div>
                     <div class="schedule-card-team right">
-                      <span class="schedule-card-badge">${rightBadge}</span>
+                      ${rightBadge}
                       <span class="schedule-card-name">${rightShort}</span>
                     </div>
                   </div>
