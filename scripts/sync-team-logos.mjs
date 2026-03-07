@@ -1,6 +1,8 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { optimizeTeamLogoManifest } from "./optimize-team-logos.mjs"
+import { backfillTeamLogoManifest } from "./backfill-team-logos.mjs"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -250,9 +252,15 @@ async function main() {
   const [lolRows, dotaRows] = await Promise.all([fetchLolTeams(), fetchDotaTeams()])
   const { manifest, failures } = await downloadLogos([...lolRows, ...dotaRows])
   await writeManifest(manifest)
+  const optimization = await optimizeTeamLogoManifest()
+  const backfill = await backfillTeamLogoManifest()
 
   process.stdout.write(
-    `Synced team logos. LoL ${manifest.counts.lol} · Dota ${manifest.counts.dota2} · Failures ${failures.length}\n`
+    `Synced team logos. LoL ${backfill.manifest.counts.lol} · Dota ${backfill.manifest.counts.dota2} · Failures ${failures.length} · Backfilled ${backfill.applied} · ${(
+      optimization.bytesBefore /
+      1024 /
+      1024
+    ).toFixed(2)} MB -> ${(optimization.bytesAfter / 1024 / 1024).toFixed(2)} MB\n`
   )
 
   if (failures.length) {
