@@ -9,6 +9,18 @@ import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
 const now = Date.now();
 const oneMinute = 60 * 1000;
 const oneHour = 60 * oneMinute;
+const dotaSyntheticLiveThresholdMs = Number.parseInt(
+  process.env.DOTA_SCHEDULE_PROMOTE_AFTER_MS || String(20 * oneMinute),
+  10
+);
+const dotaSyntheticLiveBaseWindowMs = Number.parseInt(
+  process.env.DOTA_SCHEDULE_PROMOTE_BASE_WINDOW_MS || String(30 * oneMinute),
+  10
+);
+const dotaSyntheticLivePerGameWindowMs = Number.parseInt(
+  process.env.DOTA_SCHEDULE_PROMOTE_PER_GAME_MS || String(90 * oneMinute),
+  10
+);
 
 const dataMode = String(process.env.ESPORTS_DATA_MODE || "hybrid").toLowerCase();
 const providerCacheMs = Number.parseInt(process.env.PROVIDER_CACHE_MS || "30000", 10);
@@ -842,6 +854,44 @@ function mergeDotaScheduleRows(liveRows = [], upcomingRows = []) {
   return dedupeRowsById(merged);
 }
 
+function dotaSyntheticLiveWindowMs(row) {
+  const bestOf = Math.max(1, Number(row?.bestOf || 1));
+  return dotaSyntheticLiveBaseWindowMs + bestOf * dotaSyntheticLivePerGameWindowMs;
+}
+
+function canonicalizeDotaScheduleRows(scheduleRows = [], { liveRows = [], resultRows = [], nowMs = Date.now() } = {}) {
+  const normalizedLiveRows = Array.isArray(liveRows) ? liveRows : [];
+  const normalizedResultRows = Array.isArray(resultRows) ? resultRows : [];
+
+  return (Array.isArray(scheduleRows) ? scheduleRows : [])
+    .filter((row) => row?.game === "dota2")
+    .filter((row) => !normalizedResultRows.some((resultRow) => sameDotaSeries(resultRow, row)))
+    .map((row) => {
+      const startMs = Date.parse(String(row?.startAt || ""));
+      if (Number.isNaN(startMs)) {
+        return row;
+      }
+
+      const overlapsLive = normalizedLiveRows.some((liveRow) => sameDotaSeries(liveRow, row));
+      if (overlapsLive) {
+        return row;
+      }
+
+      const lateByMs = nowMs - startMs;
+      const withinSyntheticWindow = lateByMs >= dotaSyntheticLiveThresholdMs && lateByMs <= dotaSyntheticLiveWindowMs(row);
+      if (!withinSyntheticWindow) {
+        return row;
+      }
+
+      return {
+        ...row,
+        status: "live",
+        keySignal: "provider_schedule_started",
+        updatedAt: new Date(nowMs).toISOString()
+      };
+    });
+}
+
 function teamSideInMatch(match, { teamId, teamName } = {}) {
   const normalizedTeamId = String(teamId || "").trim();
   if (normalizedTeamId && String(match?.teams?.left?.id || "") === normalizedTeamId) {
@@ -1525,7 +1575,10 @@ async function fallbackProviderDotaDetail(matchId, options = {}) {
   });
 
   const liveRows = Array.isArray(liveState?.rows) ? liveState.rows : [];
-  const scheduleRows = Array.isArray(scheduleState?.rows) ? scheduleState.rows : [];
+  const scheduleRows = canonicalizeDotaScheduleRows(scheduleState?.rows, {
+    liveRows,
+    resultRows: Array.isArray(resultsState?.rows) ? resultsState.rows : []
+  });
   const resultRows = Array.isArray(resultsState?.rows) ? resultsState.rows : [];
   const match = [...liveRows, ...scheduleRows, ...resultRows].find(
     (row) => String(row?.id || "") === String(matchId)
@@ -1629,12 +1682,31 @@ export async function listLiveMatches({
     loadProviderLiveMatches(),
     loadProviderLolLiveMatches()
   ]);
+  const [providerDotaResultsState, providerDotaScheduleState] = await Promise.all([
+    loadProviderResults(),
+    loadProviderDotaScheduleMatches({
+      knownRows: dedupeRowsById([
+        ...(Array.isArray(providerDotaLiveState?.rows) ? providerDotaLiveState.rows : [])
+      ])
+    })
+  ]);
 
   let rows = liveMatches.slice();
   rows = replaceFallbackRowsForGame(rows, "lol", providerLolLiveState);
-  rows = replaceFallbackRowsForGame(rows, "dota2", providerDotaLiveState, {
-    strictNoFallback: shouldHideFallbackDotaRows()
-  });
+  if (
+    providerDotaLiveState.status === "success" ||
+    providerDotaScheduleState.status === "success"
+  ) {
+    const syntheticLiveRows = canonicalizeDotaScheduleRows(providerDotaScheduleState.rows, {
+      liveRows: providerDotaLiveState.rows,
+      resultRows: providerDotaResultsState.rows
+    }).filter((row) => row.status === "live");
+    rows = rows
+      .filter((row) => row.game !== "dota2")
+      .concat(mergeDotaScheduleRows(providerDotaLiveState.rows, syntheticLiveRows));
+  } else if (shouldHideFallbackDotaRows()) {
+    rows = stripFallbackDotaRows(rows);
+  }
 
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByGameRegion(rows, { game, region });
@@ -1663,13 +1735,17 @@ export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }
       ...(Array.isArray(providerDotaResultsState?.rows) ? providerDotaResultsState.rows : [])
     ])
   });
+  const canonicalDotaScheduleRows = canonicalizeDotaScheduleRows(providerDotaScheduleState.rows, {
+    liveRows: providerDotaLiveState.rows,
+    resultRows: providerDotaResultsState.rows
+  });
 
   let rows = scheduleMatches.slice();
   rows = replaceFallbackRowsForGame(rows, "lol", providerLolScheduleState);
   if (providerDotaLiveState.status === "success" || providerDotaScheduleState.status === "success") {
     rows = rows
       .filter((row) => row.game !== "dota2")
-      .concat(mergeDotaScheduleRows(providerDotaLiveState.rows, providerDotaScheduleState.rows));
+      .concat(mergeDotaScheduleRows(providerDotaLiveState.rows, canonicalDotaScheduleRows));
   } else if (shouldHideFallbackDotaRows()) {
     rows = stripFallbackDotaRows(rows);
   }
