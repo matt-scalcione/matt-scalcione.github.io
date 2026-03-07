@@ -843,6 +843,24 @@ button.ghost,
   display: none;
 }
 
+.schedule-day-group {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.schedule-day-label {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.schedule-day-list {
+  display: grid;
+  gap: 0.42rem;
+}
+
 .schedule-table {
   min-width: 0;
   table-layout: fixed;
@@ -998,18 +1016,85 @@ button.ghost,
   min-width: 0;
 }
 
+.schedule-card-game-icon {
+  display: inline-flex;
+}
+
+.schedule-card-time {
+  font-variant-numeric: tabular-nums;
+}
+
 .schedule-card-game span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.schedule-card-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.36rem;
+}
+
+.schedule-card-team {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.schedule-card-team.right {
+  justify-items: end;
+  text-align: right;
+}
+
+.schedule-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0 0.34rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.2);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--accent-strong);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.schedule-card-name {
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.12;
+  color: #17324b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-card-center {
+  display: grid;
+  gap: 0.08rem;
+  justify-items: center;
+  min-width: 3.9rem;
+}
+
 .schedule-card-score {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.86rem;
+  font-size: 1rem;
   color: var(--accent-strong);
   white-space: nowrap;
+}
+
+.schedule-card-center-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .schedule-card-status {
@@ -5238,6 +5323,44 @@ button.ghost,
   width: 100%;
 }
 
+.tracker-sort-shell {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.tracker-sort-row {
+  display: none;
+  align-items: center;
+  gap: 0.28rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tracker-sort-row::-webkit-scrollbar {
+  display: none;
+}
+
+.tracker-sort-chip {
+  flex: 0 0 auto;
+  min-height: 1.9rem;
+  padding: 0.18rem 0.54rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.22);
+  background: rgba(255, 255, 255, 0.9);
+  color: #294458;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+}
+
+.tracker-sort-chip.active,
+.tracker-sort-chip[aria-pressed="true"] {
+  border-color: rgba(12, 110, 102, 0.34);
+  background: rgba(12, 110, 102, 0.12);
+  color: var(--accent-strong);
+}
+
 .tracker-table-mobile {
   min-width: 510px;
   table-layout: fixed;
@@ -7319,6 +7442,14 @@ button.ghost,
     margin-bottom: 0.42rem;
   }
 
+  .match-page.mobile-game-mode .tracker-sort-row {
+    display: flex;
+  }
+
+  .match-page.mobile-game-mode .tracker-sort-select {
+    display: none;
+  }
+
   .match-page.mobile-game-mode .live-feed-toolbar {
     gap: 0.34rem;
     margin-bottom: 0;
@@ -7891,8 +8022,38 @@ button.ghost,
     padding: 0.52rem 0.56rem;
   }
 
+  .schedule-day-group {
+    gap: 0.34rem;
+  }
+
+  .schedule-day-label {
+    font-size: 0.68rem;
+  }
+
   .schedule-card-game {
     font-size: 0.7rem;
+  }
+
+  .schedule-card-board {
+    gap: 0.28rem;
+  }
+
+  .schedule-card-badge {
+    min-width: 1.8rem;
+    min-height: 1.8rem;
+    font-size: 0.62rem;
+  }
+
+  .schedule-card-name {
+    font-size: 0.72rem;
+  }
+
+  .schedule-card-score {
+    font-size: 0.92rem;
+  }
+
+  .schedule-card-center-meta {
+    font-size: 0.58rem;
   }
 
   .schedule-card-score {

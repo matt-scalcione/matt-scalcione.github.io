@@ -282,6 +282,7 @@ const elements = {
   teamCompareWrap: document.querySelector("#teamCompareWrap"),
   playerTrackerWrap: document.querySelector("#playerTrackerWrap"),
   trackerSort: document.querySelector("#trackerSort"),
+  trackerSortButtons: Array.from(document.querySelectorAll("#trackerSortButtons [data-sort]")),
   liveSummaryWrap: document.querySelector("#liveSummaryWrap"),
   feedControlsToggle: document.querySelector("#feedControlsToggle"),
   feedControlsWrap: document.querySelector("#feedControlsWrap"),
@@ -3912,7 +3913,25 @@ function startRespawnTicker() {
   respawnTicker = setInterval(tickRespawnCountdownCells, 1000);
 }
 
+function syncTrackerSortControls() {
+  const current = uiState.trackerSort || "role";
+  if (elements.trackerSort) {
+    elements.trackerSort.value = current;
+  }
+
+  if (!Array.isArray(elements.trackerSortButtons)) {
+    return;
+  }
+
+  for (const button of elements.trackerSortButtons) {
+    const active = button.getAttribute("data-sort") === current;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
 function renderPlayerTracker(match) {
+  syncTrackerSortControls();
   const economy = match.playerEconomy;
   if (!economy || (!Array.isArray(economy.left) && !Array.isArray(economy.right))) {
     clearRespawnTicker();
@@ -4926,14 +4945,28 @@ function bindFeedControls() {
   }
 
   if (elements.trackerSort) {
-    elements.trackerSort.value = uiState.trackerSort;
     elements.trackerSort.addEventListener("change", () => {
       uiState.trackerSort = elements.trackerSort.value || "role";
+      syncTrackerSortControls();
       if (uiState.match) {
         renderPlayerTracker(uiState.match);
       }
     });
   }
+
+  if (Array.isArray(elements.trackerSortButtons)) {
+    for (const button of elements.trackerSortButtons) {
+      button.addEventListener("click", () => {
+        uiState.trackerSort = button.getAttribute("data-sort") || "role";
+        syncTrackerSortControls();
+        if (uiState.match) {
+          renderPlayerTracker(uiState.match);
+        }
+      });
+    }
+  }
+
+  syncTrackerSortControls();
 
   if (elements.matchupH2hLimit) {
     elements.matchupH2hLimit.value = String(uiState.matchupH2hLimit);
