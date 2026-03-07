@@ -5,6 +5,10 @@ const LIQUIPEDIA_API_URL =
   process.env.LIQUIPEDIA_DOTA_API_URL ||
   process.env.LIQUIDPEDIA_DOTA_API_URL ||
   "https://liquipedia.net/dota2/api.php?action=parse&page=Liquipedia:Matches&prop=text&formatversion=2&format=json";
+const LIQUIPEDIA_RENDER_URL =
+  process.env.LIQUIPEDIA_DOTA_RENDER_URL || "https://liquipedia.net/dota2/Liquipedia:Matches?action=render";
+const LIQUIPEDIA_PAGE_URL =
+  process.env.LIQUIPEDIA_DOTA_PAGE_URL || "https://liquipedia.net/dota2/Liquipedia:Matches";
 const LIQUIPEDIA_USER_AGENT =
   process.env.LIQUIDPEDIA_USER_AGENT || "Pulseboard/1.0 (https://matt-scalcione.github.io)";
 const LIQUIPEDIA_SCHEDULE_LOOKBACK_MS = Number.parseInt(
@@ -17,6 +21,25 @@ function normalizeWhitespace(value) {
     .replace(/&nbsp;/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+async function fetchText(url, { headers = {}, timeoutMs = 15000 } = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      headers,
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} for ${url}`);
+    }
+
+    return await response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function decodeHtmlEntities(value) {
@@ -382,15 +405,41 @@ export class LiquipediaDotaScheduleProvider {
   }
 
   async fetchScheduleMatches({ knownRows = [], allowedTiers = [1, 2, 3, 4] } = {}) {
-    const payload = await fetchJson(LIQUIPEDIA_API_URL, {
-      timeoutMs: this.timeoutMs,
-      headers: {
-        "user-agent": LIQUIPEDIA_USER_AGENT,
-        "accept-encoding": "gzip"
-      }
-    });
+    const headers = {
+      "user-agent": LIQUIPEDIA_USER_AGENT,
+      "accept-encoding": "gzip",
+      accept: "application/json,text/html,*/*",
+      "accept-language": "en-US,en;q=0.9"
+    };
+    let html = "";
 
-    const html = String(payload?.parse?.text || "");
+    try {
+      const payload = await fetchJson(LIQUIPEDIA_API_URL, {
+        timeoutMs: this.timeoutMs,
+        headers
+      });
+      html = String(payload?.parse?.text || "");
+    } catch {
+      html = "";
+    }
+
+    if (!html || !html.includes("match-info")) {
+      for (const fallbackUrl of [LIQUIPEDIA_RENDER_URL, LIQUIPEDIA_PAGE_URL]) {
+        try {
+          const fallbackHtml = await fetchText(fallbackUrl, {
+            timeoutMs: this.timeoutMs,
+            headers
+          });
+          if (fallbackHtml && fallbackHtml.includes("match-info")) {
+            html = fallbackHtml;
+            break;
+          }
+        } catch {
+          // Try the next fallback source.
+        }
+      }
+    }
+
     const teamIdMap = new Map();
     const tournamentTierMap = new Map();
 
