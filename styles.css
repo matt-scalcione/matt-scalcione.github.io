@@ -2222,6 +2222,49 @@ button.ghost,
   gap: 0.5rem;
 }
 
+.completed-story-card {
+  border: 1px solid rgba(95, 132, 170, 0.2);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(247, 251, 255, 0.96), rgba(238, 246, 255, 0.92));
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.34rem;
+}
+
+.completed-story-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.completed-story-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.completed-story-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.completed-story-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  padding: 0.22rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.24);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .completed-spotlight-card {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -5481,6 +5524,19 @@ button.ghost,
 
 .recap-note p {
   margin: 0;
+}
+
+.recap-story-note {
+  border-color: rgba(95, 132, 170, 0.24);
+  background: linear-gradient(180deg, rgba(247, 251, 255, 0.94), rgba(240, 247, 255, 0.9));
+}
+
+.recap-story-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.25;
 }
 
 .recap-draft-state {

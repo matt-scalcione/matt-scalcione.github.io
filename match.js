@@ -77,7 +77,7 @@ const TEAM_LOGO_BY_KEY = {
 const MOBILE_GAME_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Game" },
   { id: "selectedGameRecapWrap", label: "Recap" },
-  { id: "leadTrendWrap", label: "Live" },
+  { id: "leadTrendWrap", label: "Story" },
   { id: "playerTrackerWrap", label: "Players" },
   { id: "liveAlertsList", label: "Alerts" }
 ];
@@ -105,6 +105,7 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
     "liveAlertsList"
   ],
   completed: [
+    "selectedGameRecapWrap",
     "playerTrackerWrap",
     "leadTrendWrap",
     "liveFeedList"
@@ -127,7 +128,9 @@ const MOBILE_SECTION_HEADINGS = {
   "Game Command Center": { icon: "CC", short: "Command" },
   "Team Comparison": { icon: "TC", short: "Team Compare" },
   "Player Tracker": { icon: "PT", short: "Players" },
+  "Player Box Score": { icon: "PT", short: "Players" },
   "Live Feed": { icon: "FE", short: "Live Feed" },
+  "Game Story": { icon: "GS", short: "Story" },
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
   "What Matters Now": { icon: "NOW", short: "Now" },
   "Live Alerts": { icon: "AL", short: "Alerts" },
@@ -136,7 +139,8 @@ const MOBILE_SECTION_HEADINGS = {
   "Analyst Desk": { icon: "AD", short: "Analyst" },
   "Series Games": { icon: "SG", short: "Series Games" },
   "Series Comparison": { icon: "SC", short: "Series Stats" },
-  "Selected Game Recap": { icon: "RC", short: "Game Recap" }
+  "Selected Game Recap": { icon: "RC", short: "Game Recap" },
+  "Final Recap": { icon: "RC", short: "Recap" }
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
@@ -1068,6 +1072,36 @@ function applyMobileSectionHeadings() {
       heading.classList.remove("mobile-short");
     }
   }
+}
+
+function setPanelHeadingTitleByTargetId(targetId, fullTitle) {
+  const panel = panelForTargetId(targetId);
+  const heading = panel?.querySelector(".section-head h2");
+  if (!heading) {
+    return;
+  }
+
+  heading.dataset.fullTitle = fullTitle;
+}
+
+function applyGameStateSectionTitles(match) {
+  setPanelHeadingTitleByTargetId("leadTrendWrap", "Live Feed");
+  setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Selected Game Recap");
+  setPanelHeadingTitleByTargetId("playerTrackerWrap", "Player Tracker");
+
+  if (uiState.viewMode !== "game") {
+    applyMobileSectionHeadings();
+    return;
+  }
+
+  const selectedState = String(match?.selectedGame?.state || "");
+  if (selectedState === "completed") {
+    setPanelHeadingTitleByTargetId("leadTrendWrap", "Game Story");
+    setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Final Recap");
+    setPanelHeadingTitleByTargetId("playerTrackerWrap", "Player Box Score");
+  }
+
+  applyMobileSectionHeadings();
 }
 
 function panelForTargetId(targetId) {
@@ -2853,6 +2887,7 @@ function renderGameExplorer(match, apiBase) {
     const finalKills = `${left.kills ?? 0} - ${right.kills ?? 0}`;
     const finalTowers = `${left.towers ?? 0} - ${right.towers ?? 0}`;
     const objectives = `Drg ${left.dragons ?? 0}-${right.dragons ?? 0} · Brn ${left.barons ?? 0}-${right.barons ?? 0}`;
+    const completedStory = buildCompletedGameStory(match);
     const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, 3) : [];
     const spotlightMarkup = topRows.length
       ? `
@@ -2869,6 +2904,24 @@ function renderGameExplorer(match, apiBase) {
             )
             .join("")}
         </div>
+      `
+      : "";
+    const completedStoryMarkup = completedStory
+      ? `
+        <article class="completed-story-card">
+          <div class="completed-story-head">
+            <div>
+              <p class="tempo-label">Game Story</p>
+              <p class="completed-story-title">${completedStory.headline}</p>
+            </div>
+          </div>
+          <p class="meta-text">${completedStory.summary}</p>
+          <div class="completed-story-pills">
+            <span class="completed-story-pill">${completedStory.peakLeadLabel}</span>
+            ${completedStory.peakLeadNote ? `<span class="completed-story-pill">${completedStory.peakLeadNote}</span>` : ""}
+            ${completedStory.turningPointLabel ? `<span class="completed-story-pill">${completedStory.turningPointLabel}</span>` : ""}
+          </div>
+        </article>
       `
       : "";
 
@@ -2895,6 +2948,7 @@ function renderGameExplorer(match, apiBase) {
           ${gameContextInfoCard("Sides", sideLabel)}
           ${gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine)}
         </div>
+        ${completedStoryMarkup}
         ${spotlightMarkup}
         ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Open VOD / Stream</a>` : ""}
         ${watchOptions.length
@@ -3063,7 +3117,6 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.gameCommandWrap, false);
     setTargetVisibility(elements.teamCompareWrap, false);
     setTargetVisibility(elements.pulseCard, false);
-    setTargetVisibility(elements.selectedGameRecapWrap, false);
     setTargetVisibility(elements.liveAlertsList, false);
     return;
   }
@@ -4219,6 +4272,73 @@ function buildUnifiedFeed(match) {
     }));
 }
 
+function buildCompletedGameStory(match) {
+  const selectedGame = match?.selectedGame;
+  if (!selectedGame || String(selectedGame.state || "") !== "completed") {
+    return null;
+  }
+
+  const leadRows = feedLeadSeriesRows(match);
+  const peakLeadRow = leadRows.reduce((best, row) => {
+    if (!best) {
+      return row;
+    }
+    return Math.abs(row.lead) > Math.abs(best.lead) ? row : best;
+  }, null);
+  const peakLead = Number(peakLeadRow?.lead || 0);
+  const peakLeadLabel = peakLeadRow ? feedLeadDescriptor(match, peakLead).label : "Lead data unavailable";
+  const peakLeadClockSeconds =
+    peakLeadRow && selectedGame.startedAt
+      ? Math.max(0, Math.round((peakLeadRow.at - Date.parse(String(selectedGame.startedAt || ""))) / 1000))
+      : null;
+  const peakLeadNote = Number.isFinite(peakLeadClockSeconds)
+    ? `Peak at ${formatGameClock(peakLeadClockSeconds)}`
+    : "Peak lead timing unavailable";
+
+  const feedRows = enrichFeedRowsWithState(match, feedRowsWithGameClock(match, buildUnifiedFeed(match)).rows);
+  const turningPoint = [...feedRows]
+    .filter((row) => !isGenericLiveStateTitle(row.title, selectedGame.number))
+    .sort((left, right) => {
+      const majorDelta = Number(Boolean(right.majorEvent)) - Number(Boolean(left.majorEvent));
+      if (majorDelta !== 0) {
+        return majorDelta;
+      }
+      const importanceDelta = importanceRank(right.importance) - importanceRank(left.importance);
+      if (importanceDelta !== 0) {
+        return importanceDelta;
+      }
+      return Number(right.eventTs || 0) - Number(left.eventTs || 0);
+    })[0] || null;
+
+  const turningPointLabel = turningPoint ? turningPoint.title : "No major turning point captured";
+  const turningPointBits = [];
+  if (turningPoint) {
+    if (Number.isFinite(turningPoint.gameClockSeconds)) {
+      turningPointBits.push(formatGameClock(turningPoint.gameClockSeconds));
+    }
+    if (turningPoint.leadDescriptor?.label) {
+      turningPointBits.push(turningPoint.leadDescriptor.label);
+    }
+  }
+
+  const pulseTitle = String(match?.pulseCard?.title || "").trim();
+  const pulseSummary = String(match?.pulseCard?.summary || "").trim();
+  const headline = pulseTitle || (turningPoint ? turningPoint.title : "Final map recap");
+  const summary =
+    pulseSummary ||
+    (turningPoint?.summary && feedHasUsefulSummary(turningPoint) ? turningPoint.summary : "") ||
+    "Map-level live story signals were limited for this final result.";
+
+  return {
+    headline,
+    summary,
+    peakLeadLabel,
+    peakLeadNote,
+    turningPointLabel,
+    turningPointNote: turningPointBits.join(" · ")
+  };
+}
+
 function feedRowsWithGameClock(match, rows) {
   const timelineAnchor = resolveFeedTimelineAnchor(match, rows);
   const mappedRows = rows.map((row, index) => {
@@ -4486,7 +4606,8 @@ function setStoryFocusEvent(eventId, options = {}) {
 function renderUnifiedLiveFeed(match) {
   renderFeedControlsChrome(match);
 
-  if (elements.liveSummaryWrap && String(match?.selectedGame?.state || "") !== "inProgress") {
+  const selectedState = String(match?.selectedGame?.state || "");
+  if (elements.liveSummaryWrap && selectedState !== "inProgress") {
     elements.liveSummaryWrap.innerHTML = "";
   }
 
@@ -4522,10 +4643,10 @@ function renderUnifiedLiveFeed(match) {
   if (!filtered.length) {
     uiState.storyFocusEventId = null;
     uiState.storyFocusUserSet = false;
-    if (elements.liveSummaryWrap && String(match?.selectedGame?.state || "") === "inProgress") {
+    if (elements.liveSummaryWrap && selectedState === "inProgress") {
       renderLiveFollowSummary(match, [], { startTs: null, estimated: true }, null);
     }
-    elements.liveFeedList.innerHTML = `<li>No live events yet.</li>`;
+    elements.liveFeedList.innerHTML = `<li>${selectedState === "completed" ? "No game events were captured for this final map." : "No live events yet."}</li>`;
     return;
   }
 
@@ -6310,8 +6431,13 @@ function buildTrendStory(match, chart) {
 function renderLeadTrend(match) {
   const series = Array.isArray(match.goldLeadSeries) ? match.goldLeadSeries : [];
   const trend = match.leadTrend;
+  const selectedState = String(match?.selectedGame?.state || "");
   if (!series.length || !trend) {
-    elements.leadTrendWrap.innerHTML = `<div class="empty">Lead trend appears once enough frames are tracked.</div>`;
+    elements.leadTrendWrap.innerHTML = `<div class="empty">${
+      selectedState === "completed"
+        ? "Gold lead story is unavailable for this final map."
+        : "Lead trend appears once enough frames are tracked."
+    }</div>`;
     return;
   }
 
@@ -6320,7 +6446,11 @@ function renderLeadTrend(match) {
   const previousAbsScale = Number(uiState.leadTrendScaleByContext[trendScaleKey] || 0);
   const chart = buildLeadTrendChart(series, { lockedAbsLead: previousAbsScale });
   if (!chart) {
-    elements.leadTrendWrap.innerHTML = `<div class="empty">Lead trend appears once enough frames are tracked.</div>`;
+    elements.leadTrendWrap.innerHTML = `<div class="empty">${
+      selectedState === "completed"
+        ? "Gold lead story is unavailable for this final map."
+        : "Lead trend appears once enough frames are tracked."
+    }</div>`;
     return;
   }
   uiState.leadTrendScaleByContext[trendScaleKey] = chart.displayAbsLead;
@@ -7258,6 +7388,35 @@ function renderSelectedGameRecap(match) {
     return;
   }
 
+  if (selectedGame.state === "completed") {
+    const winnerShort = winnerName ? displayTeamName(winnerName) : "TBD";
+    const objectivesLabel = `Drg ${left.dragons ?? 0}-${right.dragons ?? 0} · Brn ${left.barons ?? 0}-${right.barons ?? 0}`;
+    const completedStory = buildCompletedGameStory(match);
+    const recapCards = [
+      recapCard("Winner", winnerShort),
+      recapCard("Duration", duration),
+      recapCard("Peak Lead", completedStory?.peakLeadLabel || "n/a", completedStory?.peakLeadNote || null),
+      recapCard("Turning Point", completedStory?.turningPointLabel || "n/a", completedStory?.turningPointNote || null),
+      recapCard("Objectives", objectivesLabel, `Towers ${left.towers ?? 0} : ${right.towers ?? 0}`),
+      recapCard("Gold", hasGold ? `${formatNumber(leftGold)} : ${formatNumber(rightGold)}` : "n/a", hasGold ? `Diff ${signed(Math.round(goldDiff))}` : "No gold totals")
+    ];
+
+    elements.selectedGameRecapWrap.innerHTML = `
+      <article class="recap-note recap-story-note">
+        <p class="tempo-label">Final Recap</p>
+        <p class="recap-story-title">${completedStory?.headline || `${winnerShort} closed out Game ${selectedGame.number}`}</p>
+        <p class="meta-text">${completedStory?.summary || "Final-map summary unavailable."}</p>
+      </article>
+      <div class="recap-grid">${recapCards.join("")}</div>
+      <article class="recap-note">
+        <p class="meta-text">${sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available."}</p>
+        <p class="meta-text">${performerText}</p>
+        ${tips.length ? `<p class="meta-text">${tips.join(" · ")}</p>` : ""}
+      </article>
+    `;
+    return;
+  }
+
   elements.selectedGameRecapWrap.innerHTML = `
     <div class="recap-grid">${cards.join("")}</div>
     <article class="recap-note">
@@ -7970,8 +8129,6 @@ async function fetchMatchSnapshot({ matchId, requestedGameNumber, apiBase }) {
 }
 
 function renderMatchPayload(match, apiBase, source = "polling") {
-  applyMobileSectionHeadings();
-
   if (uiState.match?.id && uiState.match.id !== match.id) {
     uiState.leadTrendScaleByContext = {};
     uiState.mapPulseByContext = {};
@@ -8056,6 +8213,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   applyGamePanelVisibility(match);
   applySeriesPanelVisibility();
   applyUpcomingPanelVisibility(match);
+  applyGameStateSectionTitles(match);
   applyMobileGameEnhancements(match);
   applyMatchMobilePanelCollapseState(match);
 
