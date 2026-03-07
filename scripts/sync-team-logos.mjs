@@ -3,6 +3,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { optimizeTeamLogoManifest } from "./optimize-team-logos.mjs"
 import { backfillTeamLogoManifest } from "./backfill-team-logos.mjs"
+import { fillTeamLogoFallbacks } from "./fallback-team-logos.mjs"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -254,9 +255,10 @@ async function main() {
   await writeManifest(manifest)
   const optimization = await optimizeTeamLogoManifest()
   const backfill = await backfillTeamLogoManifest()
+  const fallback = await fillTeamLogoFallbacks()
 
   process.stdout.write(
-    `Synced team logos. LoL ${backfill.manifest.counts.lol} · Dota ${backfill.manifest.counts.dota2} · Failures ${failures.length} · Backfilled ${backfill.applied} · ${(
+    `Synced team logos. LoL ${fallback.manifest.counts.lol} · Dota ${fallback.manifest.counts.dota2} · Failures ${failures.length} · Backfilled ${backfill.applied} · Fallbacks ${fallback.created} · ${(
       optimization.bytesBefore /
       1024 /
       1024

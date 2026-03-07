@@ -1,8 +1,8 @@
 export const TEAM_LOGO_MANIFEST = {
-  "updatedAt": "2026-03-07T02:30:44.868Z",
+  "updatedAt": "2026-03-07T02:38:17.313Z",
   "counts": {
     "lol": 1508,
-    "dota2": 754
+    "dota2": 968
   },
   "byGameAndId": {
     "lol:100205576309502431": {
@@ -13576,6 +13576,1290 @@ export const TEAM_LOGO_MANIFEST = {
       "name": "Team Zero",
       "code": "Tz",
       "path": "./assets/team-logos/manual/dota2/team-zero-9080405.webp"
+    },
+    "dota2:1848158": {
+      "id": "1848158",
+      "name": "LV-Gaming",
+      "code": "Lv",
+      "path": "./assets/team-logos/fallback/dota2/lv-gaming-1848158.svg"
+    },
+    "dota2:1910985": {
+      "id": "1910985",
+      "name": "TeamMalaysia",
+      "code": "MY",
+      "path": "./assets/team-logos/fallback/dota2/teammalaysia-1910985.svg"
+    },
+    "dota2:9187066": {
+      "id": "9187066",
+      "name": "Team Tickles",
+      "code": "TT",
+      "path": "./assets/team-logos/fallback/dota2/team-tickles-9187066.svg"
+    },
+    "dota2:1820360": {
+      "id": "1820360",
+      "name": "TEAMERINO TINKERINO",
+      "code": "TT",
+      "path": "./assets/team-logos/fallback/dota2/teamerino-tinkerino-1820360.svg"
+    },
+    "dota2:1047281": {
+      "id": "1047281",
+      "name": "Speed Gaming International",
+      "code": "SPG.int",
+      "path": "./assets/team-logos/fallback/dota2/speed-gaming-international-1047281.svg"
+    },
+    "dota2:8168562": {
+      "id": "8168562",
+      "name": "INK ICE",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/ink-ice-8168562.svg"
+    },
+    "dota2:7405754": {
+      "id": "7405754",
+      "name": "Positive Guys",
+      "code": "PG",
+      "path": "./assets/team-logos/fallback/dota2/positive-guys-7405754.svg"
+    },
+    "dota2:8143502": {
+      "id": "8143502",
+      "name": "4am.小象",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/4am-8143502.svg"
+    },
+    "dota2:7806386": {
+      "id": "7806386",
+      "name": "Quincy Crew",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/quincy-crew-7806386.svg"
+    },
+    "dota2:9238717": {
+      "id": "9238717",
+      "name": "Team 13",
+      "code": "T13",
+      "path": "./assets/team-logos/fallback/dota2/team-13-9238717.svg"
+    },
+    "dota2:1025734": {
+      "id": "1025734",
+      "name": "LUCCINI GAM1NG",
+      "code": "Luccini",
+      "path": "./assets/team-logos/fallback/dota2/luccini-gam1ng-1025734.svg"
+    },
+    "dota2:3332295": {
+      "id": "3332295",
+      "name": "Friends",
+      "code": "Friends",
+      "path": "./assets/team-logos/fallback/dota2/friends-3332295.svg"
+    },
+    "dota2:8282268": {
+      "id": "8282268",
+      "name": "Chadou Fint",
+      "code": "SF",
+      "path": "./assets/team-logos/fallback/dota2/chadou-fint-8282268.svg"
+    },
+    "dota2:38": {
+      "id": "38",
+      "name": "FnaticRaidCall",
+      "code": "Fntc",
+      "path": "./assets/team-logos/fallback/dota2/fnaticraidcall-38.svg"
+    },
+    "dota2:1277104": {
+      "id": "1277104",
+      "name": "Nvidia.ArrowGaming.AVF",
+      "code": "Arrow",
+      "path": "./assets/team-logos/fallback/dota2/nvidia-arrowgaming-avf-1277104.svg"
+    },
+    "dota2:6298307": {
+      "id": "6298307",
+      "name": "The Pango",
+      "code": "ThePango",
+      "path": "./assets/team-logos/fallback/dota2/the-pango-6298307.svg"
+    },
+    "dota2:9419759": {
+      "id": "9419759",
+      "name": "universitario",
+      "code": "UNV",
+      "path": "./assets/team-logos/fallback/dota2/universitario-9419759.svg"
+    },
+    "dota2:7653600": {
+      "id": "7653600",
+      "name": "Aggressive Mode",
+      "code": "A-Mode",
+      "path": "./assets/team-logos/fallback/dota2/aggressive-mode-7653600.svg"
+    },
+    "dota2:7959677": {
+      "id": "7959677",
+      "name": "Cow boys",
+      "code": "Coy boys",
+      "path": "./assets/team-logos/fallback/dota2/cow-boys-7959677.svg"
+    },
+    "dota2:4593831": {
+      "id": "4593831",
+      "name": "Planet Dog",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/planet-dog-4593831.svg"
+    },
+    "dota2:1059824": {
+      "id": "1059824",
+      "name": "Dream time.",
+      "code": "DT",
+      "path": "./assets/team-logos/fallback/dota2/dream-time-1059824.svg"
+    },
+    "dota2:2640099": {
+      "id": "2640099",
+      "name": "Shazam~",
+      "code": "Shazam",
+      "path": "./assets/team-logos/fallback/dota2/shazam-2640099.svg"
+    },
+    "dota2:8597594": {
+      "id": "8597594",
+      "name": "GrindSky Esports",
+      "code": "GS",
+      "path": "./assets/team-logos/fallback/dota2/grindsky-esports-8597594.svg"
+    },
+    "dota2:8750069": {
+      "id": "8750069",
+      "name": "Gorilla",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/gorilla-8750069.svg"
+    },
+    "dota2:8075993": {
+      "id": "8075993",
+      "name": "For The Dream",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/for-the-dream-8075993.svg"
+    },
+    "dota2:9547255": {
+      "id": "9547255",
+      "name": "Bandanoone",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/bandanoone-9547255.svg"
+    },
+    "dota2:2085365": {
+      "id": "2085365",
+      "name": "-Ninjas-in-Pyjamas-",
+      "code": "NiP",
+      "path": "./assets/team-logos/fallback/dota2/ninjas-in-pyjamas-2085365.svg"
+    },
+    "dota2:1951061": {
+      "id": "1951061",
+      "name": "Newbee.Young",
+      "code": "Newbee.Y",
+      "path": "./assets/team-logos/fallback/dota2/newbee-young-1951061.svg"
+    },
+    "dota2:990533": {
+      "id": "990533",
+      "name": "MeeT YouR Mak3rS",
+      "code": "mYm",
+      "path": "./assets/team-logos/fallback/dota2/meet-your-mak3rs-990533.svg"
+    },
+    "dota2:2555665": {
+      "id": "2555665",
+      "name": "Archon Dota",
+      "code": "Archon",
+      "path": "./assets/team-logos/fallback/dota2/archon-dota-2555665.svg"
+    },
+    "dota2:626763": {
+      "id": "626763",
+      "name": "AllianceGG",
+      "code": "[A]",
+      "path": "./assets/team-logos/fallback/dota2/alliancegg-626763.svg"
+    },
+    "dota2:3317512": {
+      "id": "3317512",
+      "name": "DUOBAO Young",
+      "code": "DUOBAO.Y",
+      "path": "./assets/team-logos/fallback/dota2/duobao-young-3317512.svg"
+    },
+    "dota2:9017079": {
+      "id": "9017079",
+      "name": "Piggy Killer",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/piggy-killer-9017079.svg"
+    },
+    "dota2:8374752": {
+      "id": "8374752",
+      "name": "Tapan Gaming",
+      "code": "TPN",
+      "path": "./assets/team-logos/fallback/dota2/tapan-gaming-8374752.svg"
+    },
+    "dota2:8058269": {
+      "id": "8058269",
+      "name": "Clown City",
+      "code": "CC",
+      "path": "./assets/team-logos/fallback/dota2/clown-city-8058269.svg"
+    },
+    "dota2:689412": {
+      "id": "689412",
+      "name": "Team \"SEX\"",
+      "code": "sex",
+      "path": "./assets/team-logos/fallback/dota2/team-sex-689412.svg"
+    },
+    "dota2:8456656": {
+      "id": "8456656",
+      "name": "lowkees",
+      "code": "lwkk",
+      "path": "./assets/team-logos/fallback/dota2/lowkees-8456656.svg"
+    },
+    "dota2:2880140": {
+      "id": "2880140",
+      "name": "Fire Dragoon",
+      "code": "FDG",
+      "path": "./assets/team-logos/fallback/dota2/fire-dragoon-2880140.svg"
+    },
+    "dota2:1286339": {
+      "id": "1286339",
+      "name": "Arizona Iced Out Boys",
+      "code": "sad",
+      "path": "./assets/team-logos/fallback/dota2/arizona-iced-out-boys-1286339.svg"
+    },
+    "dota2:8022392": {
+      "id": "8022392",
+      "name": "One More Game",
+      "code": "OMG",
+      "path": "./assets/team-logos/fallback/dota2/one-more-game-8022392.svg"
+    },
+    "dota2:5895083": {
+      "id": "5895083",
+      "name": "Athletico",
+      "code": "/A/",
+      "path": "./assets/team-logos/fallback/dota2/athletico-5895083.svg"
+    },
+    "dota2:7344577": {
+      "id": "7344577",
+      "name": "Gang Bang",
+      "code": "GB",
+      "path": "./assets/team-logos/fallback/dota2/gang-bang-7344577.svg"
+    },
+    "dota2:8230491": {
+      "id": "8230491",
+      "name": "TEAM DOG",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-dog-8230491.svg"
+    },
+    "dota2:6465690": {
+      "id": "6465690",
+      "name": "Team Fantech",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-fantech-6465690.svg"
+    },
+    "dota2:6796511": {
+      "id": "6796511",
+      "name": "Saints ID",
+      "code": "Saints",
+      "path": "./assets/team-logos/fallback/dota2/saints-id-6796511.svg"
+    },
+    "dota2:8697328": {
+      "id": "8697328",
+      "name": "Please dont gank my carry",
+      "code": "gnk",
+      "path": "./assets/team-logos/fallback/dota2/please-dont-gank-my-carry-8697328.svg"
+    },
+    "dota2:9677587": {
+      "id": "9677587",
+      "name": "V for Vendeta",
+      "code": "V",
+      "path": "./assets/team-logos/fallback/dota2/v-for-vendeta-9677587.svg"
+    },
+    "dota2:7556672": {
+      "id": "7556672",
+      "name": "TEMPO",
+      "code": "TMP",
+      "path": "./assets/team-logos/fallback/dota2/tempo-7556672.svg"
+    },
+    "dota2:7586931": {
+      "id": "7586931",
+      "name": "Avengers",
+      "code": "A",
+      "path": "./assets/team-logos/fallback/dota2/avengers-7586931.svg"
+    },
+    "dota2:8563718": {
+      "id": "8563718",
+      "name": "WildDeer",
+      "code": "WD",
+      "path": "./assets/team-logos/fallback/dota2/wilddeer-8563718.svg"
+    },
+    "dota2:9079676": {
+      "id": "9079676",
+      "name": "Los moticucos",
+      "code": "PARK",
+      "path": "./assets/team-logos/fallback/dota2/los-moticucos-9079676.svg"
+    },
+    "dota2:3706823": {
+      "id": "3706823",
+      "name": "G4",
+      "code": "G4",
+      "path": "./assets/team-logos/fallback/dota2/g4-3706823.svg"
+    },
+    "dota2:7391166": {
+      "id": "7391166",
+      "name": "Fighting Pepegas",
+      "code": "FP",
+      "path": "./assets/team-logos/fallback/dota2/fighting-pepegas-7391166.svg"
+    },
+    "dota2:7101255": {
+      "id": "7101255",
+      "name": "Revenge Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/revenge-gaming-7101255.svg"
+    },
+    "dota2:8193609": {
+      "id": "8193609",
+      "name": "Come down",
+      "code": "CD",
+      "path": "./assets/team-logos/fallback/dota2/come-down-8193609.svg"
+    },
+    "dota2:8375459": {
+      "id": "8375459",
+      "name": "rush b!",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/rush-b-8375459.svg"
+    },
+    "dota2:9224799": {
+      "id": "9224799",
+      "name": "NoMuerta",
+      "code": "NM",
+      "path": "./assets/team-logos/fallback/dota2/nomuerta-9224799.svg"
+    },
+    "dota2:5194336": {
+      "id": "5194336",
+      "name": "DeathBringer Gaming",
+      "code": "DBG",
+      "path": "./assets/team-logos/fallback/dota2/deathbringer-gaming-5194336.svg"
+    },
+    "dota2:2": {
+      "id": "2",
+      "name": "Zenith",
+      "code": "Zenith",
+      "path": "./assets/team-logos/fallback/dota2/zenith-2.svg"
+    },
+    "dota2:5084724": {
+      "id": "5084724",
+      "name": "Newbee.M",
+      "code": "Newbee.M",
+      "path": "./assets/team-logos/fallback/dota2/newbee-m-5084724.svg"
+    },
+    "dota2:6925812": {
+      "id": "6925812",
+      "name": "EStolis Team",
+      "code": "EST",
+      "path": "./assets/team-logos/fallback/dota2/estolis-team-6925812.svg"
+    },
+    "dota2:6269097": {
+      "id": "6269097",
+      "name": "TAYO LOVERS",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/tayo-lovers-6269097.svg"
+    },
+    "dota2:53": {
+      "id": "53",
+      "name": "Potm Bottom",
+      "code": "PB",
+      "path": "./assets/team-logos/fallback/dota2/potm-bottom-53.svg"
+    },
+    "dota2:8581305": {
+      "id": "8581305",
+      "name": "Lava BestPc",
+      "code": "Lava",
+      "path": "./assets/team-logos/fallback/dota2/lava-bestpc-8581305.svg"
+    },
+    "dota2:7641673": {
+      "id": "7641673",
+      "name": "Aggressive Mode.",
+      "code": "A-Mode",
+      "path": "./assets/team-logos/fallback/dota2/aggressive-mode-7641673.svg"
+    },
+    "dota2:6265062": {
+      "id": "6265062",
+      "name": "Se7en Esports",
+      "code": "S7E",
+      "path": "./assets/team-logos/fallback/dota2/se7en-esports-6265062.svg"
+    },
+    "dota2:8133097": {
+      "id": "8133097",
+      "name": "Golden Legacy",
+      "code": "GL",
+      "path": "./assets/team-logos/fallback/dota2/golden-legacy-8133097.svg"
+    },
+    "dota2:42": {
+      "id": "42",
+      "name": "Orange E-Sports",
+      "code": "Orange",
+      "path": "./assets/team-logos/fallback/dota2/orange-e-sports-42.svg"
+    },
+    "dota2:464103": {
+      "id": "464103",
+      "name": "Danish Bears",
+      "code": "DB",
+      "path": "./assets/team-logos/fallback/dota2/danish-bears-464103.svg"
+    },
+    "dota2:7751001": {
+      "id": "7751001",
+      "name": "DeathWish",
+      "code": "DW",
+      "path": "./assets/team-logos/fallback/dota2/deathwish-7751001.svg"
+    },
+    "dota2:8021531": {
+      "id": "8021531",
+      "name": "CYBERIUM.S",
+      "code": "CYBERIUM",
+      "path": "./assets/team-logos/fallback/dota2/cyberium-s-8021531.svg"
+    },
+    "dota2:7574786": {
+      "id": "7574786",
+      "name": "infinite tsukuyomi",
+      "code": "ITS",
+      "path": "./assets/team-logos/fallback/dota2/infinite-tsukuyomi-7574786.svg"
+    },
+    "dota2:7119284": {
+      "id": "7119284",
+      "name": "Power of MYSG+AU",
+      "code": "MYSGAU",
+      "path": "./assets/team-logos/fallback/dota2/power-of-mysg-au-7119284.svg"
+    },
+    "dota2:5209335": {
+      "id": "5209335",
+      "name": "Orginality",
+      "code": "ORg",
+      "path": "./assets/team-logos/fallback/dota2/orginality-5209335.svg"
+    },
+    "dota2:6822187": {
+      "id": "6822187",
+      "name": "SS DARVIN LOPERS",
+      "code": "DL",
+      "path": "./assets/team-logos/fallback/dota2/ss-darvin-lopers-6822187.svg"
+    },
+    "dota2:7543171": {
+      "id": "7543171",
+      "name": "Manaburn",
+      "code": "Manaburn",
+      "path": "./assets/team-logos/fallback/dota2/manaburn-7543171.svg"
+    },
+    "dota2:8496219": {
+      "id": "8496219",
+      "name": "Khan esports",
+      "code": "Khan",
+      "path": "./assets/team-logos/fallback/dota2/khan-esports-8496219.svg"
+    },
+    "dota2:8701706": {
+      "id": "8701706",
+      "name": "Zorka",
+      "code": "Zorka",
+      "path": "./assets/team-logos/fallback/dota2/zorka-8701706.svg"
+    },
+    "dota2:7472412": {
+      "id": "7472412",
+      "name": "Park Bo Cuan",
+      "code": "PBC",
+      "path": "./assets/team-logos/fallback/dota2/park-bo-cuan-7472412.svg"
+    },
+    "dota2:9352756": {
+      "id": "9352756",
+      "name": "Me Parb",
+      "code": "MP",
+      "path": "./assets/team-logos/fallback/dota2/me-parb-9352756.svg"
+    },
+    "dota2:2833354": {
+      "id": "2833354",
+      "name": "Vici Gaming Potential",
+      "code": "VG.P",
+      "path": "./assets/team-logos/fallback/dota2/vici-gaming-potential-2833354.svg"
+    },
+    "dota2:7913999": {
+      "id": "7913999",
+      "name": "Midas Club",
+      "code": "Midas",
+      "path": "./assets/team-logos/fallback/dota2/midas-club-7913999.svg"
+    },
+    "dota2:7391558": {
+      "id": "7391558",
+      "name": "BOSS ANDRE",
+      "code": "BA",
+      "path": "./assets/team-logos/fallback/dota2/boss-andre-7391558.svg"
+    },
+    "dota2:1648005": {
+      "id": "1648005",
+      "name": "Inter Active Philippines",
+      "code": "IAP",
+      "path": "./assets/team-logos/fallback/dota2/inter-active-philippines-1648005.svg"
+    },
+    "dota2:2136210": {
+      "id": "2136210",
+      "name": "Leetss Do It",
+      "code": "asd",
+      "path": "./assets/team-logos/fallback/dota2/leetss-do-it-2136210.svg"
+    },
+    "dota2:6658560": {
+      "id": "6658560",
+      "name": "Guardian Gaming",
+      "code": "GG",
+      "path": "./assets/team-logos/fallback/dota2/guardian-gaming-6658560.svg"
+    },
+    "dota2:9277978": {
+      "id": "9277978",
+      "name": "内蒙古的星空",
+      "code": "DLG",
+      "path": "./assets/team-logos/fallback/dota2/team-9277978.svg"
+    },
+    "dota2:8638425": {
+      "id": "8638425",
+      "name": "Kinkalow",
+      "code": "KKL",
+      "path": "./assets/team-logos/fallback/dota2/kinkalow-8638425.svg"
+    },
+    "dota2:7218194": {
+      "id": "7218194",
+      "name": "FrozenDawn Club",
+      "code": "FD",
+      "path": "./assets/team-logos/fallback/dota2/frozendawn-club-7218194.svg"
+    },
+    "dota2:7528264": {
+      "id": "7528264",
+      "name": "bmstu",
+      "code": "bmstu",
+      "path": "./assets/team-logos/fallback/dota2/bmstu-7528264.svg"
+    },
+    "dota2:805172": {
+      "id": "805172",
+      "name": "Avant Garde Gaming",
+      "code": "Avant",
+      "path": "./assets/team-logos/fallback/dota2/avant-garde-gaming-805172.svg"
+    },
+    "dota2:6951684": {
+      "id": "6951684",
+      "name": "M11 SLAYERS",
+      "code": "M11SLAYERS",
+      "path": "./assets/team-logos/fallback/dota2/m11-slayers-6951684.svg"
+    },
+    "dota2:1884355": {
+      "id": "1884355",
+      "name": "Void Boys",
+      "code": "VB",
+      "path": "./assets/team-logos/fallback/dota2/void-boys-1884355.svg"
+    },
+    "dota2:3008699": {
+      "id": "3008699",
+      "name": "Los Magikarps",
+      "code": "Karp",
+      "path": "./assets/team-logos/fallback/dota2/los-magikarps-3008699.svg"
+    },
+    "dota2:8039920": {
+      "id": "8039920",
+      "name": "Backstab Boys",
+      "code": "STABS",
+      "path": "./assets/team-logos/fallback/dota2/backstab-boys-8039920.svg"
+    },
+    "dota2:8756744": {
+      "id": "8756744",
+      "name": "Crayon Shin-chan",
+      "code": "CSC",
+      "path": "./assets/team-logos/fallback/dota2/crayon-shin-chan-8756744.svg"
+    },
+    "dota2:5219214": {
+      "id": "5219214",
+      "name": "BG",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/bg-5219214.svg"
+    },
+    "dota2:7958190": {
+      "id": "7958190",
+      "name": "eu vou estudo",
+      "code": "enem",
+      "path": "./assets/team-logos/fallback/dota2/eu-vou-estudo-7958190.svg"
+    },
+    "dota2:5896332": {
+      "id": "5896332",
+      "name": "Sterling Global Dragons",
+      "code": "SGD",
+      "path": "./assets/team-logos/fallback/dota2/sterling-global-dragons-5896332.svg"
+    },
+    "dota2:9547653": {
+      "id": "9547653",
+      "name": "Castawake",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/castawake-9547653.svg"
+    },
+    "dota2:9323850": {
+      "id": "9323850",
+      "name": "Chompers X",
+      "code": "Chomp",
+      "path": "./assets/team-logos/fallback/dota2/chompers-x-9323850.svg"
+    },
+    "dota2:7894580": {
+      "id": "7894580",
+      "name": "miaww^^",
+      "code": "miaww^^",
+      "path": "./assets/team-logos/fallback/dota2/miaww-7894580.svg"
+    },
+    "dota2:9834249": {
+      "id": "9834249",
+      "name": "Ji est''",
+      "code": ".Jst",
+      "path": "./assets/team-logos/fallback/dota2/ji-est-9834249.svg"
+    },
+    "dota2:5207190": {
+      "id": "5207190",
+      "name": "Admiral Dota",
+      "code": "Admiral",
+      "path": "./assets/team-logos/fallback/dota2/admiral-dota-5207190.svg"
+    },
+    "dota2:433549": {
+      "id": "433549",
+      "name": "TheRerereTRY",
+      "code": "TR",
+      "path": "./assets/team-logos/fallback/dota2/therereretry-433549.svg"
+    },
+    "dota2:5242529": {
+      "id": "5242529",
+      "name": "Unchained Esports",
+      "code": "UNC",
+      "path": "./assets/team-logos/fallback/dota2/unchained-esports-5242529.svg"
+    },
+    "dota2:1464407": {
+      "id": "1464407",
+      "name": "Immunity Dota",
+      "code": "iM",
+      "path": "./assets/team-logos/fallback/dota2/immunity-dota-1464407.svg"
+    },
+    "dota2:9849814": {
+      "id": "9849814",
+      "name": "山东好男人",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-9849814.svg"
+    },
+    "dota2:7284811": {
+      "id": "7284811",
+      "name": "No Fucking Name",
+      "code": "NFN",
+      "path": "./assets/team-logos/fallback/dota2/no-fucking-name-7284811.svg"
+    },
+    "dota2:7316976": {
+      "id": "7316976",
+      "name": "Whoops!",
+      "code": "Whoops!",
+      "path": "./assets/team-logos/fallback/dota2/whoops-7316976.svg"
+    },
+    "dota2:1325243": {
+      "id": "1325243",
+      "name": "Team Phoenix Rising",
+      "code": "PHX",
+      "path": "./assets/team-logos/fallback/dota2/team-phoenix-rising-1325243.svg"
+    },
+    "dota2:4253054": {
+      "id": "4253054",
+      "name": "Team Random",
+      "code": "Random",
+      "path": "./assets/team-logos/fallback/dota2/team-random-4253054.svg"
+    },
+    "dota2:8597183": {
+      "id": "8597183",
+      "name": "Summit Gaming",
+      "code": "Summit",
+      "path": "./assets/team-logos/fallback/dota2/summit-gaming-8597183.svg"
+    },
+    "dota2:8680140": {
+      "id": "8680140",
+      "name": "Team ScorpioN",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-scorpion-8680140.svg"
+    },
+    "dota2:8360860": {
+      "id": "8360860",
+      "name": "HF",
+      "code": "HF",
+      "path": "./assets/team-logos/fallback/dota2/hf-8360860.svg"
+    },
+    "dota2:8574375": {
+      "id": "8574375",
+      "name": "ThunderCoast",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/thundercoast-8574375.svg"
+    },
+    "dota2:7407260": {
+      "id": "7407260",
+      "name": "Team Saiyan",
+      "code": "TSaiyin",
+      "path": "./assets/team-logos/fallback/dota2/team-saiyan-7407260.svg"
+    },
+    "dota2:4259604": {
+      "id": "4259604",
+      "name": "Veteran",
+      "code": "Veteran",
+      "path": "./assets/team-logos/fallback/dota2/veteran-4259604.svg"
+    },
+    "dota2:8406632": {
+      "id": "8406632",
+      "name": "Selemene",
+      "code": "Selemene",
+      "path": "./assets/team-logos/fallback/dota2/selemene-8406632.svg"
+    },
+    "dota2:7204148": {
+      "id": "7204148",
+      "name": "Flash Point Gaming",
+      "code": "fP",
+      "path": "./assets/team-logos/fallback/dota2/flash-point-gaming-7204148.svg"
+    },
+    "dota2:9455993": {
+      "id": "9455993",
+      "name": "повер ренджерс",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-9455993.svg"
+    },
+    "dota2:8750143": {
+      "id": "8750143",
+      "name": "Team Bhedos",
+      "code": "TB",
+      "path": "./assets/team-logos/fallback/dota2/team-bhedos-8750143.svg"
+    },
+    "dota2:2686375": {
+      "id": "2686375",
+      "name": "@__@",
+      "code": "@__@",
+      "path": "./assets/team-logos/fallback/dota2/team-2686375.svg"
+    },
+    "dota2:7716098": {
+      "id": "7716098",
+      "name": "Leopard Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/leopard-gaming-7716098.svg"
+    },
+    "dota2:8820860": {
+      "id": "8820860",
+      "name": "Overlord",
+      "code": "不死者",
+      "path": "./assets/team-logos/fallback/dota2/overlord-8820860.svg"
+    },
+    "dota2:2701329": {
+      "id": "2701329",
+      "name": "Team Freedom Dota 2",
+      "code": "Freedom",
+      "path": "./assets/team-logos/fallback/dota2/team-freedom-dota-2-2701329.svg"
+    },
+    "dota2:6187452": {
+      "id": "6187452",
+      "name": "Team.PhoeniX",
+      "code": "PhoeniX",
+      "path": "./assets/team-logos/fallback/dota2/team-phoenix-6187452.svg"
+    },
+    "dota2:6767698": {
+      "id": "6767698",
+      "name": "You Rock",
+      "code": "YouRock",
+      "path": "./assets/team-logos/fallback/dota2/you-rock-6767698.svg"
+    },
+    "dota2:8545488": {
+      "id": "8545488",
+      "name": "cybercats",
+      "code": "CC",
+      "path": "./assets/team-logos/fallback/dota2/cybercats-8545488.svg"
+    },
+    "dota2:1175580": {
+      "id": "1175580",
+      "name": "sQreen's squad v2.0",
+      "code": "ss",
+      "path": "./assets/team-logos/fallback/dota2/sqreen-s-squad-v2-0-1175580.svg"
+    },
+    "dota2:6849080": {
+      "id": "6849080",
+      "name": "Optimus Amicus",
+      "code": "OA",
+      "path": "./assets/team-logos/fallback/dota2/optimus-amicus-6849080.svg"
+    },
+    "dota2:7469922": {
+      "id": "7469922",
+      "name": "Demon Slayers",
+      "code": "DemSlay",
+      "path": "./assets/team-logos/fallback/dota2/demon-slayers-7469922.svg"
+    },
+    "dota2:6594251": {
+      "id": "6594251",
+      "name": "TEAM UKRAINE",
+      "code": "UKRAINA",
+      "path": "./assets/team-logos/fallback/dota2/team-ukraine-6594251.svg"
+    },
+    "dota2:8829652": {
+      "id": "8829652",
+      "name": "Positive Vibes",
+      "code": "PV",
+      "path": "./assets/team-logos/fallback/dota2/positive-vibes-8829652.svg"
+    },
+    "dota2:7566229": {
+      "id": "7566229",
+      "name": "Apollo",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/apollo-7566229.svg"
+    },
+    "dota2:8300691": {
+      "id": "8300691",
+      "name": "Infinite War",
+      "code": "IW",
+      "path": "./assets/team-logos/fallback/dota2/infinite-war-8300691.svg"
+    },
+    "dota2:5766651": {
+      "id": "5766651",
+      "name": "Lithium",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/lithium-5766651.svg"
+    },
+    "dota2:1218336": {
+      "id": "1218336",
+      "name": "Eternal",
+      "code": "Eternal",
+      "path": "./assets/team-logos/fallback/dota2/eternal-1218336.svg"
+    },
+    "dota2:9120269": {
+      "id": "9120269",
+      "name": "Yonko",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/yonko-9120269.svg"
+    },
+    "dota2:9055339": {
+      "id": "9055339",
+      "name": "saykalitatsh",
+      "code": "saya",
+      "path": "./assets/team-logos/fallback/dota2/saykalitatsh-9055339.svg"
+    },
+    "dota2:2429870": {
+      "id": "2429870",
+      "name": "TLC GAMING",
+      "code": "TLC",
+      "path": "./assets/team-logos/fallback/dota2/tlc-gaming-2429870.svg"
+    },
+    "dota2:862976": {
+      "id": "862976",
+      "name": "Megalodon Gaming.",
+      "code": "MeGa",
+      "path": "./assets/team-logos/fallback/dota2/megalodon-gaming-862976.svg"
+    },
+    "dota2:2585648": {
+      "id": "2585648",
+      "name": "---uioyuiruy",
+      "code": "TLC",
+      "path": "./assets/team-logos/fallback/dota2/uioyuiruy-2585648.svg"
+    },
+    "dota2:9409263": {
+      "id": "9409263",
+      "name": "Uzbekistan",
+      "code": "UZB",
+      "path": "./assets/team-logos/fallback/dota2/uzbekistan-9409263.svg"
+    },
+    "dota2:6382750": {
+      "id": "6382750",
+      "name": "ELFinger Esports",
+      "code": "ELF",
+      "path": "./assets/team-logos/fallback/dota2/elfinger-esports-6382750.svg"
+    },
+    "dota2:9017436": {
+      "id": "9017436",
+      "name": "esc",
+      "code": "esc",
+      "path": "./assets/team-logos/fallback/dota2/esc-9017436.svg"
+    },
+    "dota2:9973579": {
+      "id": "9973579",
+      "name": "chandogs",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/chandogs-9973579.svg"
+    },
+    "dota2:2850016": {
+      "id": "2850016",
+      "name": "Sanguine Sharks",
+      "code": "SHARKS",
+      "path": "./assets/team-logos/fallback/dota2/sanguine-sharks-2850016.svg"
+    },
+    "dota2:8655598": {
+      "id": "8655598",
+      "name": "Apex",
+      "code": "Apex",
+      "path": "./assets/team-logos/fallback/dota2/apex-8655598.svg"
+    },
+    "dota2:8215803": {
+      "id": "8215803",
+      "name": "Сascade Esports",
+      "code": "Cascade",
+      "path": "./assets/team-logos/fallback/dota2/ascade-esports-8215803.svg"
+    },
+    "dota2:8701944": {
+      "id": "8701944",
+      "name": "Team Domino",
+      "code": "TD",
+      "path": "./assets/team-logos/fallback/dota2/team-domino-8701944.svg"
+    },
+    "dota2:7237001": {
+      "id": "7237001",
+      "name": "Tisumejik Esport",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/tisumejik-esport-7237001.svg"
+    },
+    "dota2:1936852": {
+      "id": "1936852",
+      "name": "BalkanBearsRo",
+      "code": "BB.RO",
+      "path": "./assets/team-logos/fallback/dota2/balkanbearsro-1936852.svg"
+    },
+    "dota2:8309784": {
+      "id": "8309784",
+      "name": "CyberLife eSports",
+      "code": "Clife",
+      "path": "./assets/team-logos/fallback/dota2/cyberlife-esports-8309784.svg"
+    },
+    "dota2:94252": {
+      "id": "94252",
+      "name": "The GD B-Team",
+      "code": "[GD]",
+      "path": "./assets/team-logos/fallback/dota2/the-gd-b-team-94252.svg"
+    },
+    "dota2:9042172": {
+      "id": "9042172",
+      "name": "DerzhaWIN",
+      "code": "DerzhaWIN",
+      "path": "./assets/team-logos/fallback/dota2/derzhawin-9042172.svg"
+    },
+    "dota2:5012612": {
+      "id": "5012612",
+      "name": "WipeouT",
+      "code": "w/o",
+      "path": "./assets/team-logos/fallback/dota2/wipeout-5012612.svg"
+    },
+    "dota2:5021898": {
+      "id": "5021898",
+      "name": "Team.Serenity",
+      "code": "Serenity",
+      "path": "./assets/team-logos/fallback/dota2/team-serenity-5021898.svg"
+    },
+    "dota2:7204995": {
+      "id": "7204995",
+      "name": "Pusing Gaming",
+      "code": "PG",
+      "path": "./assets/team-logos/fallback/dota2/pusing-gaming-7204995.svg"
+    },
+    "dota2:3259967": {
+      "id": "3259967",
+      "name": "you were my everything.",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/you-were-my-everything-3259967.svg"
+    },
+    "dota2:7425071": {
+      "id": "7425071",
+      "name": "Yakovlev eSports",
+      "code": "YaKs",
+      "path": "./assets/team-logos/fallback/dota2/yakovlev-esports-7425071.svg"
+    },
+    "dota2:8195590": {
+      "id": "8195590",
+      "name": "Team Kazakhstan",
+      "code": "KAZ",
+      "path": "./assets/team-logos/fallback/dota2/team-kazakhstan-8195590.svg"
+    },
+    "dota2:2837183": {
+      "id": "2837183",
+      "name": "Dragon Slayerzzz",
+      "code": "Dragneel",
+      "path": "./assets/team-logos/fallback/dota2/dragon-slayerzzz-2837183.svg"
+    },
+    "dota2:7683797": {
+      "id": "7683797",
+      "name": "F.R.I.E.N.D.S",
+      "code": "Friends",
+      "path": "./assets/team-logos/fallback/dota2/f-r-i-e-n-d-s-7683797.svg"
+    },
+    "dota2:7315013": {
+      "id": "7315013",
+      "name": "Looking for sponsors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/looking-for-sponsors-7315013.svg"
+    },
+    "dota2:7849151": {
+      "id": "7849151",
+      "name": "CR",
+      "code": "CR",
+      "path": "./assets/team-logos/fallback/dota2/cr-7849151.svg"
+    },
+    "dota2:9136712": {
+      "id": "9136712",
+      "name": "2late",
+      "code": "NP",
+      "path": "./assets/team-logos/fallback/dota2/2late-9136712.svg"
+    },
+    "dota2:2052902": {
+      "id": "2052902",
+      "name": "Extraordinary-Team",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/extraordinary-team-2052902.svg"
+    },
+    "dota2:8118868": {
+      "id": "8118868",
+      "name": "We must move forward",
+      "code": "WMMF",
+      "path": "./assets/team-logos/fallback/dota2/we-must-move-forward-8118868.svg"
+    },
+    "dota2:5208684": {
+      "id": "5208684",
+      "name": "Sporkface Killaz",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/sporkface-killaz-5208684.svg"
+    },
+    "dota2:7422393": {
+      "id": "7422393",
+      "name": "Revive",
+      "code": "Revive",
+      "path": "./assets/team-logos/fallback/dota2/revive-7422393.svg"
+    },
+    "dota2:9033695": {
+      "id": "9033695",
+      "name": "Spartans",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/spartans-9033695.svg"
+    },
+    "dota2:8022932": {
+      "id": "8022932",
+      "name": "ABEROMON RAFT",
+      "code": "ABEROO",
+      "path": "./assets/team-logos/fallback/dota2/aberomon-raft-8022932.svg"
+    },
+    "dota2:9181465": {
+      "id": "9181465",
+      "name": "Wanderlust",
+      "code": "Twt",
+      "path": "./assets/team-logos/fallback/dota2/wanderlust-9181465.svg"
+    },
+    "dota2:1287653": {
+      "id": "1287653",
+      "name": "Assail",
+      "code": "^",
+      "path": "./assets/team-logos/fallback/dota2/assail-1287653.svg"
+    },
+    "dota2:8032335": {
+      "id": "8032335",
+      "name": "OAPB",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/oapb-8032335.svg"
+    },
+    "dota2:7439020": {
+      "id": "7439020",
+      "name": "GHOST WALK",
+      "code": "GW",
+      "path": "./assets/team-logos/fallback/dota2/ghost-walk-7439020.svg"
+    },
+    "dota2:8937383": {
+      "id": "8937383",
+      "name": "Mind Games",
+      "code": "MG",
+      "path": "./assets/team-logos/fallback/dota2/mind-games-8937383.svg"
+    },
+    "dota2:8964296": {
+      "id": "8964296",
+      "name": "Langlei",
+      "code": "LnG",
+      "path": "./assets/team-logos/fallback/dota2/langlei-8964296.svg"
+    },
+    "dota2:77666": {
+      "id": "77666",
+      "name": "LGD-GAMING.int",
+      "code": "LGD.int",
+      "path": "./assets/team-logos/fallback/dota2/lgd-gaming-int-77666.svg"
+    },
+    "dota2:2059672": {
+      "id": "2059672",
+      "name": "FireDota",
+      "code": "Fire",
+      "path": "./assets/team-logos/fallback/dota2/firedota-2059672.svg"
+    },
+    "dota2:8056851": {
+      "id": "8056851",
+      "name": "Ares Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/ares-gaming-8056851.svg"
+    },
+    "dota2:7666342": {
+      "id": "7666342",
+      "name": "Team Having fun",
+      "code": "THF",
+      "path": "./assets/team-logos/fallback/dota2/team-having-fun-7666342.svg"
+    },
+    "dota2:9006059": {
+      "id": "9006059",
+      "name": "Puppet Masters",
+      "code": "PM",
+      "path": "./assets/team-logos/fallback/dota2/puppet-masters-9006059.svg"
+    },
+    "dota2:8168204": {
+      "id": "8168204",
+      "name": "team void",
+      "code": "void",
+      "path": "./assets/team-logos/fallback/dota2/team-void-8168204.svg"
+    },
+    "dota2:8526136": {
+      "id": "8526136",
+      "name": "Hardcore Ninja",
+      "code": "HN",
+      "path": "./assets/team-logos/fallback/dota2/hardcore-ninja-8526136.svg"
+    },
+    "dota2:8261152": {
+      "id": "8261152",
+      "name": "Sable Hat",
+      "code": "SaH",
+      "path": "./assets/team-logos/fallback/dota2/sable-hat-8261152.svg"
+    },
+    "dota2:8800176": {
+      "id": "8800176",
+      "name": "Purple Paradox",
+      "code": "PP",
+      "path": "./assets/team-logos/fallback/dota2/purple-paradox-8800176.svg"
+    },
+    "dota2:2242024": {
+      "id": "2242024",
+      "name": "Quantic.Young",
+      "code": "Q.Yo",
+      "path": "./assets/team-logos/fallback/dota2/quantic-young-2242024.svg"
+    },
+    "dota2:6462854": {
+      "id": "6462854",
+      "name": "Pavaga Junior",
+      "code": "PVG.J",
+      "path": "./assets/team-logos/fallback/dota2/pavaga-junior-6462854.svg"
+    },
+    "dota2:6569799": {
+      "id": "6569799",
+      "name": "Main Sabun",
+      "code": "MSabun",
+      "path": "./assets/team-logos/fallback/dota2/main-sabun-6569799.svg"
+    },
+    "dota2:7391517": {
+      "id": "7391517",
+      "name": "Jinx_Pro_Amanda",
+      "code": "JPA",
+      "path": "./assets/team-logos/fallback/dota2/jinx-pro-amanda-7391517.svg"
+    },
+    "dota2:9132053": {
+      "id": "9132053",
+      "name": "ua rejects",
+      "code": "ua",
+      "path": "./assets/team-logos/fallback/dota2/ua-rejects-9132053.svg"
+    },
+    "dota2:8691685": {
+      "id": "8691685",
+      "name": "Looney Tunes",
+      "code": "LTT",
+      "path": "./assets/team-logos/fallback/dota2/looney-tunes-8691685.svg"
+    },
+    "dota2:7937261": {
+      "id": "7937261",
+      "name": "Monkey2",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/monkey2-7937261.svg"
+    },
+    "dota2:2025160": {
+      "id": "2025160",
+      "name": "COCK SUCKER",
+      "code": "COCK",
+      "path": "./assets/team-logos/fallback/dota2/cock-sucker-2025160.svg"
+    },
+    "dota2:8850015": {
+      "id": "8850015",
+      "name": "DARKNESS GAMING",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/darkness-gaming-8850015.svg"
+    },
+    "dota2:9048057": {
+      "id": "9048057",
+      "name": "Vitality Warriors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/vitality-warriors-9048057.svg"
+    },
+    "dota2:10053515": {
+      "id": "10053515",
+      "name": "LEGIONGAMING",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/legiongaming-10053515.svg"
+    },
+    "dota2:8879077": {
+      "id": "8879077",
+      "name": "Titan Strikers",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/titan-strikers-8879077.svg"
+    },
+    "dota2:8849833": {
+      "id": "8849833",
+      "name": "VERTEX PACK",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/vertex-pack-8849833.svg"
+    },
+    "dota2:9025669": {
+      "id": "9025669",
+      "name": "CrimsonSky",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/crimsonsky-9025669.svg"
+    },
+    "dota2:8849837": {
+      "id": "8849837",
+      "name": "FALL VICTIMS",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/fall-victims-8849837.svg"
+    },
+    "dota2:8936613": {
+      "id": "8936613",
+      "name": "Wild Dragon",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/wild-dragon-8936613.svg"
+    },
+    "dota2:8987220": {
+      "id": "8987220",
+      "name": "HolyTeam",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/holyteam-8987220.svg"
+    },
+    "dota2:9828921": {
+      "id": "9828921",
+      "name": "Air Defence",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/air-defence-9828921.svg"
+    },
+    "dota2:9973656": {
+      "id": "9973656",
+      "name": "BTC Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/btc-gaming-9973656.svg"
+    },
+    "dota2:9973477": {
+      "id": "9973477",
+      "name": "PYPSIKI",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/pypsiki-9973477.svg"
+    },
+    "dota2:9814269": {
+      "id": "9814269",
+      "name": "Riftwalkers",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/riftwalkers-9814269.svg"
+    },
+    "dota2:8629005": {
+      "id": "8629005",
+      "name": "Flawless Goblins",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/flawless-goblins-8629005.svg"
+    },
+    "dota2:9768243": {
+      "id": "9768243",
+      "name": "Night Force",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/night-force-9768243.svg"
+    },
+    "dota2:9426115": {
+      "id": "9426115",
+      "name": "Dark Rebellion",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/dark-rebellion-9426115.svg"
+    },
+    "dota2:9878494": {
+      "id": "9878494",
+      "name": "LV United",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/lv-united-9878494.svg"
+    },
+    "dota2:8629315": {
+      "id": "8629315",
+      "name": "Wiser Warriors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/wiser-warriors-8629315.svg"
     }
   },
   "byGameAndName": {
@@ -26448,6 +27732,1290 @@ export const TEAM_LOGO_MANIFEST = {
       "name": "Team Zero",
       "code": "Tz",
       "path": "./assets/team-logos/manual/dota2/team-zero-9080405.webp"
+    },
+    "dota2:lv-gaming": {
+      "id": "1848158",
+      "name": "LV-Gaming",
+      "code": "Lv",
+      "path": "./assets/team-logos/fallback/dota2/lv-gaming-1848158.svg"
+    },
+    "dota2:teammalaysia": {
+      "id": "1910985",
+      "name": "TeamMalaysia",
+      "code": "MY",
+      "path": "./assets/team-logos/fallback/dota2/teammalaysia-1910985.svg"
+    },
+    "dota2:team tickles": {
+      "id": "9187066",
+      "name": "Team Tickles",
+      "code": "TT",
+      "path": "./assets/team-logos/fallback/dota2/team-tickles-9187066.svg"
+    },
+    "dota2:teamerino tinkerino": {
+      "id": "1820360",
+      "name": "TEAMERINO TINKERINO",
+      "code": "TT",
+      "path": "./assets/team-logos/fallback/dota2/teamerino-tinkerino-1820360.svg"
+    },
+    "dota2:speed gaming international": {
+      "id": "1047281",
+      "name": "Speed Gaming International",
+      "code": "SPG.int",
+      "path": "./assets/team-logos/fallback/dota2/speed-gaming-international-1047281.svg"
+    },
+    "dota2:ink ice": {
+      "id": "8168562",
+      "name": "INK ICE",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/ink-ice-8168562.svg"
+    },
+    "dota2:positive guys": {
+      "id": "7405754",
+      "name": "Positive Guys",
+      "code": "PG",
+      "path": "./assets/team-logos/fallback/dota2/positive-guys-7405754.svg"
+    },
+    "dota2:4am.小象": {
+      "id": "8143502",
+      "name": "4am.小象",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/4am-8143502.svg"
+    },
+    "dota2:quincy crew": {
+      "id": "7806386",
+      "name": "Quincy Crew",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/quincy-crew-7806386.svg"
+    },
+    "dota2:team 13": {
+      "id": "9238717",
+      "name": "Team 13",
+      "code": "T13",
+      "path": "./assets/team-logos/fallback/dota2/team-13-9238717.svg"
+    },
+    "dota2:luccini gam1ng": {
+      "id": "1025734",
+      "name": "LUCCINI GAM1NG",
+      "code": "Luccini",
+      "path": "./assets/team-logos/fallback/dota2/luccini-gam1ng-1025734.svg"
+    },
+    "dota2:friends": {
+      "id": "3332295",
+      "name": "Friends",
+      "code": "Friends",
+      "path": "./assets/team-logos/fallback/dota2/friends-3332295.svg"
+    },
+    "dota2:chadou fint": {
+      "id": "8282268",
+      "name": "Chadou Fint",
+      "code": "SF",
+      "path": "./assets/team-logos/fallback/dota2/chadou-fint-8282268.svg"
+    },
+    "dota2:fnaticraidcall": {
+      "id": "38",
+      "name": "FnaticRaidCall",
+      "code": "Fntc",
+      "path": "./assets/team-logos/fallback/dota2/fnaticraidcall-38.svg"
+    },
+    "dota2:nvidia.arrowgaming.avf": {
+      "id": "1277104",
+      "name": "Nvidia.ArrowGaming.AVF",
+      "code": "Arrow",
+      "path": "./assets/team-logos/fallback/dota2/nvidia-arrowgaming-avf-1277104.svg"
+    },
+    "dota2:the pango": {
+      "id": "6298307",
+      "name": "The Pango",
+      "code": "ThePango",
+      "path": "./assets/team-logos/fallback/dota2/the-pango-6298307.svg"
+    },
+    "dota2:universitario": {
+      "id": "9419759",
+      "name": "universitario",
+      "code": "UNV",
+      "path": "./assets/team-logos/fallback/dota2/universitario-9419759.svg"
+    },
+    "dota2:aggressive mode": {
+      "id": "7653600",
+      "name": "Aggressive Mode",
+      "code": "A-Mode",
+      "path": "./assets/team-logos/fallback/dota2/aggressive-mode-7653600.svg"
+    },
+    "dota2:cow boys": {
+      "id": "7959677",
+      "name": "Cow boys",
+      "code": "Coy boys",
+      "path": "./assets/team-logos/fallback/dota2/cow-boys-7959677.svg"
+    },
+    "dota2:planet dog": {
+      "id": "4593831",
+      "name": "Planet Dog",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/planet-dog-4593831.svg"
+    },
+    "dota2:dream time.": {
+      "id": "1059824",
+      "name": "Dream time.",
+      "code": "DT",
+      "path": "./assets/team-logos/fallback/dota2/dream-time-1059824.svg"
+    },
+    "dota2:shazam~": {
+      "id": "2640099",
+      "name": "Shazam~",
+      "code": "Shazam",
+      "path": "./assets/team-logos/fallback/dota2/shazam-2640099.svg"
+    },
+    "dota2:grindsky esports": {
+      "id": "8597594",
+      "name": "GrindSky Esports",
+      "code": "GS",
+      "path": "./assets/team-logos/fallback/dota2/grindsky-esports-8597594.svg"
+    },
+    "dota2:gorilla": {
+      "id": "8750069",
+      "name": "Gorilla",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/gorilla-8750069.svg"
+    },
+    "dota2:for the dream": {
+      "id": "8075993",
+      "name": "For The Dream",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/for-the-dream-8075993.svg"
+    },
+    "dota2:bandanoone": {
+      "id": "9547255",
+      "name": "Bandanoone",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/bandanoone-9547255.svg"
+    },
+    "dota2:-ninjas-in-pyjamas-": {
+      "id": "2085365",
+      "name": "-Ninjas-in-Pyjamas-",
+      "code": "NiP",
+      "path": "./assets/team-logos/fallback/dota2/ninjas-in-pyjamas-2085365.svg"
+    },
+    "dota2:newbee.young": {
+      "id": "1951061",
+      "name": "Newbee.Young",
+      "code": "Newbee.Y",
+      "path": "./assets/team-logos/fallback/dota2/newbee-young-1951061.svg"
+    },
+    "dota2:meet your mak3rs": {
+      "id": "990533",
+      "name": "MeeT YouR Mak3rS",
+      "code": "mYm",
+      "path": "./assets/team-logos/fallback/dota2/meet-your-mak3rs-990533.svg"
+    },
+    "dota2:archon dota": {
+      "id": "2555665",
+      "name": "Archon Dota",
+      "code": "Archon",
+      "path": "./assets/team-logos/fallback/dota2/archon-dota-2555665.svg"
+    },
+    "dota2:alliancegg": {
+      "id": "626763",
+      "name": "AllianceGG",
+      "code": "[A]",
+      "path": "./assets/team-logos/fallback/dota2/alliancegg-626763.svg"
+    },
+    "dota2:duobao young": {
+      "id": "3317512",
+      "name": "DUOBAO Young",
+      "code": "DUOBAO.Y",
+      "path": "./assets/team-logos/fallback/dota2/duobao-young-3317512.svg"
+    },
+    "dota2:piggy killer": {
+      "id": "9017079",
+      "name": "Piggy Killer",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/piggy-killer-9017079.svg"
+    },
+    "dota2:tapan gaming": {
+      "id": "8374752",
+      "name": "Tapan Gaming",
+      "code": "TPN",
+      "path": "./assets/team-logos/fallback/dota2/tapan-gaming-8374752.svg"
+    },
+    "dota2:clown city": {
+      "id": "8058269",
+      "name": "Clown City",
+      "code": "CC",
+      "path": "./assets/team-logos/fallback/dota2/clown-city-8058269.svg"
+    },
+    "dota2:team \"sex\"": {
+      "id": "689412",
+      "name": "Team \"SEX\"",
+      "code": "sex",
+      "path": "./assets/team-logos/fallback/dota2/team-sex-689412.svg"
+    },
+    "dota2:lowkees": {
+      "id": "8456656",
+      "name": "lowkees",
+      "code": "lwkk",
+      "path": "./assets/team-logos/fallback/dota2/lowkees-8456656.svg"
+    },
+    "dota2:fire dragoon": {
+      "id": "2880140",
+      "name": "Fire Dragoon",
+      "code": "FDG",
+      "path": "./assets/team-logos/fallback/dota2/fire-dragoon-2880140.svg"
+    },
+    "dota2:arizona iced out boys": {
+      "id": "1286339",
+      "name": "Arizona Iced Out Boys",
+      "code": "sad",
+      "path": "./assets/team-logos/fallback/dota2/arizona-iced-out-boys-1286339.svg"
+    },
+    "dota2:one more game": {
+      "id": "8022392",
+      "name": "One More Game",
+      "code": "OMG",
+      "path": "./assets/team-logos/fallback/dota2/one-more-game-8022392.svg"
+    },
+    "dota2:athletico": {
+      "id": "5895083",
+      "name": "Athletico",
+      "code": "/A/",
+      "path": "./assets/team-logos/fallback/dota2/athletico-5895083.svg"
+    },
+    "dota2:gang bang": {
+      "id": "7344577",
+      "name": "Gang Bang",
+      "code": "GB",
+      "path": "./assets/team-logos/fallback/dota2/gang-bang-7344577.svg"
+    },
+    "dota2:team dog": {
+      "id": "8230491",
+      "name": "TEAM DOG",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-dog-8230491.svg"
+    },
+    "dota2:team fantech": {
+      "id": "6465690",
+      "name": "Team Fantech",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-fantech-6465690.svg"
+    },
+    "dota2:saints id": {
+      "id": "6796511",
+      "name": "Saints ID",
+      "code": "Saints",
+      "path": "./assets/team-logos/fallback/dota2/saints-id-6796511.svg"
+    },
+    "dota2:please dont gank my carry": {
+      "id": "8697328",
+      "name": "Please dont gank my carry",
+      "code": "gnk",
+      "path": "./assets/team-logos/fallback/dota2/please-dont-gank-my-carry-8697328.svg"
+    },
+    "dota2:v for vendeta": {
+      "id": "9677587",
+      "name": "V for Vendeta",
+      "code": "V",
+      "path": "./assets/team-logos/fallback/dota2/v-for-vendeta-9677587.svg"
+    },
+    "dota2:tempo": {
+      "id": "7556672",
+      "name": "TEMPO",
+      "code": "TMP",
+      "path": "./assets/team-logos/fallback/dota2/tempo-7556672.svg"
+    },
+    "dota2:avengers": {
+      "id": "7586931",
+      "name": "Avengers",
+      "code": "A",
+      "path": "./assets/team-logos/fallback/dota2/avengers-7586931.svg"
+    },
+    "dota2:wilddeer": {
+      "id": "8563718",
+      "name": "WildDeer",
+      "code": "WD",
+      "path": "./assets/team-logos/fallback/dota2/wilddeer-8563718.svg"
+    },
+    "dota2:los moticucos": {
+      "id": "9079676",
+      "name": "Los moticucos",
+      "code": "PARK",
+      "path": "./assets/team-logos/fallback/dota2/los-moticucos-9079676.svg"
+    },
+    "dota2:g4": {
+      "id": "3706823",
+      "name": "G4",
+      "code": "G4",
+      "path": "./assets/team-logos/fallback/dota2/g4-3706823.svg"
+    },
+    "dota2:fighting pepegas": {
+      "id": "7391166",
+      "name": "Fighting Pepegas",
+      "code": "FP",
+      "path": "./assets/team-logos/fallback/dota2/fighting-pepegas-7391166.svg"
+    },
+    "dota2:revenge gaming": {
+      "id": "7101255",
+      "name": "Revenge Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/revenge-gaming-7101255.svg"
+    },
+    "dota2:come down": {
+      "id": "8193609",
+      "name": "Come down",
+      "code": "CD",
+      "path": "./assets/team-logos/fallback/dota2/come-down-8193609.svg"
+    },
+    "dota2:rush b!": {
+      "id": "8375459",
+      "name": "rush b!",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/rush-b-8375459.svg"
+    },
+    "dota2:nomuerta": {
+      "id": "9224799",
+      "name": "NoMuerta",
+      "code": "NM",
+      "path": "./assets/team-logos/fallback/dota2/nomuerta-9224799.svg"
+    },
+    "dota2:deathbringer gaming": {
+      "id": "5194336",
+      "name": "DeathBringer Gaming",
+      "code": "DBG",
+      "path": "./assets/team-logos/fallback/dota2/deathbringer-gaming-5194336.svg"
+    },
+    "dota2:zenith": {
+      "id": "2",
+      "name": "Zenith",
+      "code": "Zenith",
+      "path": "./assets/team-logos/fallback/dota2/zenith-2.svg"
+    },
+    "dota2:newbee.m": {
+      "id": "5084724",
+      "name": "Newbee.M",
+      "code": "Newbee.M",
+      "path": "./assets/team-logos/fallback/dota2/newbee-m-5084724.svg"
+    },
+    "dota2:estolis team": {
+      "id": "6925812",
+      "name": "EStolis Team",
+      "code": "EST",
+      "path": "./assets/team-logos/fallback/dota2/estolis-team-6925812.svg"
+    },
+    "dota2:tayo lovers": {
+      "id": "6269097",
+      "name": "TAYO LOVERS",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/tayo-lovers-6269097.svg"
+    },
+    "dota2:potm bottom": {
+      "id": "53",
+      "name": "Potm Bottom",
+      "code": "PB",
+      "path": "./assets/team-logos/fallback/dota2/potm-bottom-53.svg"
+    },
+    "dota2:lava bestpc": {
+      "id": "8581305",
+      "name": "Lava BestPc",
+      "code": "Lava",
+      "path": "./assets/team-logos/fallback/dota2/lava-bestpc-8581305.svg"
+    },
+    "dota2:aggressive mode.": {
+      "id": "7641673",
+      "name": "Aggressive Mode.",
+      "code": "A-Mode",
+      "path": "./assets/team-logos/fallback/dota2/aggressive-mode-7641673.svg"
+    },
+    "dota2:se7en esports": {
+      "id": "6265062",
+      "name": "Se7en Esports",
+      "code": "S7E",
+      "path": "./assets/team-logos/fallback/dota2/se7en-esports-6265062.svg"
+    },
+    "dota2:golden legacy": {
+      "id": "8133097",
+      "name": "Golden Legacy",
+      "code": "GL",
+      "path": "./assets/team-logos/fallback/dota2/golden-legacy-8133097.svg"
+    },
+    "dota2:orange e-sports": {
+      "id": "42",
+      "name": "Orange E-Sports",
+      "code": "Orange",
+      "path": "./assets/team-logos/fallback/dota2/orange-e-sports-42.svg"
+    },
+    "dota2:danish bears": {
+      "id": "464103",
+      "name": "Danish Bears",
+      "code": "DB",
+      "path": "./assets/team-logos/fallback/dota2/danish-bears-464103.svg"
+    },
+    "dota2:deathwish": {
+      "id": "7751001",
+      "name": "DeathWish",
+      "code": "DW",
+      "path": "./assets/team-logos/fallback/dota2/deathwish-7751001.svg"
+    },
+    "dota2:cyberium.s": {
+      "id": "8021531",
+      "name": "CYBERIUM.S",
+      "code": "CYBERIUM",
+      "path": "./assets/team-logos/fallback/dota2/cyberium-s-8021531.svg"
+    },
+    "dota2:infinite tsukuyomi": {
+      "id": "7574786",
+      "name": "infinite tsukuyomi",
+      "code": "ITS",
+      "path": "./assets/team-logos/fallback/dota2/infinite-tsukuyomi-7574786.svg"
+    },
+    "dota2:power of mysg+au": {
+      "id": "7119284",
+      "name": "Power of MYSG+AU",
+      "code": "MYSGAU",
+      "path": "./assets/team-logos/fallback/dota2/power-of-mysg-au-7119284.svg"
+    },
+    "dota2:orginality": {
+      "id": "5209335",
+      "name": "Orginality",
+      "code": "ORg",
+      "path": "./assets/team-logos/fallback/dota2/orginality-5209335.svg"
+    },
+    "dota2:ss darvin lopers": {
+      "id": "6822187",
+      "name": "SS DARVIN LOPERS",
+      "code": "DL",
+      "path": "./assets/team-logos/fallback/dota2/ss-darvin-lopers-6822187.svg"
+    },
+    "dota2:manaburn": {
+      "id": "7543171",
+      "name": "Manaburn",
+      "code": "Manaburn",
+      "path": "./assets/team-logos/fallback/dota2/manaburn-7543171.svg"
+    },
+    "dota2:khan esports": {
+      "id": "8496219",
+      "name": "Khan esports",
+      "code": "Khan",
+      "path": "./assets/team-logos/fallback/dota2/khan-esports-8496219.svg"
+    },
+    "dota2:zorka": {
+      "id": "8701706",
+      "name": "Zorka",
+      "code": "Zorka",
+      "path": "./assets/team-logos/fallback/dota2/zorka-8701706.svg"
+    },
+    "dota2:park bo cuan": {
+      "id": "7472412",
+      "name": "Park Bo Cuan",
+      "code": "PBC",
+      "path": "./assets/team-logos/fallback/dota2/park-bo-cuan-7472412.svg"
+    },
+    "dota2:me parb": {
+      "id": "9352756",
+      "name": "Me Parb",
+      "code": "MP",
+      "path": "./assets/team-logos/fallback/dota2/me-parb-9352756.svg"
+    },
+    "dota2:vici gaming potential": {
+      "id": "2833354",
+      "name": "Vici Gaming Potential",
+      "code": "VG.P",
+      "path": "./assets/team-logos/fallback/dota2/vici-gaming-potential-2833354.svg"
+    },
+    "dota2:midas club": {
+      "id": "7913999",
+      "name": "Midas Club",
+      "code": "Midas",
+      "path": "./assets/team-logos/fallback/dota2/midas-club-7913999.svg"
+    },
+    "dota2:boss andre": {
+      "id": "7391558",
+      "name": "BOSS ANDRE",
+      "code": "BA",
+      "path": "./assets/team-logos/fallback/dota2/boss-andre-7391558.svg"
+    },
+    "dota2:inter active philippines": {
+      "id": "1648005",
+      "name": "Inter Active Philippines",
+      "code": "IAP",
+      "path": "./assets/team-logos/fallback/dota2/inter-active-philippines-1648005.svg"
+    },
+    "dota2:leetss do it": {
+      "id": "2136210",
+      "name": "Leetss Do It",
+      "code": "asd",
+      "path": "./assets/team-logos/fallback/dota2/leetss-do-it-2136210.svg"
+    },
+    "dota2:guardian gaming": {
+      "id": "6658560",
+      "name": "Guardian Gaming",
+      "code": "GG",
+      "path": "./assets/team-logos/fallback/dota2/guardian-gaming-6658560.svg"
+    },
+    "dota2:内蒙古的星空": {
+      "id": "9277978",
+      "name": "内蒙古的星空",
+      "code": "DLG",
+      "path": "./assets/team-logos/fallback/dota2/team-9277978.svg"
+    },
+    "dota2:kinkalow": {
+      "id": "8638425",
+      "name": "Kinkalow",
+      "code": "KKL",
+      "path": "./assets/team-logos/fallback/dota2/kinkalow-8638425.svg"
+    },
+    "dota2:frozendawn club": {
+      "id": "7218194",
+      "name": "FrozenDawn Club",
+      "code": "FD",
+      "path": "./assets/team-logos/fallback/dota2/frozendawn-club-7218194.svg"
+    },
+    "dota2:bmstu": {
+      "id": "7528264",
+      "name": "bmstu",
+      "code": "bmstu",
+      "path": "./assets/team-logos/fallback/dota2/bmstu-7528264.svg"
+    },
+    "dota2:avant garde gaming": {
+      "id": "805172",
+      "name": "Avant Garde Gaming",
+      "code": "Avant",
+      "path": "./assets/team-logos/fallback/dota2/avant-garde-gaming-805172.svg"
+    },
+    "dota2:m11 slayers": {
+      "id": "6951684",
+      "name": "M11 SLAYERS",
+      "code": "M11SLAYERS",
+      "path": "./assets/team-logos/fallback/dota2/m11-slayers-6951684.svg"
+    },
+    "dota2:void boys": {
+      "id": "1884355",
+      "name": "Void Boys",
+      "code": "VB",
+      "path": "./assets/team-logos/fallback/dota2/void-boys-1884355.svg"
+    },
+    "dota2:los magikarps": {
+      "id": "3008699",
+      "name": "Los Magikarps",
+      "code": "Karp",
+      "path": "./assets/team-logos/fallback/dota2/los-magikarps-3008699.svg"
+    },
+    "dota2:backstab boys": {
+      "id": "8039920",
+      "name": "Backstab Boys",
+      "code": "STABS",
+      "path": "./assets/team-logos/fallback/dota2/backstab-boys-8039920.svg"
+    },
+    "dota2:crayon shin-chan": {
+      "id": "8756744",
+      "name": "Crayon Shin-chan",
+      "code": "CSC",
+      "path": "./assets/team-logos/fallback/dota2/crayon-shin-chan-8756744.svg"
+    },
+    "dota2:bg": {
+      "id": "5219214",
+      "name": "BG",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/bg-5219214.svg"
+    },
+    "dota2:eu vou estudo": {
+      "id": "7958190",
+      "name": "eu vou estudo",
+      "code": "enem",
+      "path": "./assets/team-logos/fallback/dota2/eu-vou-estudo-7958190.svg"
+    },
+    "dota2:sterling global dragons": {
+      "id": "5896332",
+      "name": "Sterling Global Dragons",
+      "code": "SGD",
+      "path": "./assets/team-logos/fallback/dota2/sterling-global-dragons-5896332.svg"
+    },
+    "dota2:castawake": {
+      "id": "9547653",
+      "name": "Castawake",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/castawake-9547653.svg"
+    },
+    "dota2:chompers x": {
+      "id": "9323850",
+      "name": "Chompers X",
+      "code": "Chomp",
+      "path": "./assets/team-logos/fallback/dota2/chompers-x-9323850.svg"
+    },
+    "dota2:miaww^^": {
+      "id": "7894580",
+      "name": "miaww^^",
+      "code": "miaww^^",
+      "path": "./assets/team-logos/fallback/dota2/miaww-7894580.svg"
+    },
+    "dota2:ji est''": {
+      "id": "9834249",
+      "name": "Ji est''",
+      "code": ".Jst",
+      "path": "./assets/team-logos/fallback/dota2/ji-est-9834249.svg"
+    },
+    "dota2:admiral dota": {
+      "id": "5207190",
+      "name": "Admiral Dota",
+      "code": "Admiral",
+      "path": "./assets/team-logos/fallback/dota2/admiral-dota-5207190.svg"
+    },
+    "dota2:therereretry": {
+      "id": "433549",
+      "name": "TheRerereTRY",
+      "code": "TR",
+      "path": "./assets/team-logos/fallback/dota2/therereretry-433549.svg"
+    },
+    "dota2:unchained esports": {
+      "id": "5242529",
+      "name": "Unchained Esports",
+      "code": "UNC",
+      "path": "./assets/team-logos/fallback/dota2/unchained-esports-5242529.svg"
+    },
+    "dota2:immunity dota": {
+      "id": "1464407",
+      "name": "Immunity Dota",
+      "code": "iM",
+      "path": "./assets/team-logos/fallback/dota2/immunity-dota-1464407.svg"
+    },
+    "dota2:山东好男人": {
+      "id": "9849814",
+      "name": "山东好男人",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-9849814.svg"
+    },
+    "dota2:no fucking name": {
+      "id": "7284811",
+      "name": "No Fucking Name",
+      "code": "NFN",
+      "path": "./assets/team-logos/fallback/dota2/no-fucking-name-7284811.svg"
+    },
+    "dota2:whoops!": {
+      "id": "7316976",
+      "name": "Whoops!",
+      "code": "Whoops!",
+      "path": "./assets/team-logos/fallback/dota2/whoops-7316976.svg"
+    },
+    "dota2:team phoenix rising": {
+      "id": "1325243",
+      "name": "Team Phoenix Rising",
+      "code": "PHX",
+      "path": "./assets/team-logos/fallback/dota2/team-phoenix-rising-1325243.svg"
+    },
+    "dota2:team random": {
+      "id": "4253054",
+      "name": "Team Random",
+      "code": "Random",
+      "path": "./assets/team-logos/fallback/dota2/team-random-4253054.svg"
+    },
+    "dota2:summit gaming": {
+      "id": "8597183",
+      "name": "Summit Gaming",
+      "code": "Summit",
+      "path": "./assets/team-logos/fallback/dota2/summit-gaming-8597183.svg"
+    },
+    "dota2:team scorpion": {
+      "id": "8680140",
+      "name": "Team ScorpioN",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-scorpion-8680140.svg"
+    },
+    "dota2:hf": {
+      "id": "8360860",
+      "name": "HF",
+      "code": "HF",
+      "path": "./assets/team-logos/fallback/dota2/hf-8360860.svg"
+    },
+    "dota2:thundercoast": {
+      "id": "8574375",
+      "name": "ThunderCoast",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/thundercoast-8574375.svg"
+    },
+    "dota2:team saiyan": {
+      "id": "7407260",
+      "name": "Team Saiyan",
+      "code": "TSaiyin",
+      "path": "./assets/team-logos/fallback/dota2/team-saiyan-7407260.svg"
+    },
+    "dota2:veteran": {
+      "id": "4259604",
+      "name": "Veteran",
+      "code": "Veteran",
+      "path": "./assets/team-logos/fallback/dota2/veteran-4259604.svg"
+    },
+    "dota2:selemene": {
+      "id": "8406632",
+      "name": "Selemene",
+      "code": "Selemene",
+      "path": "./assets/team-logos/fallback/dota2/selemene-8406632.svg"
+    },
+    "dota2:flash point gaming": {
+      "id": "7204148",
+      "name": "Flash Point Gaming",
+      "code": "fP",
+      "path": "./assets/team-logos/fallback/dota2/flash-point-gaming-7204148.svg"
+    },
+    "dota2:повер ренджерс": {
+      "id": "9455993",
+      "name": "повер ренджерс",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-9455993.svg"
+    },
+    "dota2:team bhedos": {
+      "id": "8750143",
+      "name": "Team Bhedos",
+      "code": "TB",
+      "path": "./assets/team-logos/fallback/dota2/team-bhedos-8750143.svg"
+    },
+    "dota2:@__@": {
+      "id": "2686375",
+      "name": "@__@",
+      "code": "@__@",
+      "path": "./assets/team-logos/fallback/dota2/team-2686375.svg"
+    },
+    "dota2:leopard gaming": {
+      "id": "7716098",
+      "name": "Leopard Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/leopard-gaming-7716098.svg"
+    },
+    "dota2:overlord": {
+      "id": "8820860",
+      "name": "Overlord",
+      "code": "不死者",
+      "path": "./assets/team-logos/fallback/dota2/overlord-8820860.svg"
+    },
+    "dota2:team freedom dota 2": {
+      "id": "2701329",
+      "name": "Team Freedom Dota 2",
+      "code": "Freedom",
+      "path": "./assets/team-logos/fallback/dota2/team-freedom-dota-2-2701329.svg"
+    },
+    "dota2:team.phoenix": {
+      "id": "6187452",
+      "name": "Team.PhoeniX",
+      "code": "PhoeniX",
+      "path": "./assets/team-logos/fallback/dota2/team-phoenix-6187452.svg"
+    },
+    "dota2:you rock": {
+      "id": "6767698",
+      "name": "You Rock",
+      "code": "YouRock",
+      "path": "./assets/team-logos/fallback/dota2/you-rock-6767698.svg"
+    },
+    "dota2:cybercats": {
+      "id": "8545488",
+      "name": "cybercats",
+      "code": "CC",
+      "path": "./assets/team-logos/fallback/dota2/cybercats-8545488.svg"
+    },
+    "dota2:sqreen's squad v2.0": {
+      "id": "1175580",
+      "name": "sQreen's squad v2.0",
+      "code": "ss",
+      "path": "./assets/team-logos/fallback/dota2/sqreen-s-squad-v2-0-1175580.svg"
+    },
+    "dota2:optimus amicus": {
+      "id": "6849080",
+      "name": "Optimus Amicus",
+      "code": "OA",
+      "path": "./assets/team-logos/fallback/dota2/optimus-amicus-6849080.svg"
+    },
+    "dota2:demon slayers": {
+      "id": "7469922",
+      "name": "Demon Slayers",
+      "code": "DemSlay",
+      "path": "./assets/team-logos/fallback/dota2/demon-slayers-7469922.svg"
+    },
+    "dota2:team ukraine": {
+      "id": "6594251",
+      "name": "TEAM UKRAINE",
+      "code": "UKRAINA",
+      "path": "./assets/team-logos/fallback/dota2/team-ukraine-6594251.svg"
+    },
+    "dota2:positive vibes": {
+      "id": "8829652",
+      "name": "Positive Vibes",
+      "code": "PV",
+      "path": "./assets/team-logos/fallback/dota2/positive-vibes-8829652.svg"
+    },
+    "dota2:apollo": {
+      "id": "7566229",
+      "name": "Apollo",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/apollo-7566229.svg"
+    },
+    "dota2:infinite war": {
+      "id": "8300691",
+      "name": "Infinite War",
+      "code": "IW",
+      "path": "./assets/team-logos/fallback/dota2/infinite-war-8300691.svg"
+    },
+    "dota2:lithium": {
+      "id": "5766651",
+      "name": "Lithium",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/lithium-5766651.svg"
+    },
+    "dota2:eternal": {
+      "id": "1218336",
+      "name": "Eternal",
+      "code": "Eternal",
+      "path": "./assets/team-logos/fallback/dota2/eternal-1218336.svg"
+    },
+    "dota2:yonko": {
+      "id": "9120269",
+      "name": "Yonko",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/yonko-9120269.svg"
+    },
+    "dota2:saykalitatsh": {
+      "id": "9055339",
+      "name": "saykalitatsh",
+      "code": "saya",
+      "path": "./assets/team-logos/fallback/dota2/saykalitatsh-9055339.svg"
+    },
+    "dota2:tlc gaming": {
+      "id": "2429870",
+      "name": "TLC GAMING",
+      "code": "TLC",
+      "path": "./assets/team-logos/fallback/dota2/tlc-gaming-2429870.svg"
+    },
+    "dota2:megalodon gaming.": {
+      "id": "862976",
+      "name": "Megalodon Gaming.",
+      "code": "MeGa",
+      "path": "./assets/team-logos/fallback/dota2/megalodon-gaming-862976.svg"
+    },
+    "dota2:---uioyuiruy": {
+      "id": "2585648",
+      "name": "---uioyuiruy",
+      "code": "TLC",
+      "path": "./assets/team-logos/fallback/dota2/uioyuiruy-2585648.svg"
+    },
+    "dota2:uzbekistan": {
+      "id": "9409263",
+      "name": "Uzbekistan",
+      "code": "UZB",
+      "path": "./assets/team-logos/fallback/dota2/uzbekistan-9409263.svg"
+    },
+    "dota2:elfinger esports": {
+      "id": "6382750",
+      "name": "ELFinger Esports",
+      "code": "ELF",
+      "path": "./assets/team-logos/fallback/dota2/elfinger-esports-6382750.svg"
+    },
+    "dota2:esc": {
+      "id": "9017436",
+      "name": "esc",
+      "code": "esc",
+      "path": "./assets/team-logos/fallback/dota2/esc-9017436.svg"
+    },
+    "dota2:chandogs": {
+      "id": "9973579",
+      "name": "chandogs",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/chandogs-9973579.svg"
+    },
+    "dota2:sanguine sharks": {
+      "id": "2850016",
+      "name": "Sanguine Sharks",
+      "code": "SHARKS",
+      "path": "./assets/team-logos/fallback/dota2/sanguine-sharks-2850016.svg"
+    },
+    "dota2:apex": {
+      "id": "8655598",
+      "name": "Apex",
+      "code": "Apex",
+      "path": "./assets/team-logos/fallback/dota2/apex-8655598.svg"
+    },
+    "dota2:сascade esports": {
+      "id": "8215803",
+      "name": "Сascade Esports",
+      "code": "Cascade",
+      "path": "./assets/team-logos/fallback/dota2/ascade-esports-8215803.svg"
+    },
+    "dota2:team domino": {
+      "id": "8701944",
+      "name": "Team Domino",
+      "code": "TD",
+      "path": "./assets/team-logos/fallback/dota2/team-domino-8701944.svg"
+    },
+    "dota2:tisumejik esport": {
+      "id": "7237001",
+      "name": "Tisumejik Esport",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/tisumejik-esport-7237001.svg"
+    },
+    "dota2:balkanbearsro": {
+      "id": "1936852",
+      "name": "BalkanBearsRo",
+      "code": "BB.RO",
+      "path": "./assets/team-logos/fallback/dota2/balkanbearsro-1936852.svg"
+    },
+    "dota2:cyberlife esports": {
+      "id": "8309784",
+      "name": "CyberLife eSports",
+      "code": "Clife",
+      "path": "./assets/team-logos/fallback/dota2/cyberlife-esports-8309784.svg"
+    },
+    "dota2:the gd b-team": {
+      "id": "94252",
+      "name": "The GD B-Team",
+      "code": "[GD]",
+      "path": "./assets/team-logos/fallback/dota2/the-gd-b-team-94252.svg"
+    },
+    "dota2:derzhawin": {
+      "id": "9042172",
+      "name": "DerzhaWIN",
+      "code": "DerzhaWIN",
+      "path": "./assets/team-logos/fallback/dota2/derzhawin-9042172.svg"
+    },
+    "dota2:wipeout": {
+      "id": "5012612",
+      "name": "WipeouT",
+      "code": "w/o",
+      "path": "./assets/team-logos/fallback/dota2/wipeout-5012612.svg"
+    },
+    "dota2:team.serenity": {
+      "id": "5021898",
+      "name": "Team.Serenity",
+      "code": "Serenity",
+      "path": "./assets/team-logos/fallback/dota2/team-serenity-5021898.svg"
+    },
+    "dota2:pusing gaming": {
+      "id": "7204995",
+      "name": "Pusing Gaming",
+      "code": "PG",
+      "path": "./assets/team-logos/fallback/dota2/pusing-gaming-7204995.svg"
+    },
+    "dota2:you were my everything.": {
+      "id": "3259967",
+      "name": "you were my everything.",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/you-were-my-everything-3259967.svg"
+    },
+    "dota2:yakovlev esports": {
+      "id": "7425071",
+      "name": "Yakovlev eSports",
+      "code": "YaKs",
+      "path": "./assets/team-logos/fallback/dota2/yakovlev-esports-7425071.svg"
+    },
+    "dota2:team kazakhstan": {
+      "id": "8195590",
+      "name": "Team Kazakhstan",
+      "code": "KAZ",
+      "path": "./assets/team-logos/fallback/dota2/team-kazakhstan-8195590.svg"
+    },
+    "dota2:dragon slayerzzz": {
+      "id": "2837183",
+      "name": "Dragon Slayerzzz",
+      "code": "Dragneel",
+      "path": "./assets/team-logos/fallback/dota2/dragon-slayerzzz-2837183.svg"
+    },
+    "dota2:f.r.i.e.n.d.s": {
+      "id": "7683797",
+      "name": "F.R.I.E.N.D.S",
+      "code": "Friends",
+      "path": "./assets/team-logos/fallback/dota2/f-r-i-e-n-d-s-7683797.svg"
+    },
+    "dota2:looking for sponsors": {
+      "id": "7315013",
+      "name": "Looking for sponsors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/looking-for-sponsors-7315013.svg"
+    },
+    "dota2:cr": {
+      "id": "7849151",
+      "name": "CR",
+      "code": "CR",
+      "path": "./assets/team-logos/fallback/dota2/cr-7849151.svg"
+    },
+    "dota2:2late": {
+      "id": "9136712",
+      "name": "2late",
+      "code": "NP",
+      "path": "./assets/team-logos/fallback/dota2/2late-9136712.svg"
+    },
+    "dota2:extraordinary-team": {
+      "id": "2052902",
+      "name": "Extraordinary-Team",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/extraordinary-team-2052902.svg"
+    },
+    "dota2:we must move forward": {
+      "id": "8118868",
+      "name": "We must move forward",
+      "code": "WMMF",
+      "path": "./assets/team-logos/fallback/dota2/we-must-move-forward-8118868.svg"
+    },
+    "dota2:sporkface killaz": {
+      "id": "5208684",
+      "name": "Sporkface Killaz",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/sporkface-killaz-5208684.svg"
+    },
+    "dota2:revive": {
+      "id": "7422393",
+      "name": "Revive",
+      "code": "Revive",
+      "path": "./assets/team-logos/fallback/dota2/revive-7422393.svg"
+    },
+    "dota2:spartans": {
+      "id": "9033695",
+      "name": "Spartans",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/spartans-9033695.svg"
+    },
+    "dota2:aberomon raft": {
+      "id": "8022932",
+      "name": "ABEROMON RAFT",
+      "code": "ABEROO",
+      "path": "./assets/team-logos/fallback/dota2/aberomon-raft-8022932.svg"
+    },
+    "dota2:wanderlust": {
+      "id": "9181465",
+      "name": "Wanderlust",
+      "code": "Twt",
+      "path": "./assets/team-logos/fallback/dota2/wanderlust-9181465.svg"
+    },
+    "dota2:assail": {
+      "id": "1287653",
+      "name": "Assail",
+      "code": "^",
+      "path": "./assets/team-logos/fallback/dota2/assail-1287653.svg"
+    },
+    "dota2:oapb": {
+      "id": "8032335",
+      "name": "OAPB",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/oapb-8032335.svg"
+    },
+    "dota2:ghost walk": {
+      "id": "7439020",
+      "name": "GHOST WALK",
+      "code": "GW",
+      "path": "./assets/team-logos/fallback/dota2/ghost-walk-7439020.svg"
+    },
+    "dota2:mind games": {
+      "id": "8937383",
+      "name": "Mind Games",
+      "code": "MG",
+      "path": "./assets/team-logos/fallback/dota2/mind-games-8937383.svg"
+    },
+    "dota2:langlei": {
+      "id": "8964296",
+      "name": "Langlei",
+      "code": "LnG",
+      "path": "./assets/team-logos/fallback/dota2/langlei-8964296.svg"
+    },
+    "dota2:lgd-gaming.int": {
+      "id": "77666",
+      "name": "LGD-GAMING.int",
+      "code": "LGD.int",
+      "path": "./assets/team-logos/fallback/dota2/lgd-gaming-int-77666.svg"
+    },
+    "dota2:firedota": {
+      "id": "2059672",
+      "name": "FireDota",
+      "code": "Fire",
+      "path": "./assets/team-logos/fallback/dota2/firedota-2059672.svg"
+    },
+    "dota2:ares gaming": {
+      "id": "8056851",
+      "name": "Ares Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/ares-gaming-8056851.svg"
+    },
+    "dota2:team having fun": {
+      "id": "7666342",
+      "name": "Team Having fun",
+      "code": "THF",
+      "path": "./assets/team-logos/fallback/dota2/team-having-fun-7666342.svg"
+    },
+    "dota2:puppet masters": {
+      "id": "9006059",
+      "name": "Puppet Masters",
+      "code": "PM",
+      "path": "./assets/team-logos/fallback/dota2/puppet-masters-9006059.svg"
+    },
+    "dota2:team void": {
+      "id": "8168204",
+      "name": "team void",
+      "code": "void",
+      "path": "./assets/team-logos/fallback/dota2/team-void-8168204.svg"
+    },
+    "dota2:hardcore ninja": {
+      "id": "8526136",
+      "name": "Hardcore Ninja",
+      "code": "HN",
+      "path": "./assets/team-logos/fallback/dota2/hardcore-ninja-8526136.svg"
+    },
+    "dota2:sable hat": {
+      "id": "8261152",
+      "name": "Sable Hat",
+      "code": "SaH",
+      "path": "./assets/team-logos/fallback/dota2/sable-hat-8261152.svg"
+    },
+    "dota2:purple paradox": {
+      "id": "8800176",
+      "name": "Purple Paradox",
+      "code": "PP",
+      "path": "./assets/team-logos/fallback/dota2/purple-paradox-8800176.svg"
+    },
+    "dota2:quantic.young": {
+      "id": "2242024",
+      "name": "Quantic.Young",
+      "code": "Q.Yo",
+      "path": "./assets/team-logos/fallback/dota2/quantic-young-2242024.svg"
+    },
+    "dota2:pavaga junior": {
+      "id": "6462854",
+      "name": "Pavaga Junior",
+      "code": "PVG.J",
+      "path": "./assets/team-logos/fallback/dota2/pavaga-junior-6462854.svg"
+    },
+    "dota2:main sabun": {
+      "id": "6569799",
+      "name": "Main Sabun",
+      "code": "MSabun",
+      "path": "./assets/team-logos/fallback/dota2/main-sabun-6569799.svg"
+    },
+    "dota2:jinx_pro_amanda": {
+      "id": "7391517",
+      "name": "Jinx_Pro_Amanda",
+      "code": "JPA",
+      "path": "./assets/team-logos/fallback/dota2/jinx-pro-amanda-7391517.svg"
+    },
+    "dota2:ua rejects": {
+      "id": "9132053",
+      "name": "ua rejects",
+      "code": "ua",
+      "path": "./assets/team-logos/fallback/dota2/ua-rejects-9132053.svg"
+    },
+    "dota2:looney tunes": {
+      "id": "8691685",
+      "name": "Looney Tunes",
+      "code": "LTT",
+      "path": "./assets/team-logos/fallback/dota2/looney-tunes-8691685.svg"
+    },
+    "dota2:monkey2": {
+      "id": "7937261",
+      "name": "Monkey2",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/monkey2-7937261.svg"
+    },
+    "dota2:cock sucker": {
+      "id": "2025160",
+      "name": "COCK SUCKER",
+      "code": "COCK",
+      "path": "./assets/team-logos/fallback/dota2/cock-sucker-2025160.svg"
+    },
+    "dota2:darkness gaming": {
+      "id": "8850015",
+      "name": "DARKNESS GAMING",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/darkness-gaming-8850015.svg"
+    },
+    "dota2:vitality warriors": {
+      "id": "9048057",
+      "name": "Vitality Warriors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/vitality-warriors-9048057.svg"
+    },
+    "dota2:legiongaming": {
+      "id": "10053515",
+      "name": "LEGIONGAMING",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/legiongaming-10053515.svg"
+    },
+    "dota2:titan strikers": {
+      "id": "8879077",
+      "name": "Titan Strikers",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/titan-strikers-8879077.svg"
+    },
+    "dota2:vertex pack": {
+      "id": "8849833",
+      "name": "VERTEX PACK",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/vertex-pack-8849833.svg"
+    },
+    "dota2:crimsonsky": {
+      "id": "9025669",
+      "name": "CrimsonSky",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/crimsonsky-9025669.svg"
+    },
+    "dota2:fall victims": {
+      "id": "8849837",
+      "name": "FALL VICTIMS",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/fall-victims-8849837.svg"
+    },
+    "dota2:wild dragon": {
+      "id": "8936613",
+      "name": "Wild Dragon",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/wild-dragon-8936613.svg"
+    },
+    "dota2:holyteam": {
+      "id": "8987220",
+      "name": "HolyTeam",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/holyteam-8987220.svg"
+    },
+    "dota2:air defence": {
+      "id": "9828921",
+      "name": "Air Defence",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/air-defence-9828921.svg"
+    },
+    "dota2:btc gaming": {
+      "id": "9973656",
+      "name": "BTC Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/btc-gaming-9973656.svg"
+    },
+    "dota2:pypsiki": {
+      "id": "9973477",
+      "name": "PYPSIKI",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/pypsiki-9973477.svg"
+    },
+    "dota2:riftwalkers": {
+      "id": "9814269",
+      "name": "Riftwalkers",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/riftwalkers-9814269.svg"
+    },
+    "dota2:flawless goblins": {
+      "id": "8629005",
+      "name": "Flawless Goblins",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/flawless-goblins-8629005.svg"
+    },
+    "dota2:night force": {
+      "id": "9768243",
+      "name": "Night Force",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/night-force-9768243.svg"
+    },
+    "dota2:dark rebellion": {
+      "id": "9426115",
+      "name": "Dark Rebellion",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/dark-rebellion-9426115.svg"
+    },
+    "dota2:lv united": {
+      "id": "9878494",
+      "name": "LV United",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/lv-united-9878494.svg"
+    },
+    "dota2:wiser warriors": {
+      "id": "8629315",
+      "name": "Wiser Warriors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/wiser-warriors-8629315.svg"
     }
   },
   "byGameAndAlias": {
@@ -39158,6 +41726,1290 @@ export const TEAM_LOGO_MANIFEST = {
       "name": "PuckChamp",
       "code": "PC",
       "path": "./assets/team-logos/manual/dota2/puckchamp-9594647.webp"
+    },
+    "dota2:lv-": {
+      "id": "1848158",
+      "name": "LV-Gaming",
+      "code": "Lv",
+      "path": "./assets/team-logos/fallback/dota2/lv-gaming-1848158.svg"
+    },
+    "dota2:teammalaysia": {
+      "id": "1910985",
+      "name": "TeamMalaysia",
+      "code": "MY",
+      "path": "./assets/team-logos/fallback/dota2/teammalaysia-1910985.svg"
+    },
+    "dota2:tickles": {
+      "id": "9187066",
+      "name": "Team Tickles",
+      "code": "TT",
+      "path": "./assets/team-logos/fallback/dota2/team-tickles-9187066.svg"
+    },
+    "dota2:teamerino tinkerino": {
+      "id": "1820360",
+      "name": "TEAMERINO TINKERINO",
+      "code": "TT",
+      "path": "./assets/team-logos/fallback/dota2/teamerino-tinkerino-1820360.svg"
+    },
+    "dota2:speed international": {
+      "id": "1047281",
+      "name": "Speed Gaming International",
+      "code": "SPG.int",
+      "path": "./assets/team-logos/fallback/dota2/speed-gaming-international-1047281.svg"
+    },
+    "dota2:ink ice": {
+      "id": "8168562",
+      "name": "INK ICE",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/ink-ice-8168562.svg"
+    },
+    "dota2:positive guys": {
+      "id": "7405754",
+      "name": "Positive Guys",
+      "code": "PG",
+      "path": "./assets/team-logos/fallback/dota2/positive-guys-7405754.svg"
+    },
+    "dota2:4am.小象": {
+      "id": "8143502",
+      "name": "4am.小象",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/4am-8143502.svg"
+    },
+    "dota2:quincy crew": {
+      "id": "7806386",
+      "name": "Quincy Crew",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/quincy-crew-7806386.svg"
+    },
+    "dota2:13": {
+      "id": "9238717",
+      "name": "Team 13",
+      "code": "T13",
+      "path": "./assets/team-logos/fallback/dota2/team-13-9238717.svg"
+    },
+    "dota2:luccini gam1ng": {
+      "id": "1025734",
+      "name": "LUCCINI GAM1NG",
+      "code": "Luccini",
+      "path": "./assets/team-logos/fallback/dota2/luccini-gam1ng-1025734.svg"
+    },
+    "dota2:friends": {
+      "id": "3332295",
+      "name": "Friends",
+      "code": "Friends",
+      "path": "./assets/team-logos/fallback/dota2/friends-3332295.svg"
+    },
+    "dota2:chadou fint": {
+      "id": "8282268",
+      "name": "Chadou Fint",
+      "code": "SF",
+      "path": "./assets/team-logos/fallback/dota2/chadou-fint-8282268.svg"
+    },
+    "dota2:fnaticraidcall": {
+      "id": "38",
+      "name": "FnaticRaidCall",
+      "code": "Fntc",
+      "path": "./assets/team-logos/fallback/dota2/fnaticraidcall-38.svg"
+    },
+    "dota2:nvidia.arrowgaming.avf": {
+      "id": "1277104",
+      "name": "Nvidia.ArrowGaming.AVF",
+      "code": "Arrow",
+      "path": "./assets/team-logos/fallback/dota2/nvidia-arrowgaming-avf-1277104.svg"
+    },
+    "dota2:the pango": {
+      "id": "6298307",
+      "name": "The Pango",
+      "code": "ThePango",
+      "path": "./assets/team-logos/fallback/dota2/the-pango-6298307.svg"
+    },
+    "dota2:universitario": {
+      "id": "9419759",
+      "name": "universitario",
+      "code": "UNV",
+      "path": "./assets/team-logos/fallback/dota2/universitario-9419759.svg"
+    },
+    "dota2:aggressive mode": {
+      "id": "7653600",
+      "name": "Aggressive Mode",
+      "code": "A-Mode",
+      "path": "./assets/team-logos/fallback/dota2/aggressive-mode-7653600.svg"
+    },
+    "dota2:cow boys": {
+      "id": "7959677",
+      "name": "Cow boys",
+      "code": "Coy boys",
+      "path": "./assets/team-logos/fallback/dota2/cow-boys-7959677.svg"
+    },
+    "dota2:planet dog": {
+      "id": "4593831",
+      "name": "Planet Dog",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/planet-dog-4593831.svg"
+    },
+    "dota2:dream time.": {
+      "id": "1059824",
+      "name": "Dream time.",
+      "code": "DT",
+      "path": "./assets/team-logos/fallback/dota2/dream-time-1059824.svg"
+    },
+    "dota2:shazam~": {
+      "id": "2640099",
+      "name": "Shazam~",
+      "code": "Shazam",
+      "path": "./assets/team-logos/fallback/dota2/shazam-2640099.svg"
+    },
+    "dota2:grindsky": {
+      "id": "8597594",
+      "name": "GrindSky Esports",
+      "code": "GS",
+      "path": "./assets/team-logos/fallback/dota2/grindsky-esports-8597594.svg"
+    },
+    "dota2:gorilla": {
+      "id": "8750069",
+      "name": "Gorilla",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/gorilla-8750069.svg"
+    },
+    "dota2:for the dream": {
+      "id": "8075993",
+      "name": "For The Dream",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/for-the-dream-8075993.svg"
+    },
+    "dota2:bandanoone": {
+      "id": "9547255",
+      "name": "Bandanoone",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/bandanoone-9547255.svg"
+    },
+    "dota2:-ninjas-in-pyjamas-": {
+      "id": "2085365",
+      "name": "-Ninjas-in-Pyjamas-",
+      "code": "NiP",
+      "path": "./assets/team-logos/fallback/dota2/ninjas-in-pyjamas-2085365.svg"
+    },
+    "dota2:newbee.young": {
+      "id": "1951061",
+      "name": "Newbee.Young",
+      "code": "Newbee.Y",
+      "path": "./assets/team-logos/fallback/dota2/newbee-young-1951061.svg"
+    },
+    "dota2:meet your mak3rs": {
+      "id": "990533",
+      "name": "MeeT YouR Mak3rS",
+      "code": "mYm",
+      "path": "./assets/team-logos/fallback/dota2/meet-your-mak3rs-990533.svg"
+    },
+    "dota2:archon dota": {
+      "id": "2555665",
+      "name": "Archon Dota",
+      "code": "Archon",
+      "path": "./assets/team-logos/fallback/dota2/archon-dota-2555665.svg"
+    },
+    "dota2:alliancegg": {
+      "id": "626763",
+      "name": "AllianceGG",
+      "code": "[A]",
+      "path": "./assets/team-logos/fallback/dota2/alliancegg-626763.svg"
+    },
+    "dota2:duobao young": {
+      "id": "3317512",
+      "name": "DUOBAO Young",
+      "code": "DUOBAO.Y",
+      "path": "./assets/team-logos/fallback/dota2/duobao-young-3317512.svg"
+    },
+    "dota2:piggy killer": {
+      "id": "9017079",
+      "name": "Piggy Killer",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/piggy-killer-9017079.svg"
+    },
+    "dota2:tapan": {
+      "id": "8374752",
+      "name": "Tapan Gaming",
+      "code": "TPN",
+      "path": "./assets/team-logos/fallback/dota2/tapan-gaming-8374752.svg"
+    },
+    "dota2:clown city": {
+      "id": "8058269",
+      "name": "Clown City",
+      "code": "CC",
+      "path": "./assets/team-logos/fallback/dota2/clown-city-8058269.svg"
+    },
+    "dota2:\"sex\"": {
+      "id": "689412",
+      "name": "Team \"SEX\"",
+      "code": "sex",
+      "path": "./assets/team-logos/fallback/dota2/team-sex-689412.svg"
+    },
+    "dota2:lowkees": {
+      "id": "8456656",
+      "name": "lowkees",
+      "code": "lwkk",
+      "path": "./assets/team-logos/fallback/dota2/lowkees-8456656.svg"
+    },
+    "dota2:fire dragoon": {
+      "id": "2880140",
+      "name": "Fire Dragoon",
+      "code": "FDG",
+      "path": "./assets/team-logos/fallback/dota2/fire-dragoon-2880140.svg"
+    },
+    "dota2:arizona iced out boys": {
+      "id": "1286339",
+      "name": "Arizona Iced Out Boys",
+      "code": "sad",
+      "path": "./assets/team-logos/fallback/dota2/arizona-iced-out-boys-1286339.svg"
+    },
+    "dota2:one more game": {
+      "id": "8022392",
+      "name": "One More Game",
+      "code": "OMG",
+      "path": "./assets/team-logos/fallback/dota2/one-more-game-8022392.svg"
+    },
+    "dota2:athletico": {
+      "id": "5895083",
+      "name": "Athletico",
+      "code": "/A/",
+      "path": "./assets/team-logos/fallback/dota2/athletico-5895083.svg"
+    },
+    "dota2:gang bang": {
+      "id": "7344577",
+      "name": "Gang Bang",
+      "code": "GB",
+      "path": "./assets/team-logos/fallback/dota2/gang-bang-7344577.svg"
+    },
+    "dota2:dog": {
+      "id": "8230491",
+      "name": "TEAM DOG",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-dog-8230491.svg"
+    },
+    "dota2:fantech": {
+      "id": "6465690",
+      "name": "Team Fantech",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-fantech-6465690.svg"
+    },
+    "dota2:saints id": {
+      "id": "6796511",
+      "name": "Saints ID",
+      "code": "Saints",
+      "path": "./assets/team-logos/fallback/dota2/saints-id-6796511.svg"
+    },
+    "dota2:please dont gank my carry": {
+      "id": "8697328",
+      "name": "Please dont gank my carry",
+      "code": "gnk",
+      "path": "./assets/team-logos/fallback/dota2/please-dont-gank-my-carry-8697328.svg"
+    },
+    "dota2:v for vendeta": {
+      "id": "9677587",
+      "name": "V for Vendeta",
+      "code": "V",
+      "path": "./assets/team-logos/fallback/dota2/v-for-vendeta-9677587.svg"
+    },
+    "dota2:tempo": {
+      "id": "7556672",
+      "name": "TEMPO",
+      "code": "TMP",
+      "path": "./assets/team-logos/fallback/dota2/tempo-7556672.svg"
+    },
+    "dota2:avengers": {
+      "id": "7586931",
+      "name": "Avengers",
+      "code": "A",
+      "path": "./assets/team-logos/fallback/dota2/avengers-7586931.svg"
+    },
+    "dota2:wilddeer": {
+      "id": "8563718",
+      "name": "WildDeer",
+      "code": "WD",
+      "path": "./assets/team-logos/fallback/dota2/wilddeer-8563718.svg"
+    },
+    "dota2:los moticucos": {
+      "id": "9079676",
+      "name": "Los moticucos",
+      "code": "PARK",
+      "path": "./assets/team-logos/fallback/dota2/los-moticucos-9079676.svg"
+    },
+    "dota2:g4": {
+      "id": "3706823",
+      "name": "G4",
+      "code": "G4",
+      "path": "./assets/team-logos/fallback/dota2/g4-3706823.svg"
+    },
+    "dota2:fighting pepegas": {
+      "id": "7391166",
+      "name": "Fighting Pepegas",
+      "code": "FP",
+      "path": "./assets/team-logos/fallback/dota2/fighting-pepegas-7391166.svg"
+    },
+    "dota2:revenge": {
+      "id": "7101255",
+      "name": "Revenge Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/revenge-gaming-7101255.svg"
+    },
+    "dota2:come down": {
+      "id": "8193609",
+      "name": "Come down",
+      "code": "CD",
+      "path": "./assets/team-logos/fallback/dota2/come-down-8193609.svg"
+    },
+    "dota2:rush b!": {
+      "id": "8375459",
+      "name": "rush b!",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/rush-b-8375459.svg"
+    },
+    "dota2:nomuerta": {
+      "id": "9224799",
+      "name": "NoMuerta",
+      "code": "NM",
+      "path": "./assets/team-logos/fallback/dota2/nomuerta-9224799.svg"
+    },
+    "dota2:deathbringer": {
+      "id": "5194336",
+      "name": "DeathBringer Gaming",
+      "code": "DBG",
+      "path": "./assets/team-logos/fallback/dota2/deathbringer-gaming-5194336.svg"
+    },
+    "dota2:zenith": {
+      "id": "2",
+      "name": "Zenith",
+      "code": "Zenith",
+      "path": "./assets/team-logos/fallback/dota2/zenith-2.svg"
+    },
+    "dota2:newbee.m": {
+      "id": "5084724",
+      "name": "Newbee.M",
+      "code": "Newbee.M",
+      "path": "./assets/team-logos/fallback/dota2/newbee-m-5084724.svg"
+    },
+    "dota2:estolis": {
+      "id": "6925812",
+      "name": "EStolis Team",
+      "code": "EST",
+      "path": "./assets/team-logos/fallback/dota2/estolis-team-6925812.svg"
+    },
+    "dota2:tayo lovers": {
+      "id": "6269097",
+      "name": "TAYO LOVERS",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/tayo-lovers-6269097.svg"
+    },
+    "dota2:potm bottom": {
+      "id": "53",
+      "name": "Potm Bottom",
+      "code": "PB",
+      "path": "./assets/team-logos/fallback/dota2/potm-bottom-53.svg"
+    },
+    "dota2:lava bestpc": {
+      "id": "8581305",
+      "name": "Lava BestPc",
+      "code": "Lava",
+      "path": "./assets/team-logos/fallback/dota2/lava-bestpc-8581305.svg"
+    },
+    "dota2:aggressive mode.": {
+      "id": "7641673",
+      "name": "Aggressive Mode.",
+      "code": "A-Mode",
+      "path": "./assets/team-logos/fallback/dota2/aggressive-mode-7641673.svg"
+    },
+    "dota2:se7en": {
+      "id": "6265062",
+      "name": "Se7en Esports",
+      "code": "S7E",
+      "path": "./assets/team-logos/fallback/dota2/se7en-esports-6265062.svg"
+    },
+    "dota2:golden legacy": {
+      "id": "8133097",
+      "name": "Golden Legacy",
+      "code": "GL",
+      "path": "./assets/team-logos/fallback/dota2/golden-legacy-8133097.svg"
+    },
+    "dota2:orange": {
+      "id": "42",
+      "name": "Orange E-Sports",
+      "code": "Orange",
+      "path": "./assets/team-logos/fallback/dota2/orange-e-sports-42.svg"
+    },
+    "dota2:danish bears": {
+      "id": "464103",
+      "name": "Danish Bears",
+      "code": "DB",
+      "path": "./assets/team-logos/fallback/dota2/danish-bears-464103.svg"
+    },
+    "dota2:deathwish": {
+      "id": "7751001",
+      "name": "DeathWish",
+      "code": "DW",
+      "path": "./assets/team-logos/fallback/dota2/deathwish-7751001.svg"
+    },
+    "dota2:cyberium.s": {
+      "id": "8021531",
+      "name": "CYBERIUM.S",
+      "code": "CYBERIUM",
+      "path": "./assets/team-logos/fallback/dota2/cyberium-s-8021531.svg"
+    },
+    "dota2:infinite tsukuyomi": {
+      "id": "7574786",
+      "name": "infinite tsukuyomi",
+      "code": "ITS",
+      "path": "./assets/team-logos/fallback/dota2/infinite-tsukuyomi-7574786.svg"
+    },
+    "dota2:power of mysg+au": {
+      "id": "7119284",
+      "name": "Power of MYSG+AU",
+      "code": "MYSGAU",
+      "path": "./assets/team-logos/fallback/dota2/power-of-mysg-au-7119284.svg"
+    },
+    "dota2:orginality": {
+      "id": "5209335",
+      "name": "Orginality",
+      "code": "ORg",
+      "path": "./assets/team-logos/fallback/dota2/orginality-5209335.svg"
+    },
+    "dota2:ss darvin lopers": {
+      "id": "6822187",
+      "name": "SS DARVIN LOPERS",
+      "code": "DL",
+      "path": "./assets/team-logos/fallback/dota2/ss-darvin-lopers-6822187.svg"
+    },
+    "dota2:manaburn": {
+      "id": "7543171",
+      "name": "Manaburn",
+      "code": "Manaburn",
+      "path": "./assets/team-logos/fallback/dota2/manaburn-7543171.svg"
+    },
+    "dota2:khan": {
+      "id": "8496219",
+      "name": "Khan esports",
+      "code": "Khan",
+      "path": "./assets/team-logos/fallback/dota2/khan-esports-8496219.svg"
+    },
+    "dota2:zorka": {
+      "id": "8701706",
+      "name": "Zorka",
+      "code": "Zorka",
+      "path": "./assets/team-logos/fallback/dota2/zorka-8701706.svg"
+    },
+    "dota2:park bo cuan": {
+      "id": "7472412",
+      "name": "Park Bo Cuan",
+      "code": "PBC",
+      "path": "./assets/team-logos/fallback/dota2/park-bo-cuan-7472412.svg"
+    },
+    "dota2:me parb": {
+      "id": "9352756",
+      "name": "Me Parb",
+      "code": "MP",
+      "path": "./assets/team-logos/fallback/dota2/me-parb-9352756.svg"
+    },
+    "dota2:vici potential": {
+      "id": "2833354",
+      "name": "Vici Gaming Potential",
+      "code": "VG.P",
+      "path": "./assets/team-logos/fallback/dota2/vici-gaming-potential-2833354.svg"
+    },
+    "dota2:midas": {
+      "id": "7913999",
+      "name": "Midas Club",
+      "code": "Midas",
+      "path": "./assets/team-logos/fallback/dota2/midas-club-7913999.svg"
+    },
+    "dota2:boss andre": {
+      "id": "7391558",
+      "name": "BOSS ANDRE",
+      "code": "BA",
+      "path": "./assets/team-logos/fallback/dota2/boss-andre-7391558.svg"
+    },
+    "dota2:inter active philippines": {
+      "id": "1648005",
+      "name": "Inter Active Philippines",
+      "code": "IAP",
+      "path": "./assets/team-logos/fallback/dota2/inter-active-philippines-1648005.svg"
+    },
+    "dota2:leetss do it": {
+      "id": "2136210",
+      "name": "Leetss Do It",
+      "code": "asd",
+      "path": "./assets/team-logos/fallback/dota2/leetss-do-it-2136210.svg"
+    },
+    "dota2:guardian": {
+      "id": "6658560",
+      "name": "Guardian Gaming",
+      "code": "GG",
+      "path": "./assets/team-logos/fallback/dota2/guardian-gaming-6658560.svg"
+    },
+    "dota2:内蒙古的星空": {
+      "id": "9277978",
+      "name": "内蒙古的星空",
+      "code": "DLG",
+      "path": "./assets/team-logos/fallback/dota2/team-9277978.svg"
+    },
+    "dota2:kinkalow": {
+      "id": "8638425",
+      "name": "Kinkalow",
+      "code": "KKL",
+      "path": "./assets/team-logos/fallback/dota2/kinkalow-8638425.svg"
+    },
+    "dota2:frozendawn": {
+      "id": "7218194",
+      "name": "FrozenDawn Club",
+      "code": "FD",
+      "path": "./assets/team-logos/fallback/dota2/frozendawn-club-7218194.svg"
+    },
+    "dota2:bmstu": {
+      "id": "7528264",
+      "name": "bmstu",
+      "code": "bmstu",
+      "path": "./assets/team-logos/fallback/dota2/bmstu-7528264.svg"
+    },
+    "dota2:avant garde": {
+      "id": "805172",
+      "name": "Avant Garde Gaming",
+      "code": "Avant",
+      "path": "./assets/team-logos/fallback/dota2/avant-garde-gaming-805172.svg"
+    },
+    "dota2:m11 slayers": {
+      "id": "6951684",
+      "name": "M11 SLAYERS",
+      "code": "M11SLAYERS",
+      "path": "./assets/team-logos/fallback/dota2/m11-slayers-6951684.svg"
+    },
+    "dota2:void boys": {
+      "id": "1884355",
+      "name": "Void Boys",
+      "code": "VB",
+      "path": "./assets/team-logos/fallback/dota2/void-boys-1884355.svg"
+    },
+    "dota2:los magikarps": {
+      "id": "3008699",
+      "name": "Los Magikarps",
+      "code": "Karp",
+      "path": "./assets/team-logos/fallback/dota2/los-magikarps-3008699.svg"
+    },
+    "dota2:backstab boys": {
+      "id": "8039920",
+      "name": "Backstab Boys",
+      "code": "STABS",
+      "path": "./assets/team-logos/fallback/dota2/backstab-boys-8039920.svg"
+    },
+    "dota2:crayon shin-chan": {
+      "id": "8756744",
+      "name": "Crayon Shin-chan",
+      "code": "CSC",
+      "path": "./assets/team-logos/fallback/dota2/crayon-shin-chan-8756744.svg"
+    },
+    "dota2:bg": {
+      "id": "5219214",
+      "name": "BG",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/bg-5219214.svg"
+    },
+    "dota2:eu vou estudo": {
+      "id": "7958190",
+      "name": "eu vou estudo",
+      "code": "enem",
+      "path": "./assets/team-logos/fallback/dota2/eu-vou-estudo-7958190.svg"
+    },
+    "dota2:sterling global dragons": {
+      "id": "5896332",
+      "name": "Sterling Global Dragons",
+      "code": "SGD",
+      "path": "./assets/team-logos/fallback/dota2/sterling-global-dragons-5896332.svg"
+    },
+    "dota2:castawake": {
+      "id": "9547653",
+      "name": "Castawake",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/castawake-9547653.svg"
+    },
+    "dota2:chompers x": {
+      "id": "9323850",
+      "name": "Chompers X",
+      "code": "Chomp",
+      "path": "./assets/team-logos/fallback/dota2/chompers-x-9323850.svg"
+    },
+    "dota2:miaww^^": {
+      "id": "7894580",
+      "name": "miaww^^",
+      "code": "miaww^^",
+      "path": "./assets/team-logos/fallback/dota2/miaww-7894580.svg"
+    },
+    "dota2:ji est''": {
+      "id": "9834249",
+      "name": "Ji est''",
+      "code": ".Jst",
+      "path": "./assets/team-logos/fallback/dota2/ji-est-9834249.svg"
+    },
+    "dota2:admiral dota": {
+      "id": "5207190",
+      "name": "Admiral Dota",
+      "code": "Admiral",
+      "path": "./assets/team-logos/fallback/dota2/admiral-dota-5207190.svg"
+    },
+    "dota2:therereretry": {
+      "id": "433549",
+      "name": "TheRerereTRY",
+      "code": "TR",
+      "path": "./assets/team-logos/fallback/dota2/therereretry-433549.svg"
+    },
+    "dota2:unchained": {
+      "id": "5242529",
+      "name": "Unchained Esports",
+      "code": "UNC",
+      "path": "./assets/team-logos/fallback/dota2/unchained-esports-5242529.svg"
+    },
+    "dota2:immunity dota": {
+      "id": "1464407",
+      "name": "Immunity Dota",
+      "code": "iM",
+      "path": "./assets/team-logos/fallback/dota2/immunity-dota-1464407.svg"
+    },
+    "dota2:山东好男人": {
+      "id": "9849814",
+      "name": "山东好男人",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-9849814.svg"
+    },
+    "dota2:no fucking name": {
+      "id": "7284811",
+      "name": "No Fucking Name",
+      "code": "NFN",
+      "path": "./assets/team-logos/fallback/dota2/no-fucking-name-7284811.svg"
+    },
+    "dota2:whoops!": {
+      "id": "7316976",
+      "name": "Whoops!",
+      "code": "Whoops!",
+      "path": "./assets/team-logos/fallback/dota2/whoops-7316976.svg"
+    },
+    "dota2:phoenix rising": {
+      "id": "1325243",
+      "name": "Team Phoenix Rising",
+      "code": "PHX",
+      "path": "./assets/team-logos/fallback/dota2/team-phoenix-rising-1325243.svg"
+    },
+    "dota2:random": {
+      "id": "4253054",
+      "name": "Team Random",
+      "code": "Random",
+      "path": "./assets/team-logos/fallback/dota2/team-random-4253054.svg"
+    },
+    "dota2:summit": {
+      "id": "8597183",
+      "name": "Summit Gaming",
+      "code": "Summit",
+      "path": "./assets/team-logos/fallback/dota2/summit-gaming-8597183.svg"
+    },
+    "dota2:scorpion": {
+      "id": "8680140",
+      "name": "Team ScorpioN",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-scorpion-8680140.svg"
+    },
+    "dota2:hf": {
+      "id": "8360860",
+      "name": "HF",
+      "code": "HF",
+      "path": "./assets/team-logos/fallback/dota2/hf-8360860.svg"
+    },
+    "dota2:thundercoast": {
+      "id": "8574375",
+      "name": "ThunderCoast",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/thundercoast-8574375.svg"
+    },
+    "dota2:saiyan": {
+      "id": "7407260",
+      "name": "Team Saiyan",
+      "code": "TSaiyin",
+      "path": "./assets/team-logos/fallback/dota2/team-saiyan-7407260.svg"
+    },
+    "dota2:veteran": {
+      "id": "4259604",
+      "name": "Veteran",
+      "code": "Veteran",
+      "path": "./assets/team-logos/fallback/dota2/veteran-4259604.svg"
+    },
+    "dota2:selemene": {
+      "id": "8406632",
+      "name": "Selemene",
+      "code": "Selemene",
+      "path": "./assets/team-logos/fallback/dota2/selemene-8406632.svg"
+    },
+    "dota2:flash point": {
+      "id": "7204148",
+      "name": "Flash Point Gaming",
+      "code": "fP",
+      "path": "./assets/team-logos/fallback/dota2/flash-point-gaming-7204148.svg"
+    },
+    "dota2:повер ренджерс": {
+      "id": "9455993",
+      "name": "повер ренджерс",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/team-9455993.svg"
+    },
+    "dota2:bhedos": {
+      "id": "8750143",
+      "name": "Team Bhedos",
+      "code": "TB",
+      "path": "./assets/team-logos/fallback/dota2/team-bhedos-8750143.svg"
+    },
+    "dota2:@__@": {
+      "id": "2686375",
+      "name": "@__@",
+      "code": "@__@",
+      "path": "./assets/team-logos/fallback/dota2/team-2686375.svg"
+    },
+    "dota2:leopard": {
+      "id": "7716098",
+      "name": "Leopard Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/leopard-gaming-7716098.svg"
+    },
+    "dota2:overlord": {
+      "id": "8820860",
+      "name": "Overlord",
+      "code": "不死者",
+      "path": "./assets/team-logos/fallback/dota2/overlord-8820860.svg"
+    },
+    "dota2:freedom dota 2": {
+      "id": "2701329",
+      "name": "Team Freedom Dota 2",
+      "code": "Freedom",
+      "path": "./assets/team-logos/fallback/dota2/team-freedom-dota-2-2701329.svg"
+    },
+    "dota2:.phoenix": {
+      "id": "6187452",
+      "name": "Team.PhoeniX",
+      "code": "PhoeniX",
+      "path": "./assets/team-logos/fallback/dota2/team-phoenix-6187452.svg"
+    },
+    "dota2:you rock": {
+      "id": "6767698",
+      "name": "You Rock",
+      "code": "YouRock",
+      "path": "./assets/team-logos/fallback/dota2/you-rock-6767698.svg"
+    },
+    "dota2:cybercats": {
+      "id": "8545488",
+      "name": "cybercats",
+      "code": "CC",
+      "path": "./assets/team-logos/fallback/dota2/cybercats-8545488.svg"
+    },
+    "dota2:sqreen's squad v2.0": {
+      "id": "1175580",
+      "name": "sQreen's squad v2.0",
+      "code": "ss",
+      "path": "./assets/team-logos/fallback/dota2/sqreen-s-squad-v2-0-1175580.svg"
+    },
+    "dota2:optimus amicus": {
+      "id": "6849080",
+      "name": "Optimus Amicus",
+      "code": "OA",
+      "path": "./assets/team-logos/fallback/dota2/optimus-amicus-6849080.svg"
+    },
+    "dota2:demon slayers": {
+      "id": "7469922",
+      "name": "Demon Slayers",
+      "code": "DemSlay",
+      "path": "./assets/team-logos/fallback/dota2/demon-slayers-7469922.svg"
+    },
+    "dota2:ukraine": {
+      "id": "6594251",
+      "name": "TEAM UKRAINE",
+      "code": "UKRAINA",
+      "path": "./assets/team-logos/fallback/dota2/team-ukraine-6594251.svg"
+    },
+    "dota2:positive vibes": {
+      "id": "8829652",
+      "name": "Positive Vibes",
+      "code": "PV",
+      "path": "./assets/team-logos/fallback/dota2/positive-vibes-8829652.svg"
+    },
+    "dota2:apollo": {
+      "id": "7566229",
+      "name": "Apollo",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/apollo-7566229.svg"
+    },
+    "dota2:infinite war": {
+      "id": "8300691",
+      "name": "Infinite War",
+      "code": "IW",
+      "path": "./assets/team-logos/fallback/dota2/infinite-war-8300691.svg"
+    },
+    "dota2:lithium": {
+      "id": "5766651",
+      "name": "Lithium",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/lithium-5766651.svg"
+    },
+    "dota2:eternal": {
+      "id": "1218336",
+      "name": "Eternal",
+      "code": "Eternal",
+      "path": "./assets/team-logos/fallback/dota2/eternal-1218336.svg"
+    },
+    "dota2:yonko": {
+      "id": "9120269",
+      "name": "Yonko",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/yonko-9120269.svg"
+    },
+    "dota2:saykalitatsh": {
+      "id": "9055339",
+      "name": "saykalitatsh",
+      "code": "saya",
+      "path": "./assets/team-logos/fallback/dota2/saykalitatsh-9055339.svg"
+    },
+    "dota2:tlc": {
+      "id": "2429870",
+      "name": "TLC GAMING",
+      "code": "TLC",
+      "path": "./assets/team-logos/fallback/dota2/tlc-gaming-2429870.svg"
+    },
+    "dota2:megalodon .": {
+      "id": "862976",
+      "name": "Megalodon Gaming.",
+      "code": "MeGa",
+      "path": "./assets/team-logos/fallback/dota2/megalodon-gaming-862976.svg"
+    },
+    "dota2:---uioyuiruy": {
+      "id": "2585648",
+      "name": "---uioyuiruy",
+      "code": "TLC",
+      "path": "./assets/team-logos/fallback/dota2/uioyuiruy-2585648.svg"
+    },
+    "dota2:uzbekistan": {
+      "id": "9409263",
+      "name": "Uzbekistan",
+      "code": "UZB",
+      "path": "./assets/team-logos/fallback/dota2/uzbekistan-9409263.svg"
+    },
+    "dota2:elfinger": {
+      "id": "6382750",
+      "name": "ELFinger Esports",
+      "code": "ELF",
+      "path": "./assets/team-logos/fallback/dota2/elfinger-esports-6382750.svg"
+    },
+    "dota2:esc": {
+      "id": "9017436",
+      "name": "esc",
+      "code": "esc",
+      "path": "./assets/team-logos/fallback/dota2/esc-9017436.svg"
+    },
+    "dota2:chandogs": {
+      "id": "9973579",
+      "name": "chandogs",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/chandogs-9973579.svg"
+    },
+    "dota2:sanguine sharks": {
+      "id": "2850016",
+      "name": "Sanguine Sharks",
+      "code": "SHARKS",
+      "path": "./assets/team-logos/fallback/dota2/sanguine-sharks-2850016.svg"
+    },
+    "dota2:apex": {
+      "id": "8655598",
+      "name": "Apex",
+      "code": "Apex",
+      "path": "./assets/team-logos/fallback/dota2/apex-8655598.svg"
+    },
+    "dota2:сascade": {
+      "id": "8215803",
+      "name": "Сascade Esports",
+      "code": "Cascade",
+      "path": "./assets/team-logos/fallback/dota2/ascade-esports-8215803.svg"
+    },
+    "dota2:domino": {
+      "id": "8701944",
+      "name": "Team Domino",
+      "code": "TD",
+      "path": "./assets/team-logos/fallback/dota2/team-domino-8701944.svg"
+    },
+    "dota2:tisumejik": {
+      "id": "7237001",
+      "name": "Tisumejik Esport",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/tisumejik-esport-7237001.svg"
+    },
+    "dota2:balkanbearsro": {
+      "id": "1936852",
+      "name": "BalkanBearsRo",
+      "code": "BB.RO",
+      "path": "./assets/team-logos/fallback/dota2/balkanbearsro-1936852.svg"
+    },
+    "dota2:cyberlife": {
+      "id": "8309784",
+      "name": "CyberLife eSports",
+      "code": "Clife",
+      "path": "./assets/team-logos/fallback/dota2/cyberlife-esports-8309784.svg"
+    },
+    "dota2:the gd b-": {
+      "id": "94252",
+      "name": "The GD B-Team",
+      "code": "[GD]",
+      "path": "./assets/team-logos/fallback/dota2/the-gd-b-team-94252.svg"
+    },
+    "dota2:derzhawin": {
+      "id": "9042172",
+      "name": "DerzhaWIN",
+      "code": "DerzhaWIN",
+      "path": "./assets/team-logos/fallback/dota2/derzhawin-9042172.svg"
+    },
+    "dota2:wipeout": {
+      "id": "5012612",
+      "name": "WipeouT",
+      "code": "w/o",
+      "path": "./assets/team-logos/fallback/dota2/wipeout-5012612.svg"
+    },
+    "dota2:.serenity": {
+      "id": "5021898",
+      "name": "Team.Serenity",
+      "code": "Serenity",
+      "path": "./assets/team-logos/fallback/dota2/team-serenity-5021898.svg"
+    },
+    "dota2:pusing": {
+      "id": "7204995",
+      "name": "Pusing Gaming",
+      "code": "PG",
+      "path": "./assets/team-logos/fallback/dota2/pusing-gaming-7204995.svg"
+    },
+    "dota2:you were my everything.": {
+      "id": "3259967",
+      "name": "you were my everything.",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/you-were-my-everything-3259967.svg"
+    },
+    "dota2:yakovlev": {
+      "id": "7425071",
+      "name": "Yakovlev eSports",
+      "code": "YaKs",
+      "path": "./assets/team-logos/fallback/dota2/yakovlev-esports-7425071.svg"
+    },
+    "dota2:kazakhstan": {
+      "id": "8195590",
+      "name": "Team Kazakhstan",
+      "code": "KAZ",
+      "path": "./assets/team-logos/fallback/dota2/team-kazakhstan-8195590.svg"
+    },
+    "dota2:dragon slayerzzz": {
+      "id": "2837183",
+      "name": "Dragon Slayerzzz",
+      "code": "Dragneel",
+      "path": "./assets/team-logos/fallback/dota2/dragon-slayerzzz-2837183.svg"
+    },
+    "dota2:f.r.i.e.n.d.s": {
+      "id": "7683797",
+      "name": "F.R.I.E.N.D.S",
+      "code": "Friends",
+      "path": "./assets/team-logos/fallback/dota2/f-r-i-e-n-d-s-7683797.svg"
+    },
+    "dota2:looking for sponsors": {
+      "id": "7315013",
+      "name": "Looking for sponsors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/looking-for-sponsors-7315013.svg"
+    },
+    "dota2:cr": {
+      "id": "7849151",
+      "name": "CR",
+      "code": "CR",
+      "path": "./assets/team-logos/fallback/dota2/cr-7849151.svg"
+    },
+    "dota2:2late": {
+      "id": "9136712",
+      "name": "2late",
+      "code": "NP",
+      "path": "./assets/team-logos/fallback/dota2/2late-9136712.svg"
+    },
+    "dota2:extraordinary-": {
+      "id": "2052902",
+      "name": "Extraordinary-Team",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/extraordinary-team-2052902.svg"
+    },
+    "dota2:we must move forward": {
+      "id": "8118868",
+      "name": "We must move forward",
+      "code": "WMMF",
+      "path": "./assets/team-logos/fallback/dota2/we-must-move-forward-8118868.svg"
+    },
+    "dota2:sporkface killaz": {
+      "id": "5208684",
+      "name": "Sporkface Killaz",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/sporkface-killaz-5208684.svg"
+    },
+    "dota2:revive": {
+      "id": "7422393",
+      "name": "Revive",
+      "code": "Revive",
+      "path": "./assets/team-logos/fallback/dota2/revive-7422393.svg"
+    },
+    "dota2:spartans": {
+      "id": "9033695",
+      "name": "Spartans",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/spartans-9033695.svg"
+    },
+    "dota2:aberomon raft": {
+      "id": "8022932",
+      "name": "ABEROMON RAFT",
+      "code": "ABEROO",
+      "path": "./assets/team-logos/fallback/dota2/aberomon-raft-8022932.svg"
+    },
+    "dota2:wanderlust": {
+      "id": "9181465",
+      "name": "Wanderlust",
+      "code": "Twt",
+      "path": "./assets/team-logos/fallback/dota2/wanderlust-9181465.svg"
+    },
+    "dota2:assail": {
+      "id": "1287653",
+      "name": "Assail",
+      "code": "^",
+      "path": "./assets/team-logos/fallback/dota2/assail-1287653.svg"
+    },
+    "dota2:oapb": {
+      "id": "8032335",
+      "name": "OAPB",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/oapb-8032335.svg"
+    },
+    "dota2:ghost walk": {
+      "id": "7439020",
+      "name": "GHOST WALK",
+      "code": "GW",
+      "path": "./assets/team-logos/fallback/dota2/ghost-walk-7439020.svg"
+    },
+    "dota2:mind games": {
+      "id": "8937383",
+      "name": "Mind Games",
+      "code": "MG",
+      "path": "./assets/team-logos/fallback/dota2/mind-games-8937383.svg"
+    },
+    "dota2:langlei": {
+      "id": "8964296",
+      "name": "Langlei",
+      "code": "LnG",
+      "path": "./assets/team-logos/fallback/dota2/langlei-8964296.svg"
+    },
+    "dota2:lgd- .int": {
+      "id": "77666",
+      "name": "LGD-GAMING.int",
+      "code": "LGD.int",
+      "path": "./assets/team-logos/fallback/dota2/lgd-gaming-int-77666.svg"
+    },
+    "dota2:firedota": {
+      "id": "2059672",
+      "name": "FireDota",
+      "code": "Fire",
+      "path": "./assets/team-logos/fallback/dota2/firedota-2059672.svg"
+    },
+    "dota2:ares": {
+      "id": "8056851",
+      "name": "Ares Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/ares-gaming-8056851.svg"
+    },
+    "dota2:having fun": {
+      "id": "7666342",
+      "name": "Team Having fun",
+      "code": "THF",
+      "path": "./assets/team-logos/fallback/dota2/team-having-fun-7666342.svg"
+    },
+    "dota2:puppet masters": {
+      "id": "9006059",
+      "name": "Puppet Masters",
+      "code": "PM",
+      "path": "./assets/team-logos/fallback/dota2/puppet-masters-9006059.svg"
+    },
+    "dota2:void": {
+      "id": "8168204",
+      "name": "team void",
+      "code": "void",
+      "path": "./assets/team-logos/fallback/dota2/team-void-8168204.svg"
+    },
+    "dota2:hardcore ninja": {
+      "id": "8526136",
+      "name": "Hardcore Ninja",
+      "code": "HN",
+      "path": "./assets/team-logos/fallback/dota2/hardcore-ninja-8526136.svg"
+    },
+    "dota2:sable hat": {
+      "id": "8261152",
+      "name": "Sable Hat",
+      "code": "SaH",
+      "path": "./assets/team-logos/fallback/dota2/sable-hat-8261152.svg"
+    },
+    "dota2:purple paradox": {
+      "id": "8800176",
+      "name": "Purple Paradox",
+      "code": "PP",
+      "path": "./assets/team-logos/fallback/dota2/purple-paradox-8800176.svg"
+    },
+    "dota2:quantic.young": {
+      "id": "2242024",
+      "name": "Quantic.Young",
+      "code": "Q.Yo",
+      "path": "./assets/team-logos/fallback/dota2/quantic-young-2242024.svg"
+    },
+    "dota2:pavaga junior": {
+      "id": "6462854",
+      "name": "Pavaga Junior",
+      "code": "PVG.J",
+      "path": "./assets/team-logos/fallback/dota2/pavaga-junior-6462854.svg"
+    },
+    "dota2:main sabun": {
+      "id": "6569799",
+      "name": "Main Sabun",
+      "code": "MSabun",
+      "path": "./assets/team-logos/fallback/dota2/main-sabun-6569799.svg"
+    },
+    "dota2:jinx_pro_amanda": {
+      "id": "7391517",
+      "name": "Jinx_Pro_Amanda",
+      "code": "JPA",
+      "path": "./assets/team-logos/fallback/dota2/jinx-pro-amanda-7391517.svg"
+    },
+    "dota2:ua rejects": {
+      "id": "9132053",
+      "name": "ua rejects",
+      "code": "ua",
+      "path": "./assets/team-logos/fallback/dota2/ua-rejects-9132053.svg"
+    },
+    "dota2:looney tunes": {
+      "id": "8691685",
+      "name": "Looney Tunes",
+      "code": "LTT",
+      "path": "./assets/team-logos/fallback/dota2/looney-tunes-8691685.svg"
+    },
+    "dota2:monkey2": {
+      "id": "7937261",
+      "name": "Monkey2",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/monkey2-7937261.svg"
+    },
+    "dota2:cock sucker": {
+      "id": "2025160",
+      "name": "COCK SUCKER",
+      "code": "COCK",
+      "path": "./assets/team-logos/fallback/dota2/cock-sucker-2025160.svg"
+    },
+    "dota2:darkness": {
+      "id": "8850015",
+      "name": "DARKNESS GAMING",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/darkness-gaming-8850015.svg"
+    },
+    "dota2:vitality warriors": {
+      "id": "9048057",
+      "name": "Vitality Warriors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/vitality-warriors-9048057.svg"
+    },
+    "dota2:legiongaming": {
+      "id": "10053515",
+      "name": "LEGIONGAMING",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/legiongaming-10053515.svg"
+    },
+    "dota2:titan strikers": {
+      "id": "8879077",
+      "name": "Titan Strikers",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/titan-strikers-8879077.svg"
+    },
+    "dota2:vertex pack": {
+      "id": "8849833",
+      "name": "VERTEX PACK",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/vertex-pack-8849833.svg"
+    },
+    "dota2:crimsonsky": {
+      "id": "9025669",
+      "name": "CrimsonSky",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/crimsonsky-9025669.svg"
+    },
+    "dota2:fall victims": {
+      "id": "8849837",
+      "name": "FALL VICTIMS",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/fall-victims-8849837.svg"
+    },
+    "dota2:wild dragon": {
+      "id": "8936613",
+      "name": "Wild Dragon",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/wild-dragon-8936613.svg"
+    },
+    "dota2:holyteam": {
+      "id": "8987220",
+      "name": "HolyTeam",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/holyteam-8987220.svg"
+    },
+    "dota2:air defence": {
+      "id": "9828921",
+      "name": "Air Defence",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/air-defence-9828921.svg"
+    },
+    "dota2:btc": {
+      "id": "9973656",
+      "name": "BTC Gaming",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/btc-gaming-9973656.svg"
+    },
+    "dota2:pypsiki": {
+      "id": "9973477",
+      "name": "PYPSIKI",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/pypsiki-9973477.svg"
+    },
+    "dota2:riftwalkers": {
+      "id": "9814269",
+      "name": "Riftwalkers",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/riftwalkers-9814269.svg"
+    },
+    "dota2:flawless goblins": {
+      "id": "8629005",
+      "name": "Flawless Goblins",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/flawless-goblins-8629005.svg"
+    },
+    "dota2:night force": {
+      "id": "9768243",
+      "name": "Night Force",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/night-force-9768243.svg"
+    },
+    "dota2:dark rebellion": {
+      "id": "9426115",
+      "name": "Dark Rebellion",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/dark-rebellion-9426115.svg"
+    },
+    "dota2:lv united": {
+      "id": "9878494",
+      "name": "LV United",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/lv-united-9878494.svg"
+    },
+    "dota2:wiser warriors": {
+      "id": "8629315",
+      "name": "Wiser Warriors",
+      "code": null,
+      "path": "./assets/team-logos/fallback/dota2/wiser-warriors-8629315.svg"
     }
   }
 }
