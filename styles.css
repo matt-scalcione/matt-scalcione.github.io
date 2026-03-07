@@ -1526,60 +1526,149 @@ button.ghost,
   margin: 0;
 }
 
-.team-context-card {
+.team-summary-hero {
   border: 1px solid rgba(95, 132, 170, 0.22);
-  border-radius: 13px;
-  background: linear-gradient(180deg, rgba(243, 249, 255, 0.96), rgba(236, 245, 255, 0.92));
-  padding: 0.68rem;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(40, 139, 186, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(243, 249, 255, 0.98), rgba(236, 245, 255, 0.94));
+  padding: 0.74rem;
   display: grid;
-  gap: 0.46rem;
-  box-shadow: 0 6px 14px rgba(20, 44, 70, 0.1);
+  gap: 0.64rem;
+  box-shadow: 0 8px 18px rgba(20, 44, 70, 0.12);
 }
 
-.team-context-head {
+.team-summary-main {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.56rem;
+  gap: 0.72rem;
 }
 
-.team-context-copy {
+.team-summary-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.68rem;
+}
+
+.team-summary-badge {
+  width: 2.8rem;
+  height: 2.8rem;
+  font-size: 0.9rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.team-summary-copy {
   display: grid;
   gap: 0.12rem;
+  min-width: 0;
+}
+
+.team-summary-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.34rem;
+  flex-wrap: wrap;
+}
+
+.team-summary-game-pill,
+.team-summary-context-pill,
+.team-summary-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 132, 170, 0.22);
+  background: rgba(255, 255, 255, 0.86);
+  color: #274258;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.team-summary-game-pill {
+  color: var(--accent-strong);
+  border-color: rgba(17, 95, 121, 0.22);
+  background: rgba(12, 110, 102, 0.08);
 }
 
 .team-context-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.06rem;
   font-weight: 800;
   color: #17324b;
   line-height: 1.24;
 }
 
-.team-context-actions {
+.team-summary-subline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.34;
+}
+
+.team-summary-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.34rem;
 }
 
-.team-context-pills {
+.team-summary-actions .link-btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.team-summary-primary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.team-summary-stat,
+.team-summary-mini {
+  border: 1px solid rgba(95, 132, 170, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.5rem 0.58rem;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.team-summary-label {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--muted) 86%, #1d3d63 14%);
+}
+
+.team-summary-value {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.08;
+  color: #17324b;
+}
+
+.team-summary-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.32rem;
 }
 
-.team-context-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.7rem;
-  padding: 0.16rem 0.48rem;
-  border-radius: 999px;
-  border: 1px solid rgba(95, 132, 170, 0.24);
-  background: rgba(255, 255, 255, 0.84);
-  color: #274258;
-  font-size: 0.68rem;
-  font-weight: 700;
+.team-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.55rem;
+}
+
+.team-summary-mini .tempo-value {
+  font-size: 0.98rem;
+}
+
+.team-summary-mini .meta-text {
+  margin: 0;
 }
 
 .team-match-list {
@@ -6456,12 +6545,28 @@ button.ghost,
     margin-top: -0.12rem;
   }
 
-  .team-context-head {
+  .team-page .hero .link-btn {
+    width: auto;
+    margin-top: 0.2rem;
+  }
+
+  .team-summary-main {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .team-context-actions {
+  .team-summary-identity {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .team-summary-badge {
+    width: 2.46rem;
+    height: 2.46rem;
+    font-size: 0.8rem;
+  }
+
+  .team-summary-actions {
     width: 100%;
     justify-content: flex-start;
   }
@@ -6470,9 +6575,30 @@ button.ghost,
     font-size: 0.92rem;
   }
 
-  .team-context-pill {
-    min-height: 1.58rem;
+  .team-summary-subline {
+    font-size: 0.72rem;
+  }
+
+  .team-summary-game-pill,
+  .team-summary-context-pill,
+  .team-summary-tag {
+    min-height: 1.48rem;
     font-size: 0.62rem;
+  }
+
+  .team-summary-primary,
+  .team-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-summary-stat,
+  .team-summary-mini {
+    padding: 0.48rem 0.52rem;
+  }
+
+  .team-summary-value,
+  .team-summary-mini .tempo-value {
+    font-size: 0.84rem;
   }
 
   .team-match-card {

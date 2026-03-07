@@ -517,10 +517,42 @@ function resolveProfileOpponentName(profile, opponentId) {
   return null;
 }
 
+function teamInitials(value) {
+  const tokens = String(value || "")
+    .trim()
+    .split(/[^a-z0-9]+/i)
+    .filter(Boolean);
+
+  if (!tokens.length) {
+    return "TM";
+  }
+
+  if (tokens.length === 1) {
+    return tokens[0].slice(0, 3).toUpperCase();
+  }
+
+  return tokens
+    .slice(0, 2)
+    .map((token) => token[0])
+    .join("")
+    .toUpperCase();
+}
+
+function formatSeriesRecord(wins, losses, draws = 0) {
+  return `${wins ?? 0}-${losses ?? 0}${draws ? `-${draws}` : ""}`;
+}
+
 function renderTeamContextCard(profile, apiBase) {
+  const summary = profile.summary || {};
   const opponentId = String(state.pendingOpponentId || profile?.headToHead?.opponentId || "").trim();
   const opponentName = resolveProfileOpponentName(profile, opponentId);
   const game = normalizeGameKey(profile?.game || elements.gameSelect?.value || "");
+  const recentCount = Array.isArray(profile?.recentMatches) ? profile.recentMatches.length : 0;
+  const upcomingRows = Array.isArray(profile?.upcomingMatches) ? profile.upcomingMatches.slice() : [];
+  const nextMatch = upcomingRows
+    .slice()
+    .sort((left, right) => parseTimestamp(left?.startAt) - parseTimestamp(right?.startAt))[0] || null;
+  const h2h = profile?.headToHead && opponentName ? profile.headToHead : null;
   const matchUrl = state.seedMatchId
     ? buildMatchUrl({
         matchId: state.seedMatchId,
@@ -537,16 +569,22 @@ function renderTeamContextCard(profile, apiBase) {
         opponentId: state.teamId
       })
     : null;
-  const heroTitle = opponentName ? `${profile.name} vs ${opponentName}` : `${profile.name} team context`;
+  const heroTitle = profile.name || profile.id || "Team";
   const heroSubline = state.seedMatchId
     ? `Opened from ${state.seedGameNumber ? `Game ${state.seedGameNumber}` : "series"} context`
     : opponentName
       ? `Focused on the ${opponentName} matchup`
-      : "Team profile context";
+      : nextMatch
+        ? `Next series ${relativeStartLabel(nextMatch.startAt)}`
+        : "Team profile context";
   const pills = [
     game ? gameLabel(game) : null,
     state.seedGameNumber ? `Game ${state.seedGameNumber}` : null,
-    opponentName ? `Opponent ${opponentName}` : null
+    opponentName ? `vs ${opponentName}` : null,
+    upcomingRows.length ? `${upcomingRows.length} upcoming` : null,
+    recentCount ? `${recentCount} recent` : null,
+    nextMatch ? `Next ${relativeStartLabel(nextMatch.startAt)}` : null,
+    h2h ? `H2H ${formatSeriesRecord(h2h.wins, h2h.losses, h2h.draws)}` : null
   ].filter(Boolean);
   const actions = [
     matchUrl ? `<a class="link-btn ghost" href="${matchUrl}">${state.seedGameNumber ? `Back to G${state.seedGameNumber}` : "Back to Match"}</a>` : "",
@@ -555,21 +593,56 @@ function renderTeamContextCard(profile, apiBase) {
     .filter(Boolean)
     .join("");
 
-  if (!actions && !pills.length && !opponentName) {
+  const primaryStats = [
+    { label: "Series", value: formatSeriesRecord(summary.wins, summary.losses, summary.draws) },
+    { label: "Win", value: formatPercent(summary.seriesWinRatePct) },
+    { label: "Streak", value: summary.streakLabel || "n/a" },
+    { label: "Form", value: summary.formLast5 || "n/a" }
+  ];
+
+  if (!actions && !pills.length && !opponentName && !primaryStats.length) {
     return "";
   }
 
   return `
-    <article class="team-context-card">
-      <div class="team-context-head">
-        <div class="team-context-copy">
-          <p class="tempo-label">Context</p>
-          <p class="team-context-title">${escapeHtml(heroTitle)}</p>
-          <p class="meta-text">${escapeHtml(heroSubline)}</p>
+    <article class="team-summary-hero">
+      <div class="team-summary-main">
+        <div class="team-summary-identity">
+          <span class="team-badge team-summary-badge">${escapeHtml(teamInitials(heroTitle))}</span>
+          <div class="team-summary-copy">
+            <div class="team-summary-kicker-row">
+              ${game ? `<span class="team-summary-game-pill">${escapeHtml(gameLabel(game))}</span>` : ""}
+              ${opponentName ? `<span class="team-summary-context-pill">Matchup</span>` : ""}
+            </div>
+            <p class="team-context-title">${escapeHtml(heroTitle)}</p>
+            <p class="team-summary-subline">${escapeHtml(heroSubline)}</p>
+          </div>
         </div>
-        ${actions ? `<div class="team-context-actions">${actions}</div>` : ""}
+        ${actions ? `<div class="team-summary-actions">${actions}</div>` : ""}
       </div>
-      ${pills.length ? `<div class="team-context-pills">${pills.map((pill) => `<span class="team-context-pill">${escapeHtml(pill)}</span>`).join("")}</div>` : ""}
+      <div class="team-summary-primary">
+        ${primaryStats
+          .map(
+            (row) => `
+              <div class="team-summary-stat">
+                <span class="team-summary-label">${escapeHtml(row.label)}</span>
+                <strong class="team-summary-value">${escapeHtml(row.value)}</strong>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+      ${pills.length ? `<div class="team-summary-tags">${pills.map((pill) => `<span class="team-summary-tag">${escapeHtml(pill)}</span>`).join("")}</div>` : ""}
+    </article>
+  `;
+}
+
+function summaryMiniCard(label, value, note = null) {
+  return `
+    <article class="team-summary-mini">
+      <p class="tempo-label">${escapeHtml(label)}</p>
+      <p class="tempo-value">${escapeHtml(value)}</p>
+      ${note ? `<p class="meta-text">${escapeHtml(note)}</p>` : ""}
     </article>
   `;
 }
@@ -966,28 +1039,52 @@ function renderPerformanceInsights(profile) {
 function renderSummary(profile) {
   const summary = profile.summary || {};
   const contextCard = renderTeamContextCard(profile, elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+  const recentCount = Array.isArray(profile?.recentMatches) ? profile.recentMatches.length : 0;
+  const upcomingRows = Array.isArray(profile?.upcomingMatches) ? profile.upcomingMatches.slice() : [];
+  const nextMatch = upcomingRows
+    .slice()
+    .sort((left, right) => parseTimestamp(left?.startAt) - parseTimestamp(right?.startAt))[0] || null;
+  const h2h = profile?.headToHead || null;
+  const matchupLabel = h2h?.opponentName
+    ? `${formatSeriesRecord(h2h.wins, h2h.losses, h2h.draws)} vs ${h2h.opponentName}`
+    : `${recentCount} completed series`;
   const cards = [
-    { label: "Team", value: profile.name || profile.id },
-    { label: "Game", value: gameLabel(normalizeGameKey(profile.game || "lol")) },
-    { label: "Series Record", value: `${summary.wins ?? 0}-${summary.losses ?? 0}${summary.draws ? `-${summary.draws}` : ""}` },
-    { label: "Series Win Rate", value: formatPercent(summary.seriesWinRatePct) },
-    { label: "Map Record", value: `${summary.mapWins ?? 0}-${summary.mapLosses ?? 0}` },
-    { label: "Map Win Rate", value: formatPercent(summary.mapWinRatePct) },
-    { label: "Streak", value: summary.streakLabel || "n/a" },
-    { label: "Recent Form", value: summary.formLast5 || "n/a" }
+    {
+      label: "Map Record",
+      value: `${summary.mapWins ?? 0}-${summary.mapLosses ?? 0}`,
+      note: `${summary.wins ?? 0} series won`
+    },
+    {
+      label: "Map Win Rate",
+      value: formatPercent(summary.mapWinRatePct),
+      note: "Across tracked completed maps"
+    },
+    {
+      label: "Upcoming",
+      value: String(upcomingRows.length),
+      note: nextMatch
+        ? `${nextMatch.opponentName || "Opponent"} · ${dateTimeLabel(nextMatch.startAt)}`
+        : "No scheduled series"
+    },
+    {
+      label: h2h?.opponentName ? "Matchup" : "Window",
+      value: matchupLabel,
+      note: h2h?.opponentName ? "Direct head-to-head context" : `Updated ${dateTimeLabel(profile.generatedAt)}`
+    }
   ];
+
+  if (elements.teamMetaText) {
+    const metaBits = [`Updated ${dateTimeLabel(profile.generatedAt)}`, `${recentCount} completed`, `${upcomingRows.length} upcoming`];
+    if (h2h?.opponentName) {
+      metaBits.push(`Focused vs ${h2h.opponentName}`);
+    }
+    elements.teamMetaText.textContent = metaBits.join(" · ");
+  }
 
   elements.teamSummaryWrap.innerHTML = `
     ${contextCard}
-    <div class="upcoming-grid">
-      ${cards.map(
-      (row) => `
-        <article class="upcoming-card">
-          <p class="tempo-label">${row.label}</p>
-          <p class="tempo-value">${row.value}</p>
-        </article>
-      `
-    ).join("")}
+    <div class="team-summary-grid">
+      ${cards.map((row) => summaryMiniCard(row.label, row.value, row.note)).join("")}
     </div>
   `;
 }
@@ -1400,13 +1497,7 @@ async function loadTeamProfile() {
 
     const profile = payload.data;
     state.profile = profile;
-    elements.teamTitle.textContent = `${profile.name} · ${String(profile.game || "lol").toUpperCase()}`;
-    const metaBits = [`Updated ${dateTimeLabel(profile.generatedAt)}`, `Team ID ${profile.id}`];
-    const contextOpponentName = resolveProfileOpponentName(profile, state.pendingOpponentId);
-    if (contextOpponentName) {
-      metaBits.push(`Context vs ${contextOpponentName}`);
-    }
-    elements.teamMetaText.textContent = metaBits.join(" · ");
+    elements.teamTitle.textContent = `${profile.name} · ${gameLabel(normalizeGameKey(profile.game || "lol"))}`;
     syncOpponentSelect(profile);
     renderSummary(profile);
     renderPerformanceInsights(profile);
