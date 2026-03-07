@@ -975,6 +975,14 @@ function buildSeriesDetail({
   const teamForm = buildTeamFormFromSeriesScore(summary);
   const headToHead = buildHeadToHead(summary);
   const prediction = buildPrediction(summary, momentum, summary?.status);
+  const seriesProjection = buildSeriesProjection(summary);
+  const preMatchInsights = buildPreMatchInsights(summary, {
+    seriesProjection,
+    seriesGames,
+    teamForm,
+    headToHead,
+    prediction
+  });
   const combatBursts = buildCombatBursts(
     {
       radiant_score: selectedSnapshot?.left?.kills,
@@ -1016,7 +1024,7 @@ function buildSeriesDetail({
     seriesGames,
     seriesHeader: buildSeriesHeader(summary, seriesProgress, gameNavigation),
     seriesProgress,
-    seriesProjection: buildSeriesProjection(summary),
+    seriesProjection,
     dataConfidence,
     pulseCard,
     edgeMeter,
@@ -1046,6 +1054,7 @@ function buildSeriesDetail({
     teamForm,
     headToHead,
     prediction,
+    preMatchInsights,
     matchupReadiness: null,
     matchupKeyFactors: [],
     matchupAlertLevel: null,
@@ -2229,6 +2238,36 @@ function buildUpcomingWatch(summary, watchUrl) {
   };
 }
 
+function buildPreMatchInsights(summary, { seriesProjection, seriesGames, teamForm, headToHead, prediction } = {}) {
+  const watchOptions = Array.isArray(seriesGames)
+    ? seriesGames
+        .flatMap((game) => (Array.isArray(game?.watchOptions) ? game.watchOptions : []))
+        .map((option) => ({
+          label: option?.label || "Watch",
+          url: option?.watchUrl || null,
+          note: option?.provider ? `Provider: ${option.provider}` : null
+        }))
+        .filter((option) => option.url)
+    : [];
+
+  return {
+    essentials: {
+      scheduledAt: summary?.startAt || null,
+      countdownSeconds: Number.isFinite(seriesProjection?.countdownSeconds)
+        ? seriesProjection.countdownSeconds
+        : Math.max(0, Math.round((parseTimestamp(summary?.startAt, Date.now()) - Date.now()) / 1000)),
+      estimatedEndAt: seriesProjection?.estimatedEndAt || null,
+      bestOf: summary?.bestOf || 1,
+      tournament: summary?.tournament || "Dota 2",
+      region: summary?.region || "global"
+    },
+    watchOptions,
+    teamForm,
+    headToHead,
+    prediction
+  };
+}
+
 function buildTeamFormFromSeriesScore(summary) {
   const leftWins = toCount(summary?.seriesScore?.left);
   const rightWins = toCount(summary?.seriesScore?.right);
@@ -2248,7 +2287,8 @@ function buildTeamFormFromSeriesScore(summary) {
       streakValue: 0,
       streakLabel: "n/a",
       formLabel: `${leftWins}-${rightWins}`,
-      lastMatches: []
+      lastMatches: [],
+      recentMatches: []
     },
     right: {
       teamId: summary?.teams?.right?.id,
@@ -2264,7 +2304,8 @@ function buildTeamFormFromSeriesScore(summary) {
       streakValue: 0,
       streakLabel: "n/a",
       formLabel: `${rightWins}-${leftWins}`,
-      lastMatches: []
+      lastMatches: [],
+      recentMatches: []
     }
   };
 }
@@ -2559,6 +2600,14 @@ export function normalizeMatchDetail(
   const teamForm = buildTeamFormFromSeriesScore(summary);
   const headToHead = buildHeadToHead(summary);
   const prediction = buildPrediction(summary, momentum, status);
+  const seriesProjection = buildSeriesProjection(summary);
+  const preMatchInsights = buildPreMatchInsights(summary, {
+    seriesProjection,
+    seriesGames,
+    teamForm,
+    headToHead,
+    prediction
+  });
   const combatBursts = buildCombatBursts(payload, summary.teams, startAtIso);
   const goldMilestones = buildGoldMilestones(goldLeadSeries, summary.teams);
 
@@ -2580,7 +2629,7 @@ export function normalizeMatchDetail(
     seriesGames,
     seriesHeader: buildSeriesHeader(summary, seriesProgress, gameNavigation),
     seriesProgress,
-    seriesProjection: buildSeriesProjection(summary),
+    seriesProjection,
     dataConfidence,
     pulseCard,
     edgeMeter,
@@ -2610,6 +2659,7 @@ export function normalizeMatchDetail(
     teamForm,
     headToHead,
     prediction,
+    preMatchInsights,
     matchupReadiness: null,
     matchupKeyFactors: [],
     matchupAlertLevel: null,
