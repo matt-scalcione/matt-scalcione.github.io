@@ -1330,12 +1330,25 @@ function mobileCorePanelTargetIds(match) {
 function applyMobileGameEnhancements(match) {
   const selectedState = String(match?.selectedGame?.state || "");
   const compactGameMode = isCompactUI() && uiState.viewMode === "game";
+  const desktopGameMode = !isCompactUI() && uiState.viewMode === "game";
+  const telemetryStatus = liveTelemetryStatus(match);
   document.body.classList.toggle("mobile-game-mode", compactGameMode);
   document.body.classList.toggle("mobile-game-live", compactGameMode && selectedState === "inProgress");
   document.body.classList.toggle("mobile-game-complete", compactGameMode && selectedState === "completed");
   document.body.classList.toggle(
     "mobile-game-upcoming",
     compactGameMode && (selectedState === "unstarted" || selectedState === "unneeded")
+  );
+  document.body.classList.toggle("desktop-game-mode", desktopGameMode);
+  document.body.classList.toggle("desktop-game-live", desktopGameMode && selectedState === "inProgress");
+  document.body.classList.toggle("desktop-game-complete", desktopGameMode && selectedState === "completed");
+  document.body.classList.toggle(
+    "desktop-game-upcoming",
+    desktopGameMode && (selectedState === "unstarted" || selectedState === "unneeded")
+  );
+  document.body.classList.toggle(
+    "desktop-game-live-rich",
+    desktopGameMode && selectedState === "inProgress" && telemetryStatus === "rich"
   );
   bindMobileJumpContainer(elements.mobileGameToolbar, { allowAdvanced: true });
   bindMobileJumpContainer(elements.mobileModeToolbar);
