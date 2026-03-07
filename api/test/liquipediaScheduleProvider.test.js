@@ -1,0 +1,334 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { pathToFileURL } from "node:url";
+import {
+  LiquipediaDotaScheduleProvider,
+  parseLiquipediaMatchesHtml
+} from "../src/providers/dota/liquipediaScheduleProvider.js";
+
+const sampleMatchHtml = `
+<div class="match-info">
+  <span class="match-info-countdown">
+    <span class="timer-object" data-format="full" data-timestamp="1772899200">March 7, 2026 - 18:00 EET</span>
+  </span>
+  <div class="match-info-header">
+    <div class="match-info-header-opponent match-info-header-opponent-left">
+      <div class="block-team flipped">
+        <span class="name"><a href="/dota2/Team_Liquid" title="Team Liquid">Liquid</a></span>
+      </div>
+    </div>
+    <div class="match-info-header-scoreholder">
+      <span class="match-info-header-scoreholder-scorewrapper">
+        <span class="match-info-header-scoreholder-upper">
+          <span class="match-info-header-scoreholder-score">0</span>
+          <span class="match-info-header-scoreholder-divider">:</span>
+          <span class="match-info-header-scoreholder-score">0</span>
+        </span>
+        <span class="match-info-header-scoreholder-lower">(Bo3)</span>
+      </span>
+    </div>
+    <div class="match-info-header-opponent">
+      <div class="block-team">
+        <span class="name"><a href="/dota2/index.php?title=Cloud_Rising&amp;action=edit&amp;redlink=1" title="Cloud Rising (page does not exist)">CR</a></span>
+      </div>
+    </div>
+  </div>
+  <div class="match-info-tournament">
+    <span class="match-info-tournament-wrapper">
+      <span class="match-info-tournament-name">
+        <a href="/dota2/PGL/Wallachia/7/Group_Stage#Round_1" title="PGL/Wallachia/7/Group Stage">
+          <span>PGL Wallachia S7 - Round 1</span>
+        </a>
+      </span>
+    </span>
+  </div>
+  <div class="match-info-links">
+    <div>
+      <a href="/dota2/index.php?title=Match:ID_foo&amp;action=edit&amp;redlink=1" class="new" title="Match:ID foo (page does not exist)">
+        <div>+ Details</div>
+      </a>
+    </div>
+    <div>
+      <a href="/dota2/Special:Stream/twitch/PGL_Dota2" title="Special:Stream/twitch/PGL Dota2">
+        <div>Watch now</div>
+      </a>
+    </div>
+    <div>
+      <a href="/dota2/Special:Stream/youtube/PGL/wjldm2iu318" title="Special:Stream/youtube/PGL/wjldm2iu318">
+        <div>Watch now</div>
+      </a>
+    </div>
+  </div>
+</div>`;
+
+describe("parseLiquipediaMatchesHtml", () => {
+  it("normalizes upcoming rows, cleans redlinks, and keeps only usable stream links", () => {
+    const rows = parseLiquipediaMatchesHtml(sampleMatchHtml, {
+      knownTeamIds: new Map([["teamliquid", "team_liq"]]),
+      tournamentTierMap: new Map(),
+      nowMs: Date.parse("2026-03-07T14:00:00.000Z")
+    });
+
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].bestOf, 3);
+    assert.equal(rows[0].competitiveTier, 1);
+    assert.equal(rows[0].teams.left.id, "team_liq");
+    assert.equal(rows[0].teams.right.id, "dota_lp_team_cloud_rising");
+    assert.equal(rows[0].teams.right.name, "Cloud Rising");
+    assert.equal(rows[0].watchUrl, "https://liquipedia.net/dota2/Special:Stream/twitch/PGL_Dota2");
+    assert.deepEqual(
+      rows[0].watchOptions.map((option) => option.provider),
+      ["twitch", "youtube"]
+    );
+  });
+});
+
+describe("LiquipediaDotaScheduleProvider", () => {
+  it("filters stale rows and preserves premium-tier heuristics over weaker known mappings", async () => {
+    const originalFetch = global.fetch;
+    const html = `${sampleMatchHtml}
+    <div class="match-info">
+      <span class="match-info-countdown">
+        <span class="timer-object" data-format="full" data-timestamp="1772600000">March 4, 2026 - 06:53 EET</span>
+      </span>
+      <div class="match-info-header">
+        <div class="match-info-header-opponent match-info-header-opponent-left">
+          <div class="block-team flipped"><span class="name"><a href="/dota2/Old_A" title="Old A">Old A</a></span></div>
+        </div>
+        <div class="match-info-header-scoreholder">
+          <span class="match-info-header-scoreholder-scorewrapper">
+            <span class="match-info-header-scoreholder-upper">
+              <span class="match-info-header-scoreholder-score">0</span>
+              <span class="match-info-header-scoreholder-divider">:</span>
+              <span class="match-info-header-scoreholder-score">0</span>
+            </span>
+            <span class="match-info-header-scoreholder-lower">(Bo3)</span>
+          </span>
+        </div>
+        <div class="match-info-header-opponent">
+          <div class="block-team"><span class="name"><a href="/dota2/Old_B" title="Old B">Old B</a></span></div>
+        </div>
+      </div>
+      <div class="match-info-tournament">
+        <span class="match-info-tournament-wrapper">
+          <span class="match-info-tournament-name"><a href="/dota2/Old/Event" title="Old/Event"><span>Old Event</span></a></span>
+        </span>
+      </div>
+      <div class="match-info-links"></div>
+    </div>`;
+
+    global.fetch = async () => ({
+      ok: true,
+      async json() {
+        return {
+          parse: {
+            text: html
+          }
+        };
+      }
+    });
+
+    try {
+      const provider = new LiquipediaDotaScheduleProvider({ timeoutMs: 1000 });
+      const rows = await provider.fetchScheduleMatches({
+        knownRows: [
+          {
+            game: "dota2",
+            tournament: "PGL Wallachia S7 - Round 1",
+            competitiveTier: 2,
+            teams: {
+              left: { id: "team_liq", name: "Team Liquid" },
+              right: { id: "team_other", name: "Other" }
+            }
+          }
+        ]
+      });
+
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].tournament, "PGL Wallachia S7 - Round 1");
+      assert.equal(rows[0].competitiveTier, 1);
+      assert.equal(rows[0].teams.left.id, "team_liq");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});
+
+describe("mockStore Dota upcoming detail fallback", () => {
+  it("resolves upcoming Liquipedia schedule ids into match detail with watch context", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.includes("liquipedia.net/dota2/api.php")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              parse: {
+                text: sampleMatchHtml
+              }
+            };
+          }
+        };
+      }
+
+      if (target.endsWith("/live") || target.endsWith("/proMatches") || target.endsWith("/leagues")) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    process.env.ESPORTS_DATA_MODE = "provider";
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?liquipediaScheduleTest=${Date.now()}`);
+      const scheduleRows = await store.listSchedule({
+        game: "dota2",
+        region: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        dotaTiers: [1, 2, 3, 4]
+      });
+
+      assert.equal(scheduleRows.length, 1);
+      assert.equal(scheduleRows[0].id.startsWith("dota_lp_sched_"), true);
+
+      const detail = await store.getMatchDetail(scheduleRows[0].id);
+      assert.ok(detail);
+      assert.equal(detail.status, "upcoming");
+      assert.equal(detail.selectedGame.state, "unstarted");
+      assert.equal(detail.watchGuide.streamUrl, "https://liquipedia.net/dota2/Special:Stream/twitch/PGL_Dota2");
+      assert.equal(detail.selectedGame.watchOptions.length, 2);
+    } finally {
+      global.fetch = originalFetch;
+      process.env.ESPORTS_DATA_MODE = previousMode;
+    }
+  });
+
+  it("backfills Dota team profiles from team-specific OpenDota history when schedule ids are Liquipedia-derived", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.includes("liquipedia.net/dota2/api.php")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              parse: {
+                text: sampleMatchHtml
+              }
+            };
+          }
+        };
+      }
+
+      if (target.endsWith("/live") || target.endsWith("/proMatches") || target.endsWith("/leagues")) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+
+      if (target.endsWith("/teams")) {
+        return {
+          ok: true,
+          async json() {
+            return [
+              {
+                team_id: 2163,
+                name: "Team Liquid",
+                tag: "Liquid"
+              }
+            ];
+          }
+        };
+      }
+
+      if (target.endsWith("/teams/2163/matches")) {
+        return {
+          ok: true,
+          async json() {
+            return [
+              {
+                match_id: 1001,
+                radiant_win: true,
+                radiant_score: 30,
+                dire_score: 15,
+                radiant: false,
+                duration: 2080,
+                start_time: 1772370355,
+                leagueid: 19269,
+                league_name: "DreamLeague Season 28",
+                opposing_team_id: 8255888,
+                opposing_team_name: "Cloud Rising"
+              },
+              {
+                match_id: 1002,
+                radiant_win: false,
+                radiant_score: 12,
+                dire_score: 28,
+                radiant: false,
+                duration: 2150,
+                start_time: 1772366096,
+                leagueid: 19269,
+                league_name: "DreamLeague Season 28",
+                opposing_team_id: 8255888,
+                opposing_team_name: "Cloud Rising"
+              }
+            ];
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    process.env.ESPORTS_DATA_MODE = "provider";
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?liquipediaProfileTest=${Date.now()}`);
+      const scheduleRows = await store.listSchedule({
+        game: "dota2",
+        region: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        dotaTiers: [1, 2, 3, 4]
+      });
+      const row = scheduleRows[0];
+      const profile = await store.getTeamProfile(row.teams.left.id, {
+        game: "dota2",
+        seedMatchId: row.id,
+        teamNameHint: row.teams.left.name,
+        opponentId: row.teams.right.id,
+        limit: 5
+      });
+
+      assert.ok(profile);
+      assert.equal(profile.name, "Team Liquid");
+      assert.equal(profile.recentMatches.length >= 1, true);
+      assert.equal(profile.recentMatches[0].scoreLabel, "1-1");
+      assert.equal(profile.headToHead.matches, 1);
+    } finally {
+      global.fetch = originalFetch;
+      process.env.ESPORTS_DATA_MODE = previousMode;
+    }
+  });
+});

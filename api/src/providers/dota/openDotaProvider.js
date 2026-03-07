@@ -3,6 +3,8 @@ import { fetchJson } from "../shared/http.js";
 const OPENDOTA_BASE_URL = process.env.OPENDOTA_BASE_URL || "https://api.opendota.com/api";
 const LEAGUE_CACHE_MS = Number.parseInt(process.env.OPENDOTA_LEAGUE_CACHE_MS || "21600000", 10);
 const HERO_CACHE_MS = Number.parseInt(process.env.OPENDOTA_HERO_CACHE_MS || "21600000", 10);
+const TEAM_DIRECTORY_CACHE_MS = Number.parseInt(process.env.OPENDOTA_TEAM_CACHE_MS || "21600000", 10);
+const TEAM_MATCH_CACHE_MS = Number.parseInt(process.env.OPENDOTA_TEAM_MATCH_CACHE_MS || "900000", 10);
 const MIN_GOLD_SWING_FOR_TICKER = Number.parseInt(process.env.DOTA_LIVE_TICKER_GOLD_SWING || "1500", 10);
 const ESTIMATED_GAME_SECONDS = Number.parseInt(process.env.DOTA_ESTIMATED_GAME_SECONDS || "2400", 10);
 const ESTIMATED_BETWEEN_GAMES_SECONDS = Number.parseInt(
@@ -138,6 +140,33 @@ function parseProviderMatchId(matchId) {
   const parts = String(matchId).split("_");
   const tail = parts[parts.length - 1];
   return /^\d+$/.test(tail) ? tail : null;
+}
+
+function normalizeProviderTeamKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&amp;/g, "and")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function stripCommonTeamTerms(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\b(team|esports|e-sports|gaming|gg)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function buildTeamLookupKeys({ name, tag } = {}) {
+  const keys = new Set();
+  const directName = normalizeProviderTeamKey(name);
+  const simplifiedName = stripCommonTeamTerms(name);
+  const directTag = normalizeProviderTeamKey(tag);
+
+  if (directName) keys.add(directName);
+  if (simplifiedName) keys.add(simplifiedName);
+  if (directTag) keys.add(directTag);
+
+  return Array.from(keys.values());
 }
 
 function parseRequestedGameNumber(value) {
@@ -2604,6 +2633,12 @@ export class OpenDotaProvider {
       fetchedAt: 0,
       map: new Map()
     };
+    this.teamDirectoryCache = {
+      fetchedAt: 0,
+      byId: new Map(),
+      byKey: new Map()
+    };
+    this.teamMatchCache = new Map();
   }
 
   async getLeagueTierMap() {
@@ -2680,6 +2715,96 @@ export class OpenDotaProvider {
     }
 
     return this.heroCache.map;
+  }
+
+  async getTeamDirectory() {
+    const ageMs = Date.now() - this.teamDirectoryCache.fetchedAt;
+    if (ageMs <= TEAM_DIRECTORY_CACHE_MS && this.teamDirectoryCache.byId.size > 0) {
+      return this.teamDirectoryCache;
+    }
+
+    try {
+      const rows = await fetchJson(`${OPENDOTA_BASE_URL}/teams`, {
+        timeoutMs: this.timeoutMs
+      });
+
+      const byId = new Map();
+      const byKey = new Map();
+      if (Array.isArray(rows)) {
+        for (const row of rows) {
+          const teamId = Number(row?.team_id || 0);
+          const name = String(row?.name || "").trim();
+          const tag = String(row?.tag || "").trim();
+          if (teamId <= 0 || !name) {
+            continue;
+          }
+
+          const team = {
+            id: String(teamId),
+            name,
+            tag: tag || null,
+            logoUrl: row?.logo_url || null
+          };
+          byId.set(team.id, team);
+          for (const key of buildTeamLookupKeys({ name, tag })) {
+            if (!byKey.has(key)) {
+              byKey.set(key, team);
+            }
+          }
+        }
+      }
+
+      this.teamDirectoryCache = {
+        fetchedAt: Date.now(),
+        byId,
+        byKey
+      };
+    } catch {
+      // Keep stale cache if available, otherwise return empty maps.
+    }
+
+    return this.teamDirectoryCache;
+  }
+
+  async resolveTeamIdentityByName(teamName) {
+    const normalizedDirect = normalizeProviderTeamKey(teamName);
+    const normalizedSimplified = stripCommonTeamTerms(teamName);
+    if (!normalizedDirect && !normalizedSimplified) {
+      return null;
+    }
+
+    const directory = await this.getTeamDirectory();
+    return (
+      directory.byKey.get(normalizedDirect) ||
+      directory.byKey.get(normalizedSimplified) ||
+      null
+    );
+  }
+
+  async fetchTeamMatchHistory(teamId, { maxRows = 40 } = {}) {
+    const normalizedTeamId = String(teamId || "").trim();
+    if (!/^\d+$/.test(normalizedTeamId)) {
+      return [];
+    }
+
+    const cached = this.teamMatchCache.get(normalizedTeamId);
+    if (cached && Date.now() - cached.fetchedAt <= TEAM_MATCH_CACHE_MS) {
+      return cached.rows.slice(0, maxRows);
+    }
+
+    try {
+      const rows = await fetchJson(`${OPENDOTA_BASE_URL}/teams/${normalizedTeamId}/matches`, {
+        timeoutMs: this.timeoutMs
+      });
+      const normalizedRows = Array.isArray(rows) ? rows : [];
+      this.teamMatchCache.set(normalizedTeamId, {
+        fetchedAt: Date.now(),
+        rows: normalizedRows
+      });
+      return normalizedRows.slice(0, maxRows);
+    } catch {
+      return cached ? cached.rows.slice(0, maxRows) : [];
+    }
   }
 
   async fetchLiveMatches({ allowedTiers = [1, 2, 3, 4] } = {}) {
