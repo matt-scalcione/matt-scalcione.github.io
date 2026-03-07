@@ -7239,18 +7239,31 @@ button.ghost,
   }
 
   .match-page .page-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
     padding: 0;
     border: 0;
     background: none;
     box-shadow: none;
-    gap: 0.2rem;
+    gap: 0.18rem;
+  }
+
+  .match-page .page-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .match-page .page-nav a {
-    min-height: 1.92rem;
+    flex: 0 0 auto;
+    min-height: 1.84rem;
     border-radius: 12px;
+    padding: 0.22rem 0.56rem;
+    white-space: nowrap;
     background: rgba(255, 255, 255, 0.72);
-    border-color: rgba(95, 132, 170, 0.16);
+    border-color: rgba(95, 132, 170, 0.14);
   }
 
   .match-page .page-nav a[aria-current="page"] {
@@ -7260,12 +7273,12 @@ button.ghost,
 
   .match-page .hero .link-btn {
     width: auto;
-    min-height: 1.92rem;
+    min-height: 1.78rem;
     margin-top: 0.12rem;
-    padding: 0.28rem 0.72rem;
+    padding: 0.22rem 0.62rem;
     border-radius: 12px;
-    background: rgba(44, 112, 255, 0.12);
-    border-color: rgba(31, 98, 189, 0.2);
+    background: rgba(255, 255, 255, 0.76);
+    border-color: rgba(95, 132, 170, 0.14);
     color: #1d4ea1;
     box-shadow: none;
     justify-self: start;
@@ -7275,7 +7288,7 @@ button.ghost,
     transform: none;
     filter: none;
     box-shadow: none;
-    background: rgba(44, 112, 255, 0.16);
+    background: rgba(255, 255, 255, 0.82);
   }
 
   .layout {
@@ -7541,6 +7554,8 @@ button.ghost,
   .match-page .panel {
     padding: 0.62rem;
     border-radius: 16px;
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: none;
   }
 
   .match-page .match-state-panel {
@@ -7613,6 +7628,9 @@ button.ghost,
     min-height: 1.6rem;
     padding: 0;
     border-radius: 999px;
+    background: rgba(255, 255, 255, 0.76);
+    border-color: rgba(95, 132, 170, 0.16);
+    box-shadow: none;
   }
 
   .match-page .panel.mobile-collapsible.mobile-panel-collapsed > :not(.section-head),
@@ -7629,6 +7647,8 @@ button.ghost,
     width: 1.18rem;
     height: 1.18rem;
     font-size: 0.49rem;
+    background: rgba(44, 112, 255, 0.08);
+    border-color: rgba(95, 132, 170, 0.18);
   }
 
   .match-page .scoreboard {
@@ -8077,11 +8097,19 @@ button.ghost,
     padding: 0.4rem 0.46rem;
     gap: 0.06rem;
     border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(95, 132, 170, 0.14);
   }
 
   .match-page.mobile-game-mode .live-feed-list .live-feed-item.major-event {
     padding-top: 0.44rem;
     padding-bottom: 0.44rem;
+  }
+
+  .match-page.mobile-game-mode .live-feed-list .live-feed-item.team-left,
+  .match-page.mobile-game-mode .live-feed-list .live-feed-item.team-right,
+  .match-page.mobile-game-mode .live-feed-list .live-feed-item.team-neutral {
+    border-left-width: 2px;
   }
 
   .match-page.mobile-game-mode .live-feed-row {
@@ -8115,6 +8143,23 @@ button.ghost,
 
   .match-page.mobile-game-mode .live-feed-meta-row {
     gap: 0.18rem;
+  }
+
+  .match-page .tracker-table-mobile {
+    border: 1px solid rgba(95, 132, 170, 0.16);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.78);
+    overflow: hidden;
+  }
+
+  .match-page .tracker-table-mobile th {
+    background: rgba(227, 236, 245, 0.74);
+    color: #26455e;
+    box-shadow: none;
+  }
+
+  .match-page .tracker-table-mobile td {
+    background: rgba(255, 255, 255, 0.62);
   }
 
   .match-page.mobile-game-mode .feed-phase-tag,
