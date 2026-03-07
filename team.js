@@ -16,7 +16,7 @@ const MOBILE_BREAKPOINT = 760;
 const TEAM_MOBILE_PANELS_DEFAULT_OPEN = new Set([
   "Team Snapshot",
   "Performance Insights",
-  "Last Games",
+  "Recent Matches",
   "Upcoming Matches"
 ]);
 const TEAM_MOBILE_JUMP_TARGETS = [
@@ -71,6 +71,7 @@ const elements = {
 const state = {
   teamId: null,
   seedMatchId: null,
+  seedGameNumber: null,
   teamNameHint: null,
   profile: null,
   pastTournamentSignature: null,
@@ -292,7 +293,9 @@ function applyTeamMobilePanelCollapseState() {
     const hasSaved = Object.prototype.hasOwnProperty.call(state.mobilePanelCollapsedByKey, panelKey);
     const collapsed = hasSaved
       ? Boolean(state.mobilePanelCollapsedByKey[panelKey])
-      : !TEAM_MOBILE_PANELS_DEFAULT_OPEN.has(headingTitle);
+      : headingTitle === "Head-To-Head" && Boolean(state.pendingOpponentId)
+        ? false
+        : !TEAM_MOBILE_PANELS_DEFAULT_OPEN.has(headingTitle);
     panelElement.classList.toggle("mobile-panel-collapsed", collapsed);
     toggleButton.textContent = collapsed ? "Show" : "Hide";
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
@@ -467,12 +470,10 @@ function updateNav(apiBase) {
 }
 
 function buildBackLink(apiBase) {
-  const route = parseTeamRoute();
-  const fromMatch = route.matchId;
-  if (fromMatch) {
+  if (state.seedMatchId) {
     elements.backLink.href = buildMatchUrl({
-      matchId: fromMatch,
-      gameNumber: route.gameNumber
+      matchId: state.seedMatchId,
+      gameNumber: state.seedGameNumber
     });
     elements.backLink.textContent = "Back to Match";
     return;
@@ -485,6 +486,92 @@ function buildBackLink(apiBase) {
   }
   elements.backLink.href = scheduleUrl.toString();
   elements.backLink.textContent = "Back to Schedule";
+}
+
+function resolveProfileOpponentName(profile, opponentId) {
+  const normalizedOpponentId = String(opponentId || "").trim();
+  if (!normalizedOpponentId) {
+    return null;
+  }
+
+  if (String(profile?.headToHead?.opponentId || "").trim() === normalizedOpponentId) {
+    return String(profile?.headToHead?.opponentName || "").trim() || null;
+  }
+
+  const buckets = [
+    Array.isArray(profile?.recentMatches) ? profile.recentMatches : [],
+    Array.isArray(profile?.upcomingMatches) ? profile.upcomingMatches : [],
+    Array.isArray(profile?.opponentBreakdown) ? profile.opponentBreakdown : []
+  ];
+
+  for (const bucket of buckets) {
+    const found = bucket.find((row) => String(row?.opponentId || "").trim() === normalizedOpponentId);
+    if (found) {
+      const label = String(found?.opponentName || "").trim();
+      if (label) {
+        return label;
+      }
+    }
+  }
+
+  return null;
+}
+
+function renderTeamContextCard(profile, apiBase) {
+  const opponentId = String(state.pendingOpponentId || profile?.headToHead?.opponentId || "").trim();
+  const opponentName = resolveProfileOpponentName(profile, opponentId);
+  const game = normalizeGameKey(profile?.game || elements.gameSelect?.value || "");
+  const matchUrl = state.seedMatchId
+    ? buildMatchUrl({
+        matchId: state.seedMatchId,
+        gameNumber: state.seedGameNumber
+      })
+    : null;
+  const opponentUrl = opponentId
+    ? teamDetailUrl({
+        teamId: opponentId,
+        teamName: opponentName,
+        game,
+        apiBase,
+        matchId: state.seedMatchId,
+        opponentId: state.teamId
+      })
+    : null;
+  const heroTitle = opponentName ? `${profile.name} vs ${opponentName}` : `${profile.name} team context`;
+  const heroSubline = state.seedMatchId
+    ? `Opened from ${state.seedGameNumber ? `Game ${state.seedGameNumber}` : "series"} context`
+    : opponentName
+      ? `Focused on the ${opponentName} matchup`
+      : "Team profile context";
+  const pills = [
+    game ? gameLabel(game) : null,
+    state.seedGameNumber ? `Game ${state.seedGameNumber}` : null,
+    opponentName ? `Opponent ${opponentName}` : null
+  ].filter(Boolean);
+  const actions = [
+    matchUrl ? `<a class="link-btn ghost" href="${matchUrl}">${state.seedGameNumber ? `Back to G${state.seedGameNumber}` : "Back to Match"}</a>` : "",
+    opponentUrl ? `<a class="link-btn ghost" href="${opponentUrl}">Open Opponent</a>` : ""
+  ]
+    .filter(Boolean)
+    .join("");
+
+  if (!actions && !pills.length && !opponentName) {
+    return "";
+  }
+
+  return `
+    <article class="team-context-card">
+      <div class="team-context-head">
+        <div class="team-context-copy">
+          <p class="tempo-label">Context</p>
+          <p class="team-context-title">${escapeHtml(heroTitle)}</p>
+          <p class="meta-text">${escapeHtml(heroSubline)}</p>
+        </div>
+        ${actions ? `<div class="team-context-actions">${actions}</div>` : ""}
+      </div>
+      ${pills.length ? `<div class="team-context-pills">${pills.map((pill) => `<span class="team-context-pill">${escapeHtml(pill)}</span>`).join("")}</div>` : ""}
+    </article>
+  `;
 }
 
 function matchDetailUrl(matchId, apiBase) {
@@ -820,25 +907,31 @@ function renderPerformanceInsights(profile) {
 
 function renderSummary(profile) {
   const summary = profile.summary || {};
-  elements.teamSummaryWrap.innerHTML = [
+  const contextCard = renderTeamContextCard(profile, elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+  const cards = [
     { label: "Team", value: profile.name || profile.id },
-    { label: "Game", value: String(profile.game || "lol").toUpperCase() },
+    { label: "Game", value: gameLabel(normalizeGameKey(profile.game || "lol")) },
     { label: "Series Record", value: `${summary.wins ?? 0}-${summary.losses ?? 0}${summary.draws ? `-${summary.draws}` : ""}` },
     { label: "Series Win Rate", value: formatPercent(summary.seriesWinRatePct) },
     { label: "Map Record", value: `${summary.mapWins ?? 0}-${summary.mapLosses ?? 0}` },
     { label: "Map Win Rate", value: formatPercent(summary.mapWinRatePct) },
     { label: "Streak", value: summary.streakLabel || "n/a" },
     { label: "Recent Form", value: summary.formLast5 || "n/a" }
-  ]
-    .map(
+  ];
+
+  elements.teamSummaryWrap.innerHTML = `
+    ${contextCard}
+    <div class="upcoming-grid">
+      ${cards.map(
       (row) => `
         <article class="upcoming-card">
           <p class="tempo-label">${row.label}</p>
           <p class="tempo-value">${row.value}</p>
         </article>
       `
-    )
-    .join("");
+    ).join("")}
+    </div>
+  `;
 }
 
 function renderRecentMatches(profile, apiBase) {
@@ -1219,7 +1312,12 @@ async function loadTeamProfile() {
     const profile = payload.data;
     state.profile = profile;
     elements.teamTitle.textContent = `${profile.name} · ${String(profile.game || "lol").toUpperCase()}`;
-    elements.teamMetaText.textContent = `Updated ${dateTimeLabel(profile.generatedAt)} · Team ID ${profile.id}`;
+    const metaBits = [`Updated ${dateTimeLabel(profile.generatedAt)}`, `Team ID ${profile.id}`];
+    const contextOpponentName = resolveProfileOpponentName(profile, state.pendingOpponentId);
+    if (contextOpponentName) {
+      metaBits.push(`Context vs ${contextOpponentName}`);
+    }
+    elements.teamMetaText.textContent = metaBits.join(" · ");
     syncOpponentSelect(profile);
     renderSummary(profile);
     renderPerformanceInsights(profile);
@@ -1329,6 +1427,7 @@ function boot() {
 
   state.teamId = teamId;
   state.seedMatchId = route.matchId;
+  state.seedGameNumber = route.gameNumber;
   state.teamNameHint = route.teamName;
 
   const apiBase = route.api || readApiBase();
