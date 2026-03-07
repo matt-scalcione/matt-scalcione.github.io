@@ -2310,13 +2310,13 @@ function renderMatchupConsole(match) {
   const expectedKey = matchupRequestKey(match, uiState.apiBase);
 
   if (matchupState.key && matchupState.key !== expectedKey && !matchupState.loading) {
-    elements.matchupMetaText.textContent = "Loading matchup compare...";
+    elements.matchupMetaText.textContent = "Loading matchup...";
     elements.matchupConsoleWrap.innerHTML = `<div class="empty">Loading team profile and head-to-head data.</div>`;
     return;
   }
 
   if (matchupState.loading) {
-    elements.matchupMetaText.textContent = "Loading matchup compare...";
+    elements.matchupMetaText.textContent = "Loading matchup...";
     elements.matchupConsoleWrap.innerHTML = `<div class="empty">Loading team profile and head-to-head data.</div>`;
     return;
   }
@@ -2330,7 +2330,7 @@ function renderMatchupConsole(match) {
   const leftProfile = matchupState.leftProfile;
   const rightProfile = matchupState.rightProfile;
   if (!leftProfile || !rightProfile) {
-    elements.matchupMetaText.textContent = "Matchup compare waiting for data.";
+    elements.matchupMetaText.textContent = "Waiting for matchup data.";
     elements.matchupConsoleWrap.innerHTML = `<div class="empty">Waiting for matchup dataset.</div>`;
     return;
   }
@@ -2346,7 +2346,7 @@ function renderMatchupConsole(match) {
   const favoriteTone =
     edge.favoriteName === leftName ? "left" : edge.favoriteName === rightName ? "right" : "neutral";
 
-  elements.matchupMetaText.textContent = `Model favorite: ${edge.favoriteName} · Confidence ${edge.confidence.toUpperCase()} · H2H sample ${total}`;
+  elements.matchupMetaText.textContent = `Favorite ${scoreboardTeamName(edge.favoriteName)} · ${edge.confidence.toUpperCase()} confidence · H2H ${total}`;
 
   const h2hTable = h2hRows.length
     ? compact
@@ -6574,7 +6574,7 @@ function renderSeriesLineups(match) {
     })}
     <article class="recap-note lineup-source-note">
       <div class="form-summary-strip">${sourcePills}</div>
-      <p class="meta-text">Series tab shows likely starters. Open a game tab for live map-specific lineups and stats.</p>
+      <p class="meta-text">Series view for likely starters. Open a game tab for live map stats.</p>
     </article>
   `;
 }
