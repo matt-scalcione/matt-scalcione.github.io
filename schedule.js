@@ -78,6 +78,8 @@ const elements = {
   dotaTiersInput: document.querySelector("#dotaTiersInput"),
   dateFromInput: document.querySelector("#dateFromInput"),
   dateToInput: document.querySelector("#dateToInput"),
+  scheduleRangePresets: Array.from(document.querySelectorAll("#scheduleRangePresets [data-range]")),
+  scheduleDotaOnlyFields: Array.from(document.querySelectorAll(".schedule-dota-only")),
   controlsPanel: document.querySelector("#controlsPanel"),
   controlsToggle: document.querySelector("#controlsToggle"),
   liveDeskNav: document.querySelector("#liveDeskNav"),
@@ -101,6 +103,12 @@ const elements = {
   resultsTableWrap: document.querySelector("#resultsTableWrap")
 };
 let scheduleViewMode = "both";
+const SCHEDULE_RANGE_PRESETS = {
+  live: { pastHours: 12, futureHours: 18 },
+  "24h": { pastHours: 0, futureHours: 24 },
+  "3d": { pastHours: 0, futureHours: 72 },
+  "7d": { pastHours: 0, futureHours: 168 }
+};
 
 function selectedTitleKey() {
   return normalizeGameKey(elements.gameSelect?.value || "");
@@ -407,11 +415,78 @@ function buildQuery() {
 
   if (game) params.set("game", game);
   if (region) params.set("region", region);
-  if (dotaTiers) params.set("dota_tiers", dotaTiers);
+  if (dotaTiers && normalizeGameKey(game) !== "lol") params.set("dota_tiers", dotaTiers);
   if (dateFromIso) params.set("date_from", dateFromIso);
   if (dateToIso) params.set("date_to", dateToIso);
 
   return params.toString();
+}
+
+function presetWindow(rangeKey, baseDate = new Date()) {
+  const preset = SCHEDULE_RANGE_PRESETS[rangeKey];
+  if (!preset) {
+    return null;
+  }
+
+  return {
+    start: new Date(baseDate.getTime() - preset.pastHours * 60 * 60 * 1000),
+    end: new Date(baseDate.getTime() + preset.futureHours * 60 * 60 * 1000)
+  };
+}
+
+function scheduleRangeMatches(rangeKey) {
+  const preset = presetWindow(rangeKey);
+  if (!preset) {
+    return false;
+  }
+
+  const fromIso = parseLocalInputToIso(elements.dateFromInput?.value || "");
+  const toIso = parseLocalInputToIso(elements.dateToInput?.value || "");
+  if (!fromIso || !toIso) {
+    return false;
+  }
+
+  const fromMs = new Date(fromIso).getTime();
+  const toMs = new Date(toIso).getTime();
+  const presetFromMs = preset.start.getTime();
+  const presetToMs = preset.end.getTime();
+  const toleranceMs = 5 * 60 * 1000;
+
+  return Math.abs(fromMs - presetFromMs) <= toleranceMs && Math.abs(toMs - presetToMs) <= toleranceMs;
+}
+
+function syncScheduleRangePresetState() {
+  if (!Array.isArray(elements.scheduleRangePresets)) {
+    return;
+  }
+
+  for (const button of elements.scheduleRangePresets) {
+    const active = scheduleRangeMatches(button.getAttribute("data-range") || "");
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
+function applyScheduleRangePreset(rangeKey, options = {}) {
+  const preset = presetWindow(rangeKey);
+  if (!preset || !elements.dateFromInput || !elements.dateToInput) {
+    return;
+  }
+
+  elements.dateFromInput.value = toLocalInputValue(preset.start);
+  elements.dateToInput.value = toLocalInputValue(preset.end);
+  syncScheduleRangePresetState();
+  if (options.load !== false) {
+    loadCollections();
+  }
+}
+
+function syncScheduleFilterVisibility() {
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  const showDotaTiers = game !== "lol";
+  for (const field of elements.scheduleDotaOnlyFields || []) {
+    field.hidden = !showDotaTiers;
+  }
 }
 
 function rowLink(id) {
@@ -848,11 +923,29 @@ function installEvents() {
     setStatus("API base saved locally.", "success");
   });
 
-  elements.gameSelect.addEventListener("change", loadCollections);
+  elements.gameSelect.addEventListener("change", () => {
+    syncScheduleFilterVisibility();
+    loadCollections();
+  });
   elements.regionInput.addEventListener("change", loadCollections);
   elements.dotaTiersInput.addEventListener("change", loadCollections);
-  elements.dateFromInput.addEventListener("change", loadCollections);
-  elements.dateToInput.addEventListener("change", loadCollections);
+  elements.dateFromInput.addEventListener("change", () => {
+    syncScheduleRangePresetState();
+    loadCollections();
+  });
+  elements.dateToInput.addEventListener("change", () => {
+    syncScheduleRangePresetState();
+    loadCollections();
+  });
+
+  if (Array.isArray(elements.scheduleRangePresets)) {
+    for (const button of elements.scheduleRangePresets) {
+      button.addEventListener("click", () => {
+        const rangeKey = button.getAttribute("data-range") || "";
+        applyScheduleRangePreset(rangeKey);
+      });
+    }
+  }
 }
 
 function applyInitialUrlFilters() {
@@ -880,10 +973,11 @@ function boot() {
   setupScheduleViewSwitch();
 
   const now = new Date();
-  const start = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-  const end = new Date(now.getTime() + 18 * 60 * 60 * 1000);
-  elements.dateFromInput.value = toLocalInputValue(start);
-  elements.dateToInput.value = toLocalInputValue(end);
+  const initialWindow = presetWindow("live", now);
+  elements.dateFromInput.value = toLocalInputValue(initialWindow.start);
+  elements.dateToInput.value = toLocalInputValue(initialWindow.end);
+  syncScheduleFilterVisibility();
+  syncScheduleRangePresetState();
 
   installEvents();
   refreshScheduleSeo();
