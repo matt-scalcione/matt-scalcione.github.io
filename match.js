@@ -3024,7 +3024,7 @@ function applyGamePanelVisibility(match) {
       setPanelVisibility(panel, false);
     }
     setTargetVisibility(elements.gameCommandWrap, !draftPreview && selectedState !== "completed");
-    setTargetVisibility(elements.selectedGameRecapWrap, !draftPreview && selectedState !== "completed");
+    setTargetVisibility(elements.selectedGameRecapWrap, !draftPreview && selectedState !== "completed" && selectedState !== "inProgress");
     setTargetVisibility(elements.teamCompareWrap, false);
     setTargetVisibility(elements.pulseCard, false);
     return;
@@ -3320,6 +3320,7 @@ function renderGameCommandCenter(match) {
   const deaths = playerDeathCounts(match);
   const pulse = updateMapPulseState(match);
   const liveClock = elapsedSeconds > 0 ? formatGameClock(elapsedSeconds) : "n/a";
+  const telemetryMode = String(selected?.telemetryStatus || "none").toLowerCase();
   const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
   const objectiveHint = nextObjective?.note || "Next major map timer from tracked cadence.";
   const fightLabel = pulse ? "Fight live" : deaths.left + deaths.right > 0 ? "Reset window" : "Calm map";
@@ -3334,6 +3335,51 @@ function renderGameCommandCenter(match) {
       ? `${formatFocusedEventClock(latestEvent, liveContext.timelineAnchor)} · ${latestEvent.phase.label} · ${latestEvent.leadDescriptor.label}`
       : "Waiting for timeline events.";
   const mapStateLabel = readableGameStateLabel(selected.state);
+
+  if (selected.state === "inProgress" && telemetryMode !== "rich") {
+    const sideSummary = Array.isArray(selected?.sideSummary) && selected.sideSummary.length
+      ? selected.sideSummary.join(" · ")
+      : "Side assignment pending";
+    const leftTowers = Number(selected?.snapshot?.left?.towers || 0);
+    const rightTowers = Number(selected?.snapshot?.right?.towers || 0);
+    const leftDragons = Number(selected?.snapshot?.left?.dragons || 0);
+    const rightDragons = Number(selected?.snapshot?.right?.dragons || 0);
+    const leftBarons = Number(selected?.snapshot?.left?.barons || 0);
+    const rightBarons = Number(selected?.snapshot?.right?.barons || 0);
+    const leftGold = Number(selected?.snapshot?.left?.gold);
+    const rightGold = Number(selected?.snapshot?.right?.gold);
+    const goldLine = Number.isFinite(leftGold) && Number.isFinite(rightGold)
+      ? `${formatNumber(leftGold)}-${formatNumber(rightGold)} gold`
+      : "Gold totals pending";
+    const clockHint = selected.startedAt ? `Started ${dateTimeCompact(selected.startedAt)}` : `Refresh ${refreshSeconds}s`;
+    const feedLabel = telemetryMode === "pending" ? "Partial live feed" : "Metadata only";
+    const feedHint = tickerEvents > 0
+      ? `${tickerEvents} feed signals captured so far`
+      : "Waiting for richer map telemetry.";
+
+    elements.gameCommandWrap.innerHTML = [
+      commandCard("Current State", mapStateLabel, `Game ${selected.number} · ${telemetryMode.toUpperCase()} telemetry`, {
+        tone: "live",
+        featured: true
+      }),
+      commandCard("Scoreline", `${leftKills}-${rightKills}`, `${killPace} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`, {
+        tone: totalKills >= 12 ? "warn" : "neutral"
+      }),
+      commandCard("Objectives", `T ${leftTowers}-${rightTowers} · D ${leftDragons}-${rightDragons}`, `Baron ${leftBarons}-${rightBarons} · ${goldLine}`, {
+        tone: leftTowers + rightTowers + leftDragons + rightDragons + leftBarons + rightBarons > 0 ? "warn" : "neutral"
+      }),
+      commandCard("Clock", liveClock, clockHint, {
+        tone: elapsedSeconds > 0 ? "neutral" : "warn"
+      }),
+      commandCard("Sides", sideSummary, selected.watchUrl ? "Primary stream available" : "Watch links pending", {
+        tone: selected.watchUrl ? "live" : "neutral"
+      }),
+      commandCard("Feed Status", feedLabel, feedHint, {
+        tone: telemetryMode === "pending" ? "warn" : "neutral"
+      })
+    ].join("");
+    return;
+  }
 
   elements.gameCommandWrap.innerHTML = [
     commandCard(
@@ -5119,10 +5165,9 @@ function renderPulseCard(match) {
     const rightKills = Number(selected?.snapshot?.right?.kills || 0);
     const totalKills = leftKills + rightKills;
     const killPace = elapsedMinutes > 0 ? `${((totalKills / elapsedMinutes) * 10).toFixed(2)} / 10m` : "n/a";
-    const refreshSeconds = Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS);
     const deaths = playerDeathCounts(match);
     const genericLiveStateEvent = focusedRow && isGenericLiveStateTitle(focusedRow.title, selected.number);
-    const latestEventLabel = genericLiveStateEvent ? "Waiting for a major moment" : focusedRow ? focusedRow.title : "No event yet";
+    const latestEventLabel = genericLiveStateEvent ? "Waiting for first major moment" : focusedRow ? focusedRow.title : "No event yet";
     const latestEventHint = genericLiveStateEvent
       ? `Map is ${readableGameStateLabel(selected.state).toLowerCase()}. Live feed will update once the first meaningful event lands.`
       : focusedRow
@@ -5163,17 +5208,17 @@ function renderPulseCard(match) {
           .join("")}</div>` : ""}
         ${priorityAlertMarkup}
         <div class="pulse-command-grid">
-          ${commandCard("Live Focus", latestEventLabel, latestEventHint, {
+          ${commandCard("What Changed", latestEventLabel, latestEventHint, {
             tone: focusedRow?.leadDescriptor?.tone || "neutral",
             featured: true
           })}
-          ${commandCard("Clock + Pace", liveClock, `${killPace} · Refresh ${refreshSeconds}s`, {
+          ${commandCard("Current State", liveClock, `${leftKills}-${rightKills} kills · ${killPace}`, {
             tone: totalKills >= 18 ? "warn" : "neutral"
           })}
-          ${commandCard("Next Objective", objectiveLabel, objectiveHint, {
+          ${commandCard("Next", objectiveLabel, objectiveHint, {
             tone: nextObjective?.state === "available" ? "live" : "warn"
           })}
-          ${commandCard("Fight State", fightLabel, fightHint, {
+          ${commandCard("Pressure", fightLabel, fightHint, {
             tone: pulseState ? "warn" : deaths.left + deaths.right > 0 ? "neutral" : "live"
           })}
         </div>
