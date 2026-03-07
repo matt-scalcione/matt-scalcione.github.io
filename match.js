@@ -1327,6 +1327,10 @@ function mobileCorePanelTargetIds(match) {
   return MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE.inProgress;
 }
 
+function liveTelemetryStatus(match) {
+  return String(match?.selectedGame?.telemetryStatus || match?.telemetryStatus || "none").toLowerCase();
+}
+
 function applyMobileGameEnhancements(match) {
   const selectedState = String(match?.selectedGame?.state || "");
   const compactGameMode = isCompactUI() && uiState.viewMode === "game";
@@ -2420,6 +2424,8 @@ async function ensureMatchupData(match, apiBase) {
       rightProfile
     };
     renderMatchupConsole(uiState.match || match);
+    renderUpcomingForm(uiState.match || match);
+    renderUpcomingHeadToHead(uiState.match || match);
   } catch (error) {
     if (token !== uiState.matchupRequestToken) {
       return;
@@ -2433,6 +2439,8 @@ async function ensureMatchupData(match, apiBase) {
       rightProfile: null
     };
     renderMatchupConsole(uiState.match || match);
+    renderUpcomingForm(uiState.match || match);
+    renderUpcomingHeadToHead(uiState.match || match);
   }
 }
 
@@ -5217,6 +5225,73 @@ function upcomingIntel(match) {
   return match?.preMatchInsights || null;
 }
 
+function currentMatchupState(match) {
+  if (!match) {
+    return null;
+  }
+  const expectedKey = matchupRequestKey(match, uiState.apiBase);
+  return uiState.matchup?.key === expectedKey ? uiState.matchup : null;
+}
+
+function normalizeUpcomingTeamFormProfile(profile) {
+  if (!profile) {
+    return null;
+  }
+
+  const summary = profile.summary || {};
+  return {
+    teamId: profile.teamId || profile.id || null,
+    teamName: profile.teamName || profile.name || null,
+    wins: Number(profile.wins ?? summary.wins ?? 0),
+    losses: Number(profile.losses ?? summary.losses ?? 0),
+    draws: Number(profile.draws ?? summary.draws ?? 0),
+    gameWins: Number(profile.gameWins ?? summary.mapWins ?? 0),
+    gameLosses: Number(profile.gameLosses ?? summary.mapLosses ?? 0),
+    seriesWinRatePct: Number(profile.seriesWinRatePct ?? summary.seriesWinRatePct ?? 0),
+    gameWinRatePct: Number(profile.gameWinRatePct ?? summary.mapWinRatePct ?? 0),
+    streakLabel: profile.streakLabel || summary.streakLabel || "n/a",
+    formLabel: profile.formLabel || summary.formLast5 || "n/a",
+    recentMatches: Array.isArray(profile.recentMatches) ? profile.recentMatches : []
+  };
+}
+
+function resolvedUpcomingFormProfiles(match) {
+  const intel = upcomingIntel(match);
+  const teamForm = intel?.teamForm || {};
+  const matchupState = currentMatchupState(match);
+
+  const leftProfile =
+    normalizeUpcomingTeamFormProfile(matchupState?.leftProfile) ||
+    normalizeUpcomingTeamFormProfile(teamForm.left);
+  const rightProfile =
+    normalizeUpcomingTeamFormProfile(matchupState?.rightProfile) ||
+    normalizeUpcomingTeamFormProfile(teamForm.right);
+
+  return {
+    left: leftProfile,
+    right: rightProfile
+  };
+}
+
+function resolvedUpcomingHeadToHead(match) {
+  const matchupState = currentMatchupState(match);
+  const matchupH2h = matchupState?.leftProfile?.headToHead;
+  if (matchupH2h && Array.isArray(matchupH2h.recentMatches) && matchupH2h.recentMatches.length) {
+    return {
+      total: Number(matchupH2h.matches || matchupH2h.recentMatches.length || 0),
+      leftWins: Number(matchupH2h.wins || 0),
+      rightWins: Number(matchupH2h.losses || 0),
+      lastMeetings: matchupH2h.recentMatches.map((row) => ({
+        ...row,
+        id: row.matchId || row.id || null,
+        winnerName: row.winnerName || winnerLabelForH2hRow(row, match)
+      }))
+    };
+  }
+
+  return upcomingIntel(match)?.headToHead || null;
+}
+
 function upcomingCard(label, value, note = null) {
   return `
     <article class="upcoming-card">
@@ -5381,8 +5456,7 @@ function renderUpcomingForm(match) {
     return;
   }
 
-  const intel = upcomingIntel(match);
-  const teamForm = intel?.teamForm || {};
+  const teamForm = resolvedUpcomingFormProfiles(match);
   elements.upcomingFormWrap.innerHTML = `
     ${renderTeamFormCard({
       teamName: match.teams.left.name,
@@ -5409,8 +5483,7 @@ function renderUpcomingHeadToHead(match) {
     return;
   }
 
-  const intel = upcomingIntel(match);
-  const h2h = intel?.headToHead;
+  const h2h = resolvedUpcomingHeadToHead(match);
   if (!h2h || !Array.isArray(h2h.lastMeetings) || !h2h.lastMeetings.length) {
     elements.upcomingH2hWrap.innerHTML = `<div class="empty">No recent direct meetings found.</div>`;
     return;
@@ -5418,13 +5491,15 @@ function renderUpcomingHeadToHead(match) {
 
   const rows = h2h.lastMeetings
     .map((row) => {
+      const winnerName = row.winnerName || winnerLabelForH2hRow(row, match);
       const winnerTone =
-        row.winnerName === match?.teams?.left?.name
+        winnerName === match?.teams?.left?.name
           ? "win-left"
-          : row.winnerName === match?.teams?.right?.name
+          : winnerName === match?.teams?.right?.name
             ? "win-right"
             : "even";
-      const detailLink = row.id ? `<a class="table-link" href="${detailUrlForGame(row.id, uiState.apiBase)}">Open</a>` : "";
+      const detailId = row.matchId || row.id || null;
+      const detailLink = detailId ? `<a class="table-link" href="${detailUrlForGame(detailId, uiState.apiBase)}">Open</a>` : "";
       return `
         <article class="series-h2h-item upcoming-h2h-card">
           <div class="series-h2h-top">
@@ -5432,8 +5507,8 @@ function renderUpcomingHeadToHead(match) {
             <span class="form-match-score">${row.scoreLabel || "n/a"}</span>
           </div>
           <div class="form-match-top">
-            <span class="series-h2h-result ${winnerTone}">${row.winnerName === match?.teams?.left?.name ? scoreboardTeamName(match.teams.left.name) : row.winnerName === match?.teams?.right?.name ? scoreboardTeamName(match.teams.right.name) : "TBD"}</span>
-            <span class="form-match-opponent">${row.winnerName || "TBD"} won</span>
+            <span class="series-h2h-result ${winnerTone}">${winnerName === match?.teams?.left?.name ? scoreboardTeamName(match.teams.left.name) : winnerName === match?.teams?.right?.name ? scoreboardTeamName(match.teams.right.name) : "TBD"}</span>
+            <span class="form-match-opponent">${winnerName || "TBD"} won</span>
           </div>
           <div class="form-match-meta">
             <span>${row.tournament || "Unknown"}</span>
@@ -5447,9 +5522,9 @@ function renderUpcomingHeadToHead(match) {
   elements.upcomingH2hWrap.innerHTML = `
     <article class="upcoming-note">
       <div class="form-summary-strip">
-        <span class="form-summary-pill">Meetings ${h2h.total || 0}</span>
-        <span class="form-summary-pill">${scoreboardTeamName(match.teams.left.name)} ${h2h.leftWins || 0}</span>
-        <span class="form-summary-pill">${scoreboardTeamName(match.teams.right.name)} ${h2h.rightWins || 0}</span>
+        <span class="form-summary-pill">Meetings ${h2h.total ?? h2h.matches ?? 0}</span>
+        <span class="form-summary-pill">${scoreboardTeamName(match.teams.left.name)} ${h2h.leftWins ?? h2h.wins ?? 0}</span>
+        <span class="form-summary-pill">${scoreboardTeamName(match.teams.right.name)} ${h2h.rightWins ?? h2h.losses ?? 0}</span>
       </div>
     </article>
     <div class="series-h2h-list upcoming-h2h-list">${rows}</div>
