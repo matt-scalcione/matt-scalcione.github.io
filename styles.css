@@ -1501,9 +1501,7 @@ button.ghost,
 .team-jump-chip,
 .mobile-mode-chip {
   border: 1px solid rgba(33, 86, 129, 0.26);
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 8%, white 92%), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 248, 255, 0.86));
+  background: rgba(255, 255, 255, 0.86);
   color: color-mix(in srgb, var(--accent-strong) 86%, #17395d 14%);
   border-radius: 999px;
   min-height: 1.76rem;
@@ -1511,9 +1509,7 @@ button.ghost,
   font-family: "Archivo Black", "Impact", sans-serif;
   font-size: 0.6rem;
   letter-spacing: 0.01em;
-  box-shadow:
-    0 10px 16px rgba(10, 24, 40, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  box-shadow: none;
 }
 
 .team-jump-chip:active,
@@ -2865,7 +2861,7 @@ button.ghost,
   border: 1px solid rgba(188, 72, 43, 0.38);
   border-radius: 12px;
   padding: 0.56rem 0.65rem;
-  background: linear-gradient(135deg, rgba(188, 72, 43, 0.12), rgba(188, 72, 43, 0.04));
+  background: rgba(188, 72, 43, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2890,7 +2886,7 @@ button.ghost,
   text-decoration: none;
   font-size: 0.78rem;
   font-family: "Archivo Black", "Impact", sans-serif;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .game-pill.live {
@@ -2914,9 +2910,9 @@ button.ghost,
 }
 
 .game-pill.selected {
-  color: #fff;
-  background: linear-gradient(130deg, var(--accent), var(--accent-strong));
-  border-color: transparent;
+  color: #1d4ea1;
+  background: rgba(44, 112, 255, 0.12);
+  border-color: rgba(31, 98, 189, 0.24);
 }
 
 .game-pill.current-live {
@@ -3560,37 +3556,38 @@ button.ghost,
 .live-summary-card {
   border-radius: 12px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.88);
   padding: 0.56rem 0.6rem;
   display: grid;
   gap: 0.16rem;
   min-width: 0;
+  box-shadow: none;
 }
 
 .live-summary-card.now,
 .live-summary-card.left {
   border-color: rgba(31, 123, 194, 0.28);
-  background: linear-gradient(180deg, rgba(31, 123, 194, 0.12), rgba(31, 123, 194, 0.04));
+  background: rgba(31, 123, 194, 0.08);
 }
 
 .live-summary-card.right {
   border-color: rgba(183, 70, 50, 0.3);
-  background: linear-gradient(180deg, rgba(183, 70, 50, 0.12), rgba(183, 70, 50, 0.04));
+  background: rgba(183, 70, 50, 0.08);
 }
 
 .live-summary-card.live {
   border-color: rgba(19, 125, 79, 0.3);
-  background: linear-gradient(180deg, rgba(19, 125, 79, 0.12), rgba(19, 125, 79, 0.04));
+  background: rgba(19, 125, 79, 0.08);
 }
 
 .live-summary-card.warn {
   border-color: rgba(168, 93, 20, 0.3);
-  background: linear-gradient(180deg, rgba(168, 93, 20, 0.12), rgba(168, 93, 20, 0.04));
+  background: rgba(168, 93, 20, 0.08);
 }
 
 .live-summary-card.critical {
   border-color: rgba(164, 47, 23, 0.34);
-  background: linear-gradient(180deg, rgba(164, 47, 23, 0.14), rgba(164, 47, 23, 0.05));
+  background: rgba(164, 47, 23, 0.1);
 }
 
 .live-summary-label {
@@ -3622,13 +3619,14 @@ button.ghost,
 }
 
 .live-feed-list .live-feed-item {
+  background: rgba(255, 255, 255, 0.86);
   border-radius: 10px;
   padding: 0.42rem 0.54rem;
   display: grid;
   gap: 0.08rem;
   border-width: 1px;
   cursor: pointer;
-  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  transition: border-color 140ms ease, background 140ms ease;
 }
 
 .live-feed-list .live-feed-item:hover {
@@ -3642,30 +3640,28 @@ button.ghost,
 
 .live-feed-list .live-feed-item.active {
   border-color: rgba(12, 45, 66, 0.32);
-  background: rgba(31, 123, 194, 0.07);
-  box-shadow: 0 0 0 1px rgba(31, 123, 194, 0.16);
+  background: rgba(31, 123, 194, 0.08);
 }
 
 .live-feed-list .live-feed-item.major-event {
   padding-top: 0.52rem;
   padding-bottom: 0.52rem;
-  box-shadow: 0 8px 18px rgba(10, 24, 40, 0.08);
 }
 
 .live-feed-list .live-feed-item.major-objective {
-  background: linear-gradient(180deg, rgba(19, 125, 79, 0.1), rgba(19, 125, 79, 0.03));
+  background: rgba(19, 125, 79, 0.08);
   border-color: rgba(19, 125, 79, 0.24);
 }
 
 .live-feed-list .live-feed-item.major-swing,
 .live-feed-list .live-feed-item.major-lead {
-  background: linear-gradient(180deg, rgba(31, 123, 194, 0.1), rgba(31, 123, 194, 0.03));
+  background: rgba(31, 123, 194, 0.08);
   border-color: rgba(31, 123, 194, 0.24);
 }
 
 .live-feed-list .live-feed-item.major-fight,
 .live-feed-list .live-feed-item.major-critical {
-  background: linear-gradient(180deg, rgba(168, 93, 20, 0.1), rgba(168, 93, 20, 0.03));
+  background: rgba(168, 93, 20, 0.08);
   border-color: rgba(168, 93, 20, 0.24);
 }
 
@@ -4088,9 +4084,10 @@ button.ghost,
 
 .pulse {
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
   padding: 0.72rem;
+  box-shadow: none;
 }
 
 .pulse-shell {
@@ -4120,12 +4117,12 @@ button.ghost,
 
 .pulse.good {
   border-color: rgba(19, 125, 79, 0.35);
-  background: rgba(19, 125, 79, 0.08);
+  background: rgba(19, 125, 79, 0.06);
 }
 
 .pulse.warn {
   border-color: rgba(168, 93, 20, 0.35);
-  background: rgba(168, 93, 20, 0.08);
+  background: rgba(168, 93, 20, 0.06);
 }
 
 .pulse-title {
@@ -4202,11 +4199,12 @@ button.ghost,
 
 .pulse-command-grid .command-card {
   padding: 0.54rem;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: none;
 }
 
 .pulse-command-grid .command-card.featured {
-  background: linear-gradient(180deg, rgba(31, 123, 194, 0.12), rgba(31, 123, 194, 0.04));
+  background: rgba(31, 123, 194, 0.08);
 }
 
 .pulse-priority {
@@ -4523,16 +4521,17 @@ button.ghost,
 .command-card {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.9);
   padding: 0.62rem;
   display: grid;
   gap: 0.18rem;
   align-content: start;
+  box-shadow: none;
 }
 
 .command-card.featured {
   grid-column: 1 / -1;
-  background: linear-gradient(180deg, rgba(31, 123, 194, 0.08), rgba(31, 123, 194, 0.03));
+  background: rgba(31, 123, 194, 0.08);
 }
 
 .command-card.live {
@@ -5771,18 +5770,19 @@ button.ghost,
   padding: 0.18rem 0.54rem;
   border-radius: 999px;
   border: 1px solid rgba(95, 132, 170, 0.22);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.84);
   color: #294458;
   font-family: "Archivo Black", "Impact", sans-serif;
   font-size: 0.62rem;
   letter-spacing: 0.02em;
+  box-shadow: none;
 }
 
 .tracker-sort-chip.active,
 .tracker-sort-chip[aria-pressed="true"] {
-  border-color: rgba(12, 110, 102, 0.34);
-  background: rgba(12, 110, 102, 0.12);
-  color: var(--accent-strong);
+  border-color: rgba(31, 98, 189, 0.24);
+  background: rgba(44, 112, 255, 0.12);
+  color: #1d4ea1;
 }
 
 .tracker-table-mobile {
@@ -7977,9 +7977,10 @@ button.ghost,
 
   .match-page.mobile-game-mode .feed-controls-shell.compact .feed-controls {
     padding: 0.48rem 0.52rem;
-    border: 1px solid rgba(12, 45, 66, 0.1);
+    border: 1px solid rgba(12, 45, 66, 0.08);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: none;
   }
 
   .match-page.mobile-game-mode .analyst-desk {
@@ -8026,6 +8027,7 @@ button.ghost,
   .match-page.mobile-game-mode .live-feed-list .live-feed-item {
     padding: 0.4rem 0.46rem;
     gap: 0.06rem;
+    border-radius: 12px;
   }
 
   .match-page.mobile-game-mode .live-feed-list .live-feed-item.major-event {
