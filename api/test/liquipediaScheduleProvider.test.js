@@ -331,4 +331,78 @@ describe("mockStore Dota upcoming detail fallback", () => {
       process.env.ESPORTS_DATA_MODE = previousMode;
     }
   });
+
+  it("promotes overdue Dota schedule rows into live when no live provider row exists yet", async () => {
+    const originalFetch = global.fetch;
+    const delayedTimestamp = Math.floor((Date.now() - 45 * 60 * 1000) / 1000);
+    const delayedHtml = sampleMatchHtml.replace("1772899200", String(delayedTimestamp));
+
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.includes("liquipedia.net/dota2/api.php")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              parse: {
+                text: delayedHtml
+              }
+            };
+          }
+        };
+      }
+
+      if (
+        target.endsWith("/live") ||
+        target.endsWith("/proMatches") ||
+        target.endsWith("/leagues") ||
+        target.endsWith("/teams")
+      ) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    process.env.ESPORTS_DATA_MODE = "provider";
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?liquipediaLateLiveTest=${Date.now()}`);
+      const liveRows = await store.listLiveMatches({
+        game: "dota2",
+        region: undefined,
+        followedOnly: false,
+        userId: null,
+        dotaTiers: [1, 2, 3, 4]
+      });
+      const scheduleRows = await store.listSchedule({
+        game: "dota2",
+        region: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        dotaTiers: [1, 2, 3, 4]
+      });
+      const matchId = scheduleRows[0]?.id;
+      const detail = await store.getMatchDetail(matchId);
+
+      assert.equal(liveRows.length, 1);
+      assert.equal(liveRows[0].status, "live");
+      assert.equal(scheduleRows[0].status, "live");
+      assert.equal(detail.status, "live");
+      assert.equal(detail.selectedGame.state, "inProgress");
+    } finally {
+      global.fetch = originalFetch;
+      process.env.ESPORTS_DATA_MODE = previousMode;
+    }
+  });
 });
