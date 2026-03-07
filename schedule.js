@@ -375,47 +375,48 @@ function scheduleCardState(row, type) {
 
 function scheduleCardStatusLabel(row, type) {
   if (type === "result") return "FINAL";
-  return row?.status === "live" ? "LIVE" : "UP NEXT";
+  return row?.status === "live" ? "LIVE" : "SCHEDULED";
 }
 
-function scheduleCardCenter(row, type, scoreLabel) {
+function scheduleCardContext(row, type, scoreLabel, winnerName) {
   const formatLabel = `BO${Math.max(1, Number(row?.bestOf || 1))}`;
   const hasSeriesScore = scoreLabel !== "—";
+
   if (type === "result") {
     return {
-      main: hasSeriesScore ? scoreLabel : formatLabel,
-      sub: "Final score"
+      format: formatLabel,
+      note: winnerName ? `${winnerName} won` : hasSeriesScore ? `${scoreLabel} final` : "Final"
     };
   }
 
   if (row?.status === "live") {
     return {
-      main: hasSeriesScore ? scoreLabel : formatLabel,
-      sub: hasSeriesScore ? "Series live" : "Starting soon"
+      format: formatLabel,
+      note: hasSeriesScore ? `${scoreLabel} in series` : "Series live"
     };
   }
 
   return {
-    main: formatLabel,
-    sub: "Series format"
+    format: formatLabel,
+    note: "Upcoming series"
   };
 }
 
-function scheduleCardFooter(row, type, winnerShort) {
+function scheduleCardFooter(row, type, winnerName) {
   const tournament = row?.tournament || gameLabel(row?.game) || "Tournament";
   const formatLabel = `BO${Math.max(1, Number(row?.bestOf || 1))}`;
 
   if (type === "result") {
     return {
       primary: tournament,
-      secondary: winnerShort && winnerShort !== "—" ? `Winner ${winnerShort}` : "Final"
+      secondary: winnerName ? `Winner ${winnerName}` : "Final"
     };
   }
 
   if (row?.status === "live") {
     return {
       primary: tournament,
-      secondary: `${formatLabel} live`
+      secondary: `${formatLabel} · live now`
     };
   }
 
@@ -760,20 +761,19 @@ function renderTable(container, rows, type) {
     .map((row) => {
       const detailUrl = rowLink(row.id);
       const hubUrl = hubUrlForGame(row.game);
+      const leftName = teamNameValue(row.teams.left) || "Team A";
+      const rightName = teamNameValue(row.teams.right) || "Team B";
       const winnerLong =
         row.winnerTeamId === row.teams.left.id
           ? row.teams.left.name
           : row.winnerTeamId === row.teams.right.id
             ? row.teams.right.name
             : "TBD";
-      const leftShort = shortTeamName(row.teams.left, row.game);
-      const rightShort = shortTeamName(row.teams.right, row.game);
-      const winnerShort = winnerLong === "TBD" ? "—" : shortTeamName(winnerLong, row.game);
       const scoreLabel = seriesScoreLabel(row, type);
       const leftTeam = teamLink({
         teamId: row.teams.left.id,
         teamName: row.teams.left.name,
-        label: leftShort,
+        label: leftName,
         game: row.game,
         matchId: row.id,
         opponentId: row.teams.right.id
@@ -781,19 +781,19 @@ function renderTable(container, rows, type) {
       const rightTeam = teamLink({
         teamId: row.teams.right.id,
         teamName: row.teams.right.name,
-        label: rightShort,
+        label: rightName,
         game: row.game,
         matchId: row.id,
         opponentId: row.teams.left.id
       });
 
       return `
-        <tr class="schedule-row schedule-row-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftShort} vs ${rightShort}">
+        <tr class="schedule-row schedule-row-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftName} vs ${rightName}">
           <td class="schedule-time-cell">${dateTimeCompact(row.startAt)}</td>
           <td class="schedule-game-cell"><a class="hub-chip-link" href="${hubUrl}" aria-label="Open ${gameLabel(row.game)} hub">${gameChipMarkup(row.game)}</a></td>
           <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
           <td class="schedule-score-cell">${scoreLabel}</td>
-          <td class="schedule-winner-cell">${type === "result" ? winnerShort : "—"}</td>
+          <td class="schedule-winner-cell">${type === "result" ? winnerLong : "—"}</td>
         </tr>
       `;
     })
@@ -806,8 +806,8 @@ function renderTable(container, rows, type) {
           const cards = group.rows
             .map((row) => {
               const detailUrl = rowLink(row.id);
-              const leftShort = shortTeamName(row.teams.left, row.game);
-              const rightShort = shortTeamName(row.teams.right, row.game);
+              const leftName = teamNameValue(row.teams.left) || "Team A";
+              const rightName = teamNameValue(row.teams.right) || "Team B";
               const leftBadge = scheduleBadgeMarkup(row.teams.left, row.game);
               const rightBadge = scheduleBadgeMarkup(row.teams.right, row.game);
               const winnerLong =
@@ -816,16 +816,24 @@ function renderTable(container, rows, type) {
                   : row.winnerTeamId === row.teams.right.id
                     ? row.teams.right.name
                     : null;
-              const winnerShort = winnerLong ? shortTeamName(winnerLong) : "—";
               const scoreLabel = seriesScoreLabel(row, type);
               const statusLabel = scheduleCardStatusLabel(row, type);
               const statusClass = type === "result" ? "complete" : row.status === "live" ? "live" : "upcoming";
               const stateClass = scheduleCardState(row, type);
-              const center = scheduleCardCenter(row, type, scoreLabel);
-              const footer = scheduleCardFooter(row, type, winnerShort);
+              const context = scheduleCardContext(row, type, scoreLabel, winnerLong);
+              const footer = scheduleCardFooter(row, type, winnerLong);
+              const showSeriesScore = type === "result" || row?.status === "live" || scoreLabel !== "—";
+              const leftSeriesScore = Number(row?.seriesScore?.left ?? 0);
+              const rightSeriesScore = Number(row?.seriesScore?.right ?? 0);
+              const leftScoreMarkup = showSeriesScore
+                ? `<span class="schedule-card-team-score">${leftSeriesScore}</span>`
+                : "";
+              const rightScoreMarkup = showSeriesScore
+                ? `<span class="schedule-card-team-score">${rightSeriesScore}</span>`
+                : "";
 
               return `
-                <a class="schedule-row-card schedule-${stateClass}" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
+                <a class="schedule-row-card schedule-${stateClass}" href="${detailUrl}" aria-label="Open ${leftName} vs ${rightName}">
                   <div class="schedule-card-top">
                     <div class="schedule-card-game">
                       <span class="schedule-card-game-icon" title="${gameLabel(row.game)}">${gameChipMarkup(row.game)}</span>
@@ -833,18 +841,24 @@ function renderTable(container, rows, type) {
                     </div>
                     <span class="pill ${statusClass} schedule-card-status">${statusLabel}</span>
                   </div>
-                  <div class="schedule-card-board">
-                    <div class="schedule-card-team left">
-                      ${leftBadge}
-                      <span class="schedule-card-name">${leftShort}</span>
+                  <div class="schedule-card-board schedule-card-board-stacked">
+                    <div class="schedule-card-team-row left">
+                      <div class="schedule-card-team-main">
+                        ${leftBadge}
+                        <span class="schedule-card-name">${leftName}</span>
+                      </div>
+                      ${leftScoreMarkup}
                     </div>
-                    <div class="schedule-card-center">
-                      <p class="schedule-card-score">${center.main}</p>
-                      <p class="schedule-card-center-meta">${center.sub}</p>
+                    <div class="schedule-card-series-row">
+                      <span class="schedule-card-format">${context.format}</span>
+                      <span class="schedule-card-series-note">${context.note}</span>
                     </div>
-                    <div class="schedule-card-team right">
-                      ${rightBadge}
-                      <span class="schedule-card-name">${rightShort}</span>
+                    <div class="schedule-card-team-row right">
+                      <div class="schedule-card-team-main">
+                        ${rightBadge}
+                        <span class="schedule-card-name">${rightName}</span>
+                      </div>
+                      ${rightScoreMarkup}
                     </div>
                   </div>
                   <div class="schedule-card-foot">
