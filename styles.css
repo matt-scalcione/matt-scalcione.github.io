@@ -1242,6 +1242,10 @@ button.ghost,
   font-weight: 700;
 }
 
+.section-head .meta-text:empty {
+  display: none;
+}
+
 .score-strip {
   border: 1px solid var(--line);
   border-radius: 14px;
