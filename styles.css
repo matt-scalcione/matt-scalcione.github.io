@@ -1582,6 +1582,82 @@ button.ghost,
   font-weight: 700;
 }
 
+.team-match-list {
+  display: grid;
+  gap: 0.56rem;
+}
+
+.team-match-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 251, 255, 0.92));
+  padding: 0.62rem;
+  display: grid;
+  gap: 0.34rem;
+  box-shadow: 0 5px 12px rgba(10, 24, 40, 0.08);
+}
+
+.team-match-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.team-match-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.34rem;
+  flex-wrap: wrap;
+}
+
+.team-match-score-pill,
+.team-match-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 76, 72, 0.16);
+  background: rgba(255, 255, 255, 0.88);
+  color: #294458;
+  padding: 0.12rem 0.46rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.team-match-score-pill {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  color: var(--accent-strong);
+  background: rgba(12, 110, 102, 0.08);
+}
+
+.team-match-opponent-line {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #17324b;
+  line-height: 1.2;
+}
+
+.team-match-opponent-line .team-link {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.team-match-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
 .upcoming-watch {
   display: grid;
   gap: 0.52rem;
@@ -6397,6 +6473,24 @@ button.ghost,
   .team-context-pill {
     min-height: 1.58rem;
     font-size: 0.62rem;
+  }
+
+  .team-match-card {
+    padding: 0.58rem;
+  }
+
+  .team-match-opponent-line {
+    font-size: 0.82rem;
+  }
+
+  .team-match-score-pill,
+  .team-match-chip {
+    min-height: 1.48rem;
+    font-size: 0.62rem;
+  }
+
+  .team-match-meta {
+    font-size: 0.66rem;
   }
 
   .match-page .mobile-mode-toolbar {
