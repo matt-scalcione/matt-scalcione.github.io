@@ -8053,13 +8053,11 @@ button.ghost,
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.22rem;
     margin-bottom: 0.28rem;
-    padding: 0.22rem;
-    border: 1px solid rgba(87, 116, 154, 0.18);
-    border-radius: 16px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 247, 255, 0.8));
-    box-shadow:
-      0 10px 20px rgba(10, 24, 40, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
   }
 
   .schedule-page .schedule-range-chip {
@@ -8069,8 +8067,17 @@ button.ghost,
     border-radius: 12px;
     font-size: 0.58rem;
     letter-spacing: 0.01em;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    border-color: rgba(95, 132, 170, 0.18);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: none;
+  }
+
+  .schedule-page .schedule-range-chip.active,
+  .schedule-page .schedule-range-chip[aria-pressed="true"] {
+    border-color: rgba(31, 98, 189, 0.24);
+    background: rgba(44, 112, 255, 0.12);
+    color: #1d4ea1;
+    box-shadow: none;
   }
 
   .schedule-page .controls-grid {
@@ -8828,8 +8835,6 @@ button.ghost,
 
   .schedule-page .schedule-range-row {
     gap: 0.18rem;
-    padding: 0.18rem;
-    border-radius: 14px;
   }
 
   .schedule-page .schedule-range-chip {
