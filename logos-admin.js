@@ -76,6 +76,47 @@ const state = {
   manifestSummary: null
 };
 
+function sanitizeGameFilter(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "lol" || normalized === "dota2" ? normalized : "";
+}
+
+function sanitizeAssetFilter(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(ASSET_LABELS, normalized) ? normalized : "";
+}
+
+function readFiltersFromUrl() {
+  const url = new URL(window.location.href);
+  return {
+    gameFilter: sanitizeGameFilter(url.searchParams.get("game")),
+    assetFilter: sanitizeAssetFilter(url.searchParams.get("asset"))
+  };
+}
+
+function syncUrlState() {
+  const url = new URL(window.location.href);
+  if (state.gameFilter) {
+    url.searchParams.set("game", state.gameFilter);
+  } else {
+    url.searchParams.delete("game");
+  }
+
+  if (state.assetFilter) {
+    url.searchParams.set("asset", state.assetFilter);
+  } else {
+    url.searchParams.delete("asset");
+  }
+
+  if (state.apiBase && state.apiBase !== DEFAULT_API_BASE) {
+    url.searchParams.set("api", state.apiBase);
+  } else {
+    url.searchParams.delete("api");
+  }
+
+  window.history.replaceState(null, "", url.toString());
+}
+
 function isCompactViewport() {
   return window.matchMedia("(max-width: 760px)").matches;
 }
@@ -536,6 +577,7 @@ function renderAll() {
   renderFallbackQueue();
   renderCollectionBreakdown();
   renderManifestBreakdown();
+  syncUrlState();
 }
 
 async function loadData() {
@@ -587,26 +629,39 @@ function bindEvents() {
   elements.saveButton?.addEventListener("click", () => {
     const apiBase = elements.apiBaseInput?.value?.trim() || DEFAULT_API_BASE;
     saveApiBase(apiBase);
+    state.apiBase = apiBase;
     updateNav(apiBase);
+    syncUrlState();
     setStatus("API base saved.", "success");
   });
   elements.gameFilterSelect?.addEventListener("change", () => {
-    state.gameFilter = elements.gameFilterSelect.value.trim();
+    state.gameFilter = sanitizeGameFilter(elements.gameFilterSelect.value);
     renderAll();
   });
   elements.assetFilterSelect?.addEventListener("change", () => {
-    state.assetFilter = elements.assetFilterSelect.value.trim();
+    state.assetFilter = sanitizeAssetFilter(elements.assetFilterSelect.value);
     renderAll();
   });
 }
 
 function init() {
   refreshSeo();
-  elements.apiBaseInput.value = readApiBase();
+  const apiBase = readApiBase();
+  const initialFilters = readFiltersFromUrl();
+  elements.apiBaseInput.value = apiBase;
+  state.apiBase = apiBase;
+  state.gameFilter = initialFilters.gameFilter;
+  state.assetFilter = initialFilters.assetFilter;
+  if (elements.gameFilterSelect) {
+    elements.gameFilterSelect.value = state.gameFilter;
+  }
+  if (elements.assetFilterSelect) {
+    elements.assetFilterSelect.value = state.assetFilter;
+  }
   state.manifestSummary = buildManifestSummary();
   setupControlsPanel();
   bindEvents();
-  updateNav(elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
+  updateNav(apiBase);
   loadData();
 }
 

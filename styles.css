@@ -1612,6 +1612,7 @@ button.ghost,
   align-items: center;
   justify-content: center;
   letter-spacing: 0.02em;
+  position: relative;
 }
 
 .team-badge.has-logo {
@@ -1624,6 +1625,47 @@ button.ghost,
   height: 100%;
   object-fit: contain;
   display: block;
+}
+
+.match-page .team-badge.asset-generated {
+  box-shadow: 0 0 0 2px rgba(26, 105, 189, 0.2);
+}
+
+.match-page .team-badge.asset-manual {
+  box-shadow: 0 0 0 2px rgba(32, 129, 91, 0.22);
+}
+
+.match-page .team-badge.asset-fallback {
+  box-shadow: 0 0 0 2px rgba(179, 96, 22, 0.24);
+}
+
+.match-page .team-badge.asset-static {
+  box-shadow: 0 0 0 2px rgba(94, 88, 173, 0.22);
+}
+
+.match-page .team-badge.asset-missing {
+  box-shadow: 0 0 0 2px rgba(173, 62, 62, 0.24);
+}
+
+.match-page .team-badge.asset-fallback::after,
+.match-page .team-badge.asset-missing::after {
+  content: "";
+  position: absolute;
+  top: -0.04rem;
+  right: -0.04rem;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 4px rgba(10, 24, 40, 0.12);
+}
+
+.match-page .team-badge.asset-fallback::after {
+  background: #b36016;
+}
+
+.match-page .team-badge.asset-missing::after {
+  background: #c53b3b;
 }
 
 .score-team-name {
