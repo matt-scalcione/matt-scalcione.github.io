@@ -1506,6 +1506,23 @@ function renderScoreboard(match) {
   const leftDisplayName = scoreboardTeamName(leftRawName);
   const rightDisplayName = scoreboardTeamName(rightRawName);
   const selectedGameNumber = contextGameNumber();
+  const bestOf = Number(match?.bestOf || match?.seriesProgress?.bestOf || 1);
+  const formatLabel = `BO${bestOf}`;
+  const tournamentName = match?.tournament || "Tournament";
+  const startTs = Date.parse(String(match?.startAt || ""));
+  const startLabel = Number.isFinite(startTs)
+    ? compact
+      ? dateTimeCompact(match.startAt)
+      : dateTimeLabel(match.startAt)
+    : "TBD";
+  const projectionCountdown = Number(match?.seriesProjection?.countdownSeconds);
+  const fallbackCountdown = Number.isFinite(startTs) ? Math.max(0, Math.round((startTs - Date.now()) / 1000)) : null;
+  const countdown = Number.isFinite(projectionCountdown) ? projectionCountdown : fallbackCountdown;
+  const countdownLabel = countdown !== null ? (countdown > 0 ? shortDuration(countdown) : "Soon") : "TBD";
+  const liveGameNumber = firstInProgressGameNumber(match);
+  const completedMaps = Array.isArray(match?.seriesGames)
+    ? match.seriesGames.filter((game) => game?.state === "completed").length
+    : 0;
   const leftTeamUrl = teamDetailUrl(match.teams.left.id, match.game, uiState.apiBase, {
     matchId: match.id,
     gameNumber: selectedGameNumber,
@@ -1520,15 +1537,46 @@ function renderScoreboard(match) {
   });
   const gameContext = selectedGameScoreContext(match);
   const gameStatus = gameContext?.state ? stateLabel(gameContext.state) : "";
+  const statusTone = match.status === "live" ? "live" : match.status === "completed" ? "complete" : "upcoming";
+  const phaseKicker = match.status === "live" ? "Live series" : match.status === "completed" ? "Final result" : "Upcoming series";
+  let phaseTitle = `${leftDisplayName} vs ${rightDisplayName}`;
+  let phaseSubline = tournamentName;
+  const phasePills = [`${formatLabel}`, tournamentName, match.patch ? `Patch ${match.patch}` : null].filter(Boolean);
+
+  if (match.status === "upcoming") {
+    phaseTitle = countdown !== null ? `Starts in ${countdownLabel}` : "Start time pending";
+    phaseSubline = startLabel;
+  } else if (match.status === "live") {
+    phaseTitle = Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} live now` : "Series live";
+    phaseSubline = `Series ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps complete` : ""}`;
+    if (Number.isFinite(Number(match?.momentum?.goldLead))) {
+      phasePills.push(`Lead ${signed(match.momentum.goldLead)}`);
+    }
+  } else if (match.status === "completed") {
+    phaseTitle = winnerLabel ? `${winnerLabel} won the series` : "Series complete";
+    phaseSubline = `Final ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps played` : ""}`;
+  }
+
+  const seriesCenterLabel = compact ? formatLabel : "Series Score";
 
   elements.scoreboard.innerHTML = `
-    <article class="score-strip series-strip">
+    <article class="match-phase-banner ${statusTone}">
+      <div class="match-phase-copy">
+        <p class="match-phase-kicker">${phaseKicker}</p>
+        <p class="match-phase-title">${phaseTitle}</p>
+        <p class="match-phase-sub">${phaseSubline}</p>
+      </div>
+      <div class="match-phase-pills">
+        ${phasePills.map((pill) => `<span class="match-phase-pill">${pill}</span>`).join("")}
+      </div>
+    </article>
+    <article class="score-strip series-strip ${statusTone}">
       <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
         ${teamBadgeMarkup(leftRawName)}
         <span class="score-team-name">${leftDisplayName}</span>
       </a>
       <div class="score-center">
-        <p class="score-center-label">${compact ? "Series" : "Series Score"}</p>
+        <p class="score-center-label">${seriesCenterLabel}</p>
         <p class="score-center-main">${match.seriesScore.left}<span class="score-divider">-</span>${match.seriesScore.right}</p>
         <p class="score-center-sub">${seriesSubline}</p>
       </div>
