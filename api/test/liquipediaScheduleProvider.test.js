@@ -157,6 +157,8 @@ describe("LiquipediaDotaScheduleProvider", () => {
 describe("mockStore Dota upcoming detail fallback", () => {
   it("resolves upcoming Liquipedia schedule ids into match detail with watch context", async () => {
     const originalFetch = global.fetch;
+    const futureTimestamp = Math.floor((Date.now() + 2 * 60 * 60 * 1000) / 1000);
+    const futureHtml = sampleMatchHtml.replace("1772899200", String(futureTimestamp));
     global.fetch = async (url) => {
       const target = String(url);
 
@@ -166,14 +168,19 @@ describe("mockStore Dota upcoming detail fallback", () => {
           async json() {
             return {
               parse: {
-                text: sampleMatchHtml
+                text: futureHtml
               }
             };
           }
         };
       }
 
-      if (target.endsWith("/live") || target.endsWith("/proMatches") || target.endsWith("/leagues")) {
+      if (
+        target.endsWith("/live") ||
+        target.endsWith("/proMatches") ||
+        target.endsWith("/leagues") ||
+        target.endsWith("/teams")
+      ) {
         return {
           ok: true,
           async json() {
@@ -252,6 +259,11 @@ describe("mockStore Dota upcoming detail fallback", () => {
                 team_id: 2163,
                 name: "Team Liquid",
                 tag: "Liquid"
+              },
+              {
+                team_id: 8255888,
+                name: "Cloud Rising",
+                tag: "CR"
               }
             ];
           }
@@ -294,6 +306,42 @@ describe("mockStore Dota upcoming detail fallback", () => {
         };
       }
 
+      if (target.endsWith("/teams/8255888/matches")) {
+        return {
+          ok: true,
+          async json() {
+            return [
+              {
+                match_id: 1001,
+                radiant_win: true,
+                radiant_score: 30,
+                dire_score: 15,
+                radiant: true,
+                duration: 2080,
+                start_time: 1772370355,
+                leagueid: 19269,
+                league_name: "DreamLeague Season 28",
+                opposing_team_id: 2163,
+                opposing_team_name: "Team Liquid"
+              },
+              {
+                match_id: 1002,
+                radiant_win: false,
+                radiant_score: 12,
+                dire_score: 28,
+                radiant: true,
+                duration: 2150,
+                start_time: 1772366096,
+                leagueid: 19269,
+                league_name: "DreamLeague Season 28",
+                opposing_team_id: 2163,
+                opposing_team_name: "Team Liquid"
+              }
+            ];
+          }
+        };
+      }
+
       throw new Error(`Unexpected fetch ${target}`);
     };
 
@@ -313,6 +361,7 @@ describe("mockStore Dota upcoming detail fallback", () => {
         dotaTiers: [1, 2, 3, 4]
       });
       const row = scheduleRows[0];
+      assert.equal(row.teams.left.id, "2163");
       const profile = await store.getTeamProfile(row.teams.left.id, {
         game: "dota2",
         seedMatchId: row.id,
@@ -326,6 +375,20 @@ describe("mockStore Dota upcoming detail fallback", () => {
       assert.equal(profile.recentMatches.length >= 1, true);
       assert.equal(profile.recentMatches[0].scoreLabel, "1-1");
       assert.equal(profile.headToHead.matches, 1);
+
+      const detail = await store.getMatchDetail(row.id);
+      assert.ok(detail);
+      assert.ok(detail.teamForm);
+      assert.equal(detail.teamForm.left.teamId, "2163");
+      assert.ok(detail.preMatchInsights);
+      assert.ok(Array.isArray(detail.preMatchInsights.watchOptions));
+      assert.equal(detail.preMatchInsights.teamForm.left.teamId, "2163");
+      assert.equal(detail.headToHead.total, 1);
+      assert.equal(detail.prediction.modelVersion, "fallback-dota-v2");
+      assert.equal(
+        Number((detail.prediction.leftWinPct + detail.prediction.rightWinPct).toFixed(1)),
+        100
+      );
     } finally {
       global.fetch = originalFetch;
       process.env.ESPORTS_DATA_MODE = previousMode;

@@ -638,10 +638,11 @@ async function loadProviderDotaScheduleMatches({ knownRows = [] } = {}) {
       knownRows,
       allowedTiers: defaultDotaTiers
     });
+    const hydratedRows = await hydrateDotaScheduleRowsWithResolvedTeams(rows);
     providerState.dotaSchedule = {
       fetchedAt: Date.now(),
       status: "success",
-      rows
+      rows: hydratedRows
     };
   } catch {
     providerState.dotaSchedule = {
@@ -890,6 +891,54 @@ function canonicalizeDotaScheduleRows(scheduleRows = [], { liveRows = [], result
         updatedAt: new Date(nowMs).toISOString()
       };
     });
+}
+
+async function hydrateDotaScheduleRowsWithResolvedTeams(rows = []) {
+  const resolutionCache = new Map();
+  const resolveTeam = async (team) => {
+    const teamName = String(team?.name || "").trim();
+    const teamId = String(team?.id || "").trim();
+    if (!teamName || /^\d+$/.test(teamId)) {
+      return team;
+    }
+
+    const cacheKey = normalizeTeamName(teamName);
+    if (resolutionCache.has(cacheKey)) {
+      const resolved = resolutionCache.get(cacheKey);
+      return resolved ? { ...team, id: String(resolved.id) } : team;
+    }
+
+    try {
+      const resolved = await openDotaProvider.resolveTeamIdentityByName(teamName);
+      resolutionCache.set(cacheKey, resolved || null);
+      return resolved ? { ...team, id: String(resolved.id) } : team;
+    } catch {
+      resolutionCache.set(cacheKey, null);
+      return team;
+    }
+  };
+
+  return Promise.all(
+    (Array.isArray(rows) ? rows : []).map(async (row) => {
+      if (row?.game !== "dota2" || !row?.teams?.left || !row?.teams?.right) {
+        return row;
+      }
+
+      const [left, right] = await Promise.all([
+        resolveTeam(row.teams.left),
+        resolveTeam(row.teams.right)
+      ]);
+
+      return {
+        ...row,
+        teams: {
+          ...row.teams,
+          left,
+          right
+        }
+      };
+    })
+  );
 }
 
 function teamSideInMatch(match, { teamId, teamName } = {}) {
@@ -1231,6 +1280,189 @@ function watchProviderFromUrl(url) {
   return "stream";
 }
 
+function buildFallbackTeamFormProfiles(match, { leftProfile = null, rightProfile = null } = {}) {
+  const normalizeProfile = (profile, team) => {
+    if (!profile) {
+      return null;
+    }
+
+    const summary = profile.summary || {};
+    return {
+      teamId: team?.id || profile.id || null,
+      teamName: team?.name || profile.name || null,
+      wins: Number(summary.wins || 0),
+      losses: Number(summary.losses || 0),
+      draws: Number(summary.draws || 0),
+      gameWins: Number(summary.mapWins || 0),
+      gameLosses: Number(summary.mapLosses || 0),
+      seriesWinRatePct: Number(summary.seriesWinRatePct || 0),
+      gameWinRatePct: Number(summary.mapWinRatePct || 0),
+      streakLabel: summary.streakLabel || "n/a",
+      formLabel: summary.formLast5 || "n/a",
+      recentMatches: Array.isArray(profile.recentMatches) ? profile.recentMatches.slice(0, 5) : []
+    };
+  };
+
+  const teamForm = {
+    left: normalizeProfile(leftProfile, match?.teams?.left),
+    right: normalizeProfile(rightProfile, match?.teams?.right)
+  };
+
+  return teamForm.left || teamForm.right ? teamForm : null;
+}
+
+function buildFallbackHeadToHeadFromProfiles(match, { leftProfile = null, rightProfile = null } = {}) {
+  const raw = leftProfile?.headToHead || rightProfile?.headToHead || null;
+  if (!raw || !Array.isArray(raw.recentMatches) || raw.recentMatches.length === 0) {
+    return null;
+  }
+
+  const lastMeetings = raw.recentMatches.slice(0, 5).map((row) => {
+    const result = String(row?.result || "").toLowerCase();
+    const winnerName =
+      result === "win"
+        ? match?.teams?.left?.name || "Left Team"
+        : result === "loss"
+          ? match?.teams?.right?.name || "Right Team"
+          : "Draw";
+    return {
+      ...row,
+      id: row?.matchId || row?.id || null,
+      matchId: row?.matchId || row?.id || null,
+      winnerName
+    };
+  });
+
+  return {
+    total: Number(raw.matches || lastMeetings.length || 0),
+    leftWins: Number(raw.wins || 0),
+    rightWins: Number(raw.losses || 0),
+    lastMeetings
+  };
+}
+
+function clampPct(value, fallback = 50) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(5, Math.min(95, value));
+}
+
+function buildFallbackPredictionFromProfiles(match, { leftProfile = null, rightProfile = null, headToHead = null } = {}) {
+  const leftSummary = leftProfile?.summary || {};
+  const rightSummary = rightProfile?.summary || {};
+  const leftSeriesRate = Number(leftSummary.seriesWinRatePct || 0);
+  const rightSeriesRate = Number(rightSummary.seriesWinRatePct || 0);
+  const leftMapRate = Number(leftSummary.mapWinRatePct || 0);
+  const rightMapRate = Number(rightSummary.mapWinRatePct || 0);
+  const leftSample = Number(leftSummary.matchesAnalyzed || 0);
+  const rightSample = Number(rightSummary.matchesAnalyzed || 0);
+  let leftEdge = 0;
+  const drivers = [];
+
+  if (leftSeriesRate || rightSeriesRate) {
+    const diff = leftSeriesRate - rightSeriesRate;
+    leftEdge += diff * 0.35;
+    if (Math.abs(diff) >= 8) {
+      drivers.push(
+        `${diff > 0 ? match?.teams?.left?.name : match?.teams?.right?.name} have the stronger recent series win rate.`
+      );
+    }
+  }
+
+  if (leftMapRate || rightMapRate) {
+    const diff = leftMapRate - rightMapRate;
+    leftEdge += diff * 0.2;
+    if (Math.abs(diff) >= 8) {
+      drivers.push(
+        `${diff > 0 ? match?.teams?.left?.name : match?.teams?.right?.name} have been converting maps more cleanly lately.`
+      );
+    }
+  }
+
+  if (headToHead && Number(headToHead.total || 0) > 0) {
+    const total = Math.max(1, Number(headToHead.total || 0));
+    const diff = Number(headToHead.leftWins || 0) - Number(headToHead.rightWins || 0);
+    leftEdge += (diff / total) * 14;
+    if (Math.abs(diff) >= 1) {
+      drivers.push(
+        `${diff > 0 ? match?.teams?.left?.name : match?.teams?.right?.name} lead the recent head-to-head.`
+      );
+    }
+  }
+
+  const leftPct = clampPct(50 + leftEdge);
+  const rightPct = clampPct(100 - leftPct);
+  const favoriteTeamName =
+    Math.abs(leftPct - rightPct) < 4
+      ? "Even"
+      : leftPct > rightPct
+        ? match?.teams?.left?.name || "Left Team"
+        : match?.teams?.right?.name || "Right Team";
+  const confidenceSignals = [
+    leftSample >= 3 && rightSample >= 3,
+    (leftSeriesRate || rightSeriesRate) > 0,
+    (leftMapRate || rightMapRate) > 0,
+    Number(headToHead?.total || 0) >= 2
+  ].filter(Boolean).length;
+  const confidence = confidenceSignals >= 4 ? "high" : confidenceSignals >= 2 ? "medium" : "low";
+
+  if (!drivers.length) {
+    drivers.push("Limited recent Dota history available; model confidence is reduced.");
+  }
+
+  return {
+    modelVersion: "fallback-dota-v2",
+    leftWinPct: Number(leftPct.toFixed(1)),
+    rightWinPct: Number(rightPct.toFixed(1)),
+    favoriteTeamName,
+    confidence,
+    drivers: drivers.slice(0, 4)
+  };
+}
+
+function dedupeFallbackWatchOptions(watchOptions = []) {
+  const rows = [];
+  const seen = new Set();
+  for (const option of Array.isArray(watchOptions) ? watchOptions : []) {
+    const url = String(option?.watchUrl || option?.url || "").trim();
+    if (!url || seen.has(url)) {
+      continue;
+    }
+    seen.add(url);
+    rows.push({
+      label: option?.label || "Watch",
+      url,
+      note: option?.provider ? `Provider: ${option.provider}` : null
+    });
+  }
+  return rows;
+}
+
+function buildFallbackPreMatchInsights(match, { seriesGames = [], teamForm = null, headToHead = null, prediction = null } = {}) {
+  const watchOptions = dedupeFallbackWatchOptions(
+    (Array.isArray(seriesGames) ? seriesGames : []).flatMap((game) =>
+      Array.isArray(game?.watchOptions) ? game.watchOptions : []
+    )
+  );
+  const startMs = Date.parse(String(match?.startAt || ""));
+
+  return {
+    essentials: {
+      scheduledAt: match?.startAt || null,
+      countdownSeconds: Number.isFinite(startMs) ? Math.max(0, Math.round((startMs - Date.now()) / 1000)) : null,
+      estimatedEndAt: null,
+      bestOf: Number(match?.bestOf || 1),
+      tournament: match?.tournament || "Dota 2",
+      region: match?.region || "global"
+    },
+    watchOptions,
+    teamForm,
+    headToHead,
+    prediction
+  };
+}
+
 function buildFallbackDotaDetailFromSummary(match, options = {}) {
   if (!match || match.game !== "dota2") {
     return null;
@@ -1259,6 +1491,7 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
       : null);
   const baseWatchProvider =
     baseWatchOptions[0]?.provider || match?.watchProvider || watchProviderFromUrl(baseWatchUrl);
+  const enrichment = options?.enrichment || {};
 
   const seriesGames = [];
   const startMs = Date.parse(String(match?.startAt || ""));
@@ -1367,6 +1600,19 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
   const liveGame = seriesGames.find((game) => game.state === "inProgress") || null;
 
   const seriesProgress = fallbackSeriesProgress(seriesScore, bestOf, seriesGames);
+  const teamForm = buildFallbackTeamFormProfiles(match, enrichment);
+  const headToHead = buildFallbackHeadToHeadFromProfiles(match, enrichment);
+  const prediction = buildFallbackPredictionFromProfiles(match, {
+    leftProfile: enrichment.leftProfile,
+    rightProfile: enrichment.rightProfile,
+    headToHead
+  });
+  const preMatchInsights = buildFallbackPreMatchInsights(match, {
+    seriesGames,
+    teamForm,
+    headToHead,
+    prediction
+  });
   const liveTicker =
     status === "live"
       ? [
@@ -1428,13 +1674,20 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
     dataConfidence: {
       grade: "low",
       score: 45,
-      telemetry: "fallback",
-      notes: ["OpenDota match detail unavailable; fallback summary applied."]
+      telemetry: status === "live" ? "live_status_only" : "fallback",
+      notes: [
+        status === "live"
+          ? "Live status confirmed, but map telemetry is not available from the current Dota source."
+          : "OpenDota match detail unavailable; fallback summary applied."
+      ]
     },
     pulseCard: {
-      tone: "neutral",
-      title: "Fallback Summary",
-      summary: "Detailed telemetry is temporarily unavailable for this map."
+      tone: status === "live" ? "warn" : "neutral",
+      title: status === "live" ? "Live status confirmed" : "Fallback Summary",
+      summary:
+        status === "live"
+          ? "Series is live, but full Dota map telemetry is not available from the current provider."
+          : "Detailed telemetry is temporarily unavailable for this map."
     },
     edgeMeter: {
       left: { team: match?.teams?.left?.name || "Radiant", score: 50, drivers: ["Detailed signal unavailable"] },
@@ -1483,23 +1736,23 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
       language: "Global",
       status
     },
-    teamForm: null,
-    headToHead: null,
-    prediction: {
-      modelVersion: "fallback-v1",
-      leftWinPct: 50,
-      rightWinPct: 50,
-      favoriteTeamName: "Even",
-      confidence: "low",
-      drivers: ["Insufficient telemetry for predictive signal."]
-    },
+    teamForm,
+    headToHead,
+    prediction,
+    preMatchInsights,
     combatBursts: [],
     goldMilestones: [],
     liveAlerts: [],
-    matchupReadiness: null,
-    matchupKeyFactors: [],
-    matchupAlertLevel: null,
-    matchupMeta: null,
+    matchupReadiness: prediction?.confidence || "low",
+    matchupKeyFactors: Array.isArray(prediction?.drivers) ? prediction.drivers.slice(0, 3) : [],
+    matchupAlertLevel: prediction?.confidence || null,
+    matchupMeta: teamForm
+      ? {
+          leftSample: Number(teamForm?.left?.recentMatches?.length || 0),
+          rightSample: Number(teamForm?.right?.recentMatches?.length || 0),
+          headToHeadMatches: Number(headToHead?.total || 0)
+        }
+      : null,
     seriesGames,
     selectedGame: {
       number: selectedGameNumber,
@@ -1587,7 +1840,35 @@ async function fallbackProviderDotaDetail(matchId, options = {}) {
     return null;
   }
 
-  return buildFallbackDotaDetailFromSummary(match, options);
+  let enrichment = {};
+  try {
+    const [leftProfile, rightProfile] = await Promise.all([
+      match?.teams?.left?.id
+        ? getTeamProfile(match.teams.left.id, {
+            game: "dota2",
+            opponentId: match?.teams?.right?.id || null,
+            teamNameHint: match?.teams?.left?.name || null,
+            limit: 5
+          })
+        : null,
+      match?.teams?.right?.id
+        ? getTeamProfile(match.teams.right.id, {
+            game: "dota2",
+            opponentId: match?.teams?.left?.id || null,
+            teamNameHint: match?.teams?.right?.name || null,
+            limit: 5
+          })
+        : null
+    ]);
+    enrichment = { leftProfile, rightProfile };
+  } catch {
+    enrichment = {};
+  }
+
+  return buildFallbackDotaDetailFromSummary(match, {
+    ...options,
+    enrichment
+  });
 }
 
 async function loadProviderMatchDetail(matchId, options = {}) {

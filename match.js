@@ -3751,31 +3751,72 @@ function renderGameCommandCenter(match) {
     const sideSummary = Array.isArray(selected?.sideSummary) && selected.sideSummary.length
       ? selected.sideSummary.join(" · ")
       : "Side assignment pending";
-    const objectiveSummary = objectiveSummaryLine(match, selected?.snapshot);
     const clockHint = selected.startedAt ? `Started ${dateTimeCompact(selected.startedAt)}` : `Refresh ${refreshSeconds}s`;
-    const feedLabel = telemetryMode === "pending" ? "Partial live feed" : "Metadata only";
-    const feedHint = tickerEvents > 0
-      ? `${tickerEvents} feed signals captured so far`
-      : "Waiting for richer map telemetry.";
+    const watchGuide = match?.watchGuide || {};
+    const teamForm = match?.teamForm || match?.preMatchInsights?.teamForm || {};
+    const leftForm = normalizeUpcomingTeamFormProfile(teamForm.left);
+    const rightForm = normalizeUpcomingTeamFormProfile(teamForm.right);
+    const prediction = match?.prediction || match?.preMatchInsights?.prediction || null;
+    const headToHead = match?.headToHead || match?.preMatchInsights?.headToHead || null;
+    const liveConfirmedLabel = telemetryMode === "pending" ? "Feed warming up" : "Live confirmed";
+    const coverageHint = tickerEvents > 0
+      ? `${tickerEvents} live signal${tickerEvents === 1 ? "" : "s"} captured so far`
+      : "Source confirms the series is live, but full map telemetry is not exposed yet.";
+    const watchLabel = selected.watchUrl
+      ? String(watchGuide.streamLabel || "Open stream")
+      : "Watch pending";
+    const watchHint = selected.watchUrl
+      ? `${watchGuide.venue || "Tournament stage"} · ${watchGuide.language || "Global"}`
+      : "Primary stream link not published yet.";
+    const seriesLabel = `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`;
+    const seriesHint = `Game ${selected.number} · BO${match?.bestOf || 1} · ${match?.tournament || "Dota 2"}`;
+    const formLabel =
+      leftForm || rightForm
+        ? `${scoreboardTeamName(leftName)} ${formatRatePct(leftForm?.seriesWinRatePct)} · ${scoreboardTeamName(rightName)} ${formatRatePct(rightForm?.seriesWinRatePct)}`
+        : "Form loading";
+    const formHint =
+      leftForm || rightForm
+        ? `${scoreboardTeamName(leftName)} ${leftForm?.streakLabel || "n/a"} · ${scoreboardTeamName(rightName)} ${rightForm?.streakLabel || "n/a"}`
+        : "Recent team form becomes available as history loads.";
+    const favoredPct = prediction
+      ? Math.max(Number(prediction.leftWinPct || 0), Number(prediction.rightWinPct || 0))
+      : 0;
+    const modelLabel = prediction
+      ? `${prediction.favoriteTeamName || "Even"} ${favoredPct.toFixed(1)}%`
+      : "Edge loading";
+    const modelHint = prediction
+      ? `${String(prediction.confidence || "low").toUpperCase()} confidence · ${Array.isArray(prediction.drivers) && prediction.drivers.length ? prediction.drivers[0] : "Recent Dota history only."}`
+      : "Need more recent series history to score the matchup.";
+    const h2hLabel =
+      headToHead && Number(headToHead.total || headToHead.matches || 0) > 0
+        ? `${scoreboardTeamName(leftName)} ${headToHead.leftWins ?? headToHead.wins ?? 0}-${headToHead.rightWins ?? headToHead.losses ?? 0} ${scoreboardTeamName(rightName)}`
+        : "No recent H2H";
+    const h2hHint =
+      headToHead && Number(headToHead.total || headToHead.matches || 0) > 0
+        ? `${headToHead.total || headToHead.matches} recent meeting${Number(headToHead.total || headToHead.matches) === 1 ? "" : "s"}`
+        : "Direct series history is limited.";
 
     elements.gameCommandWrap.innerHTML = [
-      commandCard("Current State", mapStateLabel, `Game ${selected.number} · ${telemetryMode.toUpperCase()} telemetry`, {
+      commandCard("Current State", liveConfirmedLabel, `Game ${selected.number} · ${mapStateLabel} · ${telemetryMode.toUpperCase()} telemetry`, {
         tone: "live",
         featured: true
       }),
-      commandCard("Scoreline", `${leftKills}-${rightKills}`, `${killPace} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`, {
-        tone: totalKills >= 12 ? "warn" : "neutral"
+      commandCard("Series", seriesLabel, seriesHint, {
+        tone: "neutral"
       }),
-      commandCard("Objectives", objectiveSummary.primary, objectiveSummary.secondary, {
-        tone: objectiveSummary.signalCount > 0 ? "warn" : "neutral"
-      }),
-      commandCard("Clock", liveClock, clockHint, {
-        tone: elapsedSeconds > 0 ? "neutral" : "warn"
-      }),
-      commandCard("Sides", sideSummary, selected.watchUrl ? "Primary stream available" : "Watch links pending", {
+      commandCard("Watch", watchLabel, watchHint, {
         tone: selected.watchUrl ? "live" : "neutral"
       }),
-      commandCard("Feed Status", feedLabel, feedHint, {
+      commandCard("Form", formLabel, formHint, {
+        tone: leftForm || rightForm ? "neutral" : "warn"
+      }),
+      commandCard("Matchup Edge", modelLabel, modelHint, {
+        tone: prediction?.favoriteTeamName && prediction.favoriteTeamName !== "Even" ? "warn" : "neutral"
+      }),
+      commandCard("Head-to-Head", h2hLabel, h2hHint, {
+        tone: headToHead && Number(headToHead.total || headToHead.matches || 0) > 0 ? "neutral" : "warn"
+      }),
+      commandCard("Coverage", liveClock, `${clockHint} · ${coverageHint} · ${sideSummary}`, {
         tone: telemetryMode === "pending" ? "warn" : "neutral"
       })
     ].join("");
