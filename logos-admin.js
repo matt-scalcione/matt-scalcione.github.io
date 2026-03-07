@@ -203,6 +203,16 @@ function assetChip(assetType) {
   return `<span class="logo-asset-chip ${normalized}">${ASSET_LABELS[normalized] || normalized}</span>`;
 }
 
+function sourceSearchUrl(row) {
+  const game = String(row?.game || "").toLowerCase();
+  const name = encodeURIComponent(String(row?.name || "").trim());
+  const base =
+    game === "lol"
+      ? "https://liquipedia.net/leagueoflegends/Special:Search"
+      : "https://liquipedia.net/dota2/Special:Search";
+  return `${base}?search=${name}`;
+}
+
 function shortSourceLabel(key) {
   if (key === "lolLive") return "LoL Live";
   if (key === "lolSchedule") return "LoL Schedule";
@@ -449,7 +459,7 @@ function renderFallbackQueue() {
             }
             <div class="logo-team-copy">
               <strong>${row.name}</strong>
-              <p class="meta-text">${row.code || "No code"} · ${tournamentText}</p>
+              <p class="meta-text">${row.code || "No code"} · ID ${row.id || "n/a"} · ${tournamentText}</p>
             </div>
           </div>
           <div class="logo-source-row">
@@ -457,6 +467,7 @@ function renderFallbackQueue() {
           </div>
           <div class="logo-team-actions">
             <a class="table-link" href="${teamUrl}">Open team</a>
+            <a class="table-link" href="${sourceSearchUrl(row)}" target="_blank" rel="noreferrer">Search source</a>
           </div>
         </article>
       `;

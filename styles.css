@@ -890,6 +890,10 @@ button.ghost,
   justify-content: space-between;
 }
 
+.logo-team-actions {
+  flex-wrap: wrap;
+}
+
 .logo-team-main {
   align-items: center;
 }
@@ -1876,6 +1880,36 @@ button.ghost,
   color: var(--accent-strong);
   border-color: rgba(17, 95, 121, 0.22);
   background: rgba(12, 110, 102, 0.08);
+}
+
+.team-summary-logo-pill.generated {
+  border-color: rgba(26, 105, 189, 0.2);
+  background: rgba(223, 239, 255, 0.94);
+  color: #174d8d;
+}
+
+.team-summary-logo-pill.manual {
+  border-color: rgba(32, 129, 91, 0.2);
+  background: rgba(222, 247, 233, 0.94);
+  color: #176646;
+}
+
+.team-summary-logo-pill.fallback {
+  border-color: rgba(179, 96, 22, 0.22);
+  background: rgba(255, 237, 212, 0.95);
+  color: #8a4c17;
+}
+
+.team-summary-logo-pill.static {
+  border-color: rgba(94, 88, 173, 0.2);
+  background: rgba(234, 230, 255, 0.94);
+  color: #4c3f9b;
+}
+
+.team-summary-logo-pill.missing {
+  border-color: rgba(173, 62, 62, 0.22);
+  background: rgba(255, 228, 228, 0.94);
+  color: #953737;
 }
 
 .team-context-title {
