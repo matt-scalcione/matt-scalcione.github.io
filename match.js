@@ -3120,7 +3120,8 @@ function renderGameExplorer(match, apiBase) {
     const hasGold = Number.isFinite(leftGold) && Number.isFinite(rightGold);
     const finalKills = `${left.kills ?? 0} - ${right.kills ?? 0}`;
     const finalTowers = `${left.towers ?? 0} - ${right.towers ?? 0}`;
-    const objectives = `Drg ${left.dragons ?? 0}-${right.dragons ?? 0} · Brn ${left.barons ?? 0}-${right.barons ?? 0}`;
+    const objectiveSummary = objectiveSummaryLine(match, selected.snapshot);
+    const objectives = objectiveSummary.primary.replace(/ · /g, " · ");
     const completedStory = buildCompletedGameStory(match);
     const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, 3) : [];
     const spotlightMarkup = topRows.length
@@ -3176,7 +3177,7 @@ function renderGameExplorer(match, apiBase) {
           ${gameContextInfoCard("Winner", winnerShort)}
           ${gameContextInfoCard("Kills", finalKills)}
           ${gameContextInfoCard("Towers", finalTowers)}
-          ${gameContextInfoCard("Objectives", objectives)}
+          ${gameContextInfoCard("Objectives", objectives, objectiveSummary.secondary)}
           ${gameContextInfoCard("Gold", hasGold ? `${formatNumber(leftGold)} - ${formatNumber(rightGold)}` : "n/a")}
           ${gameContextInfoCard("Started", startedLabel)}
           ${gameContextInfoCard("Sides", sideLabel)}
@@ -3411,14 +3412,109 @@ function commandCard(label, value, hint, options = {}) {
   `;
 }
 
-function displayObjectiveName(type) {
+function objectiveTerminology(matchOrGame) {
+  const gameKey = normalizeGameKey(
+    typeof matchOrGame === "string" ? matchOrGame : matchOrGame?.game
+  );
+
+  if (gameKey === "dota2") {
+    return {
+      baronLabel: "Roshans",
+      baronSingle: "Roshan",
+      baronShort: "Rosh",
+      inhibitorLabel: "Barracks",
+      inhibitorShort: "Rax",
+      dragonLabel: null,
+      dragonShort: null,
+      heraldLabel: null
+    };
+  }
+
+  return {
+    baronLabel: "Barons",
+    baronSingle: "Baron",
+    baronShort: "Brn",
+    inhibitorLabel: "Inhibitors",
+    inhibitorShort: "Inhib",
+    dragonLabel: "Dragons",
+    dragonShort: "Drg",
+    heraldLabel: "Herald"
+  };
+}
+
+function displayObjectiveName(type, matchOrGame = null) {
   const normalized = String(type || "").toLowerCase();
+  const terms = objectiveTerminology(matchOrGame);
   if (normalized === "dragon") return "Dragon";
-  if (normalized === "baron") return "Baron";
-  if (normalized === "herald") return "Herald";
+  if (normalized === "baron") return terms.baronSingle;
+  if (normalized === "herald") return terms.heraldLabel || "Objective";
   if (normalized === "tower") return "Tower";
-  if (normalized === "inhibitor") return "Inhib";
+  if (normalized === "inhibitor") return terms.inhibitorShort;
   return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Objective";
+}
+
+function objectiveMetricDefinitions(match) {
+  const terms = objectiveTerminology(match);
+  if (normalizeGameKey(match?.game) === "dota2") {
+    return [
+      { key: "towers", label: "Towers" },
+      { key: "barons", label: terms.baronLabel },
+      { key: "inhibitors", label: terms.inhibitorLabel }
+    ];
+  }
+
+  return [
+    { key: "towers", label: "Towers" },
+    { key: "dragons", label: terms.dragonLabel },
+    { key: "barons", label: terms.baronLabel },
+    { key: "inhibitors", label: terms.inhibitorLabel }
+  ];
+}
+
+function objectiveSummaryLine(match, snapshot) {
+  const left = snapshot?.left || {};
+  const right = snapshot?.right || {};
+  const leftTowers = Number(left?.towers || 0);
+  const rightTowers = Number(right?.towers || 0);
+  const leftBarons = Number(left?.barons || 0);
+  const rightBarons = Number(right?.barons || 0);
+  const leftInhibitors = Number(left?.inhibitors || 0);
+  const rightInhibitors = Number(right?.inhibitors || 0);
+  const leftDragons = Number(left?.dragons || 0);
+  const rightDragons = Number(right?.dragons || 0);
+  const leftGold = Number(left?.gold);
+  const rightGold = Number(right?.gold);
+  const goldLine =
+    Number.isFinite(leftGold) && Number.isFinite(rightGold)
+      ? `${formatNumber(leftGold)}-${formatNumber(rightGold)} gold`
+      : "Gold totals pending";
+  const terms = objectiveTerminology(match);
+
+  if (normalizeGameKey(match?.game) === "dota2") {
+    return {
+      primary: `T ${leftTowers}-${rightTowers} · ${terms.baronShort} ${leftBarons}-${rightBarons}`,
+      secondary: `${terms.inhibitorShort} ${leftInhibitors}-${rightInhibitors} · ${goldLine}`,
+      signalCount: leftTowers + rightTowers + leftBarons + rightBarons + leftInhibitors + rightInhibitors
+    };
+  }
+
+  return {
+    primary: `T ${leftTowers}-${rightTowers} · ${terms.dragonShort} ${leftDragons}-${rightDragons}`,
+    secondary: `${terms.baronSingle} ${leftBarons}-${rightBarons} · ${goldLine}`,
+    signalCount: leftTowers + rightTowers + leftDragons + rightDragons + leftBarons + rightBarons
+  };
+}
+
+function objectiveAdvantageDelta(snapshot, match) {
+  const left = snapshot?.left || {};
+  const right = snapshot?.right || {};
+  if (normalizeGameKey(match?.game) === "dota2") {
+    return (Number(left.barons || 0) + Number(left.inhibitors || 0)) -
+      (Number(right.barons || 0) + Number(right.inhibitors || 0));
+  }
+
+  return (Number(left.dragons || 0) + Number(left.barons || 0)) -
+    (Number(right.dragons || 0) + Number(right.barons || 0));
 }
 
 function readableGameStateLabel(state) {
@@ -3563,7 +3659,10 @@ function renderLiveFollowSummary(match, rows, timelineAnchor, activeEventId) {
     swingDescriptor.short
   ].filter(Boolean).join(" · ");
 
-  const nextValue = clampSummaryText(nextObjective?.label || (nextObjective ? displayObjectiveName(nextObjective.type) : "Objective forecast loading"), 40);
+  const nextValue = clampSummaryText(
+    nextObjective?.label || (nextObjective ? displayObjectiveName(nextObjective.type, match) : "Objective forecast loading"),
+    40
+  );
   const nextMeta = nextObjective
     ? `${nextObjective.state === "available" ? "Available now" : `ETA ${objectiveEtaLabel(nextObjective)}`}${
         nextObjective.nextAt ? ` · ${shortTimeLabel(nextObjective.nextAt)}` : ""
@@ -3633,7 +3732,7 @@ function renderGameCommandCenter(match) {
   const pulse = updateMapPulseState(match);
   const liveClock = elapsedSeconds > 0 ? formatGameClock(elapsedSeconds) : "n/a";
   const telemetryMode = String(selected?.telemetryStatus || "none").toLowerCase();
-  const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
+  const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
   const objectiveHint = nextObjective?.note || "Next major map timer from tracked cadence.";
   const fightLabel = pulse ? "Fight live" : deaths.left + deaths.right > 0 ? "Reset window" : "Calm map";
   const fightHint = pulse
@@ -3652,17 +3751,7 @@ function renderGameCommandCenter(match) {
     const sideSummary = Array.isArray(selected?.sideSummary) && selected.sideSummary.length
       ? selected.sideSummary.join(" · ")
       : "Side assignment pending";
-    const leftTowers = Number(selected?.snapshot?.left?.towers || 0);
-    const rightTowers = Number(selected?.snapshot?.right?.towers || 0);
-    const leftDragons = Number(selected?.snapshot?.left?.dragons || 0);
-    const rightDragons = Number(selected?.snapshot?.right?.dragons || 0);
-    const leftBarons = Number(selected?.snapshot?.left?.barons || 0);
-    const rightBarons = Number(selected?.snapshot?.right?.barons || 0);
-    const leftGold = Number(selected?.snapshot?.left?.gold);
-    const rightGold = Number(selected?.snapshot?.right?.gold);
-    const goldLine = Number.isFinite(leftGold) && Number.isFinite(rightGold)
-      ? `${formatNumber(leftGold)}-${formatNumber(rightGold)} gold`
-      : "Gold totals pending";
+    const objectiveSummary = objectiveSummaryLine(match, selected?.snapshot);
     const clockHint = selected.startedAt ? `Started ${dateTimeCompact(selected.startedAt)}` : `Refresh ${refreshSeconds}s`;
     const feedLabel = telemetryMode === "pending" ? "Partial live feed" : "Metadata only";
     const feedHint = tickerEvents > 0
@@ -3677,8 +3766,8 @@ function renderGameCommandCenter(match) {
       commandCard("Scoreline", `${leftKills}-${rightKills}`, `${killPace} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`, {
         tone: totalKills >= 12 ? "warn" : "neutral"
       }),
-      commandCard("Objectives", `T ${leftTowers}-${rightTowers} · D ${leftDragons}-${rightDragons}`, `Baron ${leftBarons}-${rightBarons} · ${goldLine}`, {
-        tone: leftTowers + rightTowers + leftDragons + rightDragons + leftBarons + rightBarons > 0 ? "warn" : "neutral"
+      commandCard("Objectives", objectiveSummary.primary, objectiveSummary.secondary, {
+        tone: objectiveSummary.signalCount > 0 ? "warn" : "neutral"
       }),
       commandCard("Clock", liveClock, clockHint, {
         tone: elapsedSeconds > 0 ? "neutral" : "warn"
@@ -3749,10 +3838,7 @@ function buildTeamComparisonRows(match) {
   const rows = [
     { key: "gold", label: "Gold" },
     { key: "kills", label: "Kills" },
-    { key: "towers", label: "Towers" },
-    { key: "dragons", label: "Dragons" },
-    { key: "barons", label: "Barons" },
-    { key: "inhibitors", label: "Inhibitors" }
+    ...objectiveMetricDefinitions(match)
   ]
     .map((metric) => {
       const left = toMetricNumber(snapshot.left?.[metric.key]);
@@ -4102,6 +4188,8 @@ function renderPlayerTracker(match) {
         impact: impactByKey.get(key)
       };
     });
+  const hasHealthTelemetry = rows.some((row) => Number.isFinite(healthPctForRow(row)));
+  const compactTrackerUsesGpm = gameKey === "dota2" && !hasHealthTelemetry;
 
   const teamOrder = (team) => (team === "left" ? 0 : 1);
   const sortMode = uiState.trackerSort || "role";
@@ -4149,7 +4237,7 @@ function renderPlayerTracker(match) {
             <tr>
               <th>Tm</th>
               <th>Player</th>
-              <th>HP</th>
+              <th>${compactTrackerUsesGpm ? "GPM" : "HP"}</th>
               <th>NW</th>
               <th>KDA</th>
             </tr>
@@ -4167,6 +4255,7 @@ function renderPlayerTracker(match) {
                 const hpWidth = Number.isFinite(hpPct) ? hpPct.toFixed(1) : "0.0";
                 const hpLabel = healthLabelForRow(row, isLiveMap, isDead);
                 const hpCompactLabel = isLiveMap ? (Number.isFinite(hpPct) ? `${Math.round(hpPct)}%` : "n/a") : "N/A";
+                const compactMetricValue = compactTrackerUsesGpm ? formatNumber(row.gpm || 0) : hpCompactLabel;
                 const respawnAtTs = isDead ? respawnTargetMsForRow(row, renderNowMs) : null;
                 const respawnLabel = isLiveMap && isDead ? formatRespawnLabel(row, isDead, renderNowMs, respawnAtTs) : "";
                 const respawnAttrs = Number.isFinite(respawnAtTs)
@@ -4190,12 +4279,14 @@ function renderPlayerTracker(match) {
                       ${respawnOverlay}
                     </td>
                     <td>
-                      <div class="tracker-hp-cell compact">
-                        <div class="hp-track ${hpTone}">
-                          <div class="hp-fill ${hpTone}" style="width:${hpWidth}%"></div>
-                        </div>
-                        <span class="tracker-hp-label compact" title="${hpLabel}">${hpCompactLabel}</span>
-                      </div>
+                      ${compactTrackerUsesGpm
+                        ? `<span class="tracker-hp-label compact" title="GPM">${compactMetricValue}</span>`
+                        : `<div class="tracker-hp-cell compact">
+                            <div class="hp-track ${hpTone}">
+                              <div class="hp-fill ${hpTone}" style="width:${hpWidth}%"></div>
+                            </div>
+                            <span class="tracker-hp-label compact" title="${hpLabel}">${compactMetricValue}</span>
+                          </div>`}
                     </td>
                     <td>${formatNumber(row.goldEarned || 0)}</td>
                     <td>${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}</td>
@@ -5624,7 +5715,7 @@ function renderPulseCard(match) {
       : null,
     nextObjective
       ? {
-          label: `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}`,
+          label: `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}`,
           tone: nextObjective.state === "available" ? "live" : "warn"
         }
       : null,
@@ -5654,7 +5745,7 @@ function renderPulseCard(match) {
       : focusedRow
         ? `${formatFocusedEventClock(focusedRow, liveContext.timelineAnchor)} · ${focusedRow.phase.label} · ${focusedRow.leadDescriptor.label}`
         : "Waiting for timeline events.";
-    const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
+    const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
     const objectiveHint = nextObjective?.note || "Next major map timer from tracked cadence.";
     const fightLabel = pulseState ? "Fight live" : deaths.left + deaths.right > 0 ? "Reset window" : "Calm map";
     const fightHint = pulseState
@@ -6203,11 +6294,13 @@ function objectiveMarkerRows(match) {
     }
   }
 
-  const catalog = [
-    { id: "baron", name: "Baron", short: "B", x: 28, y: 24 },
-    { id: "dragon", name: "Dragon", short: "D", x: 73, y: 75 },
-    { id: "herald", name: "Herald", short: "H", x: 24, y: 32 }
-  ];
+  const catalog = normalizeGameKey(match?.game) === "dota2"
+    ? [{ id: "baron", name: "Roshan", short: "R", x: 59, y: 42 }]
+    : [
+        { id: "baron", name: "Baron", short: "B", x: 28, y: 24 },
+        { id: "dragon", name: "Dragon", short: "D", x: 73, y: 75 },
+        { id: "herald", name: "Herald", short: "H", x: 24, y: 32 }
+      ];
 
   return catalog.map((item) => {
     const forecast = forecastByType.get(item.id) || null;
@@ -6916,6 +7009,8 @@ function renderObjectiveControl(match) {
   const leftPct = Math.max(0, Math.min(100, Number(control.left?.controlPct || 0)));
   const rightPct = Math.max(0, Math.min(100, Number(control.right?.controlPct || 0)));
 
+  const metrics = objectiveMetricDefinitions(match);
+
   elements.objectiveControlWrap.innerHTML = `
     <article class="control-card">
       <div class="control-bar">
@@ -6924,10 +7019,12 @@ function renderObjectiveControl(match) {
       </div>
       <p class="meta-text">${match.teams.left.name} ${leftPct.toFixed(1)}% · ${rightPct.toFixed(1)}% ${match.teams.right.name}</p>
       <div class="control-rows">
-        <p class="meta-text">Towers ${control.left.towers} - ${control.right.towers}</p>
-        <p class="meta-text">Dragons ${control.left.dragons} - ${control.right.dragons}</p>
-        <p class="meta-text">Barons ${control.left.barons} - ${control.right.barons}</p>
-        <p class="meta-text">Inhibitors ${control.left.inhibitors} - ${control.right.inhibitors}</p>
+        ${metrics
+          .map(
+            (metric) =>
+              `<p class="meta-text">${metric.label} ${control.left?.[metric.key] ?? 0} - ${control.right?.[metric.key] ?? 0}</p>`
+          )
+          .join("")}
       </div>
     </article>
   `;
@@ -6940,15 +7037,19 @@ function renderObjectiveBreakdown(match) {
     return;
   }
 
+  const metrics = objectiveMetricDefinitions(match);
   const renderSide = (teamName, sideRows) => `
     <article class="objective-side">
       <h3>${teamName}</h3>
       <p class="meta-text">Total ${sideRows.total || 0}</p>
       <div class="objective-stats">
-        <p><span>Dragons</span><span>${sideRows.dragon || 0}</span></p>
-        <p><span>Barons</span><span>${sideRows.baron || 0}</span></p>
-        <p><span>Towers</span><span>${sideRows.tower || 0}</span></p>
-        <p><span>Inhibitors</span><span>${sideRows.inhibitor || 0}</span></p>
+        ${metrics
+          .map((metric) => {
+            const breakdownKey =
+              metric.key === "barons" ? "baron" : metric.key === "inhibitors" ? "inhibitor" : metric.key;
+            return `<p><span>${metric.label}</span><span>${sideRows[breakdownKey] || 0}</span></p>`;
+          })
+          .join("")}
         ${(sideRows.other || 0) > 0 ? `<p><span>Other</span><span>${sideRows.other}</span></p>` : ""}
       </div>
     </article>
@@ -7723,19 +7824,22 @@ function renderSelectedGameRecap(match) {
   const right = snapshot.right || {};
   const killDiff = Number(left.kills || 0) - Number(right.kills || 0);
   const towerDiff = Number(left.towers || 0) - Number(right.towers || 0);
-  const dragonDiff = Number(left.dragons || 0) - Number(right.dragons || 0);
   const baronDiff = Number(left.barons || 0) - Number(right.barons || 0);
   const inhibDiff = Number(left.inhibitors || 0) - Number(right.inhibitors || 0);
   const leftGold = Number(left.gold);
   const rightGold = Number(right.gold);
   const hasGold = Number.isFinite(leftGold) && Number.isFinite(rightGold);
   const goldDiff = hasGold ? leftGold - rightGold : null;
+  const terms = objectiveTerminology(match);
 
   cards.push(recapCard("Kills", `${left.kills ?? 0} : ${right.kills ?? 0}`, `Diff ${signed(killDiff)}`));
   cards.push(recapCard("Towers", `${left.towers ?? 0} : ${right.towers ?? 0}`, `Diff ${signed(towerDiff)}`));
-  cards.push(recapCard("Dragons", `${left.dragons ?? 0} : ${right.dragons ?? 0}`, `Diff ${signed(dragonDiff)}`));
-  cards.push(recapCard("Barons", `${left.barons ?? 0} : ${right.barons ?? 0}`, `Diff ${signed(baronDiff)}`));
-  cards.push(recapCard("Inhibitors", `${left.inhibitors ?? 0} : ${right.inhibitors ?? 0}`, `Diff ${signed(inhibDiff)}`));
+  if (normalizeGameKey(match?.game) !== "dota2") {
+    const dragonDiff = Number(left.dragons || 0) - Number(right.dragons || 0);
+    cards.push(recapCard(terms.dragonLabel, `${left.dragons ?? 0} : ${right.dragons ?? 0}`, `Diff ${signed(dragonDiff)}`));
+  }
+  cards.push(recapCard(terms.baronLabel, `${left.barons ?? 0} : ${right.barons ?? 0}`, `Diff ${signed(baronDiff)}`));
+  cards.push(recapCard(terms.inhibitorLabel, `${left.inhibitors ?? 0} : ${right.inhibitors ?? 0}`, `Diff ${signed(inhibDiff)}`));
   cards.push(recapCard("Gold", hasGold ? `${formatNumber(leftGold)} : ${formatNumber(rightGold)}` : "n/a", hasGold ? `Diff ${signed(Math.round(goldDiff))}` : "No gold totals"));
 
   const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, 3) : [];
@@ -7772,14 +7876,14 @@ function renderSelectedGameRecap(match) {
 
   if (selectedGame.state === "completed") {
     const winnerShort = winnerName ? displayTeamName(winnerName) : "TBD";
-    const objectivesLabel = `Drg ${left.dragons ?? 0}-${right.dragons ?? 0} · Brn ${left.barons ?? 0}-${right.barons ?? 0}`;
+    const objectiveSummary = objectiveSummaryLine(match, snapshot);
     const completedStory = buildCompletedGameStory(match);
     const recapCards = [
       recapCard("Winner", winnerShort),
       recapCard("Duration", duration),
       recapCard("Peak Lead", completedStory?.peakLeadLabel || "n/a", completedStory?.peakLeadNote || null),
       recapCard("Turning Point", completedStory?.turningPointLabel || "n/a", completedStory?.turningPointNote || null),
-      recapCard("Objectives", objectivesLabel, `Towers ${left.towers ?? 0} : ${right.towers ?? 0}`),
+      recapCard("Objectives", objectiveSummary.primary, objectiveSummary.secondary),
       recapCard("Gold", hasGold ? `${formatNumber(leftGold)} : ${formatNumber(rightGold)}` : "n/a", hasGold ? `Diff ${signed(Math.round(goldDiff))}` : "No gold totals")
     ];
 
@@ -8179,8 +8283,13 @@ function buildLiveAlerts(match) {
     });
   }
 
-  const objectiveDelta = (Number(leftSnapshot.dragons || 0) + Number(leftSnapshot.barons || 0)) -
-    (Number(rightSnapshot.dragons || 0) + Number(rightSnapshot.barons || 0));
+  const objectiveDelta = objectiveAdvantageDelta(
+    {
+      left: leftSnapshot,
+      right: rightSnapshot
+    },
+    match
+  );
   if (Math.abs(objectiveDelta) >= 2) {
     alerts.push({
       id: "objective-gap",

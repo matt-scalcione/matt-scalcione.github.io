@@ -9,6 +9,8 @@ const ESTIMATED_BETWEEN_GAMES_SECONDS = Number.parseInt(
   process.env.DOTA_ESTIMATED_BETWEEN_GAMES_SECONDS || "420",
   10
 );
+const DOTA_TOWER_TOTAL = 11;
+const DOTA_BARRACKS_TOTAL = 6;
 
 function toIsoFromSeconds(seconds, fallback = Date.now()) {
   if (typeof seconds !== "number" || Number.isNaN(seconds)) {
@@ -94,6 +96,26 @@ function toFiniteNumber(value) {
 function toCount(value) {
   const parsed = toFiniteNumber(value);
   return parsed === null ? 0 : Math.round(parsed);
+}
+
+function bitCount(value) {
+  let count = 0;
+  let remaining = Math.max(0, toCount(value));
+  while (remaining > 0) {
+    count += remaining & 1;
+    remaining >>= 1;
+  }
+  return count;
+}
+
+function destroyedFromStatus(statusValue, total) {
+  const parsed = toOptionalNumber(statusValue);
+  if (parsed === null) {
+    return null;
+  }
+
+  const alive = bitCount(parsed);
+  return Math.max(0, total - alive);
 }
 
 function signed(value) {
@@ -486,6 +508,525 @@ export function buildSeriesSummaries(rows = [], leagueTierMap = new Map()) {
     .sort((left, right) => parseTimestamp(right.endAt || right.updatedAt || right.startAt) - parseTimestamp(left.endAt || left.updatedAt || left.startAt));
 }
 
+function swapSide(side) {
+  if (side === "left") return "right";
+  if (side === "right") return "left";
+  return side;
+}
+
+function cloneSideValue(value) {
+  if (Array.isArray(value)) {
+    return value.slice();
+  }
+  if (value && typeof value === "object") {
+    return { ...value };
+  }
+  return value;
+}
+
+function swapLeftRightObject(value) {
+  return {
+    left: cloneSideValue(value?.right),
+    right: cloneSideValue(value?.left)
+  };
+}
+
+function seriesWinnerFromRow(row, summary) {
+  if (typeof row?.radiant_win !== "boolean") {
+    return null;
+  }
+
+  const radiantTeam = rowRadiantTeam(row);
+  const direTeam = rowDireTeam(row);
+  if (sameTeamReference(radiantTeam, summary?.teams?.left) && sameTeamReference(direTeam, summary?.teams?.right)) {
+    return row.radiant_win ? summary?.teams?.left?.id || null : summary?.teams?.right?.id || null;
+  }
+
+  if (sameTeamReference(radiantTeam, summary?.teams?.right) && sameTeamReference(direTeam, summary?.teams?.left)) {
+    return row.radiant_win ? summary?.teams?.right?.id || null : summary?.teams?.left?.id || null;
+  }
+
+  return null;
+}
+
+function seriesSideInfoFromRow(row, summary) {
+  const radiantTeam = rowRadiantTeam(row);
+  const direTeam = rowDireTeam(row);
+  const leftSide = sameTeamReference(radiantTeam, summary?.teams?.left)
+    ? "radiant"
+    : sameTeamReference(direTeam, summary?.teams?.left)
+      ? "dire"
+      : null;
+  const rightSide = sameTeamReference(radiantTeam, summary?.teams?.right)
+    ? "radiant"
+    : sameTeamReference(direTeam, summary?.teams?.right)
+      ? "dire"
+      : null;
+
+  return {
+    leftSide,
+    rightSide
+  };
+}
+
+function buildSeriesGamesFromRows(summary, rows = [], { selectedGameNumber } = {}) {
+  const orderedRows = (Array.isArray(rows) ? rows : [])
+    .filter((row) => rowMatchId(row))
+    .slice()
+    .sort((left, right) => {
+      const startDiff = (rowStartSeconds(left) || 0) - (rowStartSeconds(right) || 0);
+      if (startDiff !== 0) {
+        return startDiff;
+      }
+      return (rowMatchId(left) || 0) - (rowMatchId(right) || 0);
+    });
+
+  const bestOf = Math.max(1, Number(summary?.bestOf || 1));
+  const winsNeeded = Math.floor(bestOf / 2) + 1;
+  const completedMaps = Math.max(0, toCount(summary?.seriesScore?.left) + toCount(summary?.seriesScore?.right));
+  const currentGameNumber =
+    summary?.status === "live"
+      ? Math.max(1, completedMaps + 1)
+      : summary?.status === "completed"
+        ? Math.max(1, completedMaps || orderedRows.length || 1)
+        : 1;
+  const totalSlots = Math.max(bestOf, currentGameNumber, orderedRows.length);
+
+  const actualGames = new Map();
+  orderedRows.forEach((row, index) => {
+    const number = index + 1;
+    const completed = typeof row?.radiant_win === "boolean";
+    const state =
+      completed
+        ? "completed"
+        : summary?.status === "live" && number === currentGameNumber
+          ? "inProgress"
+          : number > currentGameNumber && completedMaps >= winsNeeded
+            ? "unneeded"
+            : "unstarted";
+    const matchId = rowMatchId(row);
+    actualGames.set(number, {
+      id: `dota_game_${number}`,
+      number,
+      state,
+      selected: Number.isInteger(selectedGameNumber) && selectedGameNumber === number,
+      label:
+        state === "completed"
+          ? "Completed game."
+          : state === "inProgress"
+            ? "Currently live."
+            : state === "unneeded"
+              ? "Not played (series already decided)."
+              : "Scheduled next.",
+      winnerTeamId: completed ? seriesWinnerFromRow(row, summary) : null,
+      sideInfo: seriesSideInfoFromRow(row, summary),
+      durationMinutes: Number.isFinite(toFiniteNumber(row?.duration))
+        ? Number((Math.max(0, Number(row.duration)) / 60).toFixed(1))
+        : null,
+      startedAt: toIsoFromSeconds(rowStartSeconds(row), Date.now()),
+      watchUrl: matchId ? `https://www.opendota.com/matches/${matchId}` : null,
+      watchProvider: matchId ? "opendota" : null,
+      watchOptions: matchId
+        ? [
+            {
+              id: `dota_watch_${number}`,
+              locale: "global",
+              label: "OpenDota Match",
+              shortLabel: "OpenDota",
+              provider: "opendota",
+              watchUrl: `https://www.opendota.com/matches/${matchId}`,
+              startedAt: toIsoFromSeconds(rowStartSeconds(row), Date.now()),
+              startMillis: null,
+              endMillis: null
+            }
+          ]
+        : [],
+      sourceMatchId: matchId ? String(matchId) : null
+    });
+  });
+
+  const games = [];
+  for (let number = 1; number <= totalSlots; number += 1) {
+    const existing = actualGames.get(number);
+    if (existing) {
+      games.push(existing);
+      continue;
+    }
+
+    let state = "unstarted";
+    if (number < currentGameNumber) {
+      state = "completed";
+    } else if (number === currentGameNumber) {
+      state = summary?.status === "live" ? "inProgress" : summary?.status === "completed" ? "completed" : "unstarted";
+    }
+
+    if (number > currentGameNumber && completedMaps >= winsNeeded) {
+      state = "unneeded";
+    }
+
+    games.push({
+      id: `dota_game_${number}`,
+      number,
+      state,
+      selected: Number.isInteger(selectedGameNumber) && selectedGameNumber === number,
+      label:
+        state === "completed"
+          ? "Completed game."
+          : state === "inProgress"
+            ? "Currently live."
+            : state === "unneeded"
+              ? "Not played (series already decided)."
+              : "Scheduled next.",
+      winnerTeamId: null,
+      sideInfo: {
+        leftSide: null,
+        rightSide: null
+      },
+      durationMinutes: null,
+      startedAt: null,
+      watchUrl: null,
+      watchProvider: null,
+      watchOptions: [],
+      sourceMatchId: null
+    });
+  }
+
+  return {
+    currentGameNumber,
+    games
+  };
+}
+
+function findMatchingLiveRowForSeries(summary, liveRows = []) {
+  const targetSeriesId = Number.parseInt(String(summary?.providerMatchId || ""), 10);
+  const targetLeft = summary?.teams?.left;
+  const targetRight = summary?.teams?.right;
+
+  const rows = Array.isArray(liveRows) ? liveRows : [];
+  return (
+    rows.find((row) => {
+      const rowSeries = rowSeriesId(row);
+      return Number.isInteger(targetSeriesId) && targetSeriesId > 0 && rowSeries === targetSeriesId;
+    }) ||
+    rows.find((row) => {
+      const radiant = rowRadiantTeam(row);
+      const dire = rowDireTeam(row);
+      return (
+        (sameTeamReference(radiant, targetLeft) && sameTeamReference(dire, targetRight)) ||
+        (sameTeamReference(radiant, targetRight) && sameTeamReference(dire, targetLeft))
+      );
+    }) ||
+    null
+  );
+}
+
+function shouldFlipSeriesSides(mapDetail, summary) {
+  return (
+    sameTeamReference(mapDetail?.teams?.left, summary?.teams?.right) &&
+    sameTeamReference(mapDetail?.teams?.right, summary?.teams?.left)
+  );
+}
+
+function flipObjectiveTimeline(rows = []) {
+  return rows.map((row) => ({
+    ...row,
+    team: swapSide(row?.team)
+  }));
+}
+
+function flipGoldLeadSeries(rows = []) {
+  return rows.map((row) => ({
+    ...row,
+    lead: -toCount(row?.lead)
+  }));
+}
+
+function flipPlayerEconomy(playerEconomy) {
+  const leftRows = Array.isArray(playerEconomy?.right)
+    ? playerEconomy.right.map((row) => ({
+        ...row,
+        team: "left"
+      }))
+    : [];
+  const rightRows = Array.isArray(playerEconomy?.left)
+    ? playerEconomy.left.map((row) => ({
+        ...row,
+        team: "right"
+      }))
+    : [];
+
+  return {
+    elapsedSeconds: toCount(playerEconomy?.elapsedSeconds),
+    updatedAt: playerEconomy?.updatedAt || new Date().toISOString(),
+    left: leftRows,
+    right: rightRows
+  };
+}
+
+function flipTeamDraft(teamDraft) {
+  if (!teamDraft) {
+    return null;
+  }
+
+  return {
+    left: Array.isArray(teamDraft?.right) ? teamDraft.right.slice() : [],
+    right: Array.isArray(teamDraft?.left) ? teamDraft.left.slice() : [],
+    leftBans: Array.isArray(teamDraft?.rightBans) ? teamDraft.rightBans.slice() : [],
+    rightBans: Array.isArray(teamDraft?.leftBans) ? teamDraft.leftBans.slice() : [],
+    leftTeamId: teamDraft?.rightTeamId || null,
+    rightTeamId: teamDraft?.leftTeamId || null
+  };
+}
+
+function sideSummaryFromSeriesGame(summary, seriesGame) {
+  const leftSide = String(seriesGame?.sideInfo?.leftSide || "").trim();
+  const rightSide = String(seriesGame?.sideInfo?.rightSide || "").trim();
+  if (!leftSide || !rightSide) {
+    return [];
+  }
+
+  return [
+    `${summary?.teams?.left?.name || "Left"} ${leftSide.charAt(0).toUpperCase()}${leftSide.slice(1)}`,
+    `${summary?.teams?.right?.name || "Right"} ${rightSide.charAt(0).toUpperCase()}${rightSide.slice(1)}`
+  ];
+}
+
+function buildSeriesDetail({
+  matchId,
+  summary,
+  mapDetail,
+  seriesGames,
+  selectedGameNumber,
+  requestedGameNumber,
+  requestedMissing,
+  selectedReason
+}) {
+  const selectedSeriesGame =
+    (Array.isArray(seriesGames) ? seriesGames : []).find((game) => Number(game?.number) === Number(selectedGameNumber)) || null;
+  const flipSides = mapDetail ? shouldFlipSeriesSides(mapDetail, summary) : false;
+  const objectiveTimeline = mapDetail
+    ? flipSides
+      ? flipObjectiveTimeline(Array.isArray(mapDetail?.objectiveTimeline) ? mapDetail.objectiveTimeline : [])
+      : Array.isArray(mapDetail?.objectiveTimeline)
+        ? mapDetail.objectiveTimeline.slice()
+        : []
+    : [];
+  const goldLeadSeries = mapDetail
+    ? flipSides
+      ? flipGoldLeadSeries(Array.isArray(mapDetail?.goldLeadSeries) ? mapDetail.goldLeadSeries : [])
+      : Array.isArray(mapDetail?.goldLeadSeries)
+        ? mapDetail.goldLeadSeries.slice()
+        : []
+    : [];
+  const baseObjectiveControl = mapDetail
+    ? flipSides
+      ? swapLeftRightObject(mapDetail?.objectiveControl || {})
+      : mapDetail?.objectiveControl || null
+    : null;
+  const playerEconomy = mapDetail
+    ? flipSides
+      ? flipPlayerEconomy(mapDetail?.playerEconomy)
+      : {
+          elapsedSeconds: toCount(mapDetail?.playerEconomy?.elapsedSeconds),
+          updatedAt: mapDetail?.playerEconomy?.updatedAt || new Date().toISOString(),
+          left: Array.isArray(mapDetail?.playerEconomy?.left) ? mapDetail.playerEconomy.left.slice() : [],
+          right: Array.isArray(mapDetail?.playerEconomy?.right) ? mapDetail.playerEconomy.right.slice() : []
+        }
+    : {
+        elapsedSeconds: 0,
+        updatedAt: new Date().toISOString(),
+        left: [],
+        right: []
+      };
+  const sourceSnapshot = mapDetail?.selectedGame?.snapshot || {
+    left: { kills: 0, towers: 0, dragons: 0, barons: 0, inhibitors: 0, gold: 0 },
+    right: { kills: 0, towers: 0, dragons: 0, barons: 0, inhibitors: 0, gold: 0 }
+  };
+  const selectedSnapshot = flipSides ? swapLeftRightObject(sourceSnapshot) : sourceSnapshot;
+  const objectiveBreakdown = buildObjectiveBreakdown(objectiveTimeline);
+  const objectiveControl = baseObjectiveControl || buildObjectiveControl({}, objectiveBreakdown);
+  const teamEconomyTotals = buildTeamEconomyTotals(playerEconomy);
+  const leadTrend = buildLeadTrend(goldLeadSeries);
+  const momentum = buildMomentum(summary, selectedSnapshot, leadTrend);
+  const seriesProgress = buildSeriesProgress(summary, seriesGames);
+  const selectedState =
+    selectedSeriesGame?.state ||
+    (summary?.status === "live" ? "inProgress" : summary?.status === "completed" ? "completed" : "unstarted");
+  const startedAt = selectedSeriesGame?.startedAt || summary?.startAt || new Date().toISOString();
+  const durationSeconds = Number.isFinite(Number(selectedSeriesGame?.durationMinutes))
+    ? Math.round(Number(selectedSeriesGame.durationMinutes) * 60)
+    : 0;
+  const liveTicker = buildLiveTicker({
+    objectiveTimeline,
+    goldLeadSeries,
+    teams: summary?.teams,
+    selectedGameNumber,
+    status: summary?.status,
+    startAtIso: startedAt
+  });
+  const keyMoments = buildKeyMoments({
+    objectiveTimeline,
+    goldLeadSeries,
+    teams: summary?.teams
+  });
+  const telemetryStatus =
+    selectedState === "unstarted"
+      ? "none"
+      : mapDetail
+        ? String(mapDetail?.selectedGame?.telemetryStatus || "basic")
+        : selectedState === "inProgress"
+          ? "pending"
+          : "none";
+  const selectedGame = buildSelectedGameContext({
+    selectedGameNumber,
+    state: selectedState,
+    selectedSnapshot,
+    objectiveTimeline,
+    liveTicker,
+    watchUrl: selectedSeriesGame?.watchUrl || null,
+    startedAt,
+    duration: durationSeconds,
+    leftName: summary?.teams?.left?.name,
+    rightName: summary?.teams?.right?.name,
+    requestedMissing
+  });
+  selectedGame.telemetryStatus = telemetryStatus;
+  selectedGame.telemetryCounts = {
+    tickerEvents: Array.isArray(liveTicker) ? liveTicker.length : 0,
+    objectiveEvents: Array.isArray(objectiveTimeline) ? objectiveTimeline.length : 0,
+    combatBursts: Array.isArray(mapDetail?.combatBursts) ? mapDetail.combatBursts.length : 0,
+    goldMilestones: Array.isArray(mapDetail?.goldMilestones) ? mapDetail.goldMilestones.length : 0
+  };
+  selectedGame.sideSummary = sideSummaryFromSeriesGame(summary, selectedSeriesGame);
+  selectedGame.watchUrl = selectedSeriesGame?.watchUrl || null;
+  selectedGame.watchOptions = Array.isArray(selectedSeriesGame?.watchOptions) ? selectedSeriesGame.watchOptions : [];
+  selectedGame.durationMinutes = Number.isFinite(Number(selectedSeriesGame?.durationMinutes))
+    ? Number(selectedSeriesGame.durationMinutes)
+    : selectedGame.durationMinutes;
+  selectedGame.snapshot = selectedSnapshot;
+  selectedGame.requestedMissing = Boolean(requestedMissing);
+
+  const gameNavigation = buildGameNavigation({
+    seriesGames,
+    selectedGame,
+    requestedGameNumber,
+    requestedMissing,
+    selectedReason
+  });
+  const dataConfidence = buildDataConfidence(
+    {
+      duration: durationSeconds
+    },
+    playerEconomy,
+    objectiveTimeline,
+    goldLeadSeries
+  );
+  const pulseCard = buildPulseCard(summary, momentum, seriesProgress);
+  const edgeMeter = buildEdgeMeter(summary, momentum, objectiveControl);
+  const tempoSnapshot = buildTempoSnapshot(
+    {
+      duration: durationSeconds
+    },
+    objectiveTimeline,
+    seriesGames
+  );
+  const tacticalChecklist = buildTacticalChecklist(summary, momentum, objectiveControl);
+  const storylines = buildStorylines(summary, momentum, leadTrend, objectiveControl);
+  const teamDraft = mapDetail
+    ? flipSides
+      ? flipTeamDraft(mapDetail?.teamDraft)
+      : mapDetail?.teamDraft || null
+    : null;
+  const allEconomyRows = [
+    ...(Array.isArray(playerEconomy?.left) ? playerEconomy.left : []),
+    ...(Array.isArray(playerEconomy?.right) ? playerEconomy.right : [])
+  ];
+  const topPerformers = buildTopPerformers(allEconomyRows);
+  const objectiveRuns = buildObjectiveRuns(objectiveTimeline, summary?.teams);
+  const teamForm = buildTeamFormFromSeriesScore(summary);
+  const headToHead = buildHeadToHead(summary);
+  const prediction = buildPrediction(summary, momentum, summary?.status);
+  const combatBursts = buildCombatBursts(
+    {
+      radiant_score: selectedSnapshot?.left?.kills,
+      dire_score: selectedSnapshot?.right?.kills
+    },
+    summary?.teams,
+    startedAt
+  );
+  const goldMilestones = buildGoldMilestones(goldLeadSeries, summary?.teams);
+  const freshness = mapDetail?.freshness || {
+    source: "opendota",
+    status: selectedState === "inProgress" && !mapDetail ? "pending" : "healthy",
+    updatedAt: summary?.updatedAt || new Date().toISOString()
+  };
+
+  return {
+    ...summary,
+    id: matchId,
+    providerMatchId: summary?.providerMatchId,
+    sourceMatchId: selectedSeriesGame?.sourceMatchId || summary?.sourceMatchId || null,
+    patch: mapDetail?.patch || summary?.patch || "unknown",
+    freshness,
+    timeline: objectiveTimeline.slice(-12).map((row) => ({
+      at:
+        row.gameTimeSeconds !== null
+          ? `${Math.floor(row.gameTimeSeconds / 60)}:${String(row.gameTimeSeconds % 60).padStart(2, "0")}`
+          : "--:--",
+      type: row.type,
+      label: row.label
+    })),
+    keyMoments,
+    liveTicker,
+    objectiveTimeline,
+    objectiveControl,
+    objectiveBreakdown,
+    objectiveRuns,
+    gameNavigation,
+    selectedGame,
+    seriesGames,
+    seriesHeader: buildSeriesHeader(summary, seriesProgress, gameNavigation),
+    seriesProgress,
+    seriesProjection: buildSeriesProjection(summary),
+    dataConfidence,
+    pulseCard,
+    edgeMeter,
+    tempoSnapshot,
+    tacticalChecklist,
+    storylines,
+    teamDraft,
+    playerEconomy,
+    teamEconomyTotals,
+    topPerformers,
+    momentum,
+    goldLeadSeries,
+    leadTrend,
+    laneMatchups: [],
+    roleMatchupDeltas: [],
+    seriesPlayerTrends: [],
+    draftDelta: null,
+    objectiveForecast: [],
+    deltaWindow: {
+      selectedGameNumber,
+      referenceGameNumber: null,
+      windowMinutes: 5,
+      updatedAt: new Date().toISOString()
+    },
+    playerDelta: [],
+    watchGuide: buildUpcomingWatch(summary, selectedSeriesGame?.watchUrl || null),
+    teamForm,
+    headToHead,
+    prediction,
+    matchupReadiness: null,
+    matchupKeyFactors: [],
+    matchupAlertLevel: null,
+    matchupMeta: null,
+    combatBursts,
+    goldMilestones,
+    liveAlerts: []
+  };
+}
+
 function inferMatchState(payload) {
   if (typeof payload?.radiant_win === "boolean") {
     return "completed";
@@ -819,12 +1360,16 @@ function buildObjectiveBreakdown(objectiveTimeline = []) {
 }
 
 function buildObjectiveControl(payload, objectiveBreakdown) {
-  const leftTowers = Math.max(toCount(objectiveBreakdown?.left?.tower), 0);
-  const rightTowers = Math.max(toCount(objectiveBreakdown?.right?.tower), 0);
+  const leftTowersFromStatus = destroyedFromStatus(payload?.tower_status_dire, DOTA_TOWER_TOTAL);
+  const rightTowersFromStatus = destroyedFromStatus(payload?.tower_status_radiant, DOTA_TOWER_TOTAL);
+  const leftTowers = Math.max(leftTowersFromStatus ?? toCount(objectiveBreakdown?.left?.tower), 0);
+  const rightTowers = Math.max(rightTowersFromStatus ?? toCount(objectiveBreakdown?.right?.tower), 0);
   const leftBarons = Math.max(toCount(objectiveBreakdown?.left?.baron), 0);
   const rightBarons = Math.max(toCount(objectiveBreakdown?.right?.baron), 0);
-  const leftInhibitors = Math.max(toCount(objectiveBreakdown?.left?.inhibitor), 0);
-  const rightInhibitors = Math.max(toCount(objectiveBreakdown?.right?.inhibitor), 0);
+  const leftInhibitorsFromStatus = destroyedFromStatus(payload?.barracks_status_dire, DOTA_BARRACKS_TOTAL);
+  const rightInhibitorsFromStatus = destroyedFromStatus(payload?.barracks_status_radiant, DOTA_BARRACKS_TOTAL);
+  const leftInhibitors = Math.max(leftInhibitorsFromStatus ?? toCount(objectiveBreakdown?.left?.inhibitor), 0);
+  const rightInhibitors = Math.max(rightInhibitorsFromStatus ?? toCount(objectiveBreakdown?.right?.inhibitor), 0);
 
   const leftDragons = 0;
   const rightDragons = 0;
@@ -2157,7 +2702,15 @@ export class OpenDotaProvider {
     const byId = new Map();
 
     for (const row of derivedSeriesLive) {
-      byId.set(row.id, row);
+      const matchingLiveRow = findMatchingLiveRowForSeries(row, liveRows);
+      byId.set(row.id, matchingLiveRow
+        ? {
+            ...row,
+            sourceMatchId: String(rowMatchId(matchingLiveRow) || row.sourceMatchId || ""),
+            updatedAt: toIsoFromSeconds(rowUpdatedSeconds(matchingLiveRow), Date.now()),
+            keySignal: "provider_series_live"
+          }
+        : row);
     }
 
     for (const row of normalizedLive) {
@@ -2189,7 +2742,79 @@ export class OpenDotaProvider {
 
   async fetchMatchDetail(matchId, { gameNumber } = {}) {
     if (String(matchId || "").startsWith("dota_od_series_")) {
-      return null;
+      const seriesId = Number.parseInt(String(parseProviderMatchId(matchId) || ""), 10);
+      if (!Number.isInteger(seriesId) || seriesId <= 0) {
+        return null;
+      }
+
+      const [recentRows, liveRows, leagueTierMap, heroMap] = await Promise.all([
+        fetchJson(`${OPENDOTA_BASE_URL}/proMatches`, {
+          timeoutMs: this.timeoutMs
+        }),
+        fetchJson(`${OPENDOTA_BASE_URL}/live`, {
+          timeoutMs: this.timeoutMs
+        }).catch(() => []),
+        this.getLeagueTierMap(),
+        this.getHeroMap()
+      ]);
+
+      const seriesRows = Array.isArray(recentRows)
+        ? recentRows.filter((row) => rowSeriesId(row) === seriesId)
+        : [];
+      const summary = summarizeSeriesRows(seriesRows, leagueTierMap);
+      if (!summary) {
+        return null;
+      }
+
+      const matchingLiveRow = findMatchingLiveRowForSeries(summary, liveRows);
+      const mergedRows = seriesRows.slice();
+      if (matchingLiveRow) {
+        const liveMatchId = rowMatchId(matchingLiveRow);
+        if (liveMatchId && !mergedRows.some((row) => rowMatchId(row) === liveMatchId)) {
+          mergedRows.push(matchingLiveRow);
+        }
+      }
+
+      const initialGamesState = buildSeriesGamesFromRows(summary, mergedRows, {});
+      const focusedSelection = selectFocusedGame(initialGamesState.games, gameNumber);
+      const selectedGameNumber = focusedSelection.game?.number || initialGamesState.currentGameNumber;
+      const seriesGamesState = buildSeriesGamesFromRows(summary, mergedRows, {
+        selectedGameNumber
+      });
+      const seriesGames = seriesGamesState.games;
+      const selectedSeriesGame =
+        seriesGames.find((game) => Number(game?.number) === Number(selectedGameNumber)) || seriesGames[0] || null;
+
+      let mapDetail = null;
+      if (selectedSeriesGame?.sourceMatchId) {
+        try {
+          const payload = await fetchJson(`${OPENDOTA_BASE_URL}/matches/${selectedSeriesGame.sourceMatchId}`, {
+            timeoutMs: this.timeoutMs
+          });
+          mapDetail = normalizeMatchDetail(
+            payload,
+            `dota_od_live_${selectedSeriesGame.sourceMatchId}`,
+            leagueTierMap,
+            heroMap,
+            {
+              requestedGameNumber: selectedGameNumber
+            }
+          );
+        } catch {
+          mapDetail = null;
+        }
+      }
+
+      return buildSeriesDetail({
+        matchId,
+        summary,
+        mapDetail,
+        seriesGames,
+        selectedGameNumber,
+        requestedGameNumber: gameNumber,
+        requestedMissing: focusedSelection.requestedMissing,
+        selectedReason: focusedSelection.selectedReason
+      });
     }
 
     const providerMatchId = parseProviderMatchId(matchId);
