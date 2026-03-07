@@ -401,18 +401,28 @@ function scheduleCardCenter(row, type, scoreLabel) {
   };
 }
 
-function scheduleCardMeta(row, type, winnerShort) {
+function scheduleCardFooter(row, type, winnerShort) {
   const tournament = row?.tournament || gameLabel(row?.game) || "Tournament";
   const formatLabel = `BO${Math.max(1, Number(row?.bestOf || 1))}`;
+
   if (type === "result") {
-    return winnerShort && winnerShort !== "—" ? `${tournament} · Winner ${winnerShort}` : `${tournament} · Final`;
+    return {
+      primary: tournament,
+      secondary: winnerShort && winnerShort !== "—" ? `Winner ${winnerShort}` : "Final"
+    };
   }
 
   if (row?.status === "live") {
-    return `${tournament} · ${formatLabel} live`;
+    return {
+      primary: tournament,
+      secondary: `${formatLabel} live`
+    };
   }
 
-  return `${tournament} · ${formatLabel}`;
+  return {
+    primary: tournament,
+    secondary: formatLabel
+  };
 }
 
 function gameChipMarkup(game) {
@@ -546,7 +556,10 @@ function applyControlsCollapsed(collapsed) {
   }
 
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
-  elements.controlsToggle.textContent = collapsed ? "Show Filters" : "Hide Filters";
+  const compact = isCompactViewport();
+  elements.controlsToggle.textContent = compact
+    ? (collapsed ? "Show" : "Hide")
+    : (collapsed ? "Show Filters" : "Hide Filters");
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
@@ -809,7 +822,7 @@ function renderTable(container, rows, type) {
               const statusClass = type === "result" ? "complete" : row.status === "live" ? "live" : "upcoming";
               const stateClass = scheduleCardState(row, type);
               const center = scheduleCardCenter(row, type, scoreLabel);
-              const meta = scheduleCardMeta(row, type, winnerShort);
+              const footer = scheduleCardFooter(row, type, winnerShort);
 
               return `
                 <a class="schedule-row-card schedule-${stateClass}" href="${detailUrl}" aria-label="Open ${leftShort} vs ${rightShort}">
@@ -834,7 +847,10 @@ function renderTable(container, rows, type) {
                       <span class="schedule-card-name">${rightShort}</span>
                     </div>
                   </div>
-                  <p class="schedule-card-meta">${meta}</p>
+                  <div class="schedule-card-foot">
+                    <p class="schedule-card-meta primary">${footer.primary}</p>
+                    <p class="schedule-card-meta secondary">${footer.secondary}</p>
+                  </div>
                 </a>
               `;
             })
@@ -842,7 +858,10 @@ function renderTable(container, rows, type) {
 
           return `
             <section class="schedule-day-group">
-              <div class="schedule-day-label">${group.label}</div>
+              <div class="schedule-day-label">
+                <span>${group.label}</span>
+                <span class="schedule-day-count">${group.rows.length}</span>
+              </div>
               <div class="schedule-day-list">${cards}</div>
             </section>
           `;
@@ -1056,6 +1075,9 @@ function boot() {
 window.addEventListener("resize", () => {
   applyScheduleViewMode(scheduleViewMode);
   renderScheduleCollectionMeta();
+  if (elements.controlsPanel) {
+    applyControlsCollapsed(elements.controlsPanel.classList.contains("collapsed"));
+  }
 });
 
 boot();
