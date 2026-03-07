@@ -25,6 +25,7 @@ const elements = {
   addFollowButton: document.querySelector("#addFollowButton"),
   followsMeta: document.querySelector("#followsMeta"),
   followsList: document.querySelector("#followsList"),
+  followsSummaryHero: document.querySelector("#followsSummaryHero"),
   followsViewSwitch: document.querySelector("#followsViewSwitch"),
   followsViewButtons: Array.from(document.querySelectorAll("#followsViewSwitch [data-view]")),
   followsBlock: document.querySelector("#followsBlock"),
@@ -38,6 +39,10 @@ const elements = {
   savePrefsButton: document.querySelector("#savePrefsButton")
 };
 let followsViewMode = "both";
+const followsState = {
+  rows: [],
+  preferences: null
+};
 
 function refreshFollowsSeo() {
   const inferred = inferRobotsDirective({ allowedQueryParams: [] });
@@ -186,7 +191,76 @@ function setStatus(message, tone = "neutral") {
   }
 }
 
+function renderSummaryHero() {
+  if (!elements.followsSummaryHero) {
+    return;
+  }
+
+  const { userId } = getContext();
+  const rows = followsState.rows || [];
+  const preferences = followsState.preferences;
+
+  if (!userId) {
+    elements.followsSummaryHero.innerHTML = `
+      <div class="empty">
+        <p class="empty-title">Follow Overview</p>
+        <p class="meta-text">Add a user ID to load follows and notification preferences.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const teamCount = rows.filter((row) => row.entityType === "team").length;
+  const playerCount = rows.filter((row) => row.entityType === "player").length;
+  const tournamentCount = rows.filter((row) => row.entityType === "tournament").length;
+  const enabledAlerts = preferences
+    ? [
+        preferences.webPush,
+        preferences.emailDigest,
+        preferences.swingAlerts,
+        preferences.matchStart,
+        preferences.matchFinal
+      ].filter(Boolean).length
+    : null;
+  const distributionText = rows.length
+    ? `${teamCount} teams · ${playerCount} players · ${tournamentCount} tournaments`
+    : "No follows saved yet";
+  const alertText =
+    enabledAlerts === null
+      ? "Loading alert settings"
+      : `${enabledAlerts} alert ${enabledAlerts === 1 ? "setting" : "settings"} enabled`;
+
+  elements.followsSummaryHero.innerHTML = `
+    <div class="follow-summary-main">
+      <div class="follow-summary-copy">
+        <div class="follow-summary-kicker-row">
+          <span class="follow-summary-chip follow-summary-user">User ${userId}</span>
+          <span class="follow-summary-chip">${alertText}</span>
+        </div>
+        <h2 class="follow-summary-title">Follow Overview</h2>
+        <p class="follow-summary-subline">${distributionText}</p>
+      </div>
+      <div class="follow-summary-stats">
+        <article class="follow-summary-stat">
+          <p class="follow-summary-label">Follows</p>
+          <p class="follow-summary-value">${rows.length}</p>
+        </article>
+        <article class="follow-summary-stat">
+          <p class="follow-summary-label">Teams</p>
+          <p class="follow-summary-value">${teamCount}</p>
+        </article>
+        <article class="follow-summary-stat">
+          <p class="follow-summary-label">Alerts</p>
+          <p class="follow-summary-value">${enabledAlerts === null ? "..." : enabledAlerts}</p>
+        </article>
+      </div>
+    </div>
+  `;
+}
+
 function renderLoadingFollows() {
+  followsState.rows = [];
+  renderSummaryHero();
   elements.followsList.innerHTML = `
     <div class="loading-grid" aria-hidden="true">
       ${Array.from({ length: 4 })
@@ -221,6 +295,11 @@ async function requestJson(url, options = {}) {
 }
 
 function renderFollows(rows) {
+  followsState.rows = rows;
+  renderSummaryHero();
+  const teamCount = rows.filter((row) => row.entityType === "team").length;
+  const playerCount = rows.filter((row) => row.entityType === "player").length;
+  const tournamentCount = rows.filter((row) => row.entityType === "tournament").length;
   if (!rows.length) {
     elements.followsList.innerHTML = `
       <div class="empty">
@@ -228,6 +307,7 @@ function renderFollows(rows) {
         <p class="meta-text">Use Add Follow to track teams, players, or tournaments.</p>
       </div>
     `;
+    elements.followsMeta.textContent = "No follows saved yet.";
     return;
   }
 
@@ -245,9 +325,12 @@ function renderFollows(rows) {
     `
     )
     .join("");
+  elements.followsMeta.textContent = `${rows.length} follows · ${teamCount} teams · ${playerCount} players · ${tournamentCount} tournaments`;
 }
 
 function renderPreferences(pref) {
+  followsState.preferences = pref;
+  renderSummaryHero();
   elements.webPushInput.checked = Boolean(pref.webPush);
   elements.emailDigestInput.checked = Boolean(pref.emailDigest);
   elements.swingAlertsInput.checked = Boolean(pref.swingAlerts);
@@ -258,8 +341,11 @@ function renderPreferences(pref) {
 async function loadFollows() {
   const { apiBase, userId } = getContext();
   if (!userId) {
+    followsState.rows = [];
+    renderSummaryHero();
     setStatus("User ID is required.", "error");
     elements.followsList.innerHTML = `<div class="empty">Add a user ID to load follows.</div>`;
+    elements.followsMeta.textContent = "Add a user ID to load follows.";
     return;
   }
 
@@ -268,12 +354,13 @@ async function loadFollows() {
     `${apiBase}/v1/follows?user_id=${encodeURIComponent(userId)}`
   );
   renderFollows(payload.data || []);
-  elements.followsMeta.textContent = `Showing ${payload.data?.length || 0} follows.`;
 }
 
 async function loadPreferences() {
   const { apiBase, userId } = getContext();
   if (!userId) {
+    followsState.preferences = null;
+    renderSummaryHero();
     return;
   }
 
@@ -373,6 +460,14 @@ async function savePreferences() {
       })
     });
 
+    followsState.preferences = {
+      webPush: elements.webPushInput.checked,
+      emailDigest: elements.emailDigestInput.checked,
+      swingAlerts: elements.swingAlertsInput.checked,
+      matchStart: elements.matchStartInput.checked,
+      matchFinal: elements.matchFinalInput.checked
+    };
+    renderSummaryHero();
     setStatus("Preferences saved.", "success");
   } catch (error) {
     setStatus(`Error: ${error.message}`, "error");
@@ -415,6 +510,7 @@ function boot() {
   refreshFollowsSeo();
   setupControlsPanel();
   setupFollowsViewSwitch();
+  renderSummaryHero();
   installEvents();
   loadAll();
 }
