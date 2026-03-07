@@ -9,12 +9,13 @@ const oneHour = 60 * oneMinute;
 const dataMode = String(process.env.ESPORTS_DATA_MODE || "hybrid").toLowerCase();
 const providerCacheMs = Number.parseInt(process.env.PROVIDER_CACHE_MS || "30000", 10);
 const defaultDotaTiers = parseTierList(process.env.DOTA_TIERS || "1,2,3,4");
+const providerTimeoutMs = Number.parseInt(process.env.PROVIDER_TIMEOUT_MS || "15000", 10);
 
 const openDotaProvider = new OpenDotaProvider({
-  timeoutMs: Number.parseInt(process.env.PROVIDER_TIMEOUT_MS || "4500", 10)
+  timeoutMs: providerTimeoutMs
 });
 const lolEsportsProvider = new LolEsportsProvider({
-  timeoutMs: Number.parseInt(process.env.PROVIDER_TIMEOUT_MS || "4500", 10)
+  timeoutMs: providerTimeoutMs
 });
 
 const providerState = {
@@ -484,7 +485,7 @@ function belongsToFollowedTeam(match, followedTeamIds) {
 }
 
 function isProviderModeEnabled() {
-  return dataMode === "hybrid" || dataMode === "live";
+  return dataMode === "provider" || dataMode === "hybrid" || dataMode === "live";
 }
 
 function shouldHideFallbackDotaRows() {

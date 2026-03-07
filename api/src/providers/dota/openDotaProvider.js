@@ -19,9 +19,9 @@ function toIsoFromSeconds(seconds, fallback = Date.now()) {
 }
 
 function normalizeSeriesType(seriesType) {
-  if (seriesType === 1) return 1;
-  if (seriesType === 2) return 3;
-  if (seriesType === 3) return 5;
+  if (seriesType === 1) return 3;
+  if (seriesType === 2) return 5;
+  if (seriesType === 3) return 7;
   return 1;
 }
 
@@ -199,12 +199,15 @@ function normalizeLiveMatch(row, leagueTierMap) {
   }
 
   const leagueId = Number(row?.league_id || 0);
+  const seriesId = rowSeriesId(row);
   const competitiveTier = leagueTierMap.get(leagueId) ?? null;
   const tournament = row?.league_name || `League ${leagueId}`;
+  const providerMatchId = String(seriesId || matchId);
 
   return {
-    id: `dota_od_live_${matchId}`,
-    providerMatchId: String(matchId),
+    id: seriesId ? `dota_od_series_${seriesId}` : `dota_od_live_${matchId}`,
+    providerMatchId,
+    sourceMatchId: String(matchId),
     leagueId,
     competitiveTier,
     game: "dota2",
@@ -279,6 +282,208 @@ function normalizeResultMatch(row, leagueTierMap) {
     },
     winnerTeamId: row?.radiant_win ? leftId : rightId
   };
+}
+
+function rowLeagueId(row) {
+  return Number(row?.leagueid || row?.league_id || 0);
+}
+
+function rowLeagueName(row) {
+  return row?.league_name || row?.league?.name || null;
+}
+
+function rowSeriesId(row) {
+  const parsed = Number(row?.series_id || 0);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function rowMatchId(row) {
+  const parsed = Number(row?.match_id || 0);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function rowStartSeconds(row) {
+  return toOptionalNumber(row?.start_time ?? row?.activate_time);
+}
+
+function rowUpdatedSeconds(row) {
+  return toOptionalNumber(row?.last_update_time ?? row?.start_time ?? row?.activate_time);
+}
+
+function rowEndSeconds(row) {
+  const start = rowStartSeconds(row);
+  const duration = toOptionalNumber(row?.duration);
+  if (start === null) {
+    return null;
+  }
+
+  return start + Math.max(0, duration || 0);
+}
+
+function rowRadiantTeam(row) {
+  const id = toOptionalNumber(row?.team_id_radiant ?? row?.radiant_team_id);
+  return {
+    id: id !== null && id > 0 ? String(id) : null,
+    name: String(row?.team_name_radiant || row?.radiant_name || "").trim() || null
+  };
+}
+
+function rowDireTeam(row) {
+  const id = toOptionalNumber(row?.team_id_dire ?? row?.dire_team_id);
+  return {
+    id: id !== null && id > 0 ? String(id) : null,
+    name: String(row?.team_name_dire || row?.dire_name || "").trim() || null
+  };
+}
+
+function sameTeamReference(source, target) {
+  if (!source || !target) {
+    return false;
+  }
+
+  if (source.id && target.id) {
+    return source.id === target.id;
+  }
+
+  const sourceName = String(source.name || "").trim().toLowerCase();
+  const targetName = String(target.name || "").trim().toLowerCase();
+  return Boolean(sourceName) && sourceName === targetName;
+}
+
+function summarizeSeriesRows(rows = [], leagueTierMap = new Map()) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return null;
+  }
+
+  const ordered = rows
+    .slice()
+    .filter((row) => rowMatchId(row))
+    .sort((left, right) => {
+      const startDiff = (rowStartSeconds(left) || 0) - (rowStartSeconds(right) || 0);
+      if (startDiff !== 0) {
+        return startDiff;
+      }
+
+      return (rowMatchId(left) || 0) - (rowMatchId(right) || 0);
+    });
+  if (!ordered.length) {
+    return null;
+  }
+
+  const first = ordered[0];
+  const latest = ordered[ordered.length - 1];
+  const seriesId = rowSeriesId(first);
+  const leagueId = rowLeagueId(first);
+  if (leagueId <= 0) {
+    return null;
+  }
+
+  const competitiveTier = leagueTierMap.get(leagueId) ?? null;
+  const bestOf = normalizeSeriesType(first?.series_type);
+  const winsNeeded = Math.floor(bestOf / 2) + 1;
+  const leftTeam = rowRadiantTeam(first);
+  const rightTeam = rowDireTeam(first);
+  let leftWins = 0;
+  let rightWins = 0;
+
+  for (const row of ordered) {
+    const radiantTeam = rowRadiantTeam(row);
+    const direTeam = rowDireTeam(row);
+    const radiantWin = typeof row?.radiant_win === "boolean" ? row.radiant_win : null;
+    if (radiantWin === null) {
+      continue;
+    }
+
+    if (sameTeamReference(radiantTeam, leftTeam) && sameTeamReference(direTeam, rightTeam)) {
+      if (radiantWin) {
+        leftWins += 1;
+      } else {
+        rightWins += 1;
+      }
+      continue;
+    }
+
+    if (sameTeamReference(radiantTeam, rightTeam) && sameTeamReference(direTeam, leftTeam)) {
+      if (radiantWin) {
+        rightWins += 1;
+      } else {
+        leftWins += 1;
+      }
+    }
+  }
+
+  const startSeconds = rowStartSeconds(first);
+  const updatedSeconds = Math.max(...ordered.map((row) => rowUpdatedSeconds(row) || 0));
+  const endSeconds = Math.max(...ordered.map((row) => rowEndSeconds(row) || 0));
+  const completed = leftWins >= winsNeeded || rightWins >= winsNeeded;
+  const liveWindowMs =
+    bestOf * ESTIMATED_GAME_SECONDS * 1000 +
+    Math.max(0, bestOf - 1) * ESTIMATED_BETWEEN_GAMES_SECONDS * 1000;
+  const liveEligible =
+    !completed &&
+    startSeconds !== null &&
+    Date.now() <= startSeconds * 1000 + liveWindowMs;
+  const providerMatchId = String(seriesId || rowMatchId(latest));
+  const summary = {
+    id: seriesId ? `dota_od_series_${seriesId}` : `dota_od_result_${providerMatchId}`,
+    providerMatchId,
+    sourceMatchId: String(rowMatchId(latest) || providerMatchId),
+    leagueId,
+    competitiveTier,
+    game: "dota2",
+    region: "global",
+    tournament: rowLeagueName(first) || `League ${leagueId}`,
+    startAt: toIsoFromSeconds(startSeconds, Date.now()),
+    updatedAt: toIsoFromSeconds(updatedSeconds || endSeconds || startSeconds, Date.now()),
+    endAt: endSeconds ? toIsoFromSeconds(endSeconds, Date.now()) : null,
+    bestOf,
+    seriesScore: {
+      left: leftWins,
+      right: rightWins
+    },
+    teams: {
+      left: {
+        id: leftTeam.id || `od_left_${providerMatchId}`,
+        name: leftTeam.name || "Radiant"
+      },
+      right: {
+        id: rightTeam.id || `od_right_${providerMatchId}`,
+        name: rightTeam.name || "Dire"
+      }
+    },
+    seriesMatchIds: ordered.map((row) => String(rowMatchId(row))).filter(Boolean),
+    keySignal: "provider_pro_series",
+    status: completed ? "completed" : liveEligible ? "live" : "upcoming"
+  };
+
+  if (completed) {
+    summary.winnerTeamId =
+      leftWins > rightWins ? summary.teams.left.id : summary.teams.right.id;
+  }
+
+  return summary;
+}
+
+export function buildSeriesSummaries(rows = [], leagueTierMap = new Map()) {
+  const grouped = new Map();
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const matchId = rowMatchId(row);
+    if (!matchId) {
+      continue;
+    }
+
+    const seriesId = rowSeriesId(row);
+    const key = seriesId ? `series:${seriesId}` : `match:${matchId}`;
+    const group = grouped.get(key) || [];
+    group.push(row);
+    grouped.set(key, group);
+  }
+
+  return Array.from(grouped.values())
+    .map((group) => summarizeSeriesRows(group, leagueTierMap))
+    .filter(Boolean)
+    .sort((left, right) => parseTimestamp(right.endAt || right.updatedAt || right.startAt) - parseTimestamp(left.endAt || left.updatedAt || left.startAt));
 }
 
 function inferMatchState(payload) {
@@ -1844,7 +2049,7 @@ export function normalizeMatchDetail(
 }
 
 export class OpenDotaProvider {
-  constructor({ timeoutMs = 4500 } = {}) {
+  constructor({ timeoutMs = 15000 } = {}) {
     this.timeoutMs = timeoutMs;
     this.leagueTierCache = {
       fetchedAt: 0,
@@ -1933,21 +2138,35 @@ export class OpenDotaProvider {
   }
 
   async fetchLiveMatches({ allowedTiers = [1, 2, 3, 4] } = {}) {
-    const [rows, leagueTierMap] = await Promise.all([
+    const [liveRows, recentRows, leagueTierMap] = await Promise.all([
       fetchJson(`${OPENDOTA_BASE_URL}/live`, {
+        timeoutMs: this.timeoutMs
+      }),
+      fetchJson(`${OPENDOTA_BASE_URL}/proMatches`, {
         timeoutMs: this.timeoutMs
       }),
       this.getLeagueTierMap()
     ]);
 
-    if (!Array.isArray(rows)) {
-      return [];
+    const normalizedLive = Array.isArray(liveRows)
+      ? liveRows.map((row) => normalizeLiveMatch(row, leagueTierMap)).filter(Boolean)
+      : [];
+    const derivedSeriesLive = buildSeriesSummaries(recentRows, leagueTierMap).filter(
+      (row) => row.status === "live"
+    );
+    const byId = new Map();
+
+    for (const row of derivedSeriesLive) {
+      byId.set(row.id, row);
     }
 
-    return rows
-      .map((row) => normalizeLiveMatch(row, leagueTierMap))
-      .filter(Boolean)
-      .filter((row) => hasTierAllowed(row.competitiveTier, allowedTiers));
+    for (const row of normalizedLive) {
+      byId.set(row.id, row);
+    }
+
+    return Array.from(byId.values()).filter((row) =>
+      hasTierAllowed(row.competitiveTier, allowedTiers)
+    );
   }
 
   async fetchRecentResults({ maxRows = 30, allowedTiers = [1, 2, 3, 4] } = {}) {
@@ -1962,14 +2181,17 @@ export class OpenDotaProvider {
       return [];
     }
 
-    return rows
+    return buildSeriesSummaries(rows, leagueTierMap)
+      .filter((row) => row.status === "completed")
+      .filter((row) => hasTierAllowed(row.competitiveTier, allowedTiers))
       .slice(0, maxRows)
-      .map((row) => normalizeResultMatch(row, leagueTierMap))
-      .filter(Boolean)
-      .filter((row) => hasTierAllowed(row.competitiveTier, allowedTiers));
   }
 
   async fetchMatchDetail(matchId, { gameNumber } = {}) {
+    if (String(matchId || "").startsWith("dota_od_series_")) {
+      return null;
+    }
+
     const providerMatchId = parseProviderMatchId(matchId);
     if (!providerMatchId) {
       return null;

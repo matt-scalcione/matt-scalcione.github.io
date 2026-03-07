@@ -100,6 +100,104 @@ function statusFromState(state) {
   return "upcoming";
 }
 
+function winsNeededFromBestOf(bestOf) {
+  const normalized = Math.max(1, Number(bestOf || 1));
+  return Math.floor(normalized / 2) + 1;
+}
+
+function estimatedSeriesDurationMs(bestOf) {
+  const normalized = Math.max(1, Number(bestOf || 1));
+  return (
+    normalized * ESTIMATED_GAME_SECONDS * 1000 +
+    Math.max(0, normalized - 1) * ESTIMATED_BETWEEN_GAMES_SECONDS * 1000
+  );
+}
+
+function teamSeriesSignals(teams = [], bestOf = 1) {
+  const leftTeam = teams[0] || {};
+  const rightTeam = teams[1] || {};
+  const leftWins = Number(leftTeam?.result?.gameWins || 0);
+  const rightWins = Number(rightTeam?.result?.gameWins || 0);
+  const leftOutcome = String(leftTeam?.result?.outcome || "").toLowerCase();
+  const rightOutcome = String(rightTeam?.result?.outcome || "").toLowerCase();
+  const winsNeeded = winsNeededFromBestOf(bestOf);
+
+  return {
+    leftWins,
+    rightWins,
+    winsNeeded,
+    hasWinnerOutcome:
+      leftOutcome === "win" ||
+      rightOutcome === "win" ||
+      leftOutcome === "loss" ||
+      rightOutcome === "loss",
+    hasDecisiveScore: leftWins >= winsNeeded || rightWins >= winsNeeded,
+    hasPartialScore: leftWins + rightWins > 0
+  };
+}
+
+export function resolveRiotEventState({
+  eventState,
+  scheduleState,
+  teams = [],
+  games = [],
+  bestOf = 1,
+  startTime,
+  nowMs = Date.now()
+} = {}) {
+  const normalizedEventState = String(eventState || "").trim() || null;
+  const normalizedScheduleState = String(scheduleState || "").trim() || null;
+  const inferredGamesState = inferStateFromGames(games);
+  const signals = teamSeriesSignals(teams, bestOf);
+  const gameStates = Array.isArray(games)
+    ? games.map((game) => String(game?.state || "").trim()).filter(Boolean)
+    : [];
+  const hasCompletedGame = gameStates.includes("completed");
+  const hasLiveGame = gameStates.includes("inProgress");
+  const hasSeriesActivity = signals.hasPartialScore || hasCompletedGame || hasLiveGame;
+  const hasCompletionEvidence =
+    signals.hasWinnerOutcome || signals.hasDecisiveScore || inferredGamesState === "completed";
+  const startTimestamp = Date.parse(String(startTime || ""));
+  const hasValidStart = Number.isFinite(startTimestamp);
+  const hasStarted = hasValidStart ? startTimestamp <= nowMs : false;
+  const withinSeriesWindow = hasValidStart
+    ? nowMs <= startTimestamp + estimatedSeriesDurationMs(bestOf)
+    : false;
+  const staleSeries = hasValidStart
+    ? nowMs > startTimestamp + estimatedSeriesDurationMs(bestOf)
+    : false;
+
+  if (hasCompletionEvidence) {
+    return "completed";
+  }
+
+  if (
+    hasLiveGame ||
+    normalizedEventState === "inProgress" ||
+    normalizedScheduleState === "inProgress"
+  ) {
+    return "inProgress";
+  }
+
+  if (hasSeriesActivity) {
+    return staleSeries ? "completed" : "inProgress";
+  }
+
+  if (normalizedEventState === "completed" || normalizedScheduleState === "completed") {
+    if (!hasStarted) {
+      return "unstarted";
+    }
+
+    if (withinSeriesWindow) {
+      return "inProgress";
+    }
+
+    return "completed";
+  }
+
+  return "unstarted";
+}
+
 function regionFromLeagueSlug(leagueSlug) {
   const slug = String(leagueSlug || "").toLowerCase();
 
@@ -134,7 +232,7 @@ function isMatchEvent(event) {
   return event?.type === "match" && (event?.match?.id || event?.id);
 }
 
-function normalizeMatchSummary(event) {
+export function normalizeMatchSummary(event) {
   if (!isMatchEvent(event)) {
     return null;
   }
@@ -146,7 +244,16 @@ function normalizeMatchSummary(event) {
   const leftOutcome = String(leftTeam?.result?.outcome || "").toLowerCase();
   const rightOutcome = String(rightTeam?.result?.outcome || "").toLowerCase();
   const league = event.league || {};
-  const status = statusFromState(event.state);
+  const bestOf = Number(event?.match?.strategy?.count || 1);
+  const status = statusFromState(
+    resolveRiotEventState({
+      eventState: event?.state,
+      teams,
+      games: event?.match?.games,
+      bestOf,
+      startTime: event?.startTime
+    })
+  );
 
   const summary = {
     id: `lol_riot_${matchId}`,
@@ -157,7 +264,7 @@ function normalizeMatchSummary(event) {
     status,
     startAt: event.startTime || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    bestOf: Number(event?.match?.strategy?.count || 1),
+    bestOf,
     seriesScore: {
       left: Number(leftTeam?.result?.gameWins || 0),
       right: Number(rightTeam?.result?.gameWins || 0)
@@ -226,20 +333,6 @@ function inferStateFromGames(games = []) {
   }
 
   return "unstarted";
-}
-
-function inferStateFromTeams(teams = []) {
-  if (!Array.isArray(teams) || teams.length === 0) {
-    return null;
-  }
-
-  const hasOutcome = teams.some((team) => {
-    const outcome = String(team?.result?.outcome || "").toLowerCase();
-    return outcome === "win" || outcome === "loss" || outcome === "tie";
-  });
-  const hasSeriesWins = teams.some((team) => Number(team?.result?.gameWins || 0) > 0);
-
-  return hasOutcome || hasSeriesWins ? "completed" : null;
 }
 
 function buildQuery(params = {}) {
@@ -444,26 +537,6 @@ function normalizeScheduleSnapshot(event) {
     state: event?.state || null,
     tournament: event?.league?.name || null
   };
-}
-
-function chooseEventState(eventState, scheduleState, inferredGamesState, inferredTeamsState) {
-  if (eventState) {
-    return eventState;
-  }
-
-  if (inferredGamesState && inferredGamesState !== "unstarted") {
-    return inferredGamesState;
-  }
-
-  if (inferredTeamsState && inferredTeamsState !== "unstarted") {
-    return inferredTeamsState;
-  }
-
-  if (scheduleState) {
-    return scheduleState;
-  }
-
-  return inferredGamesState || inferredTeamsState || "unstarted";
 }
 
 function chooseStartTime(eventStartTime, scheduleStartTime, inferredStartTime) {
@@ -3431,7 +3504,7 @@ function buildPlayerDeltaPanel(detailsFrames, gameMetadata, teamColorMap) {
 }
 
 export class LolEsportsProvider {
-  constructor({ timeoutMs = 4500 } = {}) {
+  constructor({ timeoutMs = 15000 } = {}) {
     this.timeoutMs = timeoutMs;
     this.scheduleLookupCache = {
       fetchedAt: 0,
@@ -3594,13 +3667,24 @@ export class LolEsportsProvider {
   }
 
   async fetchLiveMatches() {
-    const payload = await this.fetchPersisted("getLive");
-    const events = payload?.data?.schedule?.events;
-    if (!Array.isArray(events)) {
-      return [];
+    const [livePayload, schedulePage] = await Promise.all([
+      this.fetchPersisted("getLive"),
+      this.fetchSchedulePage()
+    ]);
+    const liveEvents = Array.isArray(livePayload?.data?.schedule?.events)
+      ? livePayload.data.schedule.events
+      : [];
+    const scheduleEvents = Array.isArray(schedulePage?.events) ? schedulePage.events : [];
+    const byId = new Map();
+
+    for (const event of [...liveEvents, ...scheduleEvents]) {
+      const summary = normalizeMatchSummary(event);
+      if (summary?.status === "live") {
+        byId.set(summary.id, summary);
+      }
     }
 
-    return events.map((event) => normalizeMatchSummary(event)).filter(Boolean);
+    return Array.from(byId.values());
   }
 
   async fetchSchedulePage({ pageToken } = {}) {
@@ -3756,20 +3840,20 @@ export class LolEsportsProvider {
       return null;
     }
 
-    const inferredStart = inferStartFromGames(event?.match?.games);
-    const inferredGamesState = inferStateFromGames(event?.match?.games);
-    const inferredTeamsState = inferStateFromTeams(event?.match?.teams);
-    const resolvedState = chooseEventState(
-      event?.state,
-      scheduleSnapshot?.state,
-      inferredGamesState,
-      inferredTeamsState
-    );
     const resolvedStartTime = chooseStartTime(
       event?.startTime,
       scheduleSnapshot?.startTime,
-      inferredStart
+      inferStartFromGames(event?.match?.games)
     );
+    const bestOf = Number(event?.match?.strategy?.count || 1);
+    const resolvedState = resolveRiotEventState({
+      eventState: event?.state,
+      scheduleState: scheduleSnapshot?.state,
+      games: event?.match?.games,
+      teams: event?.match?.teams,
+      bestOf,
+      startTime: resolvedStartTime
+    });
 
     const summary = normalizeMatchSummary({
       ...event,
