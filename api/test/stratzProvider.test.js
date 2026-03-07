@@ -109,6 +109,53 @@ describe("StratzProvider", () => {
       restoreEnv("STRATZ_DOTA_LIVE_QUERY", previousLiveQuery);
     }
   });
+
+  it("refuses to pass through raw detail payloads that do not match the frontend contract", async () => {
+    const originalFetch = global.fetch;
+    const previousToken = process.env.STRATZ_API_TOKEN;
+    const previousDetailQuery = process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY;
+
+    process.env.STRATZ_API_TOKEN = "test-token";
+    process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY = "query MatchDetail { match(id: $id) { id } }";
+
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("api.stratz.com/graphql")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              data: {
+                match: {
+                  id: 901,
+                  status: "LIVE"
+                }
+              }
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/providers/dota/stratzProvider.js"
+      ).href;
+      const { StratzProvider } = await import(`${moduleUrl}?detail=${Date.now()}`);
+      const provider = new StratzProvider({ timeoutMs: 1000 });
+      const detail = await provider.fetchMatchDetail("dota_stratz_901", {
+        gameNumber: 1
+      });
+
+      assert.equal(detail, null);
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("STRATZ_API_TOKEN", previousToken);
+      restoreEnv("STRATZ_DOTA_MATCH_DETAIL_QUERY", previousDetailQuery);
+    }
+  });
 });
 
 describe("mockStore STRATZ routing", () => {

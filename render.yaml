@@ -15,4 +15,12 @@ services:
       - key: PROVIDER_CACHE_MS
         value: 30000
       - key: PROVIDER_TIMEOUT_MS
-        value: 6000
+        value: 15000
+      - key: LIQUIPEDIA_DOTA_API_CACHE_MS
+        value: 30000
+      - key: STRATZ_API_TOKEN
+        sync: false
+      - key: STRATZ_DOTA_LIVE_QUERY
+        sync: false
+      - key: STRATZ_DOTA_MATCH_DETAIL_QUERY
+        sync: false
