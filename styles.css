@@ -7159,9 +7159,8 @@ button.ghost,
     margin-top: 0.4rem;
     border-radius: 15px;
     padding: 0.24rem;
-    box-shadow:
-      0 10px 22px rgba(10, 24, 40, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: none;
   }
 
   .page-nav a {
@@ -7171,6 +7170,15 @@ button.ghost,
     justify-content: center;
     font-size: 0.64rem;
     padding: 0.26rem 0.34rem;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: none;
+  }
+
+  .page-nav a[aria-current="page"] {
+    color: #1d4ea1;
+    background: rgba(44, 112, 255, 0.12);
+    border-color: rgba(31, 98, 189, 0.22);
+    box-shadow: none;
   }
 
   .mobile-tabbar {
@@ -7209,8 +7217,11 @@ button.ghost,
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 0.24rem;
-    border-radius: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
   }
 
   .live-status-switch::-webkit-scrollbar {
@@ -7223,6 +7234,16 @@ button.ghost,
     min-height: 1.96rem;
     font-size: 0.61rem;
     padding: 0.36rem 0.5rem;
+    border-color: rgba(95, 132, 170, 0.18);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: none;
+  }
+
+  .live-status-btn[aria-pressed="true"] {
+    color: #1d4ea1;
+    border-color: rgba(31, 98, 189, 0.22);
+    background: rgba(44, 112, 255, 0.12);
+    box-shadow: none;
   }
 
   .live-search-field {
@@ -7258,13 +7279,11 @@ button.ghost,
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.28rem;
     margin-bottom: 0.46rem;
-    padding: 0.24rem;
-    border-radius: 16px;
-    border: 1px solid rgba(87, 116, 154, 0.18);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(242, 247, 255, 0.76));
-    box-shadow:
-      0 10px 22px rgba(10, 24, 40, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
   }
 
   .team-page .mobile-page-jump {
@@ -8099,18 +8118,43 @@ button.ghost,
   }
 
   .schedule-page .controls .actions {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto auto;
     align-items: center;
     gap: 0.36rem;
     margin-top: 0.16rem;
   }
 
   .schedule-page .controls .actions button {
-    min-height: 2.2rem;
-    padding-inline: 0.7rem;
+    min-height: 1.98rem;
+    padding: 0.34rem 0.74rem;
+    font-size: 0.7rem;
+    border-radius: 12px;
+    color: var(--accent-strong);
+    background: rgba(255, 255, 255, 0.84);
+    border-color: rgba(95, 132, 170, 0.18);
+    box-shadow: none;
+    justify-self: start;
+  }
+
+  .schedule-page .controls .actions button:hover {
+    transform: none;
+    filter: none;
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .schedule-page .controls #refreshButton {
+    background: rgba(44, 112, 255, 0.12);
+    border-color: rgba(31, 98, 189, 0.22);
+    color: #1d4ea1;
+  }
+
+  .schedule-page .controls #saveButton {
+    background: rgba(255, 255, 255, 0.84);
   }
 
   .schedule-page .controls .status-text {
+    grid-column: 1 / -1;
     min-height: 2.2rem;
     display: flex;
     align-items: center;
