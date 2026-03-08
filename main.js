@@ -704,11 +704,6 @@ function updateNav(apiBase) {
   const followsUrl = new URL("./follows.html", window.location.href);
   const lolHubUrl = new URL("./lol.html", window.location.href);
   const dotaHubUrl = new URL("./dota2.html", window.location.href);
-  const titleValue = preferredTitleQueryValue();
-  if (titleValue) {
-    liveUrl.searchParams.set("title", titleValue);
-    scheduleUrl.searchParams.set("title", titleValue);
-  }
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -982,9 +977,7 @@ function installEvents() {
 
 function applyInitialUrlFilters() {
   const url = new URL(window.location.href);
-  const initialGame =
-    normalizeGameKey(url.searchParams.get("title")) ||
-    normalizeGameKey(url.searchParams.get("game"));
+  const initialGame = normalizeGameKey(url.searchParams.get("game"));
   if (initialGame && GAME_OPTION_VALUES.has(initialGame) && elements.gameSelect) {
     elements.gameSelect.value = initialGame;
   }

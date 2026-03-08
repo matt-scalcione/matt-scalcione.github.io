@@ -121,7 +121,7 @@ function refreshTeamSeo(profile = null) {
   });
 
   const schedulePath = game
-    ? `/schedule.html?title=${encodeURIComponent(game)}`
+    ? `/schedule.html?game=${encodeURIComponent(game)}`
     : "/schedule.html";
   setJsonLd(
     "page-breadcrumb",
@@ -491,11 +491,6 @@ function updateNav(apiBase) {
   const followsUrl = new URL("./follows.html", window.location.href);
   const lolHubUrl = new URL("./lol.html", window.location.href);
   const dotaHubUrl = new URL("./dota2.html", window.location.href);
-  const game = normalizeGameKey(elements.gameSelect?.value || "");
-  if (game) {
-    liveUrl.searchParams.set("title", game);
-    scheduleUrl.searchParams.set("title", game);
-  }
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -518,10 +513,6 @@ function buildBackLink(apiBase) {
   }
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  const game = normalizeGameKey(elements.gameSelect?.value || "");
-  if (game) {
-    scheduleUrl.searchParams.set("title", game);
-  }
   elements.backLink.href = scheduleUrl.toString();
   elements.backLink.textContent = "Back to Schedule";
 }

@@ -2135,7 +2135,7 @@ function refreshMatchSeo(match = null) {
   });
 
   const schedulePath = seoGameKey
-    ? `/schedule.html?title=${encodeURIComponent(seoGameKey)}`
+    ? `/schedule.html?game=${encodeURIComponent(seoGameKey)}`
     : "/schedule.html";
   const crumbItems = [
     { name: "Pulseboard", path: "/index.html" },
@@ -8697,16 +8697,9 @@ function renderTimeline(rows) {
 
 function applyNavigationLinks(_apiBase) {
   const backUrl = new URL("./index.html", window.location.href);
-  const matchGame = normalizeSeoGameKey(uiState.match?.game);
-  if (matchGame) {
-    backUrl.searchParams.set("title", matchGame);
-  }
   elements.backLink.href = backUrl.toString();
 
   const scheduleUrl = new URL("./schedule.html", window.location.href);
-  if (matchGame) {
-    scheduleUrl.searchParams.set("title", matchGame);
-  }
 
   const followsUrl = new URL("./follows.html", window.location.href);
   const lolHubUrl = new URL("./lol.html", window.location.href);
