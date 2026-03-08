@@ -2233,6 +2233,39 @@ function setMatchupLimitInUrl(limit) {
   window.history.replaceState({}, "", url.toString());
 }
 
+function syncResolvedMatchIdentityInUrl({ resolvedMatchId, requestedGameNumber = null, apiBase = null } = {}) {
+  const nextMatchId = String(resolvedMatchId || "").trim();
+  if (!nextMatchId) {
+    return;
+  }
+
+  const currentUrl = new URL(window.location.href);
+  const currentRoute = parseMatchRoute(currentUrl.toString());
+  if (String(currentRoute.id || "") === nextMatchId) {
+    return;
+  }
+
+  const nextUrl = new URL(
+    buildMatchUrl({
+      matchId: nextMatchId,
+      gameNumber: Number.isInteger(requestedGameNumber) ? requestedGameNumber : null
+    }),
+    window.location.origin
+  );
+
+  for (const key of ["api", "h2h_limit", "stream"]) {
+    if (currentUrl.searchParams.has(key)) {
+      nextUrl.searchParams.set(key, currentUrl.searchParams.get(key));
+    }
+  }
+
+  if (apiBase && !nextUrl.searchParams.has("api")) {
+    nextUrl.searchParams.set("api", String(apiBase));
+  }
+
+  window.history.replaceState({}, "", nextUrl.toString());
+}
+
 function resetMatchupState() {
   uiState.matchup = {
     key: null,
@@ -8948,11 +8981,17 @@ async function loadMatch() {
     }
 
     uiState.requestedGameNumber = effectiveRequestedGameNumber;
+    const effectiveMatchId = String(match?.id || matchId).trim() || matchId;
+    syncResolvedMatchIdentityInUrl({
+      resolvedMatchId: effectiveMatchId,
+      requestedGameNumber: effectiveRequestedGameNumber,
+      apiBase
+    });
     renderMatchPayload(match, apiBase, "polling");
 
     if (streamEnabled) {
       startMatchStream({
-        matchId,
+        matchId: effectiveMatchId,
         requestedGameNumber: effectiveRequestedGameNumber,
         apiBase
       });

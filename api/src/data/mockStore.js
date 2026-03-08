@@ -885,6 +885,63 @@ function sameDotaSeries(left, right) {
   return Math.abs(leftStart - rightStart) <= 6 * oneHour;
 }
 
+function materializeStaleDetail(detail, {
+  reason = "stale_cache",
+  aliasMatchId = null
+} = {}) {
+  if (!detail || typeof detail !== "object") {
+    return null;
+  }
+
+  const next = {
+    ...detail,
+    freshness: {
+      ...(detail?.freshness || {}),
+      source: detail?.freshness?.source || "provider_cache",
+      status: reason,
+      updatedAt: detail?.freshness?.updatedAt || new Date().toISOString()
+    }
+  };
+
+  if (aliasMatchId && String(aliasMatchId) !== String(detail?.id || "")) {
+    next.resolvedFromMatchId = String(detail?.id || "");
+    next.id = String(aliasMatchId);
+  }
+
+  return next;
+}
+
+async function resolveDotaAliasMatchId(matchId, cachedDetail = null) {
+  if (!cachedDetail || cachedDetail?.game !== "dota2") {
+    return null;
+  }
+
+  const [stratzLiveState, liveState, resultsState] = await Promise.all([
+    loadProviderStratzLiveMatches(),
+    loadProviderLiveMatches(),
+    loadProviderResults()
+  ]);
+  const mergedProviderDotaLiveRows = mergeDotaLiveRows(stratzLiveState.rows, liveState.rows);
+  const scheduleState = await loadProviderDotaScheduleMatches({
+    knownRows: dedupeRowsById([
+      ...mergedProviderDotaLiveRows,
+      ...(Array.isArray(resultsState?.rows) ? resultsState.rows : [])
+    ])
+  });
+  const scheduleRows = canonicalizeDotaScheduleRows(scheduleState?.rows, {
+    liveRows: mergedProviderDotaLiveRows,
+    resultRows: Array.isArray(resultsState?.rows) ? resultsState.rows : []
+  });
+  const candidate = [...mergedProviderDotaLiveRows, ...scheduleRows, ...(Array.isArray(resultsState?.rows) ? resultsState.rows : [])]
+    .find((row) => sameDotaSeries(row, cachedDetail));
+
+  if (!candidate?.id || String(candidate.id) === String(matchId)) {
+    return null;
+  }
+
+  return String(candidate.id);
+}
+
 function mergeDotaScheduleRows(liveRows = [], upcomingRows = []) {
   const normalizedLiveRows = Array.isArray(liveRows) ? liveRows : [];
   const merged = [...normalizedLiveRows];
@@ -1950,6 +2007,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
 
   if (String(matchId).startsWith("dota_")) {
     const cached = providerState.detailById.get(cacheKey);
+    const staleCachedDetail = cached?.detail || null;
     if (cached && Date.now() - cached.fetchedAt <= providerCacheMs) {
       return cached.detail;
     }
@@ -1973,7 +2031,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
         const resolvedDetail = detail || (await fallbackProviderDotaDetail(matchId, options));
         if (!resolvedDetail) {
-          return null;
+          return materializeStaleDetail(staleCachedDetail);
         }
 
         providerState.detailById.set(cacheKey, {
@@ -1985,7 +2043,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       } catch {
         const fallback = await fallbackProviderDotaDetail(matchId, options);
         if (!fallback) {
-          return null;
+          return materializeStaleDetail(staleCachedDetail);
         }
 
         providerState.detailById.set(cacheKey, {
@@ -1997,9 +2055,32 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       }
     }
 
+    const aliasMatchId = await resolveDotaAliasMatchId(matchId, staleCachedDetail);
+    if (aliasMatchId) {
+      const aliasDetail = await loadProviderMatchDetail(aliasMatchId, options);
+      if (aliasDetail) {
+        const resolvedAliasDetail = {
+          ...aliasDetail,
+          resolvedFromMatchId: String(matchId),
+          freshness: {
+            ...(aliasDetail?.freshness || {}),
+            status: aliasDetail?.freshness?.status || "resolved_alias",
+            updatedAt: aliasDetail?.freshness?.updatedAt || new Date().toISOString()
+          }
+        };
+
+        providerState.detailById.set(cacheKey, {
+          fetchedAt: Date.now(),
+          detail: resolvedAliasDetail
+        });
+
+        return resolvedAliasDetail;
+      }
+    }
+
     const fallback = await fallbackProviderDotaDetail(matchId, options);
     if (!fallback) {
-      return null;
+      return materializeStaleDetail(staleCachedDetail);
     }
 
     providerState.detailById.set(cacheKey, {

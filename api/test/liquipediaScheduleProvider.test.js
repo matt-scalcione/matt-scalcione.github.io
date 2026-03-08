@@ -492,4 +492,83 @@ describe("mockStore Dota upcoming detail fallback", () => {
       restoreEnv("ESPORTS_DATA_MODE", previousMode);
     }
   });
+
+  it("keeps previously opened Dota schedule detail available after the source row disappears", async () => {
+    const originalFetch = global.fetch;
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    const previousCacheMs = process.env.PROVIDER_CACHE_MS;
+    const futureTimestamp = Math.floor((Date.now() + 2 * 60 * 60 * 1000) / 1000);
+    const futureHtml = sampleMatchHtml.replace("1772899200", String(futureTimestamp));
+    let phase = "present";
+
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.includes("liquipedia.net/dota2/api.php")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              parse: {
+                text: phase === "present" ? futureHtml : ""
+              }
+            };
+          }
+        };
+      }
+
+      if (
+        target.endsWith("/live") ||
+        target.endsWith("/proMatches") ||
+        target.endsWith("/leagues") ||
+        target.endsWith("/teams")
+      ) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    process.env.ESPORTS_DATA_MODE = "provider";
+    process.env.PROVIDER_CACHE_MS = "0";
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?liquipediaStaleDetailTest=${Date.now()}`);
+      const scheduleRows = await store.listSchedule({
+        game: "dota2",
+        region: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        dotaTiers: [1, 2, 3, 4]
+      });
+      const matchId = scheduleRows[0]?.id;
+
+      const first = await store.getMatchDetail(matchId);
+      assert.ok(first);
+      assert.equal(first.id, matchId);
+      assert.equal(first.status, "upcoming");
+
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      phase = "missing";
+      const second = await store.getMatchDetail(matchId);
+
+      assert.ok(second);
+      assert.equal(second.id, matchId);
+      assert.equal(second.selectedGame.state, "unstarted");
+      assert.equal(second.selectedGame.watchOptions.length, 2);
+      assert.equal(["stale_cache", "degraded"].includes(String(second.freshness.status)), true);
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
+      restoreEnv("PROVIDER_CACHE_MS", previousCacheMs);
+    }
+  });
 });
