@@ -129,6 +129,9 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
   unneeded: ["selectedGameRecapWrap", "gameCommandWrap"]
 };
 const MOBILE_SECTION_HEADINGS = {
+  "Series Command": { icon: "ST", short: "State" },
+  "Series Read": { icon: "SR", short: "Series" },
+  "Series Navigator": { icon: "GX", short: "Games" },
   "Current State": { icon: "ST", short: "State" },
   "Series Overview": { icon: "SR", short: "Series" },
   "Game Explorer": { icon: "GX", short: "Games" },
@@ -142,14 +145,17 @@ const MOBILE_SECTION_HEADINGS = {
   "Team Form": { icon: "FM", short: "Form" },
   "Head-To-Head": { icon: "H2H", short: "H2H" },
   "Prediction Model": { icon: "PR", short: "Prediction" },
+  "Map Command": { icon: "CC", short: "Command" },
   "Game Command Center": { icon: "CC", short: "Command" },
   "Team Comparison": { icon: "TC", short: "Team Compare" },
+  "Player Board": { icon: "PT", short: "Players" },
   "Player Tracker": { icon: "PT", short: "Players" },
   "Player Box Score": { icon: "PT", short: "Players" },
   "Live Feed": { icon: "FE", short: "Live Feed" },
   "Game Story": { icon: "GS", short: "Story" },
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
   "What Matters Now": { icon: "NOW", short: "Now" },
+  "Risk Watch": { icon: "AL", short: "Risk" },
   "Live Alerts": { icon: "AL", short: "Alerts" },
   "Signal Log": { icon: "SG", short: "Signals" },
   "Objective Control": { icon: "OBJ", short: "Objective" },
@@ -160,13 +166,13 @@ const MOBILE_SECTION_HEADINGS = {
   "Selected Game Recap": { icon: "RC", short: "Game Recap" },
   "Final Recap": { icon: "RC", short: "Recap" }
 };
-const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Current State"]);
+const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   seriesLive: new Set(["Matchup Console", "Series Games", "Series Progress", "Series Highlights"]),
   seriesCompleted: new Set(["Matchup Console", "Series Games", "Series Comparison", "Series Player Trends"]),
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
-  upcoming: new Set(["Game Explorer", "Matchup Console", "Series Lineups", "Team Form", "Head-To-Head"]),
-  game: new Set(["Selected Game Recap", "Live Feed", "Player Tracker", "What Matters Now", "Live Alerts"])
+  upcoming: new Set(["Series Navigator", "Matchup Console", "Series Lineups", "Team Form", "Head-To-Head"]),
+  game: new Set(["Selected Game Recap", "Live Feed", "Player Board", "What Matters Now", "Risk Watch"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -1152,7 +1158,7 @@ function setPanelHeadingTitleByTargetId(targetId, fullTitle) {
 function applyGameStateSectionTitles(match) {
   setPanelHeadingTitleByTargetId("leadTrendWrap", "Live Feed");
   setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Selected Game Recap");
-  setPanelHeadingTitleByTargetId("playerTrackerWrap", "Player Tracker");
+  setPanelHeadingTitleByTargetId("playerTrackerWrap", "Player Board");
 
   if (uiState.viewMode !== "game") {
     applyMobileSectionHeadings();
@@ -2716,11 +2722,21 @@ function renderSeriesHeader(match) {
   const header = match.seriesHeader;
   if (!header) {
     elements.seriesHeaderSubhead.textContent = "";
-    elements.seriesHeaderWrap.innerHTML = `<div class="empty">Series overview unavailable.</div>`;
+    elements.seriesHeaderWrap.innerHTML = `<div class="empty">Series read unavailable.</div>`;
     return;
   }
 
-  elements.seriesHeaderSubhead.textContent = header.subhead || "";
+  const liveGameNumber = firstInProgressGameNumber(match);
+  const status = String(match?.status || "").toLowerCase();
+  elements.seriesHeaderSubhead.textContent =
+    header.subhead ||
+    (status === "live"
+      ? Number.isInteger(liveGameNumber)
+        ? `Game ${liveGameNumber} is live. Stay here for the series read, then open the map when you want full game detail.`
+        : "Series is live. Stay here for the broader read, then open the active map for game detail."
+      : status === "completed"
+        ? "Read the finished series here first, then open each map for the full game story."
+        : "Use this layer for kickoff timing, matchup context, and series expectation before the first map.");
   elements.seriesHeaderWrap.innerHTML = `
     <article class="series-header-card">
       <p class="series-headline">${header.headline || "Series in progress"}</p>
@@ -2947,7 +2963,7 @@ function renderGameExplorer(match, apiBase) {
       elements.gameContextWrap.innerHTML = `
         <article class="game-context-card none series-context-card upcoming-series-card">
           <div class="game-context-top">
-            <p class="game-context-title">Upcoming Series</p>
+            <p class="game-context-title">Series setup view</p>
           </div>
           <article class="series-context-hero">
             <div class="series-context-headline">
@@ -3002,7 +3018,7 @@ function renderGameExplorer(match, apiBase) {
       elements.gameContextWrap.innerHTML = `
         <article class="game-context-card none series-context-card completed-series-card">
           <div class="game-context-top">
-            <p class="game-context-title">Series Result</p>
+            <p class="game-context-title">Series final view</p>
           </div>
           <article class="series-context-hero result">
             <div class="series-context-headline">
@@ -3051,7 +3067,7 @@ function renderGameExplorer(match, apiBase) {
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card none series-context-card live-series-card">
         <div class="game-context-top">
-          <p class="game-context-title">Series In Progress</p>
+          <p class="game-context-title">Live series view</p>
         </div>
         <article class="series-context-hero live">
           <div class="series-context-headline">
@@ -3130,7 +3146,7 @@ function renderGameExplorer(match, apiBase) {
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card ${selected.telemetryStatus || "none"} draft-context-card">
         <div class="game-context-top">
-          <p class="game-context-title">Game ${selected.number} · ${draftPreview.hasDraftRows ? "Draft Live" : "Starting Soon"}</p>
+          <p class="game-context-title">Game ${selected.number} command</p>
           <span class="pill live">${draftPreview.badge}</span>
         </div>
         <article class="draft-phase-banner ${draftPreview.tone}">
@@ -3218,7 +3234,7 @@ function renderGameExplorer(match, apiBase) {
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card ${selected.telemetryStatus || "none"} completed-context-card">
         <div class="game-context-top">
-          <p class="game-context-title">Game ${selected.number} · Final</p>
+          <p class="game-context-title">Game ${selected.number} command</p>
           <span class="pill complete">Complete</span>
         </div>
         <article class="completed-result-banner ${winnerTone}">
@@ -3260,7 +3276,7 @@ function renderGameExplorer(match, apiBase) {
   elements.gameContextWrap.innerHTML = `
     <article class="game-context-card ${selected.telemetryStatus || "none"}">
       <div class="game-context-top">
-        <p class="game-context-title">Game ${selected.number} · ${readableGameStateLabel(selected.state)}</p>
+        <p class="game-context-title">Game ${selected.number} command</p>
         <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
       </div>
       <p class="meta-text">${selected.label || "No game label."}</p>

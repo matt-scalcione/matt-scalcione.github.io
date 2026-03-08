@@ -3,26 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pulseboard Match Detail</title>
+    <title>Pulseboard Match Center</title>
     <meta
       name="description"
-      content="Live series and map-level match detail for League of Legends and Dota 2 with player, objective, and trend context."
+      content="Live series and map-level match center for League of Legends and Dota 2 with player, objective, and trend context."
     />
     <meta name="robots" content="noindex,follow" />
     <link rel="canonical" href="https://matt-scalcione.github.io/match.html" />
     <meta property="og:site_name" content="Pulseboard" />
     <meta property="og:type" content="article" />
-    <meta property="og:title" content="Pulseboard Match Detail" />
+    <meta property="og:title" content="Pulseboard Match Center" />
     <meta
       property="og:description"
-      content="Live series and map-level match detail for League of Legends and Dota 2 with player, objective, and trend context."
+      content="Live series and map-level match center for League of Legends and Dota 2 with player, objective, and trend context."
     />
     <meta property="og:url" content="https://matt-scalcione.github.io/match.html" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Pulseboard Match Detail" />
+    <meta name="twitter:title" content="Pulseboard Match Center" />
     <meta
       name="twitter:description"
-      content="Live series and map-level match detail for League of Legends and Dota 2 with player, objective, and trend context."
+      content="Live series and map-level match center for League of Legends and Dota 2 with player, objective, and trend context."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -35,7 +35,7 @@
   <body class="match-page">
     <div class="noise"></div>
     <header class="hero compact">
-      <h1>Match</h1>
+      <h1>Match Center</h1>
       <p class="subtitle" id="matchTitle">Loading match...</p>
       <nav class="page-nav">
         <a id="liveDeskNav" href="./index.html">Live Desk</a>
@@ -50,7 +50,7 @@
     <main class="layout detail">
       <section class="panel match-state-panel">
         <div class="section-head">
-          <h2>Current State</h2>
+          <h2>Series Command</h2>
         </div>
         <div id="scoreboard" class="scoreboard"></div>
         <div id="streamStatusWrap" class="stream-status"></div>
@@ -58,7 +58,7 @@
 
       <section class="panel hidden-panel">
         <div class="section-head">
-          <h2>Series Overview</h2>
+          <h2>Series Read</h2>
           <p id="seriesHeaderSubhead" class="meta-text"></p>
         </div>
         <div id="seriesHeaderWrap" class="series-header"></div>
@@ -66,7 +66,7 @@
 
       <section class="panel" id="gameExplorerPanel">
         <div class="section-head">
-          <h2>Game Explorer</h2>
+          <h2>Series Navigator</h2>
         </div>
         <div id="gameNavWrap" class="game-nav"></div>
         <div id="gameContextWrap" class="game-context"></div>
@@ -189,7 +189,7 @@
 
       <section class="panel" id="playerTrackerPanel" data-scope="game">
         <div class="section-head">
-          <h2>Player Tracker</h2>
+          <h2>Player Board</h2>
         </div>
         <div class="tracker-sort-shell">
           <div id="trackerSortButtons" class="tracker-sort-row" role="group" aria-label="Sort players">
@@ -222,7 +222,7 @@
 
       <section class="panel" data-scope="game">
         <div class="section-head">
-          <h2>Game Command Center</h2>
+          <h2>Map Command</h2>
         </div>
         <div id="gameCommandWrap" class="command-grid"></div>
       </section>
@@ -236,7 +236,7 @@
 
       <section class="panel" data-scope="game">
         <div class="section-head">
-          <h2>Live Alerts</h2>
+          <h2>Risk Watch</h2>
         </div>
         <ul id="liveAlertsList" class="moments"></ul>
       </section>
@@ -489,6 +489,6 @@
     </nav>
 
     <script src="./site-config.js?v=20260307p"></script>
-    <script type="module" src="./match.js?v=20260308a"></script>
+    <script type="module" src="./match.js?v=20260308b"></script>
   </body>
 </html>
