@@ -10289,6 +10289,60 @@ body.product-shell .team-quick-nav {
     padding: 0.38rem 0.7rem;
   }
 
+  .live-page .hero,
+  .schedule-page .hero,
+  .follows-page .hero {
+    padding-top: 1rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .live-page .hero-main,
+  .schedule-page .hero-main,
+  .follows-page .hero-main {
+    gap: 0.5rem;
+  }
+
+  .live-page .hero-kicker-row,
+  .schedule-page .hero-kicker-row,
+  .follows-page .hero-kicker-row,
+  .live-page .hero-metrics,
+  .schedule-page .hero-metrics,
+  .follows-page .hero-metrics,
+  .live-page .hero-chips,
+  .schedule-page .hero-chips,
+  .follows-page .hero-chips,
+  .live-page .hero-side,
+  .schedule-page .hero-side,
+  .follows-page .hero-side {
+    display: none;
+  }
+
+  .live-page .page-nav,
+  .schedule-page .page-nav,
+  .follows-page .page-nav {
+    margin-top: 0.18rem;
+  }
+
+  .live-page .page-nav #lolHubNav,
+  .schedule-page .page-nav #lolHubNav,
+  .follows-page .page-nav #lolHubNav,
+  .live-page .page-nav #dotaHubNav,
+  .schedule-page .page-nav #dotaHubNav,
+  .follows-page .page-nav #dotaHubNav {
+    display: none;
+  }
+
+  .live-page #productGuidePanel,
+  .schedule-page #productGuidePanel,
+  .follows-page #productGuidePanel {
+    display: none !important;
+  }
+
+  .schedule-page #scheduleSummary,
+  .schedule-page #slateLensStrip {
+    display: none;
+  }
+
   body.product-shell .team-quick-nav {
     display: none;
   }
@@ -10333,6 +10387,21 @@ body.product-shell .team-quick-nav {
 
   .subtitle {
     font-size: 0.78rem;
+  }
+
+  .live-page .hero h1,
+  .schedule-page .hero h1,
+  .follows-page .hero h1 {
+    font-size: clamp(1.8rem, 10vw, 2.4rem);
+    line-height: 0.96;
+  }
+
+  .live-page .hero .subtitle,
+  .schedule-page .hero .subtitle,
+  .follows-page .hero .subtitle {
+    font-size: 0.82rem;
+    line-height: 1.35;
+    max-width: 30ch;
   }
 
   body.product-shell .hero-metrics {
