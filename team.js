@@ -13,6 +13,7 @@ import {
 import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
+const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
 const TEAM_MOBILE_PANELS_DEFAULT_OPEN = new Set([
   "Team Snapshot",
@@ -77,6 +78,7 @@ const state = {
   profile: null,
   pastTournamentSignature: null,
   pendingOpponentId: null,
+  activeLoadRequestId: 0,
   mobilePanelCollapsedByKey: {},
   mobilePanelControlsBound: false
 };
@@ -1606,6 +1608,45 @@ function buildTeamRequestUrl() {
   return url.toString();
 }
 
+async function fetchJsonWithTimeout(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_API_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    const raw = await response.text();
+    let payload = null;
+    try {
+      payload = raw ? JSON.parse(raw) : null;
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const error = new Error(payload?.error?.message || "API request failed.");
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    return payload || { data: null };
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error("Team profile request timed out.");
+      timeoutError.code = "timeout";
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function renderTeamLoadingState() {
   const loadingCard = `
     <article class="upcoming-card loading">
@@ -1638,6 +1679,7 @@ function renderTeamLoadingState() {
 }
 
 async function loadTeamProfile() {
+  const requestId = ++state.activeLoadRequestId;
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   try {
     localStorage.setItem("pulseboard.apiBase", apiBase);
@@ -1650,10 +1692,10 @@ async function loadTeamProfile() {
   try {
     renderTeamLoadingState();
     setStatus("Loading team profile...", "loading");
-    const response = await fetch(buildTeamRequestUrl());
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload?.error?.message || "API request failed.");
+    elements.teamMetaText.textContent = "Loading team profile...";
+    const payload = await fetchJsonWithTimeout(buildTeamRequestUrl());
+    if (requestId !== state.activeLoadRequestId) {
+      return;
     }
 
     const profile = payload.data;
@@ -1672,11 +1714,15 @@ async function loadTeamProfile() {
     renderTeamQuickJump();
     setStatus("Team profile synced.", "success");
   } catch (error) {
+    if (requestId !== state.activeLoadRequestId) {
+      return;
+    }
     state.profile = null;
     state.pastTournamentSignature = null;
     setStatus(`Error: ${error.message}`, "error");
     elements.teamTitle.textContent = `Error loading team: ${error.message}`;
-    elements.teamMetaText.textContent = "";
+    elements.teamMetaText.textContent =
+      error?.code === "timeout" ? "Team profile request timed out." : "";
     if (elements.performanceMetaText) {
       elements.performanceMetaText.textContent = "";
     }

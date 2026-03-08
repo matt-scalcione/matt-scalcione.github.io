@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { OpenDotaProvider } from "../providers/dota/openDotaProvider.js";
 import {
   canonicalDotaTournamentKey,
@@ -26,7 +29,28 @@ const dotaSyntheticLivePerGameWindowMs = Number.parseInt(
 const dataMode = String(process.env.ESPORTS_DATA_MODE || "hybrid").toLowerCase();
 const providerCacheMs = Number.parseInt(process.env.PROVIDER_CACHE_MS || "30000", 10);
 const defaultDotaTiers = parseTierList(process.env.DOTA_TIERS || "1,2,3,4");
-const providerTimeoutMs = Number.parseInt(process.env.PROVIDER_TIMEOUT_MS || "15000", 10);
+const providerTimeoutMs = Number.parseInt(process.env.PROVIDER_TIMEOUT_MS || "3000", 10);
+const providerSlowMs = Number.parseInt(process.env.PROVIDER_SLOW_MS || "1200", 10);
+const diagnosticsHistoryLimit = Number.parseInt(process.env.PROVIDER_HISTORY_LIMIT || "60", 10);
+const providerDetailCacheLimit = Number.parseInt(process.env.PROVIDER_DETAIL_CACHE_LIMIT || "80", 10);
+const providerTeamProfileCacheLimit = Number.parseInt(
+  process.env.PROVIDER_TEAM_PROFILE_CACHE_LIMIT || "120",
+  10
+);
+const logAllProviderTiming = String(process.env.API_LOG_PROVIDER_TIMING || "").trim() === "1";
+const providerCachePersistenceEnabled = !import.meta.url.includes("?");
+const PROVIDER_CACHE_FILE_URL = new URL("../../../.runtime/provider-cache.json", import.meta.url);
+const PROVIDER_CACHE_FILE_PATH = fileURLToPath(PROVIDER_CACHE_FILE_URL);
+const PROVIDER_CACHE_DIR_PATH = dirname(PROVIDER_CACHE_FILE_PATH);
+const providerSnapshotKeys = [
+  "lolLive",
+  "lolSchedule",
+  "lolResults",
+  "live",
+  "stratzLive",
+  "results",
+  "dotaSchedule"
+];
 
 const openDotaProvider = new OpenDotaProvider({
   timeoutMs: providerTimeoutMs
@@ -41,45 +65,213 @@ const lolEsportsProvider = new LolEsportsProvider({
   timeoutMs: providerTimeoutMs
 });
 
+function createProviderSlot() {
+  return {
+    fetchedAt: 0,
+    status: "stale",
+    rows: [],
+    refreshPromise: null,
+    lastDurationMs: null,
+    lastOutcome: "stale",
+    lastError: null
+  };
+}
+
 const providerState = {
-  lolLive: {
-    fetchedAt: 0,
-    status: "stale",
-    rows: []
-  },
-  lolSchedule: {
-    fetchedAt: 0,
-    status: "stale",
-    rows: []
-  },
-  lolResults: {
-    fetchedAt: 0,
-    status: "stale",
-    rows: []
-  },
-  live: {
-    fetchedAt: 0,
-    status: "stale",
-    rows: []
-  },
-  stratzLive: {
-    fetchedAt: 0,
-    status: "stale",
-    rows: []
-  },
-  results: {
-    fetchedAt: 0,
-    status: "stale",
-    rows: []
-  },
-  dotaSchedule: {
-    fetchedAt: 0,
-    status: "stale",
-    rows: []
-  },
+  lolLive: createProviderSlot(),
+  lolSchedule: createProviderSlot(),
+  lolResults: createProviderSlot(),
+  live: createProviderSlot(),
+  stratzLive: createProviderSlot(),
+  results: createProviderSlot(),
+  dotaSchedule: createProviderSlot(),
   detailById: new Map(),
-  lolDetailById: new Map()
+  lolDetailById: new Map(),
+  teamProfileByKey: new Map()
 };
+const providerRefreshHistory = [];
+const providerWarmHistory = [];
+const providerSnapshotMeta = {
+  path: PROVIDER_CACHE_FILE_PATH,
+  loadedAt: null,
+  persistedAt: null,
+  lastLoadError: null,
+  lastPersistError: null
+};
+
+function pushBounded(list, entry, limit = diagnosticsHistoryLimit) {
+  list.push(entry);
+  if (list.length > limit) {
+    list.splice(0, list.length - limit);
+  }
+}
+
+function cloneRows(rows) {
+  return JSON.parse(JSON.stringify(Array.isArray(rows) ? rows : []));
+}
+
+function cloneValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function readProviderCacheFromDisk() {
+  if (!providerCachePersistenceEnabled) {
+    return null;
+  }
+
+  if (!existsSync(PROVIDER_CACHE_FILE_PATH)) {
+    return null;
+  }
+
+  return JSON.parse(readFileSync(PROVIDER_CACHE_FILE_PATH, "utf8"));
+}
+
+function persistProviderCacheToDisk() {
+  if (!providerCachePersistenceEnabled) {
+    return;
+  }
+
+  mkdirSync(PROVIDER_CACHE_DIR_PATH, {
+    recursive: true
+  });
+
+  const snapshot = {
+    savedAt: new Date().toISOString(),
+    providers: Object.fromEntries(
+      providerSnapshotKeys.map((stateKey) => {
+        const current = providerState[stateKey];
+        return [
+          stateKey,
+          {
+            fetchedAt: current.fetchedAt,
+            rows: cloneRows(current.rows),
+            lastDurationMs: current.lastDurationMs,
+            lastOutcome: current.lastOutcome,
+            lastError: current.lastError
+          }
+        ];
+      })
+    ),
+    detailById: Array.from(providerState.detailById.entries())
+      .sort((left, right) => Number(right?.[1]?.fetchedAt || 0) - Number(left?.[1]?.fetchedAt || 0))
+      .slice(0, providerDetailCacheLimit)
+      .map(([key, entry]) => ({
+        key,
+        fetchedAt: entry.fetchedAt,
+        detail: cloneValue(entry.detail)
+      })),
+    lolDetailById: Array.from(providerState.lolDetailById.entries())
+      .sort((left, right) => Number(right?.[1]?.fetchedAt || 0) - Number(left?.[1]?.fetchedAt || 0))
+      .slice(0, providerDetailCacheLimit)
+      .map(([key, entry]) => ({
+        key,
+        fetchedAt: entry.fetchedAt,
+        detail: cloneValue(entry.detail)
+      })),
+    teamProfileByKey: Array.from(providerState.teamProfileByKey.entries())
+      .sort((left, right) => Number(right?.[1]?.fetchedAt || 0) - Number(left?.[1]?.fetchedAt || 0))
+      .slice(0, providerTeamProfileCacheLimit)
+      .map(([key, entry]) => ({
+        key,
+        fetchedAt: entry.fetchedAt,
+        detail: cloneValue(entry.detail)
+      }))
+  };
+
+  const tempPath = join(PROVIDER_CACHE_DIR_PATH, "provider-cache.json.tmp");
+  writeFileSync(tempPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
+  renameSync(tempPath, PROVIDER_CACHE_FILE_PATH);
+
+  providerSnapshotMeta.persistedAt = snapshot.savedAt;
+  providerSnapshotMeta.lastPersistError = null;
+}
+
+function hydrateDetailCacheMap(targetMap, entries = []) {
+  targetMap.clear();
+  const normalizedEntries = Array.isArray(entries)
+    ? entries
+        .filter((entry) => entry && typeof entry.key === "string" && entry.detail)
+        .sort((left, right) => Number(right?.fetchedAt || 0) - Number(left?.fetchedAt || 0))
+        .slice(0, providerDetailCacheLimit)
+    : [];
+
+  for (const entry of normalizedEntries) {
+    targetMap.set(entry.key, {
+      fetchedAt: Number.parseInt(String(entry.fetchedAt || 0), 10) || 0,
+      detail: cloneValue(entry.detail)
+    });
+  }
+}
+
+function hydrateProfileCacheMap(targetMap, entries = []) {
+  targetMap.clear();
+  const normalizedEntries = Array.isArray(entries)
+    ? entries
+        .filter((entry) => entry && typeof entry.key === "string" && entry.detail)
+        .sort((left, right) => Number(right?.fetchedAt || 0) - Number(left?.fetchedAt || 0))
+        .slice(0, providerTeamProfileCacheLimit)
+    : [];
+
+  for (const entry of normalizedEntries) {
+    targetMap.set(entry.key, {
+      fetchedAt: Number.parseInt(String(entry.fetchedAt || 0), 10) || 0,
+      detail: cloneValue(entry.detail)
+    });
+  }
+}
+
+function tryPersistProviderCacheSnapshot() {
+  try {
+    persistProviderCacheToDisk();
+  } catch (error) {
+    providerSnapshotMeta.lastPersistError = error?.message || String(error);
+    // eslint-disable-next-line no-console
+    console.warn(`[provider-cache] persist failed ${providerSnapshotMeta.lastPersistError}`);
+  }
+}
+
+function hydrateProviderStateFromDisk() {
+  if (!providerCachePersistenceEnabled) {
+    return;
+  }
+
+  try {
+    const parsed = readProviderCacheFromDisk();
+    if (!parsed?.providers) {
+      return;
+    }
+
+    for (const stateKey of providerSnapshotKeys) {
+      const snapshot = parsed.providers[stateKey];
+      if (!snapshot || !Array.isArray(snapshot.rows)) {
+        continue;
+      }
+
+      providerState[stateKey] = {
+        ...providerState[stateKey],
+        fetchedAt: Number.parseInt(String(snapshot.fetchedAt || 0), 10) || 0,
+        status: snapshot.rows.length ? "success" : "stale",
+        rows: cloneRows(snapshot.rows),
+        refreshPromise: null,
+        lastDurationMs: Number.isFinite(snapshot.lastDurationMs) ? snapshot.lastDurationMs : null,
+        lastOutcome: snapshot.rows.length ? "snapshot" : "stale",
+        lastError: typeof snapshot.lastError === "string" ? snapshot.lastError : null
+      };
+    }
+
+    providerSnapshotMeta.loadedAt = new Date().toISOString();
+    providerSnapshotMeta.persistedAt =
+      typeof parsed.savedAt === "string" && parsed.savedAt.trim() ? parsed.savedAt : null;
+    hydrateDetailCacheMap(providerState.detailById, parsed.detailById);
+    hydrateDetailCacheMap(providerState.lolDetailById, parsed.lolDetailById);
+    hydrateProfileCacheMap(providerState.teamProfileByKey, parsed.teamProfileByKey);
+    providerSnapshotMeta.lastLoadError = null;
+  } catch (error) {
+    providerSnapshotMeta.lastLoadError = error?.message || String(error);
+    // eslint-disable-next-line no-console
+    console.warn(`[provider-cache] load failed ${providerSnapshotMeta.lastLoadError}`);
+  }
+}
 
 function parseTierList(value) {
   const parsed = String(value || "")
@@ -88,6 +280,82 @@ function parseTierList(value) {
     .filter((tier) => Number.isInteger(tier) && tier >= 1 && tier <= 4);
 
   return parsed.length ? Array.from(new Set(parsed)) : [1, 2, 3, 4];
+}
+
+hydrateProviderStateFromDisk();
+
+function trimDetailCacheMap(targetMap) {
+  if (targetMap.size <= providerDetailCacheLimit) {
+    return;
+  }
+
+  const overflowEntries = Array.from(targetMap.entries())
+    .sort((left, right) => Number(right?.[1]?.fetchedAt || 0) - Number(left?.[1]?.fetchedAt || 0))
+    .slice(providerDetailCacheLimit);
+  for (const [key] of overflowEntries) {
+    targetMap.delete(key);
+  }
+}
+
+function setDetailCacheEntry(targetMap, cacheKey, detail) {
+  targetMap.set(cacheKey, {
+    fetchedAt: Date.now(),
+    detail
+  });
+  trimDetailCacheMap(targetMap);
+  tryPersistProviderCacheSnapshot();
+}
+
+function trimProfileCacheMap(targetMap) {
+  if (targetMap.size <= providerTeamProfileCacheLimit) {
+    return;
+  }
+
+  const overflowEntries = Array.from(targetMap.entries())
+    .sort((left, right) => Number(right?.[1]?.fetchedAt || 0) - Number(left?.[1]?.fetchedAt || 0))
+    .slice(providerTeamProfileCacheLimit);
+  for (const [key] of overflowEntries) {
+    targetMap.delete(key);
+  }
+}
+
+function setTeamProfileCacheEntry(cacheKey, detail) {
+  providerState.teamProfileByKey.set(cacheKey, {
+    fetchedAt: Date.now(),
+    detail
+  });
+  trimProfileCacheMap(providerState.teamProfileByKey);
+  tryPersistProviderCacheSnapshot();
+}
+
+const detailRefreshState = {
+  dota: new Map(),
+  lol: new Map()
+};
+const teamProfileRefreshState = new Map();
+
+function refreshProviderMatchDetail({ channel, cacheKey, fetchDetail, cacheMap }) {
+  const refreshMap = detailRefreshState[channel];
+  if (refreshMap.has(cacheKey)) {
+    return refreshMap.get(cacheKey);
+  }
+
+  const refreshPromise = (async () => {
+    try {
+      const detail = await fetchDetail();
+      if (detail) {
+        setDetailCacheEntry(cacheMap, cacheKey, detail);
+      }
+      return detail;
+    } catch {
+      return null;
+    } finally {
+      refreshMap.delete(cacheKey);
+    }
+  })();
+
+  refreshMap.set(cacheKey, refreshPromise);
+  return refreshPromise;
 }
 
 const liveMatches = [
@@ -521,6 +789,135 @@ function isProviderModeEnabled() {
   return dataMode === "provider" || dataMode === "hybrid" || dataMode === "live";
 }
 
+function providerRowsSnapshot(stateKey) {
+  const current = providerState[stateKey];
+  return {
+    status: current.status,
+    rows: current.rows
+  };
+}
+
+function providerLogLabel(stateKey) {
+  if (stateKey === "live") return "dota live";
+  if (stateKey === "stratzLive") return "dota stratz live";
+  if (stateKey === "results") return "dota results";
+  if (stateKey === "dotaSchedule") return "dota schedule";
+  if (stateKey === "lolLive") return "lol live";
+  if (stateKey === "lolSchedule") return "lol schedule";
+  if (stateKey === "lolResults") return "lol results";
+  return stateKey;
+}
+
+function logProviderTiming(stateKey, durationMs, outcome, detail = "") {
+  if (!logAllProviderTiming && durationMs < providerSlowMs && outcome === "success") {
+    return;
+  }
+
+  const suffix = detail ? ` ${detail}` : "";
+  // eslint-disable-next-line no-console
+  console.warn(`[provider] ${providerLogLabel(stateKey)} ${outcome} in ${durationMs.toFixed(1)}ms${suffix}`);
+}
+
+function recordProviderRefresh(stateKey, durationMs, outcome, { rowCount = 0, error = null } = {}) {
+  pushBounded(providerRefreshHistory, {
+    timestamp: new Date().toISOString(),
+    key: stateKey,
+    label: providerLogLabel(stateKey),
+    outcome,
+    durationMs,
+    rowCount,
+    error
+  });
+}
+
+async function refreshProviderRows(stateKey, fetchRows) {
+  const current = providerState[stateKey];
+  if (current.refreshPromise) {
+    return current.refreshPromise;
+  }
+
+  current.refreshPromise = (async () => {
+    const startedAt = performance.now();
+    try {
+      const rows = await fetchRows();
+      const durationMs = performance.now() - startedAt;
+      providerState[stateKey] = {
+        ...providerState[stateKey],
+        fetchedAt: Date.now(),
+        status: "success",
+        rows,
+        refreshPromise: null,
+        lastDurationMs: durationMs,
+        lastOutcome: "success",
+        lastError: null
+      };
+      recordProviderRefresh(stateKey, durationMs, "success", {
+        rowCount: Array.isArray(rows) ? rows.length : 0
+      });
+      logProviderTiming(stateKey, durationMs, "success", `rows=${Array.isArray(rows) ? rows.length : 0}`);
+      tryPersistProviderCacheSnapshot();
+    } catch (error) {
+      const durationMs = performance.now() - startedAt;
+      const existingRows = Array.isArray(providerState[stateKey].rows) ? providerState[stateKey].rows : [];
+      const outcome = existingRows.length ? "fallback-cache" : "error";
+      providerState[stateKey] = {
+        ...providerState[stateKey],
+        fetchedAt: Date.now(),
+        status: existingRows.length ? "success" : "error",
+        rows: existingRows,
+        refreshPromise: null,
+        lastDurationMs: durationMs,
+        lastOutcome: outcome,
+        lastError: error?.message || null
+      };
+      recordProviderRefresh(stateKey, durationMs, outcome, {
+        rowCount: existingRows.length,
+        error: error?.message || null
+      });
+      logProviderTiming(
+        stateKey,
+        durationMs,
+        outcome,
+        `rows=${existingRows.length}${error?.message ? ` message=${error.message}` : ""}`
+      );
+      if (existingRows.length) {
+        tryPersistProviderCacheSnapshot();
+      }
+    }
+
+    return providerRowsSnapshot(stateKey);
+  })();
+
+  return current.refreshPromise;
+}
+
+async function loadProviderRows(stateKey, fetchRows) {
+  if (!isProviderModeEnabled()) {
+    return { status: "disabled", rows: [] };
+  }
+
+  const current = providerState[stateKey];
+  const ageMs = Date.now() - current.fetchedAt;
+  if (ageMs <= providerCacheMs && current.status !== "stale") {
+    return providerRowsSnapshot(stateKey);
+  }
+
+  const hasRows = Array.isArray(current.rows) && current.rows.length > 0;
+  if (hasRows) {
+    void refreshProviderRows(stateKey, fetchRows);
+    return {
+      status: current.status === "stale" ? "success" : current.status,
+      rows: current.rows
+    };
+  }
+
+  providerState[stateKey] = {
+    ...providerState[stateKey],
+    status: "warming"
+  };
+  return refreshProviderRows(stateKey, fetchRows);
+}
+
 function shouldHideFallbackDotaRows() {
   return isProviderModeEnabled();
 }
@@ -558,256 +955,174 @@ function filterByDotaTiers(rows, dotaTiers) {
 }
 
 async function loadProviderLiveMatches() {
-  if (!isProviderModeEnabled()) {
-    return { status: "disabled", rows: [] };
-  }
-
-  const ageMs = Date.now() - providerState.live.fetchedAt;
-  if (ageMs <= providerCacheMs && providerState.live.status !== "stale") {
-    return {
-      status: providerState.live.status,
-      rows: providerState.live.rows
-    };
-  }
-
-  try {
-    const rows = await openDotaProvider.fetchLiveMatches({
+  return loadProviderRows("live", () =>
+    openDotaProvider.fetchLiveMatches({
       allowedTiers: defaultDotaTiers
-    });
-    providerState.live = {
-      fetchedAt: Date.now(),
-      status: "success",
-      rows
-    };
-  } catch {
-    providerState.live = {
-      fetchedAt: Date.now(),
-      status: "error",
-      rows: []
-    };
-  }
-
-  return {
-    status: providerState.live.status,
-    rows: providerState.live.rows
-  };
+    })
+  );
 }
 
 async function loadProviderStratzLiveMatches() {
-  if (!isProviderModeEnabled()) {
-    return { status: "disabled", rows: [] };
-  }
-
   if (!stratzProvider.getCapabilities().liveEnabled) {
     return { status: "disabled", rows: [] };
   }
 
-  const ageMs = Date.now() - providerState.stratzLive.fetchedAt;
-  if (ageMs <= providerCacheMs && providerState.stratzLive.status !== "stale") {
-    return {
-      status: providerState.stratzLive.status,
-      rows: providerState.stratzLive.rows
-    };
-  }
-
-  try {
-    const rows = await stratzProvider.fetchLiveMatches({
+  return loadProviderRows("stratzLive", () =>
+    stratzProvider.fetchLiveMatches({
       allowedTiers: defaultDotaTiers
-    });
-    providerState.stratzLive = {
-      fetchedAt: Date.now(),
-      status: "success",
-      rows
-    };
-  } catch {
-    providerState.stratzLive = {
-      fetchedAt: Date.now(),
-      status: "error",
-      rows: []
-    };
-  }
-
-  return {
-    status: providerState.stratzLive.status,
-    rows: providerState.stratzLive.rows
-  };
+    })
+  );
 }
 
 async function loadProviderResults() {
-  if (!isProviderModeEnabled()) {
-    return { status: "disabled", rows: [] };
-  }
-
-  const ageMs = Date.now() - providerState.results.fetchedAt;
-  if (ageMs <= providerCacheMs && providerState.results.status !== "stale") {
-    return {
-      status: providerState.results.status,
-      rows: providerState.results.rows
-    };
-  }
-
-  try {
-    const rows = await openDotaProvider.fetchRecentResults({
+  return loadProviderRows("results", () =>
+    openDotaProvider.fetchRecentResults({
       allowedTiers: defaultDotaTiers
-    });
-    providerState.results = {
-      fetchedAt: Date.now(),
-      status: "success",
-      rows
-    };
-  } catch {
-    providerState.results = {
-      fetchedAt: Date.now(),
-      status: "error",
-      rows: []
-    };
-  }
-
-  return {
-    status: providerState.results.status,
-    rows: providerState.results.rows
-  };
+    })
+  );
 }
 
 async function loadProviderDotaScheduleMatches({ knownRows = [] } = {}) {
-  if (!isProviderModeEnabled()) {
-    return { status: "disabled", rows: [] };
-  }
-
-  const ageMs = Date.now() - providerState.dotaSchedule.fetchedAt;
-  if (ageMs <= providerCacheMs && providerState.dotaSchedule.status !== "stale") {
-    return {
-      status: providerState.dotaSchedule.status,
-      rows: providerState.dotaSchedule.rows
-    };
-  }
-
-  try {
+  return loadProviderRows("dotaSchedule", async () => {
     const rows = await liquipediaDotaScheduleProvider.fetchScheduleMatches({
       knownRows,
       allowedTiers: defaultDotaTiers
     });
-    const hydratedRows = await hydrateDotaScheduleRowsWithResolvedTeams(rows);
-    providerState.dotaSchedule = {
-      fetchedAt: Date.now(),
-      status: "success",
-      rows: hydratedRows
-    };
-  } catch {
-    providerState.dotaSchedule = {
-      fetchedAt: Date.now(),
-      status: "error",
-      rows: []
-    };
-  }
-
-  return {
-    status: providerState.dotaSchedule.status,
-    rows: providerState.dotaSchedule.rows
-  };
+    return hydrateDotaScheduleRowsWithResolvedTeams(rows);
+  });
 }
 
 async function loadProviderLolLiveMatches() {
-  if (!isProviderModeEnabled()) {
-    return { status: "disabled", rows: [] };
-  }
-
-  const ageMs = Date.now() - providerState.lolLive.fetchedAt;
-  if (ageMs <= providerCacheMs && providerState.lolLive.status !== "stale") {
-    return {
-      status: providerState.lolLive.status,
-      rows: providerState.lolLive.rows
-    };
-  }
-
-  try {
-    const rows = await lolEsportsProvider.fetchLiveMatches();
-    providerState.lolLive = {
-      fetchedAt: Date.now(),
-      status: "success",
-      rows
-    };
-  } catch {
-    providerState.lolLive = {
-      fetchedAt: Date.now(),
-      status: "error",
-      rows: []
-    };
-  }
-
-  return {
-    status: providerState.lolLive.status,
-    rows: providerState.lolLive.rows
-  };
+  return loadProviderRows("lolLive", () => lolEsportsProvider.fetchLiveMatches());
 }
 
 async function loadProviderLolScheduleMatches() {
-  if (!isProviderModeEnabled()) {
-    return { status: "disabled", rows: [] };
-  }
-
-  const ageMs = Date.now() - providerState.lolSchedule.fetchedAt;
-  if (ageMs <= providerCacheMs && providerState.lolSchedule.status !== "stale") {
-    return {
-      status: providerState.lolSchedule.status,
-      rows: providerState.lolSchedule.rows
-    };
-  }
-
-  try {
-    const rows = await lolEsportsProvider
+  return loadProviderRows("lolSchedule", () =>
+    lolEsportsProvider
       .fetchScheduleMatches()
-      .then((scheduleRows) => scheduleRows.filter((row) => row.status !== "completed"));
-    providerState.lolSchedule = {
-      fetchedAt: Date.now(),
-      status: "success",
-      rows
-    };
-  } catch {
-    providerState.lolSchedule = {
-      fetchedAt: Date.now(),
-      status: "error",
-      rows: []
-    };
-  }
-
-  return {
-    status: providerState.lolSchedule.status,
-    rows: providerState.lolSchedule.rows
-  };
+      .then((scheduleRows) => scheduleRows.filter((row) => row.status !== "completed"))
+  );
 }
 
 async function loadProviderLolResults() {
+  return loadProviderRows("lolResults", () => lolEsportsProvider.fetchRecentResults());
+}
+
+function providerDiagnosticsRow(stateKey) {
+  const current = providerState[stateKey];
+  return {
+    key: stateKey,
+    label: providerLogLabel(stateKey),
+    status: current.status,
+    lastOutcome: current.lastOutcome,
+    lastError: current.lastError,
+    lastDurationMs: current.lastDurationMs,
+    fetchedAt: current.fetchedAt ? new Date(current.fetchedAt).toISOString() : null,
+    ageMs: current.fetchedAt ? Date.now() - current.fetchedAt : null,
+    rowCount: Array.isArray(current.rows) ? current.rows.length : 0,
+    refreshing: Boolean(current.refreshPromise)
+  };
+}
+
+function providerRefreshTasks() {
+  return {
+    live: () =>
+      refreshProviderRows("live", () =>
+        openDotaProvider.fetchLiveMatches({
+          allowedTiers: defaultDotaTiers
+        })
+      ),
+    stratzLive: () =>
+      stratzProvider.getCapabilities().liveEnabled
+        ? refreshProviderRows("stratzLive", () =>
+            stratzProvider.fetchLiveMatches({
+              allowedTiers: defaultDotaTiers
+            })
+          )
+        : Promise.resolve({ status: "disabled", rows: [] }),
+    results: () =>
+      refreshProviderRows("results", () =>
+        openDotaProvider.fetchRecentResults({
+          allowedTiers: defaultDotaTiers
+        })
+      ),
+    dotaSchedule: () =>
+      refreshProviderRows("dotaSchedule", async () => {
+        const knownRows = dedupeRowsById([
+          ...(Array.isArray(providerState.stratzLive.rows) ? providerState.stratzLive.rows : []),
+          ...(Array.isArray(providerState.live.rows) ? providerState.live.rows : []),
+          ...(Array.isArray(providerState.results.rows) ? providerState.results.rows : [])
+        ]);
+        const rows = await liquipediaDotaScheduleProvider.fetchScheduleMatches({
+          knownRows,
+          allowedTiers: defaultDotaTiers
+        });
+        return hydrateDotaScheduleRowsWithResolvedTeams(rows);
+      }),
+    lolLive: () => refreshProviderRows("lolLive", () => lolEsportsProvider.fetchLiveMatches()),
+    lolSchedule: () =>
+      refreshProviderRows("lolSchedule", () =>
+        lolEsportsProvider
+          .fetchScheduleMatches()
+          .then((scheduleRows) => scheduleRows.filter((row) => row.status !== "completed"))
+      ),
+    lolResults: () => refreshProviderRows("lolResults", () => lolEsportsProvider.fetchRecentResults())
+  };
+}
+
+function normalizeProviderKeys(providerKeys) {
+  const allowedKeys = new Set(providerSnapshotKeys);
+  if (!Array.isArray(providerKeys) || providerKeys.length === 0) {
+    return Array.from(allowedKeys);
+  }
+
+  return Array.from(
+    new Set(
+      providerKeys
+        .map((value) => String(value || "").trim())
+        .filter((value) => allowedKeys.has(value))
+    )
+  );
+}
+
+async function forceRefreshProviderCaches({ providerKeys, reason = "manual" } = {}) {
   if (!isProviderModeEnabled()) {
-    return { status: "disabled", rows: [] };
-  }
-
-  const ageMs = Date.now() - providerState.lolResults.fetchedAt;
-  if (ageMs <= providerCacheMs && providerState.lolResults.status !== "stale") {
     return {
-      status: providerState.lolResults.status,
-      rows: providerState.lolResults.rows
+      skipped: true,
+      providers: []
     };
   }
 
-  try {
-    const rows = await lolEsportsProvider.fetchRecentResults();
-    providerState.lolResults = {
-      fetchedAt: Date.now(),
-      status: "success",
-      rows
+  const refreshers = providerRefreshTasks();
+  const targetKeys = normalizeProviderKeys(providerKeys);
+  const startedAt = performance.now();
+  const refreshes = await Promise.allSettled(targetKeys.map((key) => refreshers[key]()));
+  const durationMs = performance.now() - startedAt;
+  const providers = targetKeys.map((stateKey, index) => {
+    const settled = refreshes[index];
+    return {
+      key: stateKey,
+      label: providerLogLabel(stateKey),
+      ok: settled.status === "fulfilled",
+      status: providerState[stateKey].status,
+      lastOutcome: providerState[stateKey].lastOutcome,
+      rowCount: Array.isArray(providerState[stateKey].rows) ? providerState[stateKey].rows.length : 0
     };
-  } catch {
-    providerState.lolResults = {
-      fetchedAt: Date.now(),
-      status: "error",
-      rows: []
-    };
-  }
+  });
+
+  pushBounded(providerWarmHistory, {
+    timestamp: new Date().toISOString(),
+    reason,
+    durationMs,
+    providers,
+    skipped: false
+  });
 
   return {
-    status: providerState.lolResults.status,
-    rows: providerState.lolResults.rows
+    skipped: false,
+    reason,
+    durationMs,
+    providers
   };
 }
 
@@ -830,6 +1145,44 @@ function matchDetailCacheKey(matchId, { gameNumber } = {}) {
   }
 
   return `${matchId}::g${gameNumber}`;
+}
+
+function teamProfileCacheKey(teamId, {
+  game,
+  opponentId,
+  limit = 5,
+  seedMatchId,
+  teamNameHint
+} = {}) {
+  return JSON.stringify({
+    teamId: String(teamId || "").trim(),
+    game: String(game || "").trim(),
+    opponentId: String(opponentId || "").trim(),
+    limit: Number.parseInt(String(limit || 5), 10) || 5,
+    seedMatchId: String(seedMatchId || "").trim(),
+    teamNameHint: normalizeTeamName(teamNameHint || "")
+  });
+}
+
+function refreshTeamProfile(cacheKey, buildProfile) {
+  if (teamProfileRefreshState.has(cacheKey)) {
+    return teamProfileRefreshState.get(cacheKey);
+  }
+
+  const refreshPromise = (async () => {
+    try {
+      const profile = await buildProfile();
+      if (profile) {
+        setTeamProfileCacheEntry(cacheKey, profile);
+      }
+      return profile;
+    } finally {
+      teamProfileRefreshState.delete(cacheKey);
+    }
+  })();
+
+  teamProfileRefreshState.set(cacheKey, refreshPromise);
+  return refreshPromise;
 }
 
 function clampHistoryLimit(value, fallback = 5) {
@@ -2012,14 +2365,46 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       return cached.detail;
     }
 
+    if (cached?.detail) {
+      void refreshProviderMatchDetail({
+        channel: "dota",
+        cacheKey,
+        cacheMap: providerState.detailById,
+        fetchDetail: async () => {
+          try {
+            const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
+            if (stratzDetail) {
+              return stratzDetail;
+            }
+          } catch {
+            // Fall through to OpenDota and fallback detail.
+          }
+
+          if (String(matchId).startsWith("dota_od_")) {
+            try {
+              const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
+              return detail || (await fallbackProviderDotaDetail(matchId, options));
+            } catch {
+              return fallbackProviderDotaDetail(matchId, options);
+            }
+          }
+
+          const aliasMatchId = await resolveDotaAliasMatchId(matchId, staleCachedDetail);
+          if (aliasMatchId) {
+            return loadProviderMatchDetail(aliasMatchId, options);
+          }
+
+          return fallbackProviderDotaDetail(matchId, options);
+        }
+      });
+
+      return materializeStaleDetail(staleCachedDetail);
+    }
+
     try {
       const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
       if (stratzDetail) {
-        providerState.detailById.set(cacheKey, {
-          fetchedAt: Date.now(),
-          detail: stratzDetail
-        });
-
+        setDetailCacheEntry(providerState.detailById, cacheKey, stratzDetail);
         return stratzDetail;
       }
     } catch {
@@ -2034,11 +2419,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
           return materializeStaleDetail(staleCachedDetail);
         }
 
-        providerState.detailById.set(cacheKey, {
-          fetchedAt: Date.now(),
-          detail: resolvedDetail
-        });
-
+        setDetailCacheEntry(providerState.detailById, cacheKey, resolvedDetail);
         return resolvedDetail;
       } catch {
         const fallback = await fallbackProviderDotaDetail(matchId, options);
@@ -2046,11 +2427,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
           return materializeStaleDetail(staleCachedDetail);
         }
 
-        providerState.detailById.set(cacheKey, {
-          fetchedAt: Date.now(),
-          detail: fallback
-        });
-
+        setDetailCacheEntry(providerState.detailById, cacheKey, fallback);
         return fallback;
       }
     }
@@ -2069,11 +2446,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
           }
         };
 
-        providerState.detailById.set(cacheKey, {
-          fetchedAt: Date.now(),
-          detail: resolvedAliasDetail
-        });
-
+        setDetailCacheEntry(providerState.detailById, cacheKey, resolvedAliasDetail);
         return resolvedAliasDetail;
       }
     }
@@ -2083,11 +2456,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       return materializeStaleDetail(staleCachedDetail);
     }
 
-    providerState.detailById.set(cacheKey, {
-      fetchedAt: Date.now(),
-      detail: fallback
-    });
-
+    setDetailCacheEntry(providerState.detailById, cacheKey, fallback);
     return fallback;
   }
 
@@ -2097,17 +2466,23 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       return cached.detail;
     }
 
+    if (cached?.detail) {
+      void refreshProviderMatchDetail({
+        channel: "lol",
+        cacheKey,
+        cacheMap: providerState.lolDetailById,
+        fetchDetail: () => lolEsportsProvider.fetchMatchDetail(matchId, options)
+      });
+      return cached.detail;
+    }
+
     try {
       const detail = await lolEsportsProvider.fetchMatchDetail(matchId, options);
       if (!detail) {
         return null;
       }
 
-      providerState.lolDetailById.set(cacheKey, {
-        fetchedAt: Date.now(),
-        detail
-      });
-
+      setDetailCacheEntry(providerState.lolDetailById, cacheKey, detail);
       return detail;
     } catch {
       return null;
@@ -2258,7 +2633,7 @@ export async function getMatchDetail(matchId, options = {}) {
   return loadProviderMatchDetail(matchId, options);
 }
 
-export async function getTeamProfile(teamId, {
+async function buildTeamProfile(teamId, {
   game,
   opponentId,
   limit = 5,
@@ -2501,6 +2876,26 @@ export async function getTeamProfile(teamId, {
   };
 }
 
+export async function getTeamProfile(teamId, options = {}) {
+  const normalizedTeamId = String(teamId || "").trim();
+  if (!normalizedTeamId) {
+    return null;
+  }
+
+  const cacheKey = teamProfileCacheKey(normalizedTeamId, options);
+  const cached = providerState.teamProfileByKey.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt <= providerCacheMs) {
+    return cached.detail;
+  }
+
+  if (cached?.detail) {
+    void refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options));
+    return cached.detail;
+  }
+
+  return refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options));
+}
+
 export async function getProviderCoverageReport() {
   const [stratzLiveState, openDotaLiveState, openDotaResultsState, lolLiveState, lolScheduleState, lolResultsState] =
     await Promise.all([
@@ -2564,6 +2959,41 @@ export async function getProviderCoverageReport() {
       resultRows: Array.isArray(lolResultsState.rows) ? lolResultsState.rows.length : 0
     }
   };
+}
+
+export function getProviderDiagnostics() {
+  return {
+    mode: dataMode,
+    providerEnabled: isProviderModeEnabled(),
+    providerCacheMs,
+    providerTimeoutMs,
+    providerSlowMs,
+    diagnosticsHistoryLimit,
+    providerDetailCacheLimit,
+    providerTeamProfileCacheLimit,
+    providerSnapshot: {
+      ...providerSnapshotMeta
+    },
+    detailCacheEntries: providerState.detailById.size,
+    lolDetailCacheEntries: providerState.lolDetailById.size,
+    teamProfileCacheEntries: providerState.teamProfileByKey.size,
+    providers: providerSnapshotKeys.map((stateKey) => providerDiagnosticsRow(stateKey)),
+    recentRefreshes: providerRefreshHistory.slice().reverse(),
+    recentWarmRuns: providerWarmHistory.slice().reverse()
+  };
+}
+
+export async function warmProviderCaches() {
+  return forceRefreshProviderCaches({
+    reason: "warm"
+  });
+}
+
+export async function refreshProviderCaches(providerKeys = []) {
+  return forceRefreshProviderCaches({
+    providerKeys,
+    reason: "manual"
+  });
 }
 
 export function listFollows(userId) {

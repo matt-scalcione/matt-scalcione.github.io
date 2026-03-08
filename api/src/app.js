@@ -4,6 +4,7 @@ import {
   addFollow,
   deleteFollowById,
   getMatchDetail,
+  getProviderDiagnostics,
   getProviderCoverageReport,
   getTeamProfile,
   getNotificationPreferences,
@@ -11,11 +12,24 @@ import {
   listLiveMatches,
   listResults,
   listSchedule,
+  refreshProviderCaches,
   upsertNotificationPreferences
 } from "./data/mockStore.js";
 
+const slowRouteMs = Number.parseInt(process.env.API_SLOW_ROUTE_MS || "750", 10);
+const logAllRequests = String(process.env.API_LOG_REQUESTS || "").trim() === "1";
+const requestHistoryLimit = Number.parseInt(process.env.API_REQUEST_HISTORY_LIMIT || "80", 10);
+const requestHistory = [];
+
 function splitPath(pathname) {
   return pathname.split("/").filter(Boolean);
+}
+
+function pushBounded(list, entry, limit = requestHistoryLimit) {
+  list.push(entry);
+  if (list.length > limit) {
+    list.splice(0, list.length - limit);
+  }
 }
 
 function errorResponse(statusCode, code, message, extraHeaders = {}) {
@@ -70,6 +84,84 @@ function buildCollectionResponse(rows) {
       count: rows.length,
       generatedAt: new Date().toISOString()
     }
+  };
+}
+
+function requestLogLine({ method, pathname, statusCode, durationMs }) {
+  return `[api] ${method} ${pathname} -> ${statusCode} in ${durationMs.toFixed(1)}ms`;
+}
+
+function applyTimingHeaders(res, durationMs) {
+  const rounded = Math.max(0, Math.round(durationMs));
+  res.setHeader("X-Response-Time-Ms", String(rounded));
+  res.setHeader("Server-Timing", `app;dur=${rounded}`);
+}
+
+function maybeLogRequestTiming({ method, pathname, statusCode, durationMs }) {
+  if (logAllRequests || durationMs >= slowRouteMs || statusCode >= 500) {
+    // eslint-disable-next-line no-console
+    console.warn(requestLogLine({ method, pathname, statusCode, durationMs }));
+  }
+}
+
+function recordRequestTiming({ method, pathname, statusCode, durationMs }) {
+  pushBounded(requestHistory, {
+    timestamp: new Date().toISOString(),
+    method,
+    pathname,
+    statusCode,
+    durationMs,
+    slow: durationMs >= slowRouteMs
+  });
+}
+
+function finalizeRequestTiming({ method, pathname, statusCode, durationMs }) {
+  maybeLogRequestTiming({ method, pathname, statusCode, durationMs });
+  recordRequestTiming({ method, pathname, statusCode, durationMs });
+}
+
+function getRequestDiagnostics() {
+  const recent = requestHistory.slice().reverse();
+  const routeSummary = new Map();
+
+  for (const entry of requestHistory) {
+    if (!routeSummary.has(entry.pathname)) {
+      routeSummary.set(entry.pathname, {
+        pathname: entry.pathname,
+        count: 0,
+        slowCount: 0,
+        errorCount: 0,
+        totalDurationMs: 0,
+        maxDurationMs: 0
+      });
+    }
+
+    const target = routeSummary.get(entry.pathname);
+    target.count += 1;
+    target.totalDurationMs += entry.durationMs;
+    target.maxDurationMs = Math.max(target.maxDurationMs, entry.durationMs);
+    if (entry.slow) target.slowCount += 1;
+    if (entry.statusCode >= 500) target.errorCount += 1;
+  }
+
+  const routes = Array.from(routeSummary.values())
+    .map((row) => ({
+      ...row,
+      avgDurationMs: row.count > 0 ? row.totalDurationMs / row.count : 0
+    }))
+    .sort((left, right) => {
+      if (right.slowCount !== left.slowCount) return right.slowCount - left.slowCount;
+      return right.avgDurationMs - left.avgDurationMs;
+    });
+
+  return {
+    slowRouteMs,
+    requestHistoryLimit,
+    totalRequests: requestHistory.length,
+    slowRequests: requestHistory.filter((entry) => entry.slow).length,
+    errorRequests: requestHistory.filter((entry) => entry.statusCode >= 500).length,
+    recent,
+    routes
   };
 }
 
@@ -182,6 +274,29 @@ function parseMatchGameNumber(urlObj) {
   }
 
   return { ok: true, value: parsed };
+}
+
+function parseProviderRefreshBody(body) {
+  if (!body || typeof body !== "object") {
+    return { ok: true, value: [] };
+  }
+
+  const rawProviders = body.providers;
+  if (rawProviders === undefined) {
+    return { ok: true, value: [] };
+  }
+
+  if (!Array.isArray(rawProviders)) {
+    return {
+      ok: false,
+      response: errorResponse(400, "bad_request", "providers must be an array of provider keys.")
+    };
+  }
+
+  return {
+    ok: true,
+    value: rawProviders
+  };
 }
 
 function parseTeamHistoryLimit(urlObj) {
@@ -427,6 +542,38 @@ export async function routeRequest({
     });
   }
 
+  if (pathname === "/v1/provider-diagnostics") {
+    if (normalizedMethod === "GET") {
+      return okResponse({
+        data: getProviderDiagnostics()
+      });
+    }
+
+    if (normalizedMethod === "POST") {
+      const parsedBody = parseProviderRefreshBody(body);
+      if (!parsedBody.ok) {
+        return parsedBody.response;
+      }
+
+      const result = await refreshProviderCaches(parsedBody.value);
+      return okResponse({
+        data: result
+      });
+    }
+
+    return methodNotAllowed(["GET", "POST"]);
+  }
+
+  if (pathname === "/v1/request-diagnostics") {
+    if (normalizedMethod !== "GET") {
+      return methodNotAllowed(["GET"]);
+    }
+
+    return okResponse({
+      data: getRequestDiagnostics()
+    });
+  }
+
   if (pathParts[0] === "v1" && pathParts[1] === "matches" && pathParts.length === 3) {
     if (normalizedMethod !== "GET") {
       return methodNotAllowed(["GET"]);
@@ -596,6 +743,7 @@ export function createRequestHandler() {
     const headers = req.headers || {};
     const urlObj = new URL(url, "http://localhost");
     const pathParts = splitPath(urlObj.pathname);
+    const requestStartedAt = performance.now();
 
     applyCorsHeaders(res);
 
@@ -639,6 +787,15 @@ export function createRequestHandler() {
       url,
       headers,
       body
+    });
+
+    const durationMs = performance.now() - requestStartedAt;
+    applyTimingHeaders(res, durationMs);
+    finalizeRequestTiming({
+      method,
+      pathname: urlObj.pathname,
+      statusCode: result.statusCode,
+      durationMs
     });
 
     for (const [name, value] of Object.entries(result.headers || {})) {

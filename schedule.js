@@ -13,6 +13,7 @@ import {
 import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
+const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
 const TEAM_SHORT_NAMES = {
   "cloud9 kia": "C9",
@@ -106,8 +107,11 @@ const elements = {
 let scheduleViewMode = "both";
 const scheduleCollectionState = {
   scheduleMeta: null,
-  resultsMeta: null
+  resultsMeta: null,
+  scheduleRows: [],
+  resultRows: []
 };
+let activeLoadRequestId = 0;
 const SCHEDULE_RANGE_PRESETS = {
   live: { pastHours: 12, futureHours: 18 },
   "24h": { pastHours: 0, futureHours: 24 },
@@ -964,17 +968,40 @@ function wireRowNavigation(container) {
 }
 
 async function fetchCollection(apiBase, endpoint, query) {
-  const response = await fetch(`${apiBase}${endpoint}${query ? `?${query}` : ""}`);
-  const payload = await response.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_API_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || "API request failed.");
+  try {
+    const response = await fetch(`${apiBase}${endpoint}${query ? `?${query}` : ""}`, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || "API request failed.");
+    }
+
+    return payload;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(
+        endpoint === "/v1/results" ? "Results request timed out." : "Schedule request timed out."
+      );
+      timeoutError.code = "timeout";
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return payload;
 }
 
 async function loadCollections() {
+  const requestId = ++activeLoadRequestId;
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   const query = buildQuery();
   try {
@@ -985,31 +1012,76 @@ async function loadCollections() {
   updateNav();
 
   try {
-    renderLoadingTable(elements.scheduleTableWrap);
-    renderLoadingTable(elements.resultsTableWrap);
+    if (elements.scheduleTableWrap?.dataset.loaded !== "1") {
+      renderLoadingTable(elements.scheduleTableWrap);
+    }
+    if (elements.resultsTableWrap?.dataset.loaded !== "1") {
+      renderLoadingTable(elements.resultsTableWrap);
+    }
     setStatus("Loading schedule and results...", "loading");
-    const [schedulePayload, resultsPayload] = await Promise.all([
+    const [scheduleResult, resultsResult] = await Promise.allSettled([
       fetchCollection(apiBase, "/v1/schedule", query),
       fetchCollection(apiBase, "/v1/results", query)
     ]);
 
-    const scheduleRows = Array.isArray(schedulePayload.data) ? schedulePayload.data : [];
-    const resultRows = Array.isArray(resultsPayload.data) ? resultsPayload.data : [];
-    renderTable(elements.scheduleTableWrap, scheduleRows, "scheduled");
-    renderTable(elements.resultsTableWrap, resultRows, "result");
-    applyScheduleStructuredData(scheduleRows, resultRows);
-    refreshScheduleSeo();
-    scheduleCollectionState.scheduleMeta = schedulePayload.meta || null;
-    scheduleCollectionState.resultsMeta = resultsPayload.meta || null;
+    if (requestId !== activeLoadRequestId) {
+      return;
+    }
+
+    const scheduleOk = scheduleResult.status === "fulfilled";
+    const resultsOk = resultsResult.status === "fulfilled";
+
+    if (scheduleOk) {
+      const schedulePayload = scheduleResult.value;
+      const scheduleRows = Array.isArray(schedulePayload.data) ? schedulePayload.data : [];
+      scheduleCollectionState.scheduleRows = scheduleRows;
+      scheduleCollectionState.scheduleMeta = schedulePayload.meta || null;
+      renderTable(elements.scheduleTableWrap, scheduleRows, "scheduled");
+      if (elements.scheduleTableWrap) {
+        elements.scheduleTableWrap.dataset.loaded = "1";
+      }
+    } else if (elements.scheduleTableWrap?.dataset.loaded !== "1") {
+      elements.scheduleTableWrap.innerHTML = `<div class="empty">Unable to load schedule.</div>`;
+      scheduleCollectionState.scheduleMeta = null;
+    }
+
+    if (resultsOk) {
+      const resultsPayload = resultsResult.value;
+      const resultRows = Array.isArray(resultsPayload.data) ? resultsPayload.data : [];
+      scheduleCollectionState.resultRows = resultRows;
+      scheduleCollectionState.resultsMeta = resultsPayload.meta || null;
+      renderTable(elements.resultsTableWrap, resultRows, "result");
+      if (elements.resultsTableWrap) {
+        elements.resultsTableWrap.dataset.loaded = "1";
+      }
+    } else if (elements.resultsTableWrap?.dataset.loaded !== "1") {
+      elements.resultsTableWrap.innerHTML = `<div class="empty">Unable to load results.</div>`;
+      scheduleCollectionState.resultsMeta = null;
+    }
+
+    applyScheduleStructuredData(
+      scheduleCollectionState.scheduleRows,
+      scheduleCollectionState.resultRows
+    );
     renderScheduleCollectionMeta();
-    setStatus("Schedule and results synced.", "success");
+    refreshScheduleSeo();
+
+    if (scheduleOk && resultsOk) {
+      setStatus("Schedule and results synced.", "success");
+    } else if (scheduleOk || resultsOk) {
+      setStatus("Partial sync. One feed was slow or unavailable.", "error");
+    } else {
+      throw scheduleResult.reason || resultsResult.reason || new Error("Unable to load schedule or results.");
+    }
   } catch (error) {
     setStatus(`Error: ${error.message}`, "error");
-    elements.scheduleTableWrap.innerHTML = `<div class="empty">Unable to load schedule.</div>`;
-    elements.resultsTableWrap.innerHTML = `<div class="empty">Unable to load results.</div>`;
+    if (elements.scheduleTableWrap?.dataset.loaded !== "1") {
+      elements.scheduleTableWrap.innerHTML = `<div class="empty">Unable to load schedule.</div>`;
+    }
+    if (elements.resultsTableWrap?.dataset.loaded !== "1") {
+      elements.resultsTableWrap.innerHTML = `<div class="empty">Unable to load results.</div>`;
+    }
     setJsonLd("schedule-itemlist", null);
-    scheduleCollectionState.scheduleMeta = null;
-    scheduleCollectionState.resultsMeta = null;
     refreshScheduleSeo();
   }
 }

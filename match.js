@@ -13,6 +13,7 @@ import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
+const DEFAULT_API_TIMEOUT_MS = 8000;
 const LEAD_TREND_MIN_ABS_GOLD = 7000;
 const LEAD_TREND_SCALE_HEADROOM = 1.15;
 const MOBILE_BREAKPOINT = 760;
@@ -352,6 +353,7 @@ let respawnTicker = null;
 const uiState = {
   match: null,
   apiBase: DEFAULT_API_BASE,
+  activeLoadRequestId: 0,
   requestedGameNumber: null,
   requestedGameFallback: null,
   activeGameNumber: null,
@@ -2383,11 +2385,11 @@ async function fetchTeamProfileForMatchup({
     requestUrl.searchParams.set("team_name", String(teamName));
   }
 
-  const response = await fetch(requestUrl.toString());
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || `Unable to load team profile for ${teamName || teamId}.`);
-  }
+  const payload = await fetchJsonWithTimeout(requestUrl.toString(), {
+    timeoutMs: DEFAULT_API_TIMEOUT_MS,
+    timeoutMessage: "Matchup request timed out.",
+    errorMessage: `Unable to load team profile for ${teamName || teamId}.`
+  });
 
   return payload?.data || null;
 }
@@ -8720,18 +8722,60 @@ function applyNavigationLinks(_apiBase) {
   if (elements.dotaHubNav) elements.dotaHubNav.href = dotaHubUrl.toString();
 }
 
+async function fetchJsonWithTimeout(url, {
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
+  timeoutMessage = "Request timed out.",
+  errorMessage = "API request failed."
+} = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    const raw = await response.text();
+    let payload = null;
+    try {
+      payload = raw ? JSON.parse(raw) : null;
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const error = new Error(payload?.error?.message || errorMessage);
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    return payload || { data: null };
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(timeoutMessage);
+      timeoutError.code = "timeout";
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function fetchMatchSnapshot({ matchId, requestedGameNumber, apiBase }) {
   const detailUrl = new URL(`/v1/matches/${encodeURIComponent(matchId)}`, apiBase);
   if (Number.isInteger(requestedGameNumber)) {
     detailUrl.searchParams.set("game", String(requestedGameNumber));
   }
 
-  const response = await fetch(detailUrl.toString());
-  const payload = await response.json();
-
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || "API request failed.");
-  }
+  const payload = await fetchJsonWithTimeout(detailUrl.toString(), {
+    timeoutMs: DEFAULT_API_TIMEOUT_MS,
+    timeoutMessage: "Match detail request timed out.",
+    errorMessage: "API request failed."
+  });
 
   return payload.data;
 }
@@ -8931,6 +8975,7 @@ function startMatchStream({ matchId, requestedGameNumber, apiBase }) {
 }
 
 async function loadMatch() {
+  const requestId = ++uiState.activeLoadRequestId;
   const url = new URL(window.location.href);
   const route = parseMatchRoute(url.toString());
   const matchId = route.id;
@@ -8983,7 +9028,7 @@ async function loadMatch() {
         apiBase
       });
     } catch (primaryError) {
-      if (!Number.isInteger(requestedGameNumber)) {
+      if (!Number.isInteger(requestedGameNumber) || primaryError?.code === "timeout") {
         throw primaryError;
       }
 
@@ -8994,6 +9039,10 @@ async function loadMatch() {
       });
       effectiveRequestedGameNumber = null;
       uiState.requestedGameFallback = requestedGameNumber;
+    }
+
+    if (requestId !== uiState.activeLoadRequestId) {
+      return;
     }
 
     uiState.requestedGameNumber = effectiveRequestedGameNumber;
@@ -9019,12 +9068,19 @@ async function loadMatch() {
       renderStreamStatus(match);
     }
   } catch (error) {
+    if (requestId !== uiState.activeLoadRequestId) {
+      return;
+    }
     uiState.match = null;
     uiState.stream.lastErrorAt = Date.now();
     uiState.viewMode = "series";
     uiState.activeGameNumber = null;
     resetMatchupState();
     elements.matchTitle.textContent = `Error loading match: ${error.message}`;
+    if (elements.freshnessText) {
+      elements.freshnessText.textContent = error?.code === "timeout" ? "Match detail request timed out." : "";
+      elements.freshnessText.hidden = !elements.freshnessText.textContent;
+    }
     refreshMatchSeo(null);
     renderStreamStatus(null);
     renderMatchupConsole(null);

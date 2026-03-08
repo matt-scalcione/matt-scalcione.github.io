@@ -2,6 +2,7 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { applySeo, inferRobotsDirective, setJsonLd } from "./seo.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
+const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
 
 const elements = {
@@ -41,7 +42,8 @@ const elements = {
 let followsViewMode = "both";
 const followsState = {
   rows: [],
-  preferences: null
+  preferences: null,
+  activeLoadRequestId: 0
 };
 
 function refreshFollowsSeo() {
@@ -284,14 +286,36 @@ function getContext() {
 }
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
-  const payload = await response.json().catch(() => ({}));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_API_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || "API request failed.");
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        ...(options.headers || {})
+      }
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || "API request failed.");
+    }
+
+    return payload;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error("Follows request timed out.");
+      timeoutError.code = "timeout";
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return payload;
 }
 
 function renderFollows(rows) {
@@ -371,6 +395,7 @@ async function loadPreferences() {
 }
 
 async function loadAll() {
+  const requestId = ++followsState.activeLoadRequestId;
   try {
     const { apiBase } = getContext();
     try {
@@ -380,9 +405,30 @@ async function loadAll() {
     }
     updateNav();
     setStatus("Loading follows and preferences...", "loading");
-    await Promise.all([loadFollows(), loadPreferences()]);
-    setStatus("Follows and preferences loaded.", "success");
+    const [followsResult, preferencesResult] = await Promise.allSettled([
+      loadFollows(),
+      loadPreferences()
+    ]);
+
+    if (requestId !== followsState.activeLoadRequestId) {
+      return;
+    }
+
+    if (followsResult.status === "fulfilled" && preferencesResult.status === "fulfilled") {
+      setStatus("Follows and preferences loaded.", "success");
+      return;
+    }
+
+    if (followsResult.status === "fulfilled" || preferencesResult.status === "fulfilled") {
+      setStatus("Partial load. One request was slow or unavailable.", "error");
+      return;
+    }
+
+    throw followsResult.reason || preferencesResult.reason || new Error("Unable to load follows.");
   } catch (error) {
+    if (requestId !== followsState.activeLoadRequestId) {
+      return;
+    }
     setStatus(`Error: ${error.message}`, "error");
   }
 }

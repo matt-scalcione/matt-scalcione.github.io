@@ -14,6 +14,7 @@ import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const AUTO_REFRESH_MS = 15000;
+const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
 
 const elements = {
@@ -50,6 +51,7 @@ const liveDeskState = {
   statusFilter: "all",
   searchTerm: ""
 };
+let activeLoadRequestId = 0;
 const LIVE_STATUS_LABELS = {
   all: "All",
   live: "Live",
@@ -64,6 +66,40 @@ function readApiBase() {
 
 function saveApiBase(value) {
   localStorage.setItem("pulseboard.apiBase", value);
+}
+
+async function fetchJsonWithTimeout(url, {
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
+  timeoutMessage = "Live desk request timed out."
+} = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || "API request failed.");
+    }
+
+    return payload;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(timeoutMessage);
+      timeoutError.code = "timeout";
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function preferredTitleQueryValue() {
@@ -642,6 +678,7 @@ function renderLiveDesk() {
 }
 
 async function loadMatches() {
+  const requestId = ++activeLoadRequestId;
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   const game = elements.gameSelect.value;
   const region = elements.regionInput.value;
@@ -667,11 +704,10 @@ async function loadMatches() {
   try {
     renderLoadingCards();
     setStatus("Loading live matches...", "loading");
-    const response = await fetch(requestUrl);
-    const payload = await response.json();
-
-    if (!response.ok) {
-      throw new Error(payload?.error?.message || "API request failed.");
+    elements.metaText.textContent = "Loading live board...";
+    const payload = await fetchJsonWithTimeout(requestUrl);
+    if (requestId !== activeLoadRequestId) {
+      return;
     }
 
     liveDeskState.rows = Array.isArray(payload.data) ? payload.data : [];
@@ -679,12 +715,17 @@ async function loadMatches() {
     elements.metaText.textContent = `Showing ${payload?.meta?.count ?? 0} matches. Updated ${dateTimeLabel(payload?.meta?.generatedAt)}`;
     setStatus("Live desk synced.", "success");
   } catch (error) {
+    if (requestId !== activeLoadRequestId) {
+      return;
+    }
     setStatus(`Error: ${error.message}`, "error");
     liveDeskState.rows = [];
     renderLiveDeskSummary([], [], statusCounts([]));
     if (elements.liveFilterMeta) {
       elements.liveFilterMeta.textContent = "";
     }
+    elements.metaText.textContent =
+      error?.code === "timeout" ? "Live desk request timed out." : "Unable to load live board.";
     setJsonLd("live-itemlist", null);
     refreshLiveSeo();
     renderEmpty("Unable to load matches. Check API base and API server status.");
