@@ -10200,7 +10200,7 @@ body.product-shell .team-quick-nav {
 @media (max-width: 760px) {
   body.product-shell .hero {
     padding-top: 0.95rem;
-    padding-bottom: 0.38rem;
+    padding-bottom: 0.24rem;
   }
 
   body.product-shell .guide-step-grid,
@@ -10225,24 +10225,7 @@ body.product-shell .team-quick-nav {
   }
 
   body.product-shell .page-nav {
-    width: 100%;
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 0.24rem;
-    padding: 0.2rem;
-    scrollbar-width: none;
-  }
-
-  body.product-shell .page-nav::-webkit-scrollbar {
     display: none;
-  }
-
-  body.product-shell .page-nav a {
-    flex: 0 0 auto;
-    white-space: nowrap;
-    min-height: 2rem;
-    padding: 0.38rem 0.7rem;
   }
 
   body.product-shell.live-page .page-nav,
@@ -10276,6 +10259,13 @@ body.product-shell .team-quick-nav {
     display: none;
   }
 
+  .match-page .hero #matchTitle.subtitle,
+  .team-page .hero #teamTitle.subtitle {
+    font-size: clamp(1.05rem, 5.8vw, 1.34rem);
+    line-height: 1.14;
+    max-width: none;
+  }
+
   .lens-strip-shell,
   body.product-shell .guide-head {
     flex-direction: column;
@@ -10296,16 +10286,6 @@ body.product-shell .team-quick-nav {
   .hero::after {
     left: 0.66rem;
     right: 0.66rem;
-  }
-
-  .match-page .page-nav {
-    gap: 0.16rem;
-  }
-
-  .match-page .page-nav a {
-    min-height: 1.82rem;
-    font-size: 0.6rem;
-    padding: 0.22rem 0.28rem;
   }
 
   .match-page .hero .link-btn {

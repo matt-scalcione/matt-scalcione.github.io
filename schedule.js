@@ -133,6 +133,15 @@ const scheduleDiscoveryState = {
 };
 let activeLoadRequestId = 0;
 let resultsRetryHandle = null;
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 const SCHEDULE_RANGE_PRESETS = {
   live: { pastHours: 12, futureHours: 18 },
   "24h": { pastHours: 0, futureHours: 24 },
