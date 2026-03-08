@@ -22,6 +22,9 @@ const STRATZ_LIVE_CACHE_MS = Math.max(
   10000,
   Number.parseInt(process.env.STRATZ_DOTA_LIVE_CACHE_MS || "15000", 10)
 );
+const DOTA_TOWER_TOTAL = 11;
+const DOTA_BARRACKS_TOTAL = 6;
+const MIN_GOLD_SWING_FOR_TICKER = 1500;
 
 function loadQueryText(inlineValue, filePath) {
   const inline = String(inlineValue || "").trim();
@@ -70,6 +73,11 @@ function toIsoFromSeconds(seconds, fallback = Date.now()) {
   }
 
   return new Date(seconds * 1000).toISOString();
+}
+
+function parseTimestamp(value, fallback = 0) {
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function normalizeText(value, fallback = "") {
@@ -140,6 +148,13 @@ function firstPresent(...values) {
   }
 
   return null;
+}
+
+function signed(value) {
+  const count = toCount(value);
+  if (count > 0) return `+${count.toLocaleString()}`;
+  if (count < 0) return `-${Math.abs(count).toLocaleString()}`;
+  return "0";
 }
 
 function extractTeams(node) {
@@ -499,6 +514,9 @@ function playerHeroName(player) {
 }
 
 function normalizePlayerRow(player, side, teamRef, fallbackIndex) {
+  const latestGold = latestPlayerGoldEvent(player);
+  const latestPosition = latestPlayerPosition(player);
+  const inventoryItems = latestPlayerInventory(player);
   const kills = toCount(firstPresent(player?.kills, player?.stats?.kills, player?.playerStats?.kills));
   const deaths = toCount(firstPresent(player?.deaths, player?.stats?.deaths, player?.playerStats?.deaths));
   const assists = toCount(firstPresent(player?.assists, player?.stats?.assists, player?.playerStats?.assists));
@@ -508,6 +526,7 @@ function normalizePlayerRow(player, side, teamRef, fallbackIndex) {
   const denies = toCount(firstPresent(player?.denies, player?.stats?.denies));
   const goldEarned = toCount(
     firstPresent(
+      latestGold?.networth,
       player?.networth,
       player?.netWorth,
       player?.gold,
@@ -517,7 +536,13 @@ function normalizePlayerRow(player, side, teamRef, fallbackIndex) {
     )
   );
   const gpm = toCount(
-    firstPresent(player?.goldPerMinute, player?.gpm, player?.stats?.gpm, player?.playerStats?.gpm)
+    firstPresent(
+      latestGold?.goldPerMinute,
+      player?.goldPerMinute,
+      player?.gpm,
+      player?.stats?.gpm,
+      player?.playerStats?.gpm
+    )
   );
   const xpm = toCount(
     firstPresent(
@@ -534,9 +559,6 @@ function normalizePlayerRow(player, side, teamRef, fallbackIndex) {
   const maxHealth = toOptionalNumber(
     firstPresent(player?.maxHealth, player?.maxHp, player?.stats?.maxHealth)
   );
-  const isDead = Boolean(
-    firstPresent(player?.isDead, player?.dead, player?.alive === false, health !== null && health <= 0)
-  );
   const respawnSeconds = toOptionalNumber(
     firstPresent(
       player?.secondsToRespawn,
@@ -545,10 +567,19 @@ function normalizePlayerRow(player, side, teamRef, fallbackIndex) {
       player?.stats?.respawnSeconds
     )
   );
-  const items = []
-    .concat(Array.isArray(player?.items) ? player.items : [])
-    .concat(Array.isArray(player?.inventory) ? player.inventory : [])
-    .filter(Boolean);
+  const explicitDead = typeof player?.isDead === "boolean" ? player.isDead : typeof player?.dead === "boolean" ? player.dead : null;
+  const isDead = Boolean(
+    explicitDead ??
+      (player?.alive === false ? true : null) ??
+      (respawnSeconds !== null ? respawnSeconds > 0 : null) ??
+      (health !== null && health <= 0 ? true : null)
+  );
+  const items = inventoryItems.length
+    ? inventoryItems
+    : []
+        .concat(Array.isArray(player?.items) ? player.items : [])
+        .concat(Array.isArray(player?.inventory) ? player.inventory : [])
+        .filter(Boolean);
 
   return {
     team: side,
@@ -572,6 +603,8 @@ function normalizePlayerRow(player, side, teamRef, fallbackIndex) {
     maxHealth,
     isDead,
     respawnSeconds,
+    x: latestPosition?.x ?? null,
+    y: latestPosition?.y ?? null,
     itemCount: items.length
   };
 }
@@ -664,6 +697,616 @@ function sortPlayers(rows = []) {
     });
 }
 
+function extractRawPlayers(node) {
+  return []
+    .concat(Array.isArray(node?.radiantPlayers) ? node.radiantPlayers : [])
+    .concat(Array.isArray(node?.direPlayers) ? node.direPlayers : [])
+    .concat(Array.isArray(node?.players) ? node.players : [])
+    .concat(Array.isArray(node?.matchPlayers) ? node.matchPlayers : [])
+    .concat(Array.isArray(node?.stats?.players) ? node.stats.players : [])
+    .concat(Array.isArray(node?.participantStats) ? node.participantStats : [])
+    .filter(Boolean);
+}
+
+function latestEvent(events = []) {
+  return events
+    .filter(Boolean)
+    .slice()
+    .sort((left, right) => toCount(left?.time) - toCount(right?.time))
+    .pop() || null;
+}
+
+function inventoryItemIdsFromEvent(row) {
+  return [
+    row?.itemId0,
+    row?.itemId1,
+    row?.itemId2,
+    row?.itemId3,
+    row?.itemId4,
+    row?.itemId5,
+    row?.backpackId0,
+    row?.backpackId1,
+    row?.backpackId2
+  ]
+    .map((value) => toOptionalNumber(value))
+    .filter((value) => value !== null && value > 0);
+}
+
+function latestPlayerPosition(player) {
+  const playbackPoint = latestEvent(player?.playbackData?.positionEvents);
+  if (playbackPoint) {
+    return {
+      x: toOptionalNumber(playbackPoint?.x),
+      y: toOptionalNumber(playbackPoint?.y),
+      time: toOptionalNumber(playbackPoint?.time)
+    };
+  }
+
+  return null;
+}
+
+function latestPlayerGoldEvent(player) {
+  return latestEvent(player?.playbackData?.goldEvents);
+}
+
+function latestPlayerInventory(player) {
+  const playbackInventory = latestEvent(player?.playbackData?.inventoryEvents);
+  if (playbackInventory) {
+    return inventoryItemIdsFromEvent(playbackInventory);
+  }
+
+  return inventoryItemIdsFromEvent(player);
+}
+
+function objectiveImportance(type) {
+  if (type === "baron") return "high";
+  if (type === "inhibitor") return "high";
+  if (type === "tower") return "medium";
+  if (type === "teamfight") return "medium";
+  return "low";
+}
+
+function normalizeStratzObjectiveType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) {
+    return "other";
+  }
+  if (normalized.includes("tower")) return "tower";
+  if (normalized.includes("barrack")) return "inhibitor";
+  if (normalized.includes("roshan")) return "baron";
+  return "other";
+}
+
+function labelObjectiveEvent(type, teamName) {
+  if (type === "tower") return `${teamName} destroyed a tower`;
+  if (type === "inhibitor") return `${teamName} destroyed barracks`;
+  if (type === "baron") return `${teamName} secured Roshan`;
+  return `${teamName} found an objective`;
+}
+
+function buildObjectiveTimelineFromStratz(root, teams, startAtIso) {
+  const rows = [];
+  const startMs = parseTimestamp(startAtIso, Date.now());
+  const buildingEvents = Array.isArray(root?.playbackData?.buildingEvents) ? root.playbackData.buildingEvents : [];
+  const roshanEvents = Array.isArray(root?.playbackData?.roshanEvents) ? root.playbackData.roshanEvents : [];
+
+  buildingEvents.forEach((event, index) => {
+    if (event?.isAlive !== false) {
+      return;
+    }
+
+    const type = normalizeStratzObjectiveType(event?.type ?? event?.npcId);
+    if (type === "other") {
+      return;
+    }
+
+    const objectiveTeam = event?.isRadiant === true ? "right" : event?.isRadiant === false ? "left" : null;
+    const teamName =
+      objectiveTeam === "left"
+        ? teams?.left?.name || "Radiant"
+        : objectiveTeam === "right"
+          ? teams?.right?.name || "Dire"
+          : "Unknown";
+    const gameTimeSeconds = toCount(event?.time);
+
+    rows.push({
+      id: `stratz_obj_building_${index + 1}`,
+      at: new Date(startMs + gameTimeSeconds * 1000).toISOString(),
+      type,
+      team: objectiveTeam,
+      importance: objectiveImportance(type),
+      label: labelObjectiveEvent(type, teamName),
+      rawType: String(event?.type || event?.npcId || ""),
+      gameTimeSeconds
+    });
+  });
+
+  roshanEvents.forEach((event, index) => {
+    if (event?.isAlive !== false) {
+      return;
+    }
+
+    const gameTimeSeconds = toCount(event?.time);
+    rows.push({
+      id: `stratz_obj_roshan_${index + 1}`,
+      at: new Date(startMs + gameTimeSeconds * 1000).toISOString(),
+      type: "baron",
+      team: null,
+      importance: "high",
+      label: "Roshan slain",
+      rawType: "roshan",
+      gameTimeSeconds
+    });
+  });
+
+  return rows.sort((left, right) => parseTimestamp(left.at) - parseTimestamp(right.at));
+}
+
+function buildObjectiveBreakdown(objectiveTimeline = []) {
+  const init = () => ({
+    total: 0,
+    dragon: 0,
+    baron: 0,
+    tower: 0,
+    inhibitor: 0,
+    other: 0
+  });
+
+  const left = init();
+  const right = init();
+
+  for (const event of objectiveTimeline) {
+    if (event?.team !== "left" && event?.team !== "right") {
+      continue;
+    }
+
+    const target = event.team === "left" ? left : right;
+    target.total += 1;
+    if (event.type === "tower") target.tower += 1;
+    else if (event.type === "inhibitor") target.inhibitor += 1;
+    else if (event.type === "baron") target.baron += 1;
+    else target.other += 1;
+  }
+
+  return { left, right };
+}
+
+function buildObjectiveControlFromBreakdown(objectiveBreakdown) {
+  const leftTowers = Math.max(toCount(objectiveBreakdown?.left?.tower), 0);
+  const rightTowers = Math.max(toCount(objectiveBreakdown?.right?.tower), 0);
+  const leftBarons = Math.max(toCount(objectiveBreakdown?.left?.baron), 0);
+  const rightBarons = Math.max(toCount(objectiveBreakdown?.right?.baron), 0);
+  const leftInhibitors = Math.max(toCount(objectiveBreakdown?.left?.inhibitor), 0);
+  const rightInhibitors = Math.max(toCount(objectiveBreakdown?.right?.inhibitor), 0);
+  const leftScore = leftTowers * 1.4 + leftBarons * 3.1 + leftInhibitors * 2.2;
+  const rightScore = rightTowers * 1.4 + rightBarons * 3.1 + rightInhibitors * 2.2;
+  const total = leftScore + rightScore;
+
+  return {
+    left: {
+      towers: leftTowers,
+      dragons: 0,
+      barons: leftBarons,
+      inhibitors: leftInhibitors,
+      score: Number(leftScore.toFixed(2)),
+      controlPct: total > 0 ? Number(((leftScore / total) * 100).toFixed(1)) : 50
+    },
+    right: {
+      towers: rightTowers,
+      dragons: 0,
+      barons: rightBarons,
+      inhibitors: rightInhibitors,
+      score: Number(rightScore.toFixed(2)),
+      controlPct: total > 0 ? Number(((rightScore / total) * 100).toFixed(1)) : 50
+    }
+  };
+}
+
+function buildScoreTimeline(root, startAtIso) {
+  const leftRows = Array.isArray(root?.playbackData?.radiantScore) ? root.playbackData.radiantScore : [];
+  const rightRows = Array.isArray(root?.playbackData?.direScore) ? root.playbackData.direScore : [];
+  const byTime = new Map();
+  const startMs = parseTimestamp(startAtIso, Date.now());
+
+  leftRows.forEach((row) => {
+    const time = toCount(row?.time);
+    const bucket = byTime.get(time) || { time, left: null, right: null };
+    bucket.left = toCount(row?.score);
+    byTime.set(time, bucket);
+  });
+  rightRows.forEach((row) => {
+    const time = toCount(row?.time);
+    const bucket = byTime.get(time) || { time, left: null, right: null };
+    bucket.right = toCount(row?.score);
+    byTime.set(time, bucket);
+  });
+
+  const times = Array.from(byTime.keys()).sort((left, right) => left - right);
+  let previousLeft = 0;
+  let previousRight = 0;
+
+  return times.map((time) => {
+    const bucket = byTime.get(time);
+    if (bucket.left === null) bucket.left = previousLeft;
+    if (bucket.right === null) bucket.right = previousRight;
+    previousLeft = bucket.left;
+    previousRight = bucket.right;
+    return {
+      time,
+      left: bucket.left,
+      right: bucket.right,
+      at: new Date(startMs + time * 1000).toISOString()
+    };
+  });
+}
+
+function buildGoldLeadSeriesFromPlayers(players, teams, startAtIso) {
+  const startMs = parseTimestamp(startAtIso, Date.now());
+  const byTime = new Map();
+
+  players.forEach((player, index) => {
+    const side = inferPlayerSide(player, {
+      leftTeamId: teams?.left?.id,
+      rightTeamId: teams?.right?.id,
+      index
+    });
+    const playerKey = `${side}:${String(firstPresent(player?.steamAccountId, player?.steamAccount?.id, player?.playerSlot, index) || index)}`;
+    const goldEvents = Array.isArray(player?.playbackData?.goldEvents) ? player.playbackData.goldEvents : [];
+    goldEvents.forEach((event) => {
+      const time = toCount(event?.time);
+      const bucket = byTime.get(time) || {
+        time,
+        diffs: [],
+        leftByPlayer: new Map(),
+        rightByPlayer: new Map()
+      };
+      const diff = toOptionalNumber(event?.networthDifference);
+      if (diff !== null) {
+        bucket.diffs.push(diff);
+      }
+      const networth = toOptionalNumber(event?.networth);
+      if (networth !== null) {
+        const target = side === "left" ? bucket.leftByPlayer : bucket.rightByPlayer;
+        target.set(playerKey, networth);
+      }
+      byTime.set(time, bucket);
+    });
+  });
+
+  return Array.from(byTime.values())
+    .sort((left, right) => left.time - right.time)
+    .map((bucket) => {
+      const lead =
+        bucket.diffs.length > 0
+          ? Number(
+              (
+                bucket.diffs.reduce((sum, value) => sum + Number(value || 0), 0) / bucket.diffs.length
+              ).toFixed(0)
+            )
+          : Array.from(bucket.leftByPlayer.values()).reduce((sum, value) => sum + Number(value || 0), 0) -
+            Array.from(bucket.rightByPlayer.values()).reduce((sum, value) => sum + Number(value || 0), 0);
+      return {
+        at: new Date(startMs + bucket.time * 1000).toISOString(),
+        lead: toCount(lead),
+        gameTimeSeconds: bucket.time
+      };
+    })
+    .filter((row) => Number.isFinite(row.lead));
+}
+
+function buildLeadTrend(goldLeadSeries = []) {
+  if (!Array.isArray(goldLeadSeries) || goldLeadSeries.length === 0) {
+    return null;
+  }
+
+  const leads = goldLeadSeries.map((row) => toCount(row.lead));
+  const finalLead = leads[leads.length - 1];
+  let largestSwing = 0;
+  for (let index = 1; index < leads.length; index += 1) {
+    largestSwing = Math.max(largestSwing, Math.abs(leads[index] - leads[index - 1]));
+  }
+
+  return {
+    finalLead,
+    maxLead: Math.max(...leads),
+    minLead: Math.min(...leads),
+    largestSwing,
+    direction: finalLead > 0 ? "left" : finalLead < 0 ? "right" : "even"
+  };
+}
+
+function buildGoldMilestones(goldLeadSeries, teams) {
+  const thresholds = [2000, 4000, 8000, 12000];
+  const seen = new Set();
+  const rows = [];
+
+  for (const row of goldLeadSeries) {
+    const lead = toCount(row?.lead);
+    const threshold = thresholds.find((candidate) => Math.abs(lead) >= candidate && !seen.has(`${Math.sign(lead)}:${candidate}`));
+    if (!threshold || lead === 0) {
+      continue;
+    }
+
+    const side = lead > 0 ? "left" : "right";
+    const teamName = side === "left" ? teams?.left?.name || "Radiant" : teams?.right?.name || "Dire";
+    const key = `${Math.sign(lead)}:${threshold}`;
+    seen.add(key);
+    rows.push({
+      id: `stratz_gold_${key}`,
+      occurredAt: row.at,
+      team: side,
+      amount: threshold,
+      title: `${teamName} reached a ${threshold / 1000}k lead`,
+      summary: `Net worth edge moved to ${signed(lead)}.`,
+      importance: threshold >= 8000 ? "high" : "medium"
+    });
+  }
+
+  return rows;
+}
+
+function buildCombatBursts(scoreTimeline, teams) {
+  const rows = [];
+  for (let index = 1; index < scoreTimeline.length; index += 1) {
+    const previous = scoreTimeline[index - 1];
+    const current = scoreTimeline[index];
+    const leftDelta = toCount(current?.left) - toCount(previous?.left);
+    const rightDelta = toCount(current?.right) - toCount(previous?.right);
+    const totalDelta = leftDelta + rightDelta;
+    if (totalDelta <= 0) {
+      continue;
+    }
+
+    const team =
+      leftDelta > 0 && rightDelta > 0
+        ? "both"
+        : leftDelta > 0
+          ? "left"
+          : rightDelta > 0
+            ? "right"
+            : null;
+    const teamName =
+      team === "left"
+        ? teams?.left?.name || "Radiant"
+        : team === "right"
+          ? teams?.right?.name || "Dire"
+          : "Both teams";
+    const burstKills = Math.max(leftDelta, rightDelta, totalDelta);
+
+    rows.push({
+      id: `stratz_burst_${index}`,
+      occurredAt: current.at,
+      team,
+      title:
+        team === "both"
+          ? `Trade found ${totalDelta} kills`
+          : `${teamName} found ${burstKills} kill${burstKills === 1 ? "" : "s"}`,
+      summary:
+        team === "both"
+          ? `Score moved to ${current.left}-${current.right}.`
+          : `${teamName} pushed the score to ${current.left}-${current.right}.`,
+      importance: totalDelta >= 3 ? "high" : "medium",
+      kills: totalDelta
+    });
+  }
+
+  return rows;
+}
+
+function buildLiveTicker({ objectiveTimeline, goldLeadSeries, combatBursts, teams, selectedGameNumber, status, startAtIso }) {
+  const rows = [];
+
+  for (const row of objectiveTimeline.slice(-14)) {
+    const teamName =
+      row.team === "left"
+        ? teams?.left?.name || "Radiant"
+        : row.team === "right"
+          ? teams?.right?.name || "Dire"
+          : "Map state";
+    rows.push({
+      id: `ticker_obj_${row.id}`,
+      type: row.type,
+      team: row.team,
+      title: row.label,
+      summary: row.team ? `${teamName} extended objective control.` : row.label,
+      importance: row.importance || "medium",
+      occurredAt: row.at
+    });
+  }
+
+  for (let index = 1; index < goldLeadSeries.length; index += 1) {
+    const previous = toCount(goldLeadSeries[index - 1]?.lead);
+    const current = toCount(goldLeadSeries[index]?.lead);
+    const delta = current - previous;
+    if (Math.abs(delta) < MIN_GOLD_SWING_FOR_TICKER) {
+      continue;
+    }
+
+    const leader = current > 0 ? "left" : current < 0 ? "right" : null;
+    const leaderName =
+      leader === "left"
+        ? teams?.left?.name || "Radiant"
+        : leader === "right"
+          ? teams?.right?.name || "Dire"
+          : "Map state";
+
+    rows.push({
+      id: `ticker_gold_${index}`,
+      type: "economy",
+      team: leader,
+      title: `${leaderName} swung ${signed(delta)} gold`,
+      summary: `Lead now ${signed(current)} net worth.`,
+      importance: Math.abs(delta) >= 3000 ? "high" : "medium",
+      occurredAt: goldLeadSeries[index]?.at || new Date().toISOString()
+    });
+  }
+
+  for (const burst of combatBursts.slice(-12)) {
+    rows.push({
+      id: `ticker_burst_${burst.id}`,
+      type: "teamfight",
+      team: burst.team === "both" ? null : burst.team,
+      title: burst.title,
+      summary: burst.summary,
+      importance: burst.importance || "medium",
+      occurredAt: burst.occurredAt
+    });
+  }
+
+  if (status === "live" && startAtIso && !rows.some((row) => row.type === "state")) {
+    rows.push({
+      id: `ticker_state_${selectedGameNumber || 1}`,
+      type: "state",
+      team: null,
+      title: `Game ${selectedGameNumber || 1} in progress`,
+      summary: `${teams?.left?.name || "Radiant"} vs ${teams?.right?.name || "Dire"}`,
+      importance: "high",
+      occurredAt: startAtIso
+    });
+  }
+
+  return rows
+    .sort((left, right) => parseTimestamp(right.occurredAt) - parseTimestamp(left.occurredAt))
+    .slice(0, 40);
+}
+
+function buildKeyMoments({ objectiveTimeline, goldLeadSeries, teams }) {
+  const rows = [];
+
+  for (const row of objectiveTimeline.filter((event) => event.importance === "high").slice(-6)) {
+    const teamName =
+      row.team === "left"
+        ? teams?.left?.name || "Radiant"
+        : row.team === "right"
+          ? teams?.right?.name || "Dire"
+          : "Map state";
+    rows.push({
+      id: `moment_obj_${row.id}`,
+      occurredAt: row.at,
+      importance: row.importance || "high",
+      title: row.label,
+      summary: row.team ? `${teamName} gained major objective control.` : row.label
+    });
+  }
+
+  for (let index = 1; index < goldLeadSeries.length; index += 1) {
+    const previous = toCount(goldLeadSeries[index - 1]?.lead);
+    const current = toCount(goldLeadSeries[index]?.lead);
+    const delta = current - previous;
+    if (Math.abs(delta) < 2500) {
+      continue;
+    }
+    const leaderName =
+      current > 0
+        ? teams?.left?.name || "Radiant"
+        : current < 0
+          ? teams?.right?.name || "Dire"
+          : "Neither side";
+    rows.push({
+      id: `moment_gold_${index}`,
+      occurredAt: goldLeadSeries[index]?.at || new Date().toISOString(),
+      importance: Math.abs(delta) >= 4500 ? "critical" : "high",
+      title: `${leaderName} converted a ${Math.abs(delta).toLocaleString()} swing`,
+      summary: `Lead moved from ${signed(previous)} to ${signed(current)}.`
+    });
+  }
+
+  return rows
+    .sort((left, right) => parseTimestamp(right.occurredAt) - parseTimestamp(left.occurredAt))
+    .slice(0, 10);
+}
+
+function heroNameById(players = []) {
+  const map = new Map();
+  players.forEach((player) => {
+    const heroId = toOptionalNumber(firstPresent(player?.heroId, player?.hero?.id));
+    const heroName = playerHeroName(player);
+    if (heroId !== null && heroName) {
+      map.set(heroId, heroName);
+    }
+  });
+  return map;
+}
+
+function buildTeamDraft(root, players = []) {
+  const pickBans =
+    []
+      .concat(Array.isArray(root?.playbackData?.pickBans) ? root.playbackData.pickBans : [])
+      .concat(Array.isArray(root?.pickBans) ? root.pickBans : [])
+      .filter(Boolean)
+      .sort((left, right) => toCount(left?.order) - toCount(right?.order));
+  if (!pickBans.length) {
+    return null;
+  }
+
+  const heroNames = heroNameById(players);
+  const draft = { left: [], right: [] };
+  for (const row of pickBans) {
+    if (!row?.isPick) {
+      continue;
+    }
+
+    const side = row?.isRadiant === true ? "left" : row?.isRadiant === false ? "right" : null;
+    if (!side) {
+      continue;
+    }
+
+    const heroId = toOptionalNumber(row?.heroId);
+    const heroName = heroId !== null ? heroNames.get(heroId) || `Hero ${heroId}` : "Unknown";
+    draft[side].push({
+      role: normalizeRole(firstPresent(row?.position, `pos${draft[side].length + 1}`)),
+      champion: heroName,
+      name: row?.letter ? `Pick ${row.letter}` : `Pick ${draft[side].length + 1}`,
+      heroId
+    });
+  }
+
+  return draft.left.length || draft.right.length ? draft : null;
+}
+
+function buildLiveAlerts(momentum, objectiveTimeline, telemetryStatus, teams) {
+  const alerts = [];
+
+  if (Math.abs(toCount(momentum?.goldLead)) >= 6000) {
+    const side = momentum.goldLead > 0 ? "left" : momentum.goldLead < 0 ? "right" : null;
+    const teamName =
+      side === "left"
+        ? teams?.left?.name || "Radiant"
+        : side === "right"
+          ? teams?.right?.name || "Dire"
+          : "Neither side";
+    alerts.push({
+      id: "alert_gold_surge",
+      severity: Math.abs(toCount(momentum?.goldLead)) >= 10000 ? "critical" : "high",
+      title: `${teamName} hold a large net worth lead`,
+      summary: `Current lead ${signed(momentum?.goldLead)}.`,
+      team: side
+    });
+  }
+
+  if (objectiveTimeline.some((row) => row.type === "inhibitor")) {
+    alerts.push({
+      id: "alert_rax_pressure",
+      severity: "high",
+      title: "Barracks pressure online",
+      summary: "At least one lane of barracks has been removed.",
+      team: null
+    });
+  }
+
+  if (telemetryStatus === "rich") {
+    alerts.push({
+      id: "alert_rich_live",
+      severity: "medium",
+      title: "Live telemetry active",
+      summary: "STRATZ playback data is driving this map.",
+      team: null
+    });
+  }
+
+  return alerts.slice(0, 4);
+}
+
 function buildTeamEconomyTotals(playerEconomy) {
   const summarize = (rows = []) => {
     const totalGold = rows.reduce((sum, row) => sum + toCount(row?.goldEarned), 0);
@@ -685,9 +1328,11 @@ function sumMetric(rows = [], key) {
   return rows.reduce((sum, row) => sum + toCount(row?.[key]), 0);
 }
 
-function extractSnapshot(node, playerEconomy, teamEconomyTotals) {
+function extractSnapshot(node, playerEconomy, teamEconomyTotals, { objectiveControl, scoreTimeline } = {}) {
+  const lastScore = Array.isArray(scoreTimeline) && scoreTimeline.length ? scoreTimeline[scoreTimeline.length - 1] : null;
   const leftKills = toCount(
     firstPresent(
+      lastScore?.left,
       node?.radiantKills,
       node?.radiantScore,
       node?.score?.left,
@@ -698,6 +1343,7 @@ function extractSnapshot(node, playerEconomy, teamEconomyTotals) {
   );
   const rightKills = toCount(
     firstPresent(
+      lastScore?.right,
       node?.direKills,
       node?.direScore,
       node?.score?.right,
@@ -708,6 +1354,7 @@ function extractSnapshot(node, playerEconomy, teamEconomyTotals) {
   );
   const leftTowers = toCount(
     firstPresent(
+      objectiveControl?.left?.towers,
       node?.radiantTowerKills,
       node?.teams?.left?.towers,
       node?.teamRadiant?.towerKills,
@@ -716,6 +1363,7 @@ function extractSnapshot(node, playerEconomy, teamEconomyTotals) {
   );
   const rightTowers = toCount(
     firstPresent(
+      objectiveControl?.right?.towers,
       node?.direTowerKills,
       node?.teams?.right?.towers,
       node?.teamDire?.towerKills,
@@ -723,16 +1371,36 @@ function extractSnapshot(node, playerEconomy, teamEconomyTotals) {
     )
   );
   const leftRoshan = toCount(
-    firstPresent(node?.radiantRoshanKills, node?.teams?.left?.roshans, node?.score?.leftRoshan)
+    firstPresent(
+      objectiveControl?.left?.barons,
+      node?.radiantRoshanKills,
+      node?.teams?.left?.roshans,
+      node?.score?.leftRoshan
+    )
   );
   const rightRoshan = toCount(
-    firstPresent(node?.direRoshanKills, node?.teams?.right?.roshans, node?.score?.rightRoshan)
+    firstPresent(
+      objectiveControl?.right?.barons,
+      node?.direRoshanKills,
+      node?.teams?.right?.roshans,
+      node?.score?.rightRoshan
+    )
   );
   const leftBarracks = toCount(
-    firstPresent(node?.radiantBarracksKills, node?.teams?.left?.barracks, node?.score?.leftBarracks)
+    firstPresent(
+      objectiveControl?.left?.inhibitors,
+      node?.radiantBarracksKills,
+      node?.teams?.left?.barracks,
+      node?.score?.leftBarracks
+    )
   );
   const rightBarracks = toCount(
-    firstPresent(node?.direBarracksKills, node?.teams?.right?.barracks, node?.score?.rightBarracks)
+    firstPresent(
+      objectiveControl?.right?.inhibitors,
+      node?.direBarracksKills,
+      node?.teams?.right?.barracks,
+      node?.score?.rightBarracks
+    )
   );
 
   return {
@@ -951,17 +1619,27 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
   const watchOptions = extractWatchOptions(root);
   const watchUrl = watchOptions[0]?.url || null;
   const teams = liveSummary.teams;
+  const rawPlayers = extractRawPlayers(root);
   const playerGroups = extractPlayerGroups(root, teams);
   const playerEconomy = {
     elapsedSeconds: toCount(
-      firstPresent(root?.durationSeconds, root?.duration, root?.gameTimeSeconds, root?.clockTime)
+      firstPresent(root?.durationSeconds, root?.duration, root?.gameTimeSeconds, root?.clockTime, root?.gameTime)
     ),
     updatedAt: liveSummary.updatedAt || new Date().toISOString(),
     left: sortPlayers(playerGroups.left),
     right: sortPlayers(playerGroups.right)
   };
   const teamEconomyTotals = buildTeamEconomyTotals(playerEconomy);
-  const snapshot = extractSnapshot(root, playerEconomy, teamEconomyTotals);
+  const goldLeadSeries = buildGoldLeadSeriesFromPlayers(rawPlayers, teams, liveSummary.startAt);
+  const leadTrend = buildLeadTrend(goldLeadSeries);
+  const objectiveTimeline = buildObjectiveTimelineFromStratz(root, teams, liveSummary.startAt);
+  const objectiveBreakdown = buildObjectiveBreakdown(objectiveTimeline);
+  const objectiveControl = buildObjectiveControlFromBreakdown(objectiveBreakdown);
+  const scoreTimeline = buildScoreTimeline(root, liveSummary.startAt);
+  const snapshot = extractSnapshot(root, playerEconomy, teamEconomyTotals, {
+    objectiveControl,
+    scoreTimeline
+  });
   const { seriesGames, selectedGameNumber } = buildSeriesGames(liveSummary, {
     gameNumber,
     watchUrl,
@@ -971,96 +1649,140 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
     number: 1,
     state: liveSummary.status === "live" ? "inProgress" : liveSummary.status === "completed" ? "completed" : "unstarted"
   };
+  const combatBursts = buildCombatBursts(scoreTimeline, teams);
+  const goldMilestones = buildGoldMilestones(goldLeadSeries, teams);
+  const liveTicker = buildLiveTicker({
+    objectiveTimeline,
+    goldLeadSeries,
+    combatBursts,
+    teams,
+    selectedGameNumber,
+    status: liveSummary.status,
+    startAtIso: liveSummary.startAt
+  });
+  const keyMoments = buildKeyMoments({
+    objectiveTimeline,
+    goldLeadSeries,
+    teams
+  });
+  const teamDraft = buildTeamDraft(root, rawPlayers);
+  const liveWinRateSeries = Array.isArray(root?.liveWinRateValues) ? root.liveWinRateValues : [];
   const telemetryAvailable =
     playerEconomy.left.length > 0 ||
     playerEconomy.right.length > 0 ||
+    goldLeadSeries.length > 0 ||
+    objectiveTimeline.length > 0 ||
     snapshot.left.kills > 0 ||
     snapshot.right.kills > 0 ||
     snapshot.left.gold > 0 ||
     snapshot.right.gold > 0;
+  const telemetryRich =
+    playerEconomy.left.length > 0 &&
+    playerEconomy.right.length > 0 &&
+    goldLeadSeries.length > 1 &&
+    (objectiveTimeline.length > 0 || combatBursts.length > 0);
   const telemetryStatus = telemetryAvailable
-    ? "basic"
+    ? telemetryRich
+      ? "rich"
+      : "basic"
     : liveSummary.status === "live"
       ? "pending"
       : "none";
   const seriesProgress = buildSeriesProgress(liveSummary, seriesGames);
   const preMatchInsights = buildPreMatchInsights(liveSummary, seriesGames, watchUrl);
   const topPerformers = buildTopPerformers(playerEconomy);
+  const momentum = {
+    leaderTeamId:
+      snapshot.left.gold > snapshot.right.gold
+        ? teams.left.id
+        : snapshot.right.gold > snapshot.left.gold
+          ? teams.right.id
+          : null,
+    goldLead: snapshot.left.gold - snapshot.right.gold,
+    goldLeadDeltaWindow: toCount(leadTrend?.largestSwing),
+    killDiff: snapshot.left.kills - snapshot.right.kills,
+    towerDiff: snapshot.left.towers - snapshot.right.towers,
+    dragonDiff: 0,
+    baronDiff: snapshot.left.barons - snapshot.right.barons,
+    inhibitorDiff: snapshot.left.inhibitors - snapshot.right.inhibitors
+  };
+  const liveAlerts = buildLiveAlerts(momentum, objectiveTimeline, telemetryStatus, teams);
 
   return {
     ...liveSummary,
     id: String(matchId || liveSummary.id),
+    sourceMatchId: String(firstPresent(root?.matchId, liveSummary.sourceMatchId, matchId) || ""),
     patch: normalizeText(firstPresent(root?.patch, root?.gameVersion), "unknown"),
     freshness: {
       source: "stratz",
-      status: telemetryAvailable ? "healthy" : liveSummary.status === "live" ? "partial" : "schedule_only",
+      status: telemetryRich ? "healthy" : telemetryAvailable ? "partial" : liveSummary.status === "live" ? "partial" : "schedule_only",
       updatedAt: liveSummary.updatedAt || new Date().toISOString()
     },
-    keyMoments: [],
+    keyMoments,
     timeline: [],
-    objectiveTimeline: [],
-    objectiveControl: {
-      left: {
-        towers: snapshot.left.towers,
-        dragons: 0,
-        barons: snapshot.left.barons,
-        inhibitors: snapshot.left.inhibitors,
-        score: 0,
-        controlPct: 50
-      },
-      right: {
-        towers: snapshot.right.towers,
-        dragons: 0,
-        barons: snapshot.right.barons,
-        inhibitors: snapshot.right.inhibitors,
-        score: 0,
-        controlPct: 50
-      }
-    },
-    objectiveBreakdown: {
-      left: { total: 0, dragon: 0, baron: 0, tower: snapshot.left.towers, inhibitor: snapshot.left.inhibitors, other: 0 },
-      right: { total: 0, dragon: 0, baron: 0, tower: snapshot.right.towers, inhibitor: snapshot.right.inhibitors, other: 0 }
-    },
+    objectiveTimeline,
+    objectiveControl,
+    objectiveBreakdown,
     objectiveRuns: [],
-    goldLeadSeries: [],
-    leadTrend: null,
+    goldLeadSeries,
+    leadTrend,
     playerEconomy,
     teamEconomyTotals,
     topPerformers,
-    momentum: {
-      leaderTeamId:
-        snapshot.left.gold > snapshot.right.gold
-          ? teams.left.id
-          : snapshot.right.gold > snapshot.left.gold
-            ? teams.right.id
-            : null,
-      goldLead: snapshot.left.gold - snapshot.right.gold,
-      goldLeadDeltaWindow: 0,
-      killDiff: snapshot.left.kills - snapshot.right.kills,
-      towerDiff: snapshot.left.towers - snapshot.right.towers,
-      dragonDiff: 0,
-      baronDiff: snapshot.left.barons - snapshot.right.barons,
-      inhibitorDiff: snapshot.left.inhibitors - snapshot.right.inhibitors
-    },
+    momentum,
     dataConfidence: {
-      grade: telemetryAvailable ? "medium" : "low",
-      score: telemetryAvailable ? 72 : 50,
-      telemetry: telemetryAvailable ? "provider_basic" : liveSummary.status === "live" ? "live_status_only" : "schedule_only",
+      grade: telemetryRich ? "high" : telemetryAvailable ? "medium" : "low",
+      score: telemetryRich ? 86 : telemetryAvailable ? 72 : 50,
+      telemetry:
+        telemetryStatus === "rich"
+          ? "provider_rich"
+          : telemetryAvailable
+            ? "provider_basic"
+            : liveSummary.status === "live"
+              ? "live_status_only"
+              : "schedule_only",
       notes: telemetryAvailable
-        ? ["Live STRATZ data normalized into the Pulseboard Dota contract."]
+        ? [
+            telemetryRich
+              ? "Live STRATZ playback data normalized into the Pulseboard Dota contract."
+              : "Live STRATZ player and scoreboard data normalized into the Pulseboard Dota contract."
+          ]
         : ["STRATZ match resolved, but only limited state is currently available from the returned payload."]
     },
     pulseCard: {
-      tone: telemetryAvailable ? "info" : liveSummary.status === "live" ? "warn" : "neutral",
+      tone: telemetryRich ? "good" : telemetryAvailable ? "info" : liveSummary.status === "live" ? "warn" : "neutral",
       title: telemetryAvailable ? "STRATZ live detail active" : "STRATZ status confirmed",
       summary: telemetryAvailable
-        ? "Basic live Dota telemetry is now available from STRATZ."
+        ? telemetryRich
+          ? "Rich live Dota telemetry is available from STRATZ."
+          : "Basic live Dota telemetry is now available from STRATZ."
         : "Series resolved through STRATZ, but the returned payload does not include rich live telemetry yet."
     },
     edgeMeter: {
-      left: { team: teams.left.name, score: 50, drivers: [] },
-      right: { team: teams.right.name, score: 50, drivers: [] },
-      verdict: telemetryAvailable ? "Basic live telemetry available." : "Waiting for richer live STRATZ telemetry."
+      left: {
+        team: teams.left.name,
+        score: Math.max(0, Math.min(100, Math.round(50 + momentum.goldLead / 220 + momentum.killDiff * 1.6))),
+        drivers: [
+          `Gold ${signed(momentum.goldLead)}`,
+          `Kills ${signed(momentum.killDiff)}`,
+          `Control ${Number(objectiveControl?.left?.controlPct || 50).toFixed(1)}%`
+        ]
+      },
+      right: {
+        team: teams.right.name,
+        score: Math.max(0, Math.min(100, Math.round(50 - momentum.goldLead / 220 - momentum.killDiff * 1.6))),
+        drivers: [
+          `Gold ${signed(-momentum.goldLead)}`,
+          `Kills ${signed(-momentum.killDiff)}`,
+          `Control ${Number(objectiveControl?.right?.controlPct || 50).toFixed(1)}%`
+        ]
+      },
+      verdict:
+        telemetryRich
+          ? "Rich live telemetry available."
+          : telemetryAvailable
+            ? "Basic live telemetry available."
+            : "Waiting for richer live STRATZ telemetry."
     },
     tempoSnapshot: {
       completedGames: seriesProgress.completedGames,
@@ -1068,15 +1790,21 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
       shortestDurationMinutes: null,
       longestDurationMinutes: null,
       currentGameMinutes: playerEconomy.elapsedSeconds > 0 ? Number((playerEconomy.elapsedSeconds / 60).toFixed(1)) : null,
-      objectivePer10Minutes: null,
-      objectiveEvents: 0
+      objectivePer10Minutes:
+        playerEconomy.elapsedSeconds > 0
+          ? Number((objectiveTimeline.length / Math.max(1, playerEconomy.elapsedSeconds / 600)).toFixed(2))
+          : null,
+      objectiveEvents: objectiveTimeline.length
     },
     tacticalChecklist: telemetryAvailable
       ? [
           {
-            tone: "info",
-            title: "Basic telemetry active",
-            detail: "Player rows and scoreboard are coming from STRATZ."
+            tone: telemetryRich ? "good" : "info",
+            title: telemetryRich ? "Rich telemetry active" : "Basic telemetry active",
+            detail:
+              telemetryRich
+                ? "Player rows, gold trend, objectives, and live feed are coming from STRATZ."
+                : "Player rows and scoreboard are coming from STRATZ."
           }
         ]
       : [
@@ -1087,7 +1815,7 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
           }
         ],
     storylines: [],
-    teamDraft: null,
+    teamDraft,
     laneMatchups: [],
     roleMatchupDeltas: [],
     seriesPlayerTrends: [],
@@ -1111,12 +1839,16 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
     headToHead: null,
     prediction: null,
     preMatchInsights,
-    combatBursts: [],
-    goldMilestones: [],
-    liveAlerts: [],
-    matchupReadiness: telemetryAvailable ? "medium" : "low",
-    matchupKeyFactors: telemetryAvailable ? ["STRATZ live detail", "Player board available"] : ["STRATZ status only"],
-    matchupAlertLevel: telemetryAvailable ? "medium" : "low",
+    combatBursts,
+    goldMilestones,
+    liveAlerts,
+    matchupReadiness: telemetryRich ? "high" : telemetryAvailable ? "medium" : "low",
+    matchupKeyFactors: telemetryRich
+      ? ["STRATZ playback feed", "Gold trend available", "Objective timeline available"]
+      : telemetryAvailable
+        ? ["STRATZ live detail", "Player board available"]
+        : ["STRATZ status only"],
+    matchupAlertLevel: telemetryRich ? "high" : telemetryAvailable ? "medium" : "low",
     matchupMeta: null,
     seriesGames,
     selectedGame: {
@@ -1125,10 +1857,10 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
       label: selectedGame.label,
       telemetryStatus,
       telemetryCounts: {
-        tickerEvents: 0,
-        objectiveEvents: 0,
-        combatBursts: 0,
-        goldMilestones: 0
+        tickerEvents: liveTicker.length,
+        objectiveEvents: objectiveTimeline.length,
+        combatBursts: combatBursts.length,
+        goldMilestones: goldMilestones.length
       },
       snapshot,
       tips: [],
@@ -1138,7 +1870,8 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
       startedAt: selectedGame.startedAt || liveSummary.startAt || null,
       durationMinutes:
         playerEconomy.elapsedSeconds > 0 ? Number((playerEconomy.elapsedSeconds / 60).toFixed(1)) : null,
-      requestedMissing: false
+      requestedMissing: false,
+      sourceMatchId: String(firstPresent(root?.matchId, liveSummary.sourceMatchId, matchId) || "")
     },
     gameNavigation: buildGameNavigation(seriesGames, selectedGameNumber),
     seriesHeader: {
@@ -1152,7 +1885,11 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
     },
     seriesProgress,
     seriesProjection: preMatchInsights.seriesProjection,
-    liveTicker: []
+    liveTicker,
+    liveWinRateSeries,
+    source: {
+      provider: "stratz"
+    }
   };
 }
 

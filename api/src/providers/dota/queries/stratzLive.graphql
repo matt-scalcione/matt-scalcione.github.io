@@ -1,6 +1,6 @@
 query PulseboardStratzLive {
   liveMatches: live {
-    matches(request: { isCompleted: false, isLeague: true, take: 50 }) {
+    matches(request: { isCompleted: false, take: 100 }) {
       matchId
       radiantScore
       direScore
@@ -42,6 +42,10 @@ query PulseboardStratzLive {
       gameMinute
       createdDateTime
       modifiedDateTime
+      liveWinRateValues {
+        time
+        winRate
+      }
       players {
         matchId
         heroId

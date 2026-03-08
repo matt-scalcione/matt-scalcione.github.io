@@ -221,7 +221,15 @@ describe("StratzProvider", () => {
                       experiencePerMinute: 710,
                       lastHits: 185,
                       denies: 12,
-                      level: 14
+                      level: 14,
+                      respawnTimer: 0,
+                      playbackData: {
+                        positionEvents: [{ time: 1200, x: -4200, y: -3800 }],
+                        goldEvents: [
+                          { time: 600, networth: 8100, networthDifference: 1200, goldPerMinute: 540 },
+                          { time: 1200, networth: 12400, networthDifference: 2600, goldPerMinute: 620 }
+                        ]
+                      }
                     }
                   ],
                   direPlayers: [
@@ -242,13 +250,39 @@ describe("StratzProvider", () => {
                       experiencePerMinute: 680,
                       lastHits: 170,
                       denies: 9,
-                      level: 13
+                      level: 13,
+                      respawnTimer: 18,
+                      playbackData: {
+                        positionEvents: [{ time: 1200, x: 3800, y: 4100 }],
+                        goldEvents: [
+                          { time: 600, networth: 7600, networthDifference: 1200, goldPerMinute: 510 },
+                          { time: 1200, networth: 11800, networthDifference: 2600, goldPerMinute: 590 }
+                        ]
+                      }
                     }
                   ],
                   radiantScore: 4,
                   direScore: 3,
-                  radiantTowerKills: 2,
-                  direTowerKills: 1
+                  playbackData: {
+                    buildingEvents: [
+                      { time: 720, type: "TOWER", isAlive: false, isRadiant: false, indexId: 1 }
+                    ],
+                    roshanEvents: [
+                      { time: 1020, isAlive: false, respawnTimer: 480 }
+                    ],
+                    radiantScore: [
+                      { time: 600, score: 2 },
+                      { time: 1200, score: 4 }
+                    ],
+                    direScore: [
+                      { time: 600, score: 1 },
+                      { time: 1200, score: 3 }
+                    ],
+                    pickBans: [
+                      { isPick: true, heroId: 8, order: 1, isRadiant: true, position: "pos1" },
+                      { isPick: true, heroId: 19, order: 2, isRadiant: false, position: "pos1" }
+                    ]
+                  }
                 }
               }
             };
@@ -273,13 +307,19 @@ describe("StratzProvider", () => {
       assert.equal(detail?.id, "dota_stratz_901");
       assert.equal(detail?.status, "live");
       assert.equal(detail?.selectedGame?.number, 2);
-      assert.equal(detail?.selectedGame?.telemetryStatus, "basic");
+      assert.equal(detail?.selectedGame?.telemetryStatus, "rich");
       assert.equal(detail?.playerEconomy?.left?.length, 1);
       assert.equal(detail?.playerEconomy?.right?.length, 1);
       assert.equal(detail?.selectedGame?.snapshot?.left?.kills, 4);
       assert.equal(detail?.selectedGame?.snapshot?.right?.kills, 3);
-      assert.equal(detail?.dataConfidence?.telemetry, "provider_basic");
+      assert.equal(detail?.dataConfidence?.telemetry, "provider_rich");
       assert.equal(detail?.pulseCard?.title, "STRATZ live detail active");
+      assert.equal(detail?.goldLeadSeries?.length, 2);
+      assert.equal(detail?.objectiveTimeline?.length, 2);
+      assert.equal(detail?.combatBursts?.length, 1);
+      assert.equal(detail?.teamDraft?.left?.[0]?.champion, "Juggernaut");
+      assert.equal(detail?.playerEconomy?.left?.[0]?.x, -4200);
+      assert.equal(detail?.playerEconomy?.right?.[0]?.isDead, true);
     } finally {
       global.fetch = originalFetch;
       restoreEnv("STRATZ_API_TOKEN", previousToken);

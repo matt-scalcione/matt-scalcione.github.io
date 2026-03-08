@@ -2402,6 +2402,191 @@ async function fallbackProviderDotaDetail(matchId, options = {}) {
   });
 }
 
+function telemetryRank(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "rich") return 4;
+  if (normalized === "basic") return 3;
+  if (normalized === "pending") return 2;
+  if (normalized === "none") return 1;
+  return 0;
+}
+
+function resolveDotaTelemetryMatchId(detail) {
+  const candidates = [
+    detail?.selectedGame?.sourceMatchId,
+    detail?.sourceMatchId,
+    ...(Array.isArray(detail?.seriesGames)
+      ? detail.seriesGames
+          .filter((game) => Number(game?.number) === Number(detail?.selectedGame?.number))
+          .map((game) => game?.sourceMatchId)
+      : []),
+    ...(Array.isArray(detail?.seriesGames) ? detail.seriesGames.map((game) => game?.sourceMatchId) : [])
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  return candidates.find((value) => /^\d+$/.test(value)) || null;
+}
+
+function mergeDotaTelemetryDetail(baseDetail, telemetryDetail) {
+  if (!baseDetail) {
+    return telemetryDetail;
+  }
+  if (!telemetryDetail) {
+    return baseDetail;
+  }
+
+  const baseRank = telemetryRank(baseDetail?.selectedGame?.telemetryStatus);
+  const telemetryRankValue = telemetryRank(telemetryDetail?.selectedGame?.telemetryStatus);
+  if (telemetryRankValue <= baseRank && baseRank > 0) {
+    return baseDetail;
+  }
+
+  const mergedSelectedGame = {
+    ...(baseDetail?.selectedGame || {}),
+    ...(telemetryDetail?.selectedGame || {}),
+    number: baseDetail?.selectedGame?.number || telemetryDetail?.selectedGame?.number || 1,
+    state: baseDetail?.selectedGame?.state || telemetryDetail?.selectedGame?.state || "unstarted",
+    label: baseDetail?.selectedGame?.label || telemetryDetail?.selectedGame?.label || null,
+    watchUrl: baseDetail?.selectedGame?.watchUrl || telemetryDetail?.selectedGame?.watchUrl || null,
+    watchOptions:
+      Array.isArray(baseDetail?.selectedGame?.watchOptions) && baseDetail.selectedGame.watchOptions.length
+        ? baseDetail.selectedGame.watchOptions
+        : Array.isArray(telemetryDetail?.selectedGame?.watchOptions)
+          ? telemetryDetail.selectedGame.watchOptions
+          : [],
+    sideSummary:
+      Array.isArray(baseDetail?.selectedGame?.sideSummary) && baseDetail.selectedGame.sideSummary.length
+        ? baseDetail.selectedGame.sideSummary
+        : Array.isArray(telemetryDetail?.selectedGame?.sideSummary)
+          ? telemetryDetail.selectedGame.sideSummary
+          : [],
+    startedAt: telemetryDetail?.selectedGame?.startedAt || baseDetail?.selectedGame?.startedAt || null,
+    requestedMissing: Boolean(baseDetail?.selectedGame?.requestedMissing),
+    sourceMatchId:
+      telemetryDetail?.selectedGame?.sourceMatchId ||
+      baseDetail?.selectedGame?.sourceMatchId ||
+      telemetryDetail?.sourceMatchId ||
+      baseDetail?.sourceMatchId ||
+      null
+  };
+
+  const mergedSeriesGames = Array.isArray(baseDetail?.seriesGames)
+    ? baseDetail.seriesGames.map((game) =>
+        Number(game?.number) === Number(mergedSelectedGame.number)
+          ? {
+              ...game,
+              startedAt: mergedSelectedGame.startedAt || game?.startedAt || null,
+              durationMinutes: mergedSelectedGame.durationMinutes || game?.durationMinutes || null,
+              watchUrl: mergedSelectedGame.watchUrl || game?.watchUrl || null,
+              watchOptions:
+                Array.isArray(mergedSelectedGame.watchOptions) && mergedSelectedGame.watchOptions.length
+                  ? mergedSelectedGame.watchOptions
+                  : Array.isArray(game?.watchOptions)
+                    ? game.watchOptions
+                    : [],
+              sourceMatchId: mergedSelectedGame.sourceMatchId || game?.sourceMatchId || null
+            }
+          : game
+      )
+    : telemetryDetail?.seriesGames || [];
+
+  return {
+    ...baseDetail,
+    patch:
+      telemetryDetail?.patch && telemetryDetail.patch !== "unknown"
+        ? telemetryDetail.patch
+        : baseDetail?.patch || telemetryDetail?.patch || "unknown",
+    freshness: {
+      ...(baseDetail?.freshness || {}),
+      ...(telemetryDetail?.freshness || {}),
+      source: telemetryDetail?.freshness?.source || baseDetail?.freshness?.source || "stratz",
+      status: telemetryDetail?.freshness?.status || baseDetail?.freshness?.status || "partial",
+      updatedAt: telemetryDetail?.freshness?.updatedAt || baseDetail?.freshness?.updatedAt || new Date().toISOString()
+    },
+    sourceMatchId: telemetryDetail?.sourceMatchId || baseDetail?.sourceMatchId || null,
+    keyMoments:
+      Array.isArray(telemetryDetail?.keyMoments) && telemetryDetail.keyMoments.length
+        ? telemetryDetail.keyMoments
+        : baseDetail?.keyMoments || [],
+    objectiveTimeline:
+      Array.isArray(telemetryDetail?.objectiveTimeline) && telemetryDetail.objectiveTimeline.length
+        ? telemetryDetail.objectiveTimeline
+        : baseDetail?.objectiveTimeline || [],
+    objectiveControl:
+      telemetryRankValue > 0 ? telemetryDetail?.objectiveControl || baseDetail?.objectiveControl : baseDetail?.objectiveControl,
+    objectiveBreakdown:
+      telemetryRankValue > 0 ? telemetryDetail?.objectiveBreakdown || baseDetail?.objectiveBreakdown : baseDetail?.objectiveBreakdown,
+    goldLeadSeries:
+      Array.isArray(telemetryDetail?.goldLeadSeries) && telemetryDetail.goldLeadSeries.length
+        ? telemetryDetail.goldLeadSeries
+        : baseDetail?.goldLeadSeries || [],
+    leadTrend: telemetryDetail?.leadTrend || baseDetail?.leadTrend || null,
+    playerEconomy:
+      telemetryRankValue > 0 ? telemetryDetail?.playerEconomy || baseDetail?.playerEconomy : baseDetail?.playerEconomy,
+    teamEconomyTotals:
+      telemetryRankValue > 0
+        ? telemetryDetail?.teamEconomyTotals || baseDetail?.teamEconomyTotals
+        : baseDetail?.teamEconomyTotals,
+    topPerformers:
+      Array.isArray(telemetryDetail?.topPerformers) && telemetryDetail.topPerformers.length
+        ? telemetryDetail.topPerformers
+        : baseDetail?.topPerformers || [],
+    momentum: telemetryDetail?.momentum || baseDetail?.momentum || null,
+    dataConfidence: telemetryDetail?.dataConfidence || baseDetail?.dataConfidence || null,
+    pulseCard: telemetryDetail?.pulseCard || baseDetail?.pulseCard || null,
+    edgeMeter: telemetryDetail?.edgeMeter || baseDetail?.edgeMeter || null,
+    tempoSnapshot: telemetryDetail?.tempoSnapshot || baseDetail?.tempoSnapshot || null,
+    tacticalChecklist:
+      Array.isArray(telemetryDetail?.tacticalChecklist) && telemetryDetail.tacticalChecklist.length
+        ? telemetryDetail.tacticalChecklist
+        : baseDetail?.tacticalChecklist || [],
+    teamDraft: telemetryDetail?.teamDraft || baseDetail?.teamDraft || null,
+    playerDelta:
+      Array.isArray(telemetryDetail?.playerDelta) && telemetryDetail.playerDelta.length
+        ? telemetryDetail.playerDelta
+        : baseDetail?.playerDelta || [],
+    combatBursts:
+      Array.isArray(telemetryDetail?.combatBursts) && telemetryDetail.combatBursts.length
+        ? telemetryDetail.combatBursts
+        : baseDetail?.combatBursts || [],
+    goldMilestones:
+      Array.isArray(telemetryDetail?.goldMilestones) && telemetryDetail.goldMilestones.length
+        ? telemetryDetail.goldMilestones
+        : baseDetail?.goldMilestones || [],
+    liveAlerts:
+      Array.isArray(telemetryDetail?.liveAlerts) && telemetryDetail.liveAlerts.length
+        ? telemetryDetail.liveAlerts
+        : baseDetail?.liveAlerts || [],
+    selectedGame: mergedSelectedGame,
+    seriesGames: mergedSeriesGames,
+    liveTicker:
+      Array.isArray(telemetryDetail?.liveTicker) && telemetryDetail.liveTicker.length
+        ? telemetryDetail.liveTicker
+        : baseDetail?.liveTicker || [],
+    source: {
+      ...(baseDetail?.source || {}),
+      telemetryProvider: "stratz"
+    }
+  };
+}
+
+async function enrichDotaDetailWithStratz(detail, options = {}) {
+  const sourceMatchId = resolveDotaTelemetryMatchId(detail);
+  if (!sourceMatchId) {
+    return detail;
+  }
+
+  try {
+    const telemetryDetail = await stratzProvider.fetchMatchDetail(sourceMatchId, {
+      gameNumber: detail?.selectedGame?.number || options?.gameNumber
+    });
+    return mergeDotaTelemetryDetail(detail, telemetryDetail);
+  } catch {
+    return detail;
+  }
+}
+
 async function loadProviderMatchDetail(matchId, options = {}) {
   const cacheKey = matchDetailCacheKey(matchId, options);
 
@@ -2422,21 +2607,26 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         cacheKey,
         cacheMap: providerState.detailById,
         fetchDetail: async () => {
-          try {
-            const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
-            if (stratzDetail) {
-              return stratzDetail;
+          if (String(matchId).startsWith("dota_stratz_")) {
+            try {
+              const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
+              if (stratzDetail) {
+                return stratzDetail;
+              }
+            } catch {
+              // Fall through to OpenDota and fallback detail.
             }
-          } catch {
-            // Fall through to OpenDota and fallback detail.
           }
 
           if (String(matchId).startsWith("dota_od_")) {
             try {
               const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
-              return detail || (await fallbackProviderDotaDetail(matchId, options));
+              return enrichDotaDetailWithStratz(
+                detail || (await fallbackProviderDotaDetail(matchId, options)),
+                options
+              );
             } catch {
-              return fallbackProviderDotaDetail(matchId, options);
+              return enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
             }
           }
 
@@ -2445,27 +2635,32 @@ async function loadProviderMatchDetail(matchId, options = {}) {
             return loadProviderMatchDetail(aliasMatchId, options);
           }
 
-          return fallbackProviderDotaDetail(matchId, options);
+          return enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
         }
       });
 
       return materializeStaleDetail(staleCachedDetail);
     }
 
-    try {
-      const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
-      if (stratzDetail) {
-        setDetailCacheEntry(providerState.detailById, cacheKey, stratzDetail);
-        return stratzDetail;
+    if (String(matchId).startsWith("dota_stratz_")) {
+      try {
+        const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
+        if (stratzDetail) {
+          setDetailCacheEntry(providerState.detailById, cacheKey, stratzDetail);
+          return stratzDetail;
+        }
+      } catch {
+        // Fall through to the OpenDota / fallback detail path.
       }
-    } catch {
-      // Fall through to the OpenDota / fallback detail path.
     }
 
     if (String(matchId).startsWith("dota_od_")) {
       try {
         const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
-        const resolvedDetail = detail || (await fallbackProviderDotaDetail(matchId, options));
+        const resolvedDetail = await enrichDotaDetailWithStratz(
+          detail || (await fallbackProviderDotaDetail(matchId, options)),
+          options
+        );
         if (!resolvedDetail) {
           return materializeStaleDetail(staleCachedDetail);
         }
@@ -2473,7 +2668,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         setDetailCacheEntry(providerState.detailById, cacheKey, resolvedDetail);
         return resolvedDetail;
       } catch {
-        const fallback = await fallbackProviderDotaDetail(matchId, options);
+        const fallback = await enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
         if (!fallback) {
           return materializeStaleDetail(staleCachedDetail);
         }
@@ -2502,7 +2697,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       }
     }
 
-    const fallback = await fallbackProviderDotaDetail(matchId, options);
+    const fallback = await enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
     if (!fallback) {
       return materializeStaleDetail(staleCachedDetail);
     }

@@ -42,6 +42,18 @@ query PulseboardStratzMatchDetail($id: Long!) {
       gameMinute
       createdDateTime
       modifiedDateTime
+      insight {
+        teamOneVsWinCount
+        teamTwoVsWinCount
+        teamOneLeagueWinCount
+        teamOneLeagueMatchCount
+        teamTwoLeagueWinCount
+        teamTwoLeagueMatchCount
+      }
+      liveWinRateValues {
+        time
+        winRate
+      }
       players {
         matchId
         heroId
@@ -73,9 +85,69 @@ query PulseboardStratzMatchDetail($id: Long!) {
         goldSpent
         heroDamage
         towerDamage
+        itemId0
+        itemId1
+        itemId2
+        itemId3
+        itemId4
+        itemId5
+        backpackId0
+        backpackId1
+        backpackId2
         networth
         respawnTimer
         position
+        playbackData {
+          positionEvents {
+            time
+            x
+            y
+          }
+          goldEvents {
+            time
+            gold
+            networth
+            networthDifference
+            goldPerMinute
+          }
+          killEvents {
+            time
+            positionX
+            positionY
+          }
+          deathEvents {
+            time
+            positionX
+            positionY
+          }
+          assistEvents {
+            time
+            positionX
+            positionY
+          }
+          csEvents {
+            time
+            positionX
+            positionY
+          }
+          denyEvents {
+            time
+            positionX
+            positionY
+          }
+          inventoryEvents {
+            time
+            itemId0
+            itemId1
+            itemId2
+            itemId3
+            itemId4
+            itemId5
+            backpackId0
+            backpackId1
+            backpackId2
+          }
+        }
       }
       playbackData {
         roshanEvents {
@@ -92,6 +164,17 @@ query PulseboardStratzMatchDetail($id: Long!) {
           positionY
           isRadiant
           npcId
+        }
+        pickBans {
+          isPick
+          heroId
+          order
+          bannedHeroId
+          isRadiant
+          baseWinRate
+          adjustedWinRate
+          letter
+          position
         }
         radiantScore {
           time
@@ -171,5 +254,12 @@ query PulseboardStratzMatchDetail($id: Long!) {
     radiantNetworthLeads
     radiantKills
     direKills
+    pickBans {
+      isPick
+      heroId
+      order
+      bannedHeroId
+      isRadiant
+    }
   }
 }
