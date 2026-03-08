@@ -2428,6 +2428,186 @@ function resolveDotaTelemetryMatchId(detail) {
   return candidates.find((value) => /^\d+$/.test(value)) || null;
 }
 
+function normalizeDotaTelemetryTeamKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function matchesDotaTelemetryTeam(baseTeam, telemetryTeam) {
+  if (!baseTeam || !telemetryTeam) {
+    return false;
+  }
+
+  const baseId = String(baseTeam?.id || "").trim();
+  const telemetryId = String(telemetryTeam?.id || "").trim();
+  if (baseId && telemetryId && baseId === telemetryId) {
+    return true;
+  }
+
+  return (
+    normalizeDotaTelemetryTeamKey(baseTeam?.name) === normalizeDotaTelemetryTeamKey(telemetryTeam?.name)
+  );
+}
+
+function swapTelemetrySide(value) {
+  if (value === "left") return "right";
+  if (value === "right") return "left";
+  return value;
+}
+
+function swapTelemetryPair(pair) {
+  if (!pair || typeof pair !== "object") {
+    return pair;
+  }
+
+  return {
+    ...pair,
+    left: pair?.right ?? pair?.left ?? null,
+    right: pair?.left ?? pair?.right ?? null
+  };
+}
+
+function rebuildLeadTrend(rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return null;
+  }
+
+  const leads = rows.map((row) => Number(row?.lead || 0));
+  const finalLead = leads[leads.length - 1];
+  let largestSwing = 0;
+  for (let index = 1; index < leads.length; index += 1) {
+    largestSwing = Math.max(largestSwing, Math.abs(leads[index] - leads[index - 1]));
+  }
+
+  return {
+    finalLead,
+    maxLead: Math.max(...leads),
+    minLead: Math.min(...leads),
+    largestSwing,
+    direction: finalLead > 0 ? "left" : finalLead < 0 ? "right" : "even"
+  };
+}
+
+function flipWinRate(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return value;
+  }
+
+  return numeric > 1 ? Number((100 - numeric).toFixed(2)) : Number((1 - numeric).toFixed(4));
+}
+
+function orientDotaTelemetryDetail(baseDetail, telemetryDetail) {
+  if (!baseDetail || !telemetryDetail) {
+    return telemetryDetail;
+  }
+
+  const leftSummary = String(baseDetail?.selectedGame?.sideSummary?.[0] || "").toLowerCase();
+  const rightSummary = String(baseDetail?.selectedGame?.sideSummary?.[1] || "").toLowerCase();
+  const sideSummarySwap =
+    leftSummary.includes("dire") && rightSummary.includes("radiant")
+      ? true
+      : leftSummary.includes("radiant") && rightSummary.includes("dire")
+        ? false
+        : null;
+
+  const swapFromTeams =
+    matchesDotaTelemetryTeam(baseDetail?.teams?.left, telemetryDetail?.teams?.right) &&
+    matchesDotaTelemetryTeam(baseDetail?.teams?.right, telemetryDetail?.teams?.left);
+  const sameFromTeams =
+    matchesDotaTelemetryTeam(baseDetail?.teams?.left, telemetryDetail?.teams?.left) &&
+    matchesDotaTelemetryTeam(baseDetail?.teams?.right, telemetryDetail?.teams?.right);
+  const shouldSwap = sideSummarySwap ?? (swapFromTeams && !sameFromTeams);
+
+  if (!shouldSwap) {
+    return telemetryDetail;
+  }
+
+  const swapRowTeam = (row) =>
+    row && typeof row === "object" ? { ...row, team: swapTelemetrySide(row.team) } : row;
+  const swapRows = (rows) => (Array.isArray(rows) ? rows.map((row) => swapRowTeam(row)) : rows);
+  const swapSnapshot = (snapshot) =>
+    snapshot
+      ? {
+          ...snapshot,
+          left: snapshot?.right ?? snapshot?.left ?? null,
+          right: snapshot?.left ?? snapshot?.right ?? null
+        }
+      : snapshot;
+  const swappedGoldLeadSeries = Array.isArray(telemetryDetail?.goldLeadSeries)
+    ? telemetryDetail.goldLeadSeries.map((row) => ({
+        ...row,
+        lead: Number.isFinite(Number(row?.lead)) ? Number(row.lead) * -1 : row?.lead,
+        leftGold: row?.rightGold ?? row?.leftGold ?? null,
+        rightGold: row?.leftGold ?? row?.rightGold ?? null
+      }))
+    : telemetryDetail?.goldLeadSeries;
+
+  return {
+    ...telemetryDetail,
+    teams: swapTelemetryPair(telemetryDetail?.teams),
+    objectiveTimeline: Array.isArray(telemetryDetail?.objectiveTimeline)
+      ? telemetryDetail.objectiveTimeline.map((row) => ({ ...row, team: swapTelemetrySide(row?.team) }))
+      : telemetryDetail?.objectiveTimeline,
+    objectiveControl: swapTelemetryPair(telemetryDetail?.objectiveControl),
+    objectiveBreakdown: swapTelemetryPair(telemetryDetail?.objectiveBreakdown),
+    goldLeadSeries: swappedGoldLeadSeries,
+    leadTrend: rebuildLeadTrend(swappedGoldLeadSeries),
+    playerEconomy: telemetryDetail?.playerEconomy
+      ? {
+          ...telemetryDetail.playerEconomy,
+          left: swapRows(telemetryDetail?.playerEconomy?.right),
+          right: swapRows(telemetryDetail?.playerEconomy?.left)
+        }
+      : telemetryDetail?.playerEconomy,
+    teamEconomyTotals: swapTelemetryPair(telemetryDetail?.teamEconomyTotals),
+    topPerformers: swapRows(telemetryDetail?.topPerformers),
+    momentum: telemetryDetail?.momentum
+      ? {
+          ...telemetryDetail.momentum,
+          goldLead: Number(telemetryDetail.momentum.goldLead || 0) * -1,
+          killDiff: Number(telemetryDetail.momentum.killDiff || 0) * -1,
+          towerDiff: Number(telemetryDetail.momentum.towerDiff || 0) * -1,
+          dragonDiff: Number(telemetryDetail.momentum.dragonDiff || 0) * -1,
+          baronDiff: Number(telemetryDetail.momentum.baronDiff || 0) * -1,
+          inhibitorDiff: Number(telemetryDetail.momentum.inhibitorDiff || 0) * -1
+        }
+      : telemetryDetail?.momentum,
+    edgeMeter: swapTelemetryPair(telemetryDetail?.edgeMeter),
+    teamDraft: swapTelemetryPair(telemetryDetail?.teamDraft),
+    playerDelta: Array.isArray(telemetryDetail?.playerDelta)
+      ? telemetryDetail.playerDelta.map((row) => ({
+          ...row,
+          team: swapTelemetrySide(row?.team),
+          now: row?.now ? { ...row.now, team: swapTelemetrySide(row.now.team) } : row?.now
+        }))
+      : telemetryDetail?.playerDelta,
+    combatBursts: Array.isArray(telemetryDetail?.combatBursts)
+      ? telemetryDetail.combatBursts.map((row) => ({ ...row, team: swapTelemetrySide(row?.team) }))
+      : telemetryDetail?.combatBursts,
+    goldMilestones: Array.isArray(telemetryDetail?.goldMilestones)
+      ? telemetryDetail.goldMilestones.map((row) => ({ ...row, team: swapTelemetrySide(row?.team) }))
+      : telemetryDetail?.goldMilestones,
+    liveAlerts: Array.isArray(telemetryDetail?.liveAlerts)
+      ? telemetryDetail.liveAlerts.map((row) => ({ ...row, team: swapTelemetrySide(row?.team) }))
+      : telemetryDetail?.liveAlerts,
+    selectedGame: telemetryDetail?.selectedGame
+      ? {
+          ...telemetryDetail.selectedGame,
+          snapshot: swapSnapshot(telemetryDetail.selectedGame.snapshot)
+        }
+      : telemetryDetail?.selectedGame,
+    liveTicker: Array.isArray(telemetryDetail?.liveTicker)
+      ? telemetryDetail.liveTicker.map((row) => ({ ...row, team: swapTelemetrySide(row?.team) }))
+      : telemetryDetail?.liveTicker,
+    liveWinRateSeries: Array.isArray(telemetryDetail?.liveWinRateSeries)
+      ? telemetryDetail.liveWinRateSeries.map((row) => ({ ...row, winRate: flipWinRate(row?.winRate) }))
+      : telemetryDetail?.liveWinRateSeries
+  };
+}
+
 function mergeDotaTelemetryDetail(baseDetail, telemetryDetail) {
   if (!baseDetail) {
     return telemetryDetail;
@@ -2436,37 +2616,39 @@ function mergeDotaTelemetryDetail(baseDetail, telemetryDetail) {
     return baseDetail;
   }
 
+  const alignedTelemetryDetail = orientDotaTelemetryDetail(baseDetail, telemetryDetail);
+
   const baseRank = telemetryRank(baseDetail?.selectedGame?.telemetryStatus);
-  const telemetryRankValue = telemetryRank(telemetryDetail?.selectedGame?.telemetryStatus);
+  const telemetryRankValue = telemetryRank(alignedTelemetryDetail?.selectedGame?.telemetryStatus);
   if (telemetryRankValue <= baseRank && baseRank > 0) {
     return baseDetail;
   }
 
   const mergedSelectedGame = {
     ...(baseDetail?.selectedGame || {}),
-    ...(telemetryDetail?.selectedGame || {}),
-    number: baseDetail?.selectedGame?.number || telemetryDetail?.selectedGame?.number || 1,
-    state: baseDetail?.selectedGame?.state || telemetryDetail?.selectedGame?.state || "unstarted",
-    label: baseDetail?.selectedGame?.label || telemetryDetail?.selectedGame?.label || null,
-    watchUrl: baseDetail?.selectedGame?.watchUrl || telemetryDetail?.selectedGame?.watchUrl || null,
+    ...(alignedTelemetryDetail?.selectedGame || {}),
+    number: baseDetail?.selectedGame?.number || alignedTelemetryDetail?.selectedGame?.number || 1,
+    state: baseDetail?.selectedGame?.state || alignedTelemetryDetail?.selectedGame?.state || "unstarted",
+    label: baseDetail?.selectedGame?.label || alignedTelemetryDetail?.selectedGame?.label || null,
+    watchUrl: baseDetail?.selectedGame?.watchUrl || alignedTelemetryDetail?.selectedGame?.watchUrl || null,
     watchOptions:
       Array.isArray(baseDetail?.selectedGame?.watchOptions) && baseDetail.selectedGame.watchOptions.length
         ? baseDetail.selectedGame.watchOptions
-        : Array.isArray(telemetryDetail?.selectedGame?.watchOptions)
-          ? telemetryDetail.selectedGame.watchOptions
+        : Array.isArray(alignedTelemetryDetail?.selectedGame?.watchOptions)
+          ? alignedTelemetryDetail.selectedGame.watchOptions
           : [],
     sideSummary:
       Array.isArray(baseDetail?.selectedGame?.sideSummary) && baseDetail.selectedGame.sideSummary.length
         ? baseDetail.selectedGame.sideSummary
-        : Array.isArray(telemetryDetail?.selectedGame?.sideSummary)
-          ? telemetryDetail.selectedGame.sideSummary
+        : Array.isArray(alignedTelemetryDetail?.selectedGame?.sideSummary)
+          ? alignedTelemetryDetail.selectedGame.sideSummary
           : [],
-    startedAt: telemetryDetail?.selectedGame?.startedAt || baseDetail?.selectedGame?.startedAt || null,
+    startedAt: alignedTelemetryDetail?.selectedGame?.startedAt || baseDetail?.selectedGame?.startedAt || null,
     requestedMissing: Boolean(baseDetail?.selectedGame?.requestedMissing),
     sourceMatchId:
-      telemetryDetail?.selectedGame?.sourceMatchId ||
+      alignedTelemetryDetail?.selectedGame?.sourceMatchId ||
       baseDetail?.selectedGame?.sourceMatchId ||
-      telemetryDetail?.sourceMatchId ||
+      alignedTelemetryDetail?.sourceMatchId ||
       baseDetail?.sourceMatchId ||
       null
   };
@@ -2494,75 +2676,84 @@ function mergeDotaTelemetryDetail(baseDetail, telemetryDetail) {
   return {
     ...baseDetail,
     patch:
-      telemetryDetail?.patch && telemetryDetail.patch !== "unknown"
-        ? telemetryDetail.patch
-        : baseDetail?.patch || telemetryDetail?.patch || "unknown",
+      alignedTelemetryDetail?.patch && alignedTelemetryDetail.patch !== "unknown"
+        ? alignedTelemetryDetail.patch
+        : baseDetail?.patch || alignedTelemetryDetail?.patch || "unknown",
     freshness: {
       ...(baseDetail?.freshness || {}),
-      ...(telemetryDetail?.freshness || {}),
-      source: telemetryDetail?.freshness?.source || baseDetail?.freshness?.source || "stratz",
-      status: telemetryDetail?.freshness?.status || baseDetail?.freshness?.status || "partial",
-      updatedAt: telemetryDetail?.freshness?.updatedAt || baseDetail?.freshness?.updatedAt || new Date().toISOString()
+      ...(alignedTelemetryDetail?.freshness || {}),
+      source: alignedTelemetryDetail?.freshness?.source || baseDetail?.freshness?.source || "stratz",
+      status: alignedTelemetryDetail?.freshness?.status || baseDetail?.freshness?.status || "partial",
+      updatedAt:
+        alignedTelemetryDetail?.freshness?.updatedAt ||
+        baseDetail?.freshness?.updatedAt ||
+        new Date().toISOString()
     },
-    sourceMatchId: telemetryDetail?.sourceMatchId || baseDetail?.sourceMatchId || null,
+    sourceMatchId: alignedTelemetryDetail?.sourceMatchId || baseDetail?.sourceMatchId || null,
     keyMoments:
-      Array.isArray(telemetryDetail?.keyMoments) && telemetryDetail.keyMoments.length
-        ? telemetryDetail.keyMoments
+      Array.isArray(alignedTelemetryDetail?.keyMoments) && alignedTelemetryDetail.keyMoments.length
+        ? alignedTelemetryDetail.keyMoments
         : baseDetail?.keyMoments || [],
     objectiveTimeline:
-      Array.isArray(telemetryDetail?.objectiveTimeline) && telemetryDetail.objectiveTimeline.length
-        ? telemetryDetail.objectiveTimeline
+      Array.isArray(alignedTelemetryDetail?.objectiveTimeline) && alignedTelemetryDetail.objectiveTimeline.length
+        ? alignedTelemetryDetail.objectiveTimeline
         : baseDetail?.objectiveTimeline || [],
     objectiveControl:
-      telemetryRankValue > 0 ? telemetryDetail?.objectiveControl || baseDetail?.objectiveControl : baseDetail?.objectiveControl,
+      telemetryRankValue > 0
+        ? alignedTelemetryDetail?.objectiveControl || baseDetail?.objectiveControl
+        : baseDetail?.objectiveControl,
     objectiveBreakdown:
-      telemetryRankValue > 0 ? telemetryDetail?.objectiveBreakdown || baseDetail?.objectiveBreakdown : baseDetail?.objectiveBreakdown,
+      telemetryRankValue > 0
+        ? alignedTelemetryDetail?.objectiveBreakdown || baseDetail?.objectiveBreakdown
+        : baseDetail?.objectiveBreakdown,
     goldLeadSeries:
-      Array.isArray(telemetryDetail?.goldLeadSeries) && telemetryDetail.goldLeadSeries.length
-        ? telemetryDetail.goldLeadSeries
+      Array.isArray(alignedTelemetryDetail?.goldLeadSeries) && alignedTelemetryDetail.goldLeadSeries.length
+        ? alignedTelemetryDetail.goldLeadSeries
         : baseDetail?.goldLeadSeries || [],
-    leadTrend: telemetryDetail?.leadTrend || baseDetail?.leadTrend || null,
+    leadTrend: alignedTelemetryDetail?.leadTrend || baseDetail?.leadTrend || null,
     playerEconomy:
-      telemetryRankValue > 0 ? telemetryDetail?.playerEconomy || baseDetail?.playerEconomy : baseDetail?.playerEconomy,
+      telemetryRankValue > 0
+        ? alignedTelemetryDetail?.playerEconomy || baseDetail?.playerEconomy
+        : baseDetail?.playerEconomy,
     teamEconomyTotals:
       telemetryRankValue > 0
-        ? telemetryDetail?.teamEconomyTotals || baseDetail?.teamEconomyTotals
+        ? alignedTelemetryDetail?.teamEconomyTotals || baseDetail?.teamEconomyTotals
         : baseDetail?.teamEconomyTotals,
     topPerformers:
-      Array.isArray(telemetryDetail?.topPerformers) && telemetryDetail.topPerformers.length
-        ? telemetryDetail.topPerformers
+      Array.isArray(alignedTelemetryDetail?.topPerformers) && alignedTelemetryDetail.topPerformers.length
+        ? alignedTelemetryDetail.topPerformers
         : baseDetail?.topPerformers || [],
-    momentum: telemetryDetail?.momentum || baseDetail?.momentum || null,
-    dataConfidence: telemetryDetail?.dataConfidence || baseDetail?.dataConfidence || null,
-    pulseCard: telemetryDetail?.pulseCard || baseDetail?.pulseCard || null,
-    edgeMeter: telemetryDetail?.edgeMeter || baseDetail?.edgeMeter || null,
-    tempoSnapshot: telemetryDetail?.tempoSnapshot || baseDetail?.tempoSnapshot || null,
+    momentum: alignedTelemetryDetail?.momentum || baseDetail?.momentum || null,
+    dataConfidence: alignedTelemetryDetail?.dataConfidence || baseDetail?.dataConfidence || null,
+    pulseCard: alignedTelemetryDetail?.pulseCard || baseDetail?.pulseCard || null,
+    edgeMeter: alignedTelemetryDetail?.edgeMeter || baseDetail?.edgeMeter || null,
+    tempoSnapshot: alignedTelemetryDetail?.tempoSnapshot || baseDetail?.tempoSnapshot || null,
     tacticalChecklist:
-      Array.isArray(telemetryDetail?.tacticalChecklist) && telemetryDetail.tacticalChecklist.length
-        ? telemetryDetail.tacticalChecklist
+      Array.isArray(alignedTelemetryDetail?.tacticalChecklist) && alignedTelemetryDetail.tacticalChecklist.length
+        ? alignedTelemetryDetail.tacticalChecklist
         : baseDetail?.tacticalChecklist || [],
-    teamDraft: telemetryDetail?.teamDraft || baseDetail?.teamDraft || null,
+    teamDraft: alignedTelemetryDetail?.teamDraft || baseDetail?.teamDraft || null,
     playerDelta:
-      Array.isArray(telemetryDetail?.playerDelta) && telemetryDetail.playerDelta.length
-        ? telemetryDetail.playerDelta
+      Array.isArray(alignedTelemetryDetail?.playerDelta) && alignedTelemetryDetail.playerDelta.length
+        ? alignedTelemetryDetail.playerDelta
         : baseDetail?.playerDelta || [],
     combatBursts:
-      Array.isArray(telemetryDetail?.combatBursts) && telemetryDetail.combatBursts.length
-        ? telemetryDetail.combatBursts
+      Array.isArray(alignedTelemetryDetail?.combatBursts) && alignedTelemetryDetail.combatBursts.length
+        ? alignedTelemetryDetail.combatBursts
         : baseDetail?.combatBursts || [],
     goldMilestones:
-      Array.isArray(telemetryDetail?.goldMilestones) && telemetryDetail.goldMilestones.length
-        ? telemetryDetail.goldMilestones
+      Array.isArray(alignedTelemetryDetail?.goldMilestones) && alignedTelemetryDetail.goldMilestones.length
+        ? alignedTelemetryDetail.goldMilestones
         : baseDetail?.goldMilestones || [],
     liveAlerts:
-      Array.isArray(telemetryDetail?.liveAlerts) && telemetryDetail.liveAlerts.length
-        ? telemetryDetail.liveAlerts
+      Array.isArray(alignedTelemetryDetail?.liveAlerts) && alignedTelemetryDetail.liveAlerts.length
+        ? alignedTelemetryDetail.liveAlerts
         : baseDetail?.liveAlerts || [],
     selectedGame: mergedSelectedGame,
     seriesGames: mergedSeriesGames,
     liveTicker:
-      Array.isArray(telemetryDetail?.liveTicker) && telemetryDetail.liveTicker.length
-        ? telemetryDetail.liveTicker
+      Array.isArray(alignedTelemetryDetail?.liveTicker) && alignedTelemetryDetail.liveTicker.length
+        ? alignedTelemetryDetail.liveTicker
         : baseDetail?.liveTicker || [],
     source: {
       ...(baseDetail?.source || {}),

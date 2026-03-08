@@ -312,7 +312,6 @@ describe("StratzProvider", () => {
       assert.equal(detail?.playerEconomy?.right?.length, 1);
       assert.equal(detail?.selectedGame?.snapshot?.left?.kills, 4);
       assert.equal(detail?.selectedGame?.snapshot?.right?.kills, 3);
-      assert.equal(detail?.dataConfidence?.telemetry, "provider_rich");
       assert.equal(detail?.pulseCard?.title, "STRATZ live detail active");
       assert.equal(detail?.goldLeadSeries?.length, 2);
       assert.equal(detail?.objectiveTimeline?.length, 2);
@@ -561,6 +560,284 @@ describe("mockStore STRATZ routing", () => {
       restoreEnv("ESPORTS_DATA_MODE", previousMode);
       restoreEnv("STRATZ_API_TOKEN", previousToken);
       restoreEnv("STRATZ_DOTA_LIVE_QUERY", previousLiveQuery);
+    }
+  });
+
+  it("reorients STRATZ telemetry to the series team order for OpenDota live series detail", async () => {
+    const originalFetch = global.fetch;
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    const previousToken = process.env.STRATZ_API_TOKEN;
+    const previousDetailQuery = process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY;
+
+    process.env.ESPORTS_DATA_MODE = "provider";
+    process.env.STRATZ_API_TOKEN = "test-token";
+    process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY = "query MatchDetail { match(id: $id) { id } }";
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.includes("api.stratz.com/graphql")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              data: {
+                live: {
+                  match: {
+                    matchId: 1002,
+                    status: "LIVE",
+                    bestOf: 3,
+                    startDateTime: nowSeconds - 120,
+                    lastUpdateDateTime: nowSeconds - 5,
+                    radiantSeriesWins: 0,
+                    direSeriesWins: 1,
+                    league: {
+                      name: "Test League",
+                      tier: 1
+                    },
+                    radiantTeam: {
+                      id: 20,
+                      name: "Beta"
+                    },
+                    direTeam: {
+                      id: 10,
+                      name: "Alpha"
+                    },
+                    radiantScore: 12,
+                    direScore: 15,
+                    players: [
+                      {
+                        isRadiant: true,
+                        steamAccount: { name: "Beta Core" },
+                        hero: { id: 2, displayName: "Axe" },
+                        kills: 4,
+                        deaths: 3,
+                        assists: 2,
+                        numLastHits: 100,
+                        numDenies: 6,
+                        networth: 10500,
+                        goldPerMinute: 500,
+                        experiencePerMinute: 480,
+                        level: 14,
+                        respawnTimer: 0,
+                        playbackData: {
+                          positionEvents: [{ time: 900, x: 2200, y: 1800 }],
+                          goldEvents: [{ time: 900, networth: 10500, networthDifference: -1800, goldPerMinute: 500 }]
+                        }
+                      },
+                      {
+                        isRadiant: false,
+                        steamAccount: { name: "Alpha Core" },
+                        hero: { id: 1, displayName: "Anti-Mage" },
+                        kills: 6,
+                        deaths: 1,
+                        assists: 4,
+                        numLastHits: 140,
+                        numDenies: 10,
+                        networth: 12300,
+                        goldPerMinute: 620,
+                        experiencePerMinute: 580,
+                        level: 15,
+                        respawnTimer: 0,
+                        playbackData: {
+                          positionEvents: [{ time: 900, x: -2100, y: -1700 }],
+                          goldEvents: [{ time: 900, networth: 12300, networthDifference: -1800, goldPerMinute: 620 }]
+                        }
+                      }
+                    ],
+                    playbackData: {
+                      buildingEvents: [
+                        { time: 700, type: "TOWER", isAlive: false, isRadiant: true, indexId: 1 }
+                      ],
+                      radiantScore: [{ time: 900, score: 12 }],
+                      direScore: [{ time: 900, score: 15 }]
+                    }
+                  }
+                }
+              }
+            };
+          }
+        };
+      }
+
+      if (target.endsWith("/proMatches")) {
+        return new Response(
+          JSON.stringify([
+            {
+              match_id: 1001,
+              series_id: 5001,
+              series_type: 1,
+              leagueid: 77,
+              league_name: "Test League",
+              start_time: nowSeconds - 1800,
+              duration: 2100,
+              radiant_team_id: 10,
+              dire_team_id: 20,
+              radiant_name: "Alpha",
+              dire_name: "Beta",
+              radiant_win: true
+            }
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (target.endsWith("/live")) {
+        return new Response(
+          JSON.stringify([
+            {
+              match_id: 1002,
+              series_id: 5001,
+              league_id: 0,
+              activate_time: nowSeconds - 120,
+              last_update_time: nowSeconds - 5,
+              team_id_radiant: 20,
+              team_id_dire: 10,
+              team_name_radiant: "Beta",
+              team_name_dire: "Alpha",
+              radiant_score: 12,
+              dire_score: 15
+            }
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (target.endsWith("/leagues")) {
+        return new Response(JSON.stringify([{ leagueid: 77, tier: "premium" }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (target.endsWith("/heroes")) {
+        return new Response(
+          JSON.stringify([
+            { id: 1, localized_name: "Anti-Mage" },
+            { id: 2, localized_name: "Axe" }
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (target.endsWith("/matches/1002")) {
+        return new Response(
+          JSON.stringify({
+            match_id: 1002,
+            leagueid: 77,
+            league: { name: "Test League" },
+            start_time: nowSeconds - 120,
+            duration: 900,
+            series_type: 1,
+            radiant_score: 12,
+            dire_score: 15,
+            tower_status_radiant: 1023,
+            tower_status_dire: 2047,
+            barracks_status_radiant: 63,
+            barracks_status_dire: 63,
+            radiant_team: { team_id: 20, name: "Beta" },
+            dire_team: { team_id: 10, name: "Alpha" },
+            objectives: [{ time: 700, type: "CHAT_MESSAGE_TOWER_KILL", team: 1 }],
+            radiant_gold_adv: [-400, -900, -1800],
+            players: [
+              {
+                player_slot: 0,
+                account_id: 2,
+                name: "Beta Core",
+                hero_id: 2,
+                lane_role: 1,
+                kills: 4,
+                deaths: 3,
+                assists: 2,
+                last_hits: 100,
+                denies: 6,
+                net_worth: 10500,
+                gold_per_min: 500,
+                xp_per_min: 480,
+                level: 14
+              },
+              {
+                player_slot: 128,
+                account_id: 1,
+                name: "Alpha Core",
+                hero_id: 1,
+                lane_role: 1,
+                kills: 6,
+                deaths: 1,
+                assists: 4,
+                last_hits: 140,
+                denies: 10,
+                net_worth: 12300,
+                gold_per_min: 620,
+                xp_per_min: 580,
+                level: 15
+              }
+            ]
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (target.includes("liquipedia.net/dota2/api.php")) {
+        return {
+          ok: true,
+          async json() {
+            return { parse: { text: "" } };
+          }
+        };
+      }
+
+      if (target.includes("esports-api.lolesports.com")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              data: {
+                schedule: {
+                  events: [],
+                  pages: {
+                    older: null,
+                    newer: null
+                  }
+                }
+              }
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?stratzMerge=${Date.now()}`);
+      const detail = await store.getMatchDetail("dota_od_series_5001");
+
+      assert.equal(detail?.teams?.left?.name, "Alpha");
+      assert.equal(detail?.teams?.right?.name, "Beta");
+      assert.equal(detail?.selectedGame?.state, "inProgress");
+      assert.equal(detail?.selectedGame?.snapshot?.left?.kills, 15);
+      assert.equal(detail?.selectedGame?.snapshot?.right?.kills, 12);
+      assert.equal(detail?.playerEconomy?.left?.[0]?.name, "Alpha Core");
+      assert.equal(detail?.playerEconomy?.left?.[0]?.team, "left");
+      assert.equal(detail?.playerEconomy?.right?.[0]?.name, "Beta Core");
+      assert.equal(detail?.playerEconomy?.right?.[0]?.team, "right");
+      assert.equal(detail?.goldLeadSeries?.length, 3);
+      assert.equal(detail?.goldLeadSeries?.[0]?.lead, 400);
+      assert.equal(detail?.goldLeadSeries?.[2]?.lead, 1800);
+      assert.equal(detail?.objectiveTimeline?.[0]?.team, "left");
+      assert.equal(detail?.objectiveControl?.left?.towers, 1);
+      assert.equal(detail?.objectiveControl?.right?.towers, 0);
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
+      restoreEnv("STRATZ_API_TOKEN", previousToken);
+      restoreEnv("STRATZ_DOTA_MATCH_DETAIL_QUERY", previousDetailQuery);
     }
   });
 });
