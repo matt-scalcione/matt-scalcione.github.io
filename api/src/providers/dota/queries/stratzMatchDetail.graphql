@@ -243,13 +243,22 @@ query PulseboardStratzMatchDetail($id: Long!) {
       kills
       deaths
       assists
-      lastHits
-      denies
+      numLastHits
+      numDenies
       goldPerMinute
       experiencePerMinute
       level
       networth
       position
+      item0Id
+      item1Id
+      item2Id
+      item3Id
+      item4Id
+      item5Id
+      backpack0Id
+      backpack1Id
+      backpack2Id
     }
     radiantNetworthLeads
     radiantKills

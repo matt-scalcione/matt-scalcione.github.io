@@ -67,6 +67,26 @@ function toCount(value) {
   return parsed === null ? 0 : Math.round(parsed);
 }
 
+function bitCount(value) {
+  let count = 0;
+  let remaining = Math.max(0, toCount(value));
+  while (remaining > 0) {
+    count += remaining & 1;
+    remaining >>= 1;
+  }
+  return count;
+}
+
+function destroyedFromStatus(statusValue, total) {
+  const parsed = toOptionalNumber(statusValue);
+  if (parsed === null) {
+    return null;
+  }
+
+  const alive = bitCount(parsed);
+  return Math.max(0, total - alive);
+}
+
 function toIsoFromSeconds(seconds, fallback = Date.now()) {
   if (typeof seconds !== "number" || Number.isNaN(seconds)) {
     return new Date(fallback).toISOString();
@@ -241,8 +261,20 @@ function extractStatus(node) {
   )
     .trim()
     .toLowerCase();
+  const hasCompletedSignals =
+    typeof node?.didRadiantWin === "boolean" ||
+    typeof node?.didDireWin === "boolean" ||
+    toOptionalNumber(node?.endDateTime) !== null ||
+    (toOptionalNumber(node?.durationSeconds) !== null &&
+      (toOptionalNumber(node?.radiantKills) !== null ||
+        toOptionalNumber(node?.direKills) !== null ||
+        (Array.isArray(node?.players) && node.players.length > 0)));
 
   if (state.includes("complete") || state.includes("ended") || state.includes("finished")) {
+    return "completed";
+  }
+
+  if (hasCompletedSignals) {
     return "completed";
   }
 
@@ -251,6 +283,14 @@ function extractStatus(node) {
   }
 
   if (state.includes("draft") || state.includes("pick") || state.includes("ban")) {
+    return "live";
+  }
+
+  if (
+    Boolean(node?.isUpdating) ||
+    Boolean(node?.isParsing) ||
+    toCount(firstPresent(node?.gameTime, node?.gameMinute, node?.clockTime, node?.duration)) > 0
+  ) {
     return "live";
   }
 
@@ -521,9 +561,15 @@ function normalizePlayerRow(player, side, teamRef, fallbackIndex) {
   const deaths = toCount(firstPresent(player?.deaths, player?.stats?.deaths, player?.playerStats?.deaths));
   const assists = toCount(firstPresent(player?.assists, player?.stats?.assists, player?.playerStats?.assists));
   const cs = toCount(
-    firstPresent(player?.lastHits, player?.last_hits, player?.lh, player?.stats?.lastHits)
+    firstPresent(
+      player?.lastHits,
+      player?.numLastHits,
+      player?.last_hits,
+      player?.lh,
+      player?.stats?.lastHits
+    )
   );
-  const denies = toCount(firstPresent(player?.denies, player?.stats?.denies));
+  const denies = toCount(firstPresent(player?.denies, player?.numDenies, player?.stats?.denies));
   const goldEarned = toCount(
     firstPresent(
       latestGold?.networth,
@@ -726,7 +772,16 @@ function inventoryItemIdsFromEvent(row) {
     row?.itemId5,
     row?.backpackId0,
     row?.backpackId1,
-    row?.backpackId2
+    row?.backpackId2,
+    row?.item0Id,
+    row?.item1Id,
+    row?.item2Id,
+    row?.item3Id,
+    row?.item4Id,
+    row?.item5Id,
+    row?.backpack0Id,
+    row?.backpack1Id,
+    row?.backpack2Id
   ]
     .map((value) => toOptionalNumber(value))
     .filter((value) => value !== null && value > 0);
@@ -871,13 +926,23 @@ function buildObjectiveBreakdown(objectiveTimeline = []) {
   return { left, right };
 }
 
-function buildObjectiveControlFromBreakdown(objectiveBreakdown) {
-  const leftTowers = Math.max(toCount(objectiveBreakdown?.left?.tower), 0);
-  const rightTowers = Math.max(toCount(objectiveBreakdown?.right?.tower), 0);
+function buildObjectiveControlFromBreakdown(root, objectiveBreakdown) {
+  const leftTowersFromStatus = destroyedFromStatus(root?.towerStatusDire, DOTA_TOWER_TOTAL);
+  const rightTowersFromStatus = destroyedFromStatus(root?.towerStatusRadiant, DOTA_TOWER_TOTAL);
+  const leftTowers = Math.max(leftTowersFromStatus ?? toCount(objectiveBreakdown?.left?.tower), 0);
+  const rightTowers = Math.max(rightTowersFromStatus ?? toCount(objectiveBreakdown?.right?.tower), 0);
   const leftBarons = Math.max(toCount(objectiveBreakdown?.left?.baron), 0);
   const rightBarons = Math.max(toCount(objectiveBreakdown?.right?.baron), 0);
-  const leftInhibitors = Math.max(toCount(objectiveBreakdown?.left?.inhibitor), 0);
-  const rightInhibitors = Math.max(toCount(objectiveBreakdown?.right?.inhibitor), 0);
+  const leftInhibitorsFromStatus = destroyedFromStatus(root?.barracksStatusDire, DOTA_BARRACKS_TOTAL);
+  const rightInhibitorsFromStatus = destroyedFromStatus(root?.barracksStatusRadiant, DOTA_BARRACKS_TOTAL);
+  const leftInhibitors = Math.max(
+    leftInhibitorsFromStatus ?? toCount(objectiveBreakdown?.left?.inhibitor),
+    0
+  );
+  const rightInhibitors = Math.max(
+    rightInhibitorsFromStatus ?? toCount(objectiveBreakdown?.right?.inhibitor),
+    0
+  );
   const leftScore = leftTowers * 1.4 + leftBarons * 3.1 + leftInhibitors * 2.2;
   const rightScore = rightTowers * 1.4 + rightBarons * 3.1 + rightInhibitors * 2.2;
   const total = leftScore + rightScore;
@@ -940,7 +1005,7 @@ function buildScoreTimeline(root, startAtIso) {
   });
 }
 
-function buildGoldLeadSeriesFromPlayers(players, teams, startAtIso) {
+function buildGoldLeadSeriesFromPlayers(players, teams, startAtIso, fallbackLeads = []) {
   const startMs = parseTimestamp(startAtIso, Date.now());
   const byTime = new Map();
 
@@ -973,7 +1038,7 @@ function buildGoldLeadSeriesFromPlayers(players, teams, startAtIso) {
     });
   });
 
-  return Array.from(byTime.values())
+  const rows = Array.from(byTime.values())
     .sort((left, right) => left.time - right.time)
     .map((bucket) => {
       const lead =
@@ -992,6 +1057,18 @@ function buildGoldLeadSeriesFromPlayers(players, teams, startAtIso) {
       };
     })
     .filter((row) => Number.isFinite(row.lead));
+
+  if (rows.length > 0) {
+    return rows;
+  }
+
+  return (Array.isArray(fallbackLeads) ? fallbackLeads : [])
+    .map((leadValue, index) => ({
+      at: new Date(startMs + index * 60 * 1000).toISOString(),
+      lead: toCount(leadValue),
+      gameTimeSeconds: index * 60
+    }))
+    .filter((row, index, list) => Number.isFinite(row.lead) && (index === 0 || row.lead !== list[index - 1].lead));
 }
 
 function buildLeadTrend(goldLeadSeries = []) {
@@ -1630,11 +1707,16 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
     right: sortPlayers(playerGroups.right)
   };
   const teamEconomyTotals = buildTeamEconomyTotals(playerEconomy);
-  const goldLeadSeries = buildGoldLeadSeriesFromPlayers(rawPlayers, teams, liveSummary.startAt);
+  const goldLeadSeries = buildGoldLeadSeriesFromPlayers(
+    rawPlayers,
+    teams,
+    liveSummary.startAt,
+    root?.radiantNetworthLeads
+  );
   const leadTrend = buildLeadTrend(goldLeadSeries);
   const objectiveTimeline = buildObjectiveTimelineFromStratz(root, teams, liveSummary.startAt);
   const objectiveBreakdown = buildObjectiveBreakdown(objectiveTimeline);
-  const objectiveControl = buildObjectiveControlFromBreakdown(objectiveBreakdown);
+  const objectiveControl = buildObjectiveControlFromBreakdown(root, objectiveBreakdown);
   const scoreTimeline = buildScoreTimeline(root, liveSummary.startAt);
   const snapshot = extractSnapshot(root, playerEconomy, teamEconomyTotals, {
     objectiveControl,
@@ -1711,6 +1793,7 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
   return {
     ...liveSummary,
     id: String(matchId || liveSummary.id),
+    selectedState: selectedGame.state,
     sourceMatchId: String(firstPresent(root?.matchId, liveSummary.sourceMatchId, matchId) || ""),
     patch: normalizeText(firstPresent(root?.patch, root?.gameVersion), "unknown"),
     freshness: {

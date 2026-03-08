@@ -326,6 +326,121 @@ describe("StratzProvider", () => {
       restoreEnv("STRATZ_DOTA_MATCH_DETAIL_QUERY", previousDetailQuery);
     }
   });
+
+  it("normalizes completed STRATZ match payloads without regressing to scheduled state", async () => {
+    const originalFetch = global.fetch;
+    const previousToken = process.env.STRATZ_API_TOKEN;
+    const previousDetailQuery = process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY;
+
+    process.env.STRATZ_API_TOKEN = "test-token";
+    process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY = "query MatchDetail { match(id: $id) { id } }";
+
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("api.stratz.com/graphql")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              data: {
+                match: {
+                  id: 902,
+                  matchId: 902,
+                  didRadiantWin: true,
+                  durationSeconds: 2334,
+                  startDateTime: 1772899200,
+                  endDateTime: 1772901534,
+                  towerStatusRadiant: 3,
+                  towerStatusDire: 0,
+                  barracksStatusRadiant: 7,
+                  barracksStatusDire: 0,
+                  league: {
+                    name: "PGL Wallachia",
+                    tier: 1
+                  },
+                  radiantTeam: {
+                    id: 1,
+                    name: "Team Falcons"
+                  },
+                  direTeam: {
+                    id: 2,
+                    name: "Team Spirit"
+                  },
+                  radiantTeamId: 1,
+                  direTeamId: 2,
+                  radiantKills: 31,
+                  direKills: 18,
+                  players: [
+                    {
+                      isRadiant: true,
+                      steamAccount: { name: "skiter" },
+                      hero: { id: 8, displayName: "Juggernaut" },
+                      kills: 10,
+                      deaths: 2,
+                      assists: 9,
+                      numLastHits: 402,
+                      numDenies: 14,
+                      goldPerMinute: 755,
+                      experiencePerMinute: 822,
+                      level: 25,
+                      networth: 28800,
+                      item0Id: 1,
+                      item1Id: 2,
+                      item2Id: 3
+                    },
+                    {
+                      isRadiant: false,
+                      steamAccount: { name: "Yatoro" },
+                      hero: { id: 41, displayName: "Faceless Void" },
+                      kills: 5,
+                      deaths: 6,
+                      assists: 4,
+                      numLastHits: 310,
+                      numDenies: 8,
+                      goldPerMinute: 560,
+                      experiencePerMinute: 640,
+                      level: 21,
+                      networth: 19000,
+                      item0Id: 4,
+                      item1Id: 5,
+                      item2Id: 6
+                    }
+                  ]
+                }
+              }
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/providers/dota/stratzProvider.js"
+      ).href;
+      const { StratzProvider } = await import(`${moduleUrl}?completed=${Date.now()}`);
+      const provider = new StratzProvider({ timeoutMs: 1000 });
+      const detail = await provider.fetchMatchDetail("902");
+
+      assert.equal(detail?.status, "completed");
+      assert.equal(detail?.selectedState, "completed");
+      assert.equal(detail?.selectedGame?.state, "completed");
+      assert.equal(detail?.selectedGame?.label, "Completed game.");
+      assert.equal(detail?.playerEconomy?.left?.[0]?.cs, 402);
+      assert.equal(detail?.playerEconomy?.left?.[0]?.denies, 14);
+      assert.equal(detail?.playerEconomy?.left?.[0]?.itemCount, 3);
+      assert.equal(detail?.objectiveControl?.left?.towers, 11);
+      assert.equal(detail?.objectiveControl?.left?.inhibitors, 6);
+      assert.equal(detail?.selectedGame?.snapshot?.left?.kills, 31);
+      assert.equal(detail?.selectedGame?.snapshot?.right?.kills, 18);
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("STRATZ_API_TOKEN", previousToken);
+      restoreEnv("STRATZ_DOTA_MATCH_DETAIL_QUERY", previousDetailQuery);
+    }
+  });
 });
 
 describe("mockStore STRATZ routing", () => {
