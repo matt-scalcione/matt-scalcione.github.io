@@ -10198,6 +10198,11 @@ body.product-shell .team-quick-nav {
 }
 
 @media (max-width: 760px) {
+  body.product-shell .hero {
+    padding-top: 0.95rem;
+    padding-bottom: 0.38rem;
+  }
+
   body.product-shell .guide-step-grid,
   .overview-grid,
   .live-desk-summary {
@@ -10209,63 +10214,14 @@ body.product-shell .team-quick-nav {
   }
 
   body.product-shell .hero-main {
-    gap: 0.65rem;
+    gap: 0.48rem;
   }
 
-  body.product-shell .hero-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.45rem;
-  }
-
-  body.product-shell .hero-metric {
-    padding: 0.58rem 0.62rem;
-    gap: 0.12rem;
-    border-radius: 16px;
-  }
-
-  body.product-shell .hero-metric span {
-    font-size: 0.54rem;
-    letter-spacing: 0.06em;
-  }
-
-  body.product-shell .hero-metric strong {
-    font-size: 0.72rem;
-    line-height: 1.16;
-    overflow-wrap: anywhere;
-  }
-
-  body.product-shell .hero-chips {
-    display: none;
-  }
-
+  body.product-shell .hero-kicker-row,
+  body.product-shell .hero-metrics,
+  body.product-shell .hero-chips,
   body.product-shell .hero-side {
-    padding: 0.82rem 0.88rem;
-    border-radius: 18px;
-    gap: 0.32rem;
-  }
-
-  body.product-shell .hero-side-value {
-    font-size: 1.06rem;
-    line-height: 1.08;
-  }
-
-  body.product-shell .hero-side-copy {
-    font-size: 0.8rem;
-    line-height: 1.4;
-  }
-
-  body.product-shell .hero-action-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-
-  body.product-shell .hero-action-row .link-btn {
-    width: 100%;
-    min-height: 2.2rem;
-    margin-top: 0;
-    padding: 0.48rem 0.62rem;
-    font-size: 0.74rem;
+    display: none !important;
   }
 
   body.product-shell .page-nav {
@@ -10289,46 +10245,16 @@ body.product-shell .team-quick-nav {
     padding: 0.38rem 0.7rem;
   }
 
-  body.product-shell.live-page .hero,
-  body.product-shell.schedule-page .hero,
-  body.product-shell.follows-page .hero {
-    padding-top: 1rem;
-    padding-bottom: 0.4rem;
-  }
-
-  body.product-shell.live-page .hero-main,
-  body.product-shell.schedule-page .hero-main,
-  body.product-shell.follows-page .hero-main {
-    gap: 0.5rem;
-  }
-
-  body.product-shell.live-page .hero-kicker-row,
-  body.product-shell.schedule-page .hero-kicker-row,
-  body.product-shell.follows-page .hero-kicker-row,
-  body.product-shell.live-page .hero-metrics,
-  body.product-shell.schedule-page .hero-metrics,
-  body.product-shell.follows-page .hero-metrics,
-  body.product-shell.live-page .hero-chips,
-  body.product-shell.schedule-page .hero-chips,
-  body.product-shell.follows-page .hero-chips,
-  body.product-shell.live-page .hero-side,
-  body.product-shell.schedule-page .hero-side,
-  body.product-shell.follows-page .hero-side {
-    display: none;
-  }
-
   body.product-shell.live-page .page-nav,
   body.product-shell.schedule-page .page-nav,
-  body.product-shell.follows-page .page-nav {
+  body.product-shell.follows-page .page-nav,
+  body.product-shell.match-page .page-nav,
+  body.product-shell.team-page .page-nav {
     margin-top: 0.18rem;
   }
 
-  body.product-shell.live-page .page-nav #lolHubNav,
-  body.product-shell.schedule-page .page-nav #lolHubNav,
-  body.product-shell.follows-page .page-nav #lolHubNav,
-  body.product-shell.live-page .page-nav #dotaHubNav,
-  body.product-shell.schedule-page .page-nav #dotaHubNav,
-  body.product-shell.follows-page .page-nav #dotaHubNav {
+  body.product-shell .page-nav #lolHubNav,
+  body.product-shell .page-nav #dotaHubNav {
     display: none;
   }
 
@@ -10338,9 +10264,12 @@ body.product-shell .team-quick-nav {
     display: none !important;
   }
 
-  .schedule-page #scheduleSummary,
-  .schedule-page #slateLensStrip {
-    display: none;
+  body.product-shell.live-page #liveDeskSummary,
+  body.product-shell.live-page #boardLensStrip,
+  body.product-shell.schedule-page #scheduleSummary,
+  body.product-shell.schedule-page #slateLensStrip,
+  body.product-shell.follows-page #watchlistLensStrip {
+    display: none !important;
   }
 
   body.product-shell .team-quick-nav {

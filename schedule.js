@@ -132,6 +132,7 @@ const scheduleDiscoveryState = {
   searchTerm: ""
 };
 let activeLoadRequestId = 0;
+let resultsRetryHandle = null;
 const SCHEDULE_RANGE_PRESETS = {
   live: { pastHours: 12, futureHours: 18 },
   "24h": { pastHours: 0, futureHours: 24 },
@@ -900,6 +901,13 @@ function renderSlateLens(scheduleRows = [], resultRows = []) {
     return;
   }
 
+  if (isCompactViewport()) {
+    elements.slateLensStrip.innerHTML = "";
+    elements.slateLensStrip.hidden = true;
+    return;
+  }
+  elements.slateLensStrip.hidden = false;
+
   const game = normalizeGameKey(elements.gameSelect?.value || "");
   const region = String(elements.regionInput?.value || "").trim();
   const search = String(scheduleDiscoveryState.searchTerm || "").trim();
@@ -925,6 +933,17 @@ function renderScheduleSummary(scheduleRows = [], resultRows = []) {
   if (!elements.scheduleSummary) {
     return;
   }
+
+  if (isCompactViewport()) {
+    elements.scheduleSummary.innerHTML = "";
+    elements.scheduleSummary.hidden = true;
+    renderScheduleHeroContext(scheduleRows, resultRows);
+    renderScheduleHeroActions(scheduleRows, resultRows);
+    renderScheduleGuide(scheduleRows, resultRows);
+    renderSlateLens(scheduleRows, resultRows);
+    return;
+  }
+  elements.scheduleSummary.hidden = false;
 
   renderScheduleHeroContext(scheduleRows, resultRows);
   renderScheduleHeroActions(scheduleRows, resultRows);
@@ -1275,10 +1294,53 @@ async function fetchCollection(apiBase, endpoint, query) {
   }
 }
 
+function clearResultsRetry() {
+  if (resultsRetryHandle) {
+    window.clearTimeout(resultsRetryHandle);
+    resultsRetryHandle = null;
+  }
+}
+
+function scheduleResultsRetry(requestId, apiBase, query) {
+  clearResultsRetry();
+  resultsRetryHandle = window.setTimeout(async () => {
+    try {
+      const payload = await fetchCollection(apiBase, "/v1/results", query);
+      if (requestId !== activeLoadRequestId) {
+        return;
+      }
+
+      scheduleCollectionState.resultRows = Array.isArray(payload.data) ? payload.data : [];
+      scheduleCollectionState.resultsMeta = payload.meta || null;
+      renderScheduleCollectionMeta();
+      renderCollectionsFromState();
+      applyScheduleStructuredData(
+        scheduleCollectionState.scheduleRows,
+        scheduleCollectionState.resultRows
+      );
+      setStatus("Schedule and results synced.", "success");
+    } catch (error) {
+      if (requestId !== activeLoadRequestId) {
+        return;
+      }
+      if (!scheduleCollectionState.resultRows.length && elements.resultsTableWrap) {
+        elements.resultsTableWrap.innerHTML = `<div class="empty">Results are temporarily unavailable.</div>`;
+      }
+      if (elements.resultsMeta) {
+        elements.resultsMeta.textContent = "Results unavailable right now.";
+      }
+      setStatus("Partial sync. Results feed was unavailable.", "error");
+    } finally {
+      resultsRetryHandle = null;
+    }
+  }, 1200);
+}
+
 async function loadCollections() {
   const requestId = ++activeLoadRequestId;
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   const query = buildQuery();
+  clearResultsRetry();
   try {
     localStorage.setItem("pulseboard.apiBase", apiBase);
   } catch {
@@ -1324,9 +1386,14 @@ async function loadCollections() {
       const resultRows = Array.isArray(resultsPayload.data) ? resultsPayload.data : [];
       scheduleCollectionState.resultRows = resultRows;
       scheduleCollectionState.resultsMeta = resultsPayload.meta || null;
-    } else if (elements.resultsTableWrap?.dataset.loaded !== "1") {
-      elements.resultsTableWrap.innerHTML = `<div class="empty">Unable to load results.</div>`;
-      scheduleCollectionState.resultsMeta = null;
+    } else {
+      if (elements.resultsMeta) {
+        elements.resultsMeta.textContent = "Retrying results...";
+      }
+      if (!scheduleCollectionState.resultRows.length && elements.resultsTableWrap?.dataset.loaded !== "1") {
+        renderLoadingTable(elements.resultsTableWrap);
+      }
+      scheduleResultsRetry(requestId, apiBase, query);
     }
 
     applyScheduleStructuredData(
