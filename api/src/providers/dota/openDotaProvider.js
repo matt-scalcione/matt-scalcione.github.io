@@ -11,6 +11,10 @@ const ESTIMATED_BETWEEN_GAMES_SECONDS = Number.parseInt(
   process.env.DOTA_ESTIMATED_BETWEEN_GAMES_SECONDS || "420",
   10
 );
+const INCOMPLETE_SERIES_GRACE_SECONDS = Number.parseInt(
+  process.env.DOTA_INCOMPLETE_SERIES_GRACE_SECONDS || "3600",
+  10
+);
 const DOTA_TOWER_TOTAL = 11;
 const DOTA_BARRACKS_TOTAL = 6;
 
@@ -470,10 +474,14 @@ function summarizeSeriesRows(rows = [], leagueTierMap = new Map()) {
   const liveWindowMs =
     bestOf * ESTIMATED_GAME_SECONDS * 1000 +
     Math.max(0, bestOf - 1) * ESTIMATED_BETWEEN_GAMES_SECONDS * 1000;
+  const recentEndWindowMs = INCOMPLETE_SERIES_GRACE_SECONDS * 1000;
   const liveEligible =
     !completed &&
     startSeconds !== null &&
-    Date.now() <= startSeconds * 1000 + liveWindowMs;
+    (
+      Date.now() <= startSeconds * 1000 + liveWindowMs ||
+      (endSeconds !== null && Date.now() <= endSeconds * 1000 + recentEndWindowMs)
+    );
   const providerMatchId = String(seriesId || rowMatchId(latest));
   const summary = {
     id: seriesId ? `dota_od_series_${seriesId}` : `dota_od_result_${providerMatchId}`,

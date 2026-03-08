@@ -122,6 +122,47 @@ describe("buildSeriesSummaries", () => {
     assert.equal(summaries[0].bestOf, 3);
     assert.deepEqual(summaries[0].seriesScore, { left: 1, right: 0 });
   });
+
+  it("keeps split BO3 series live between maps when the last map ended recently", () => {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const rows = [
+      {
+        match_id: 3001,
+        series_id: 7001,
+        series_type: 1,
+        leagueid: 99,
+        league_name: "Wallachia",
+        start_time: nowSeconds - 9500,
+        duration: 2800,
+        radiant_team_id: 50,
+        dire_team_id: 60,
+        radiant_name: "Team Falcons",
+        dire_name: "Team Spirit",
+        radiant_win: true
+      },
+      {
+        match_id: 3002,
+        series_id: 7001,
+        series_type: 1,
+        leagueid: 99,
+        league_name: "Wallachia",
+        start_time: nowSeconds - 4700,
+        duration: 3030,
+        radiant_team_id: 60,
+        dire_team_id: 50,
+        radiant_name: "Team Spirit",
+        dire_name: "Team Falcons",
+        radiant_win: true
+      }
+    ];
+
+    const summaries = buildSeriesSummaries(rows, new Map([[99, 1]]));
+
+    assert.equal(summaries.length, 1);
+    assert.equal(summaries[0].status, "live");
+    assert.equal(summaries[0].bestOf, 3);
+    assert.deepEqual(summaries[0].seriesScore, { left: 1, right: 1 });
+  });
 });
 
 describe("normalizeMatchDetail", () => {
