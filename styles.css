@@ -10225,7 +10225,25 @@ body.product-shell .team-quick-nav {
   }
 
   body.product-shell .page-nav {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.24rem;
+    padding: 0.2rem;
+    scrollbar-width: none;
+  }
+
+  body.product-shell .page-nav::-webkit-scrollbar {
     display: none;
+  }
+
+  body.product-shell .page-nav a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-height: 1.95rem;
+    padding: 0.34rem 0.64rem;
+    font-size: 0.72rem;
   }
 
   body.product-shell.live-page .page-nav,
