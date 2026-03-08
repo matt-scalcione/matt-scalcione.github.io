@@ -934,6 +934,10 @@ function buildSeriesDetail({
     combatBursts: Array.isArray(mapDetail?.combatBursts) ? mapDetail.combatBursts.length : 0,
     goldMilestones: Array.isArray(mapDetail?.goldMilestones) ? mapDetail.goldMilestones.length : 0
   };
+  selectedGame.winnerTeamId = selectedSeriesGame?.winnerTeamId || selectedGame.winnerTeamId || null;
+  selectedGame.title =
+    selectedGame.title ||
+    (Number.isInteger(selectedGameNumber) ? `Game ${selectedGameNumber}` : null);
   selectedGame.sideSummary = sideSummaryFromSeriesGame(summary, selectedSeriesGame);
   selectedGame.watchUrl = selectedSeriesGame?.watchUrl || null;
   selectedGame.watchOptions = Array.isArray(selectedSeriesGame?.watchOptions) ? selectedSeriesGame.watchOptions : [];

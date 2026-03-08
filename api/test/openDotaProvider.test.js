@@ -165,6 +165,112 @@ describe("buildSeriesSummaries", () => {
   });
 });
 
+describe("OpenDotaProvider selected game winner propagation", () => {
+  it("propagates completed map winners into selectedGame for series detail", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.endsWith("/proMatches")) {
+        return {
+          ok: true,
+          async json() {
+            return [
+              {
+                match_id: 1001,
+                series_id: 5001,
+                series_type: 1,
+                leagueid: 77,
+                league_name: "Wallachia",
+                start_time: 1_700_000_000,
+                duration: 2100,
+                radiant_team_id: 10,
+                dire_team_id: 20,
+                radiant_name: "Aurora",
+                dire_name: "MOUZ",
+                radiant_win: true
+              },
+              {
+                match_id: 1002,
+                series_id: 5001,
+                series_type: 1,
+                leagueid: 77,
+                league_name: "Wallachia",
+                start_time: 1_700_002_600,
+                duration: 2200,
+                radiant_team_id: 20,
+                dire_team_id: 10,
+                radiant_name: "MOUZ",
+                dire_name: "Aurora",
+                radiant_win: false
+              }
+            ];
+          }
+        };
+      }
+      if (target.endsWith("/live")) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+      if (target.endsWith("/leagues")) {
+        return {
+          ok: true,
+          async json() {
+            return [{ leagueid: 77, tier: "premium", name: "Wallachia" }];
+          }
+        };
+      }
+      if (target.endsWith("/heroStats")) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+      if (target.endsWith("/matches/1002")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              match_id: 1002,
+              leagueid: 77,
+              league: { name: "Wallachia" },
+              start_time: 1_700_002_600,
+              duration: 2200,
+              series_type: 1,
+              radiant_series_wins: 1,
+              dire_series_wins: 1,
+              radiant_team: { team_id: 20, name: "MOUZ" },
+              dire_team: { team_id: 10, name: "Aurora" },
+              radiant_win: false,
+              radiant_score: 22,
+              dire_score: 30,
+              players: []
+            };
+          }
+        };
+      }
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const provider = new OpenDotaProvider({ timeoutMs: 1000 });
+      const detail = await provider.fetchMatchDetail("dota_od_series_5001", { gameNumber: 2 });
+      assert.ok(detail);
+      assert.equal(detail.selectedGame.number, 2);
+      assert.equal(detail.selectedGame.state, "completed");
+      assert.equal(detail.selectedGame.winnerTeamId, detail.teams.left.id);
+      assert.equal(detail.seriesGames[1].winnerTeamId, detail.teams.left.id);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});
+
 describe("normalizeMatchDetail", () => {
   it("builds rich Dota detail fields used by match page", () => {
     const payload = {
