@@ -165,7 +165,7 @@ describe("StratzProvider", () => {
     }
   });
 
-  it("refuses to pass through raw detail payloads that do not match the frontend contract", async () => {
+  it("normalizes raw STRATZ detail payloads into the frontend contract", async () => {
     const originalFetch = global.fetch;
     const previousToken = process.env.STRATZ_API_TOKEN;
     const previousDetailQuery = process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY;
@@ -183,7 +183,72 @@ describe("StratzProvider", () => {
               data: {
                 match: {
                   id: 901,
-                  status: "LIVE"
+                  matchId: 901,
+                  seriesId: 901,
+                  status: "LIVE",
+                  bestOf: 3,
+                  startDateTime: 1772899200,
+                  lastUpdateDateTime: 1772899500,
+                  radiantSeriesWins: 1,
+                  direSeriesWins: 0,
+                  league: {
+                    name: "DreamLeague Season 28",
+                    tier: 1
+                  },
+                  radiantTeam: {
+                    id: 2163,
+                    name: "Team Liquid"
+                  },
+                  direTeam: {
+                    id: 39,
+                    name: "BetBoom Team"
+                  },
+                  radiantPlayers: [
+                    {
+                      isRadiant: true,
+                      steamAccount: {
+                        name: "miCKe"
+                      },
+                      hero: {
+                        id: 8,
+                        displayName: "Juggernaut"
+                      },
+                      kills: 4,
+                      deaths: 1,
+                      assists: 3,
+                      networth: 12400,
+                      goldPerMinute: 620,
+                      experiencePerMinute: 710,
+                      lastHits: 185,
+                      denies: 12,
+                      level: 14
+                    }
+                  ],
+                  direPlayers: [
+                    {
+                      isRadiant: false,
+                      steamAccount: {
+                        name: "gpk~"
+                      },
+                      hero: {
+                        id: 19,
+                        displayName: "Sven"
+                      },
+                      kills: 3,
+                      deaths: 2,
+                      assists: 4,
+                      networth: 11800,
+                      goldPerMinute: 590,
+                      experiencePerMinute: 680,
+                      lastHits: 170,
+                      denies: 9,
+                      level: 13
+                    }
+                  ],
+                  radiantScore: 4,
+                  direScore: 3,
+                  radiantTowerKills: 2,
+                  direTowerKills: 1
                 }
               }
             };
@@ -201,10 +266,20 @@ describe("StratzProvider", () => {
       const { StratzProvider } = await import(`${moduleUrl}?detail=${Date.now()}`);
       const provider = new StratzProvider({ timeoutMs: 1000 });
       const detail = await provider.fetchMatchDetail("dota_stratz_901", {
-        gameNumber: 1
+        gameNumber: 2
       });
 
-      assert.equal(detail, null);
+      assert.equal(detail?.game, "dota2");
+      assert.equal(detail?.id, "dota_stratz_901");
+      assert.equal(detail?.status, "live");
+      assert.equal(detail?.selectedGame?.number, 2);
+      assert.equal(detail?.selectedGame?.telemetryStatus, "basic");
+      assert.equal(detail?.playerEconomy?.left?.length, 1);
+      assert.equal(detail?.playerEconomy?.right?.length, 1);
+      assert.equal(detail?.selectedGame?.snapshot?.left?.kills, 4);
+      assert.equal(detail?.selectedGame?.snapshot?.right?.kills, 3);
+      assert.equal(detail?.dataConfidence?.telemetry, "provider_basic");
+      assert.equal(detail?.pulseCard?.title, "STRATZ live detail active");
     } finally {
       global.fetch = originalFetch;
       restoreEnv("STRATZ_API_TOKEN", previousToken);
