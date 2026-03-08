@@ -989,7 +989,10 @@ async function loadProviderDotaScheduleMatches({ knownRows = [] } = {}) {
       knownRows,
       allowedTiers: defaultDotaTiers
     });
-    return hydrateDotaScheduleRowsWithResolvedTeams(rows);
+    const retainedRows = mergeRetainedDotaScheduleRows(rows, providerState.dotaSchedule.rows, {
+      knownRows
+    });
+    return hydrateDotaScheduleRowsWithResolvedTeams(retainedRows);
   });
 }
 
@@ -1058,7 +1061,10 @@ function providerRefreshTasks() {
           knownRows,
           allowedTiers: defaultDotaTiers
         });
-        return hydrateDotaScheduleRowsWithResolvedTeams(rows);
+        const retainedRows = mergeRetainedDotaScheduleRows(rows, providerState.dotaSchedule.rows, {
+          knownRows
+        });
+        return hydrateDotaScheduleRowsWithResolvedTeams(retainedRows);
       }),
     lolLive: () => refreshProviderRows("lolLive", () => lolEsportsProvider.fetchLiveMatches()),
     lolSchedule: () =>
@@ -1370,6 +1376,50 @@ function canonicalizeDotaScheduleRows(scheduleRows = [], { liveRows = [], result
         updatedAt: new Date(nowMs).toISOString()
       };
     });
+}
+
+function shouldRetainDotaScheduleRow(row, nowMs = Date.now()) {
+  if (!row || row.game !== "dota2") {
+    return false;
+  }
+
+  const startMs = Date.parse(String(row?.startAt || ""));
+  if (Number.isNaN(startMs)) {
+    return false;
+  }
+
+  const retainFutureWindowMs = 24 * oneHour;
+  const ageMs = nowMs - startMs;
+  return ageMs <= dotaSyntheticLiveWindowMs(row) && startMs <= nowMs + retainFutureWindowMs;
+}
+
+function mergeRetainedDotaScheduleRows(freshRows = [], previousRows = [], { knownRows = [], nowMs = Date.now() } = {}) {
+  const normalizedFreshRows = Array.isArray(freshRows) ? freshRows : [];
+  const normalizedPreviousRows = Array.isArray(previousRows) ? previousRows : [];
+  const normalizedKnownRows = Array.isArray(knownRows) ? knownRows : [];
+  const mergedRows = normalizedFreshRows.slice();
+
+  for (const row of normalizedPreviousRows) {
+    if (!shouldRetainDotaScheduleRow(row, nowMs)) {
+      continue;
+    }
+
+    if (normalizedFreshRows.some((freshRow) => sameDotaSeries(freshRow, row))) {
+      continue;
+    }
+
+    if (normalizedKnownRows.some((knownRow) => sameDotaSeries(knownRow, row))) {
+      continue;
+    }
+
+    mergedRows.push({
+      ...row,
+      retainedFromScheduleCache: true,
+      updatedAt: row?.updatedAt || new Date(nowMs).toISOString()
+    });
+  }
+
+  return dedupeRowsById(mergedRows);
 }
 
 async function hydrateDotaScheduleRowsWithResolvedTeams(rows = []) {

@@ -571,4 +571,88 @@ describe("mockStore Dota upcoming detail fallback", () => {
       restoreEnv("PROVIDER_CACHE_MS", previousCacheMs);
     }
   });
+
+  it("retains recently seen Dota schedule rows when Liquipedia temporarily drops a live series", async () => {
+    const originalFetch = global.fetch;
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    const previousCache = process.env.PROVIDER_CACHE_MS;
+    process.env.ESPORTS_DATA_MODE = "provider";
+    process.env.PROVIDER_CACHE_MS = "0";
+
+    const futureTimestamp = Math.floor((Date.now() - 30 * 60 * 1000) / 1000);
+    const firstHtml = sampleMatchHtml.replace("1772899200", String(futureTimestamp));
+    let scheduleFetchCount = 0;
+
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.includes("liquipedia.net/dota2/api.php")) {
+        scheduleFetchCount += 1;
+        return {
+          ok: true,
+          async json() {
+            return {
+              parse: {
+                text: {
+                  "*": scheduleFetchCount === 1 ? firstHtml : ""
+                }
+              }
+            };
+          }
+        };
+      }
+
+      if (
+        target.endsWith("/live") ||
+        target.endsWith("/proMatches") ||
+        target.endsWith("/leagues") ||
+        target.endsWith("/teams")
+      ) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?retainSchedule=${Date.now()}`);
+
+      const firstRows = await store.listSchedule({
+        game: "dota2",
+        region: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        dotaTiers: [1, 2, 3, 4]
+      });
+      assert.equal(firstRows.length, 1);
+      assert.equal(firstRows[0].teams.left.name, "Team Liquid");
+      assert.equal(firstRows[0].teams.right.name, "Cloud Rising");
+
+      await store.refreshProviderCaches(["dotaSchedule"]);
+
+      const secondRows = await store.listSchedule({
+        game: "dota2",
+        region: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        dotaTiers: [1, 2, 3, 4]
+      });
+      assert.equal(secondRows.length, 1);
+      assert.equal(secondRows[0].teams.left.name, "Team Liquid");
+      assert.equal(secondRows[0].teams.right.name, "Cloud Rising");
+      assert.equal(secondRows[0].status, "live");
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
+      restoreEnv("PROVIDER_CACHE_MS", previousCache);
+    }
+  });
 });
