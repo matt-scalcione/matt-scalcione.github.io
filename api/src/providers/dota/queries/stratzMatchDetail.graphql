@@ -1,0 +1,175 @@
+query PulseboardStratzMatchDetail($id: Long!) {
+  liveMatch: live {
+    match(id: $id) {
+      matchId
+      radiantScore
+      direScore
+      leagueId
+      league {
+        id
+        name
+        displayName
+        tier
+        streams {
+          id
+          name
+          streamUrl
+        }
+      }
+      delay
+      spectators
+      buildingState
+      radiantLead
+      gameTime
+      completed
+      isUpdating
+      isParsing
+      radiantTeamId
+      direTeamId
+      radiantTeam {
+        id
+        name
+        tag
+        logo
+      }
+      direTeam {
+        id
+        name
+        tag
+        logo
+      }
+      gameState
+      gameMinute
+      createdDateTime
+      modifiedDateTime
+      players {
+        matchId
+        heroId
+        hero {
+          id
+          name
+          displayName
+          shortName
+        }
+        name
+        playerSlot
+        steamAccountId
+        steamAccount {
+          id
+          name
+          realName
+          avatar
+        }
+        isRadiant
+        numKills
+        numDeaths
+        numAssists
+        numLastHits
+        numDenies
+        goldPerMinute
+        experiencePerMinute
+        level
+        gold
+        goldSpent
+        heroDamage
+        towerDamage
+        networth
+        respawnTimer
+        position
+      }
+      playbackData {
+        roshanEvents {
+          time
+          isAlive
+          respawnTimer
+        }
+        buildingEvents {
+          time
+          indexId
+          type
+          isAlive
+          positionX
+          positionY
+          isRadiant
+          npcId
+        }
+        radiantScore {
+          time
+          score
+        }
+        direScore {
+          time
+          score
+        }
+      }
+    }
+  }
+  completedMatch: match(id: $id) {
+    id
+    didRadiantWin
+    durationSeconds
+    startDateTime
+    endDateTime
+    towerStatusRadiant
+    towerStatusDire
+    barracksStatusRadiant
+    barracksStatusDire
+    firstBloodTime
+    leagueId
+    league {
+      id
+      name
+      displayName
+      tier
+      streams {
+        id
+        name
+        streamUrl
+      }
+    }
+    radiantTeamId
+    radiantTeam {
+      id
+      name
+      tag
+      logo
+    }
+    direTeamId
+    direTeam {
+      id
+      name
+      tag
+      logo
+    }
+    seriesId
+    players {
+      heroId
+      hero {
+        id
+        name
+        displayName
+        shortName
+      }
+      steamAccount {
+        id
+        name
+        realName
+        avatar
+      }
+      isRadiant
+      kills
+      deaths
+      assists
+      lastHits
+      denies
+      goldPerMinute
+      experiencePerMinute
+      level
+      networth
+      position
+    }
+    radiantNetworthLeads
+    radiantKills
+    direKills
+  }
+}

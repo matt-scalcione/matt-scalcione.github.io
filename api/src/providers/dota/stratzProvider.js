@@ -1,6 +1,15 @@
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { fetchGraphql } from "../shared/http.js";
 
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_STRATZ_LIVE_QUERY_FILE = join(MODULE_DIR, "queries", "stratzLive.graphql");
+const DEFAULT_STRATZ_MATCH_DETAIL_QUERY_FILE = join(
+  MODULE_DIR,
+  "queries",
+  "stratzMatchDetail.graphql"
+);
 const STRATZ_GRAPHQL_URL = process.env.STRATZ_GRAPHQL_URL || "https://api.stratz.com/graphql";
 const STRATZ_API_TOKEN = String(process.env.STRATZ_API_TOKEN || "").trim();
 const STRATZ_USER_AGENT =
@@ -32,10 +41,13 @@ function loadQueryText(inlineValue, filePath) {
   }
 }
 
-const STRATZ_LIVE_QUERY = loadQueryText(process.env.STRATZ_DOTA_LIVE_QUERY, STRATZ_LIVE_QUERY_FILE);
+const STRATZ_LIVE_QUERY = loadQueryText(
+  process.env.STRATZ_DOTA_LIVE_QUERY,
+  STRATZ_LIVE_QUERY_FILE || DEFAULT_STRATZ_LIVE_QUERY_FILE
+);
 const STRATZ_MATCH_DETAIL_QUERY = loadQueryText(
   process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY,
-  STRATZ_MATCH_DETAIL_QUERY_FILE
+  STRATZ_MATCH_DETAIL_QUERY_FILE || DEFAULT_STRATZ_MATCH_DETAIL_QUERY_FILE
 );
 
 function toOptionalNumber(value) {
@@ -384,10 +396,18 @@ function extractDetailRoot(data) {
   }
 
   const preferred = [
+    data?.liveMatch?.match,
+    data?.live?.match,
+    Array.isArray(data?.live?.matches) ? data.live.matches[0] : null,
+    data?.completedMatch,
     data?.match,
     data?.liveMatch,
     data?.series,
     data?.liveSeries,
+    data?.data?.liveMatch?.match,
+    data?.data?.live?.match,
+    Array.isArray(data?.data?.live?.matches) ? data.data.live.matches[0] : null,
+    data?.data?.completedMatch,
     data?.data?.match,
     data?.data?.liveMatch,
     data?.data?.series
@@ -1157,14 +1177,14 @@ export class StratzProvider {
           ? "env"
           : STRATZ_LIVE_QUERY_FILE
             ? "file"
-            : "unknown"
+            : "bundled_default"
         : "missing",
       detailQuerySource: STRATZ_MATCH_DETAIL_QUERY
         ? String(process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY || "").trim()
           ? "env"
           : STRATZ_MATCH_DETAIL_QUERY_FILE
             ? "file"
-            : "unknown"
+            : "bundled_default"
         : "missing",
       liveEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_LIVE_QUERY),
       detailEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_MATCH_DETAIL_QUERY),
@@ -1254,13 +1274,16 @@ export class StratzProvider {
     if (!providerMatchId) {
       return null;
     }
+    const normalizedMatchId = /^\d+$/.test(providerMatchId)
+      ? Number.parseInt(providerMatchId, 10)
+      : providerMatchId;
 
     const data = await fetchGraphql(STRATZ_GRAPHQL_URL, {
       query: STRATZ_MATCH_DETAIL_QUERY,
       variables: {
-        id: providerMatchId,
-        matchId: providerMatchId,
-        seriesId: providerMatchId,
+        id: normalizedMatchId,
+        matchId: normalizedMatchId,
+        seriesId: normalizedMatchId,
         gameNumber: Number.isInteger(gameNumber) ? gameNumber : null
       },
       headers: this.buildHeaders(),

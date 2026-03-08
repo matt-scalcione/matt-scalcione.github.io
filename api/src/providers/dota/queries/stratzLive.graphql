@@ -1,0 +1,107 @@
+query PulseboardStratzLive {
+  liveMatches: live {
+    matches(request: { isCompleted: false, isLeague: true, take: 50 }) {
+      matchId
+      radiantScore
+      direScore
+      leagueId
+      league {
+        id
+        name
+        displayName
+        tier
+        streams {
+          id
+          name
+          streamUrl
+        }
+      }
+      delay
+      spectators
+      buildingState
+      radiantLead
+      gameTime
+      completed
+      isUpdating
+      isParsing
+      radiantTeamId
+      direTeamId
+      radiantTeam {
+        id
+        name
+        tag
+        logo
+      }
+      direTeam {
+        id
+        name
+        tag
+        logo
+      }
+      gameState
+      gameMinute
+      createdDateTime
+      modifiedDateTime
+      players {
+        matchId
+        heroId
+        hero {
+          id
+          name
+          displayName
+          shortName
+        }
+        name
+        playerSlot
+        steamAccountId
+        steamAccount {
+          id
+          name
+          realName
+          avatar
+        }
+        isRadiant
+        numKills
+        numDeaths
+        numAssists
+        numLastHits
+        numDenies
+        goldPerMinute
+        experiencePerMinute
+        level
+        gold
+        goldSpent
+        heroDamage
+        towerDamage
+        networth
+        respawnTimer
+        position
+      }
+      playbackData {
+        roshanEvents {
+          time
+          isAlive
+          respawnTimer
+        }
+        buildingEvents {
+          time
+          indexId
+          type
+          isAlive
+          positionX
+          positionY
+          isRadiant
+          npcId
+        }
+        radiantScore {
+          time
+          score
+        }
+        direScore {
+          time
+          score
+        }
+      }
+    }
+  }
+}

@@ -99,17 +99,21 @@ Optional provider settings:
 - `LIQUIPEDIA_DOTA_API_CACHE_MS` (default `30000`)
 - `STRATZ_GRAPHQL_URL` (default `https://api.stratz.com/graphql`)
 - `STRATZ_API_TOKEN`
-- `STRATZ_DOTA_LIVE_QUERY`
-- `STRATZ_DOTA_MATCH_DETAIL_QUERY`
-- `STRATZ_DOTA_LIVE_QUERY_FILE`
-- `STRATZ_DOTA_MATCH_DETAIL_QUERY_FILE`
+- `STRATZ_DOTA_LIVE_QUERY` (optional override)
+- `STRATZ_DOTA_MATCH_DETAIL_QUERY` (optional override)
+- `STRATZ_DOTA_LIVE_QUERY_FILE` (optional override)
+- `STRATZ_DOTA_MATCH_DETAIL_QUERY_FILE` (optional override)
 
 Dota provider precedence:
-1. `STRATZ` for live telemetry when configured
+1. `STRATZ` for live telemetry when `STRATZ_API_TOKEN` is configured
 2. `OpenDota` for live/results/history fallback
 3. `Liquipedia API` for future schedule and watch metadata
 
 Use `GET /v1/provider-coverage` to inspect which Dota provider path is active.
+
+Bundled STRATZ query files:
+- [`api/src/providers/dota/queries/stratzLive.graphql`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/providers/dota/queries/stratzLive.graphql)
+- [`api/src/providers/dota/queries/stratzMatchDetail.graphql`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/providers/dota/queries/stratzMatchDetail.graphql)
 
 Activation references:
 - [.env example](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/.env.example)

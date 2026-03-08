@@ -32,18 +32,11 @@ Use:
 Minimum Dota activation variables:
 
 - `STRATZ_API_TOKEN`
-- `STRATZ_DOTA_LIVE_QUERY` or `STRATZ_DOTA_LIVE_QUERY_FILE`
-
-Optional:
-
-- `STRATZ_DOTA_MATCH_DETAIL_QUERY` or `STRATZ_DOTA_MATCH_DETAIL_QUERY_FILE`
 
 Important:
 
-- Match detail is currently gated to `pulseboard_contract_only`.
-- That means raw STRATZ GraphQL payloads will not be passed through.
-- Live-list activation is safe now.
-- Detail activation should only be turned on once the GraphQL payload is normalized into Pulseboard's match-detail contract.
+- The repo now ships bundled default STRATZ live and detail queries.
+- Raw STRATZ payloads are normalized into Pulseboard's Dota contract before reaching the frontend.
 
 ## 2. Prepare Render env
 
@@ -54,8 +47,6 @@ Render blueprint already includes the keys in:
 Set these in Render:
 
 - `STRATZ_API_TOKEN`
-- `STRATZ_DOTA_LIVE_QUERY`
-- optionally `STRATZ_DOTA_MATCH_DETAIL_QUERY`
 
 Also keep:
 
@@ -75,7 +66,7 @@ npm run providers:check
 Expected:
 
 - tests pass
-- `STRATZ live enabled true` once token + query are present
+- `STRATZ live enabled true` once the token is present
 - Dota live rows appear if STRATZ is returning coverage
 
 ## 4. Verify production API
