@@ -427,6 +427,9 @@ describe("StratzProvider", () => {
       assert.equal(detail?.selectedState, "completed");
       assert.equal(detail?.selectedGame?.state, "completed");
       assert.equal(detail?.selectedGame?.label, "Completed game.");
+      assert.equal(detail?.winnerTeamId, "1");
+      assert.equal(detail?.selectedGame?.winnerTeamId, "1");
+      assert.equal(detail?.selectedGame?.title, "Game 1");
       assert.equal(detail?.playerEconomy?.left?.[0]?.cs, 402);
       assert.equal(detail?.playerEconomy?.left?.[0]?.denies, 14);
       assert.equal(detail?.playerEconomy?.left?.[0]?.itemCount, 3);

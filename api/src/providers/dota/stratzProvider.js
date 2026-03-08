@@ -1693,6 +1693,17 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
     return null;
   }
 
+  const winnerTeamId =
+    typeof root?.didRadiantWin === "boolean"
+      ? root.didRadiantWin
+        ? liveSummary.teams.left.id
+        : liveSummary.teams.right.id
+      : typeof root?.didDireWin === "boolean"
+        ? root.didDireWin
+          ? liveSummary.teams.right.id
+          : liveSummary.teams.left.id
+        : null;
+
   const watchOptions = extractWatchOptions(root);
   const watchUrl = watchOptions[0]?.url || null;
   const teams = liveSummary.teams;
@@ -1793,6 +1804,7 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
   return {
     ...liveSummary,
     id: String(matchId || liveSummary.id),
+    winnerTeamId,
     selectedState: selectedGame.state,
     sourceMatchId: String(firstPresent(root?.matchId, liveSummary.sourceMatchId, matchId) || ""),
     patch: normalizeText(firstPresent(root?.patch, root?.gameVersion), "unknown"),
@@ -1938,6 +1950,7 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
       number: selectedGameNumber,
       state: selectedGame.state,
       label: selectedGame.label,
+      title: `Game ${selectedGameNumber}`,
       telemetryStatus,
       telemetryCounts: {
         tickerEvents: liveTicker.length,
@@ -1954,7 +1967,8 @@ function normalizeStratzDetail(data, { matchId, gameNumber } = {}) {
       durationMinutes:
         playerEconomy.elapsedSeconds > 0 ? Number((playerEconomy.elapsedSeconds / 60).toFixed(1)) : null,
       requestedMissing: false,
-      sourceMatchId: String(firstPresent(root?.matchId, liveSummary.sourceMatchId, matchId) || "")
+      sourceMatchId: String(firstPresent(root?.matchId, liveSummary.sourceMatchId, matchId) || ""),
+      winnerTeamId
     },
     gameNavigation: buildGameNavigation(seriesGames, selectedGameNumber),
     seriesHeader: {
