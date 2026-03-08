@@ -30,21 +30,55 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260307p" />
+    <link rel="stylesheet" href="./styles.css?v=20260308d" />
   </head>
-  <body class="team-page">
+  <body class="product-shell team-page">
     <div class="noise"></div>
     <header class="hero compact">
-      <h1>Team Detail</h1>
-      <p class="subtitle" id="teamTitle">Loading team...</p>
-      <nav class="page-nav">
-        <a id="liveDeskNav" href="./index.html">Live Desk</a>
-        <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
-        <a id="followsNav" href="./follows.html">Follows & Alerts</a>
-        <a id="lolHubNav" href="./lol.html">LoL Hub</a>
-        <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
-      </nav>
-      <a id="backLink" href="./schedule.html" class="link-btn">Back</a>
+      <div class="hero-grid">
+        <div class="hero-main">
+          <div class="hero-kicker-row">
+            <p class="kicker">Pulseboard</p>
+            <span class="hero-badge">Team profile</span>
+          </div>
+          <h1>Team Hub</h1>
+          <p class="subtitle" id="teamTitle">Loading team...</p>
+          <div class="hero-metrics" aria-label="Team hub highlights">
+            <div class="hero-metric">
+              <span>Layer</span>
+              <strong>Team profile</strong>
+            </div>
+            <div class="hero-metric">
+              <span>Coverage</span>
+              <strong>Form + slate</strong>
+            </div>
+            <div class="hero-metric">
+              <span>Use case</span>
+              <strong>Context fast</strong>
+            </div>
+          </div>
+          <div class="hero-chips">
+            <span class="hero-chip">Recent form</span>
+            <span class="hero-chip">Upcoming slate</span>
+            <span class="hero-chip">Opponent history</span>
+          </div>
+          <nav class="page-nav">
+            <a id="liveDeskNav" href="./index.html">Live Desk</a>
+            <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
+            <a id="followsNav" href="./follows.html">Follows & Alerts</a>
+            <a id="lolHubNav" href="./lol.html">LoL Hub</a>
+            <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
+          </nav>
+        </div>
+        <aside class="hero-side hero-side-actions">
+          <p class="hero-side-label">Route</p>
+          <p class="hero-side-value">Return path</p>
+          <p class="hero-side-copy">
+            Check form, history, and the next slate here, then jump back to the match or board when you have the read.
+          </p>
+          <a id="backLink" href="./schedule.html" class="link-btn hero-back-link">Back</a>
+        </aside>
+      </div>
     </header>
 
     <main class="layout detail">
@@ -92,33 +126,42 @@
         </div>
       </section>
 
+      <nav id="teamQuickNav" class="team-quick-nav" aria-label="Team sections">
+        <a class="team-jump-chip active" href="#team-snapshot">Snapshot</a>
+        <a class="team-jump-chip" href="#team-read">Team Read</a>
+        <a class="team-jump-chip" href="#team-form">Form</a>
+        <a class="team-jump-chip" href="#team-recent">Recent</a>
+        <a class="team-jump-chip" href="#team-upcoming">Upcoming</a>
+        <a class="team-jump-chip" href="#team-archive">Archive</a>
+        <a class="team-jump-chip" href="#team-h2h">H2H</a>
+      </nav>
       <div id="teamQuickJump" class="mobile-page-jump" hidden></div>
 
-      <section class="panel">
+      <section id="team-snapshot" class="panel">
         <div class="section-head">
-          <h2>Team Snapshot</h2>
+          <h2>Snapshot</h2>
           <p id="teamMetaText" class="meta-text"></p>
         </div>
         <div id="teamSummaryWrap" class="upcoming-grid"></div>
       </section>
 
-      <section class="panel">
+      <section id="team-read" class="panel">
         <div class="section-head">
-          <h2>Performance Insights</h2>
+          <h2>Team Read</h2>
           <p id="performanceMetaText" class="meta-text"></p>
         </div>
         <div id="performanceInsightsWrap"></div>
       </section>
 
-      <section class="panel">
+      <section id="team-form" class="panel">
         <div class="section-head">
-          <h2>Form Timeline</h2>
+          <h2>Form</h2>
           <p id="formTimelineMeta" class="meta-text"></p>
         </div>
         <div id="formTimelineWrap"></div>
       </section>
 
-      <section class="panel">
+      <section id="team-recent" class="panel">
         <div class="section-head">
           <h2>Recent Matches</h2>
           <p class="meta-text">Latest completed series.</p>
@@ -126,7 +169,7 @@
         <div id="recentMatchesWrap"></div>
       </section>
 
-      <section class="panel">
+      <section id="team-upcoming" class="panel">
         <div class="section-head">
           <h2>Upcoming Matches</h2>
           <p class="meta-text">Next on the calendar.</p>
@@ -134,10 +177,10 @@
         <div id="upcomingMatchesWrap"></div>
       </section>
 
-      <section class="panel">
+      <section id="team-archive" class="panel">
         <div class="section-head">
-          <h2>Past Matches</h2>
-          <p class="meta-text">Filter completed series.</p>
+          <h2>Match Archive</h2>
+          <p class="meta-text">Searchable history by result, opponent, and tournament.</p>
         </div>
         <div class="past-toolbar">
           <label>
@@ -174,7 +217,7 @@
         <div id="opponentBreakdownWrap"></div>
       </section>
 
-      <section class="panel">
+      <section id="team-h2h" class="panel">
         <div class="section-head">
           <h2>Head-To-Head</h2>
           <p class="meta-text">Direct record vs selected opponent.</p>
@@ -206,7 +249,7 @@
       </a>
     </nav>
 
-    <script src="./site-config.js?v=20260307p"></script>
-    <script type="module" src="./team.js?v=20260308c"></script>
+    <script src="./site-config.js?v=20260308d"></script>
+    <script type="module" src="./team.js?v=20260308d"></script>
   </body>
 </html>

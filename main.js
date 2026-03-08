@@ -11,11 +11,17 @@ import {
   toAbsoluteSiteUrl
 } from "./seo.js";
 import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
+import {
+  matchCardsSkeletonMarkup,
+  overviewSkeletonMarkup,
+  productEmptyMarkup
+} from "./loading.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const AUTO_REFRESH_MS = 15000;
 const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
+const PRODUCT_GUIDE_KEY = "pulseboard.productGuideDismissed.liveDesk";
 
 const elements = {
   apiBaseInput: document.querySelector("#apiBaseInput"),
@@ -37,6 +43,13 @@ const elements = {
   refreshButton: document.querySelector("#refreshButton"),
   saveButton: document.querySelector("#saveButton"),
   statusText: document.querySelector("#statusText"),
+  heroContextLabel: document.querySelector("#heroContextLabel"),
+  heroContextValue: document.querySelector("#heroContextValue"),
+  heroContextCopy: document.querySelector("#heroContextCopy"),
+  heroContextChips: document.querySelector("#heroContextChips"),
+  heroActionRow: document.querySelector("#heroActionRow"),
+  productGuidePanel: document.querySelector("#productGuidePanel"),
+  boardLensStrip: document.querySelector("#boardLensStrip"),
   metaText: document.querySelector("#metaText"),
   liveStatusSwitch: document.querySelector("#liveStatusSwitch"),
   liveStatusButtons: Array.from(document.querySelectorAll("#liveStatusSwitch [data-status]")),
@@ -66,6 +79,18 @@ function readApiBase() {
 
 function saveApiBase(value) {
   localStorage.setItem("pulseboard.apiBase", value);
+}
+
+function guideDismissed() {
+  return localStorage.getItem(PRODUCT_GUIDE_KEY) === "1";
+}
+
+function setGuideDismissed(value) {
+  if (value) {
+    localStorage.setItem(PRODUCT_GUIDE_KEY, "1");
+    return;
+  }
+  localStorage.removeItem(PRODUCT_GUIDE_KEY);
 }
 
 async function fetchJsonWithTimeout(url, {
@@ -278,6 +303,146 @@ function featuredHeadline(rows = [], counts = { live: 0, upcoming: 0, completed:
   return "No matches in the current view";
 }
 
+function liveStatusLabel(status) {
+  if (status === "live") return "Live";
+  if (status === "upcoming") return "Up Next";
+  if (status === "completed") return "Finals";
+  return "All";
+}
+
+function liveDeskGuideMarkup(rows = [], apiBase) {
+  const featured = sortDeskRows(rows)[0] || null;
+  const matchHref = featured ? buildMatchUrl({ matchId: featured.id }) : null;
+  const scheduleHref = new URL("./schedule.html", window.location.href).toString();
+  const followsHref = new URL("./follows.html", window.location.href).toString();
+
+  return `
+    <div class="guide-shell">
+      <div class="guide-head">
+        <div>
+          <p class="guide-kicker">Quick start</p>
+          <h2>Use Live Desk as the control room</h2>
+          <p class="guide-copy">Scan the board first, open the right match second, then save teams into Watchlist only after you know what deserves recurring attention.</p>
+        </div>
+        <button type="button" class="ghost guide-dismiss" data-guide-dismiss="true">Hide guide</button>
+      </div>
+      <div class="guide-step-grid">
+        <article class="guide-step">
+          <p class="guide-step-index">01</p>
+          <h3>Scan the board</h3>
+          <p>Use <strong>Live</strong>, <strong>Up Next</strong>, and search to reduce noise before you open anything.</p>
+        </article>
+        <article class="guide-step">
+          <p class="guide-step-index">02</p>
+          <h3>Open Match Center</h3>
+          <p>${featured ? `${escapeHtml(featured.teams.left.name)} vs ${escapeHtml(featured.teams.right.name)} is the current best entry point.` : "Open the strongest live or upcoming series once it stands out."}</p>
+          ${matchHref ? `<a class="link-btn" href="${matchHref}">Open spotlight match</a>` : ""}
+        </article>
+        <article class="guide-step">
+          <p class="guide-step-index">03</p>
+          <h3>Save what matters</h3>
+          <p>Move finished discovery into your personal workspace only after you know which teams and events deserve alerts.</p>
+          <div class="guide-link-row">
+            <a class="link-btn ghost" href="${scheduleHref}">Plan via schedule</a>
+            <a class="link-btn ghost" href="${followsHref}">Open watchlist</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  `;
+}
+
+function renderHeroContext(rows = []) {
+  if (!elements.heroContextLabel || !elements.heroContextValue || !elements.heroContextCopy) {
+    return;
+  }
+
+  const liveCount = rows.filter((row) => String(row?.status || "").toLowerCase() === "live").length;
+  const upcomingCount = rows.filter((row) => String(row?.status || "").toLowerCase() === "upcoming").length;
+  const searchTerm = String(liveDeskState.searchTerm || "").trim();
+
+  elements.heroContextLabel.textContent = "Board Mode";
+  elements.heroContextValue.textContent = rows.length ? `${liveStatusLabel(liveDeskState.statusFilter)} focus` : "Board clear";
+  elements.heroContextCopy.textContent = rows.length
+    ? `${rows.length} series in view${searchTerm ? ` for "${searchTerm}"` : ""}. ${liveCount ? `${liveCount} live now` : "No live series"}${upcomingCount ? ` · ${upcomingCount} up next` : ""}.`
+    : "Use the board like a control room: start broad, then narrow until one series clearly deserves Match Center.";
+
+  if (elements.heroContextChips) {
+    elements.heroContextChips.innerHTML = rows.length
+      ? `
+        <span class="hero-chip">${rows.length} in view</span>
+        <span class="hero-chip">${liveCount} live</span>
+        <span class="hero-chip">${upcomingCount} up next</span>
+      `
+      : `
+        <span class="hero-chip">Use Live mode</span>
+        <span class="hero-chip">Search a team</span>
+        <span class="hero-chip">Refresh board</span>
+      `;
+  }
+}
+
+function renderHeroActions(rows = []) {
+  if (!elements.heroActionRow) {
+    return;
+  }
+
+  const featured = sortDeskRows(rows)[0] || null;
+  const primaryHref = featured ? buildMatchUrl({ matchId: featured.id }) : new URL("./schedule.html", window.location.href).toString();
+
+  elements.heroActionRow.innerHTML = `
+    <a class="link-btn" href="${primaryHref}">${featured ? "Open spotlight" : "Open schedule"}</a>
+    <a class="link-btn ghost" href="${new URL("./follows.html", window.location.href).toString()}">Open watchlist</a>
+  `;
+}
+
+function renderProductGuide(rows = []) {
+  if (!elements.productGuidePanel) {
+    return;
+  }
+
+  if (guideDismissed()) {
+    elements.productGuidePanel.classList.add("hidden-panel");
+    elements.productGuidePanel.innerHTML = "";
+    return;
+  }
+
+  elements.productGuidePanel.classList.remove("hidden-panel");
+  elements.productGuidePanel.innerHTML = liveDeskGuideMarkup(rows, readApiBase());
+}
+
+function renderBoardLens(rows = []) {
+  if (!elements.boardLensStrip) {
+    return;
+  }
+
+  const searchTerm = String(liveDeskState.searchTerm || "").trim();
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  const region = String(elements.regionInput?.value || "").trim();
+  const followedOnly = Boolean(elements.followedOnlyInput?.checked);
+  const userId = String(elements.userIdInput?.value || "").trim();
+  const dotaTiers = String(elements.dotaTiersInput?.value || "").trim();
+  const chips = [`<span class="lens-chip lens-chip-primary">${escapeHtml(liveStatusLabel(liveDeskState.statusFilter))}</span>`];
+
+  if (game) chips.push(`<span class="lens-chip">${escapeHtml(gameLabel(game))}</span>`);
+  if (region) chips.push(`<span class="lens-chip">${escapeHtml(region.toUpperCase())}</span>`);
+  if (searchTerm) chips.push(`<span class="lens-chip">Search: ${escapeHtml(searchTerm)}</span>`);
+  if (followedOnly) chips.push(`<span class="lens-chip">Watchlist only${userId ? ` · ${escapeHtml(userId)}` : ""}</span>`);
+  if ((game === "dota2" || !game) && dotaTiers) chips.push(`<span class="lens-chip">Tiers ${escapeHtml(dotaTiers)}</span>`);
+
+  elements.boardLensStrip.innerHTML = `
+    <div class="lens-strip-shell">
+      <div>
+        <p class="lens-kicker">Current lens</p>
+        <p class="lens-copy">${rows.length} ${rows.length === 1 ? "series" : "series"} in view. The board is already narrowed to the conditions below.</p>
+      </div>
+      <div class="lens-chip-row">
+        ${chips.join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderLiveDeskSummary(totalRows, filteredRows, counts) {
   if (!elements.liveDeskSummary) {
     return;
@@ -307,8 +472,14 @@ function renderLiveDeskSummary(totalRows, filteredRows, counts) {
         </div>
       </div>
     `;
+    elements.liveDeskSummary.dataset.loaded = "1";
     return;
   }
+
+  renderHeroContext(visibleRows.length ? visibleRows : totalRows);
+  renderHeroActions(visibleRows.length ? visibleRows : totalRows);
+  renderProductGuide(visibleRows.length ? visibleRows : totalRows);
+  renderBoardLens(visibleRows.length ? visibleRows : totalRows);
 
   const visibleCount = filteredRows.length;
   const filterLabel =
@@ -388,6 +559,7 @@ function renderLiveDeskSummary(totalRows, filteredRows, counts) {
       }
     </div>
   `;
+  elements.liveDeskSummary.dataset.loaded = "1";
 }
 
 function buildQuery({ game, region, dotaTiers, followedOnly, userId }) {
@@ -557,31 +729,20 @@ function setStatus(message, tone = "neutral") {
 }
 
 function renderLoadingCards() {
-  elements.cardGrid.innerHTML = `
-    <div class="loading-grid" aria-hidden="true">
-      ${Array.from({ length: 6 })
-        .map(
-          () => `
-            <article class="match-card loading">
-              <div class="skeleton-line short"></div>
-              <div class="skeleton-line"></div>
-              <div class="skeleton-line"></div>
-              <div class="skeleton-line short"></div>
-            </article>
-          `
-        )
-        .join("")}
-    </div>
-  `;
+  if (elements.liveDeskSummary?.dataset.loaded !== "1") {
+    elements.liveDeskSummary.innerHTML = overviewSkeletonMarkup();
+  }
+  elements.cardGrid.innerHTML = matchCardsSkeletonMarkup(6);
 }
 
 function renderEmpty(message) {
-  elements.cardGrid.innerHTML = `
-    <div class="empty">
-      <p class="empty-title">No Matches</p>
-      <p class="meta-text">${message}</p>
-    </div>
-  `;
+  elements.cardGrid.innerHTML = productEmptyMarkup({
+    eyebrow: "Board empty",
+    title: "No matches in the current board",
+    body: message,
+    tips: ["Switch board mode", "Clear search", "Widen region or game scope"]
+  });
+  elements.cardGrid.dataset.loaded = "1";
 }
 
 function renderCards(rows) {
@@ -625,6 +786,7 @@ function renderCards(rows) {
       `;
     })
     .join("");
+  elements.cardGrid.dataset.loaded = "1";
 }
 
 function applyLiveStructuredData(rows = []) {
@@ -799,6 +961,21 @@ function installEvents() {
         // Ignore storage failures.
       }
       renderLiveDesk();
+    });
+  }
+
+  if (elements.productGuidePanel) {
+    elements.productGuidePanel.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const button = target.closest("[data-guide-dismiss]");
+      if (!button) {
+        return;
+      }
+      setGuideDismissed(true);
+      renderProductGuide(applyClientFilters(liveDeskState.rows));
     });
   }
 }

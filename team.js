@@ -45,6 +45,7 @@ const elements = {
   apiBaseInput: document.querySelector("#apiBaseInput"),
   controlsPanel: document.querySelector("#controlsPanel"),
   controlsToggle: document.querySelector("#controlsToggle"),
+  teamQuickNav: document.querySelector("#teamQuickNav"),
   teamQuickJump: document.querySelector("#teamQuickJump"),
   gameSelect: document.querySelector("#gameSelect"),
   limitSelect: document.querySelector("#limitSelect"),
@@ -402,6 +403,30 @@ function bindTeamQuickJump() {
     const jumpTarget = button.getAttribute("data-jump-target");
     if (jumpTarget) {
       scrollToTeamTarget(jumpTarget);
+    }
+  });
+}
+
+function bindDesktopTeamQuickNav() {
+  if (!elements.teamQuickNav || elements.teamQuickNav.dataset.bound === "1") {
+    return;
+  }
+
+  elements.teamQuickNav.dataset.bound = "1";
+  elements.teamQuickNav.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const link = target.closest("a[href^=\"#\"]");
+    if (!link) {
+      return;
+    }
+    event.preventDefault();
+    const href = link.getAttribute("href") || "";
+    const targetId = href.replace(/^#/, "");
+    if (targetId) {
+      scrollToTeamTarget(targetId);
     }
   });
 }
@@ -1864,6 +1889,7 @@ function boot() {
   setupControlsPanel();
   bindTeamMobilePanelControls();
   bindTeamQuickJump();
+  bindDesktopTeamQuickNav();
   applyTeamMobilePanelCollapseState();
   renderTeamQuickJump();
   refreshTeamSeo(null);

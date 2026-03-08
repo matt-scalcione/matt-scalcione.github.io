@@ -738,6 +738,7 @@ const notificationPreferencesByUser = new Map([
     }
   ]
 ]);
+const alertOutboxByUser = new Map();
 
 function filterByGameRegion(rows, { game, region }) {
   let filtered = rows.slice();
@@ -3069,4 +3070,276 @@ export function upsertNotificationPreferences({
 
   notificationPreferencesByUser.set(userId, next);
   return next;
+}
+
+function buildAlertSummary(alerts = [], matchedFollowIds = new Set()) {
+  const byType = {};
+  for (const alert of alerts) {
+    const type = String(alert?.type || "alert");
+    byType[type] = (byType[type] || 0) + 1;
+  }
+  return {
+    totalAlerts: alerts.length,
+    matchedFollows: matchedFollowIds.size,
+    byType
+  };
+}
+
+function syncAlertOutbox(userId, alerts = [], preferences = {}) {
+  const normalizedUserId = String(userId || "").trim();
+  const existing = alertOutboxByUser.get(normalizedUserId) || [];
+  const next = [];
+
+  for (const alert of alerts) {
+    const current = existing.find((row) => row.id === alert.id);
+    if (current) {
+      current.lastSeenAt = new Date().toISOString();
+      current.title = alert.title;
+      current.detail = alert.detail;
+      current.tone = alert.tone;
+      current.deliveryStatus = current.deliveryStatus || "pending";
+      next.push(current);
+      continue;
+    }
+
+    next.push({
+      ...cloneValue(alert),
+      deliveryStatus: "pending",
+      deliveryChannels: [
+        preferences.webPush ? "webPush" : null,
+        preferences.emailDigest ? "emailDigest" : null
+      ].filter(Boolean),
+      firstSeenAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString()
+    });
+  }
+
+  alertOutboxByUser.set(normalizedUserId, next);
+  return next;
+}
+
+function matchTeamFollowAgainstRow(follow, row) {
+  if (!follow || follow.entityType !== "team") {
+    return false;
+  }
+  return (
+    String(row?.teams?.left?.id || "") === String(follow.entityId) ||
+    String(row?.teams?.right?.id || "") === String(follow.entityId)
+  );
+}
+
+function buildAlertCollections({
+  userId,
+  followsForUser,
+  preferences,
+  liveRows,
+  upcomingRows,
+  resultRows
+}) {
+  const candidates = [];
+  const matchedFollowIds = new Set();
+  const nowMs = Date.now();
+
+  function pushAlert({ type, tone = "neutral", row, occurredAt, title, detail }) {
+    candidates.push({
+      id: `${type}:${row.id}`,
+      type,
+      tone,
+      matchId: row.id,
+      occurredAt,
+      title,
+      detail,
+      tournament: row.tournament,
+      teams: cloneValue(row.teams)
+    });
+  }
+
+  for (const row of liveRows) {
+    const matchingFollows = followsForUser.filter((follow) => matchTeamFollowAgainstRow(follow, row));
+    if (!matchingFollows.length) {
+      continue;
+    }
+    matchingFollows.forEach((follow) => matchedFollowIds.add(follow.id));
+
+    if (preferences.matchStart) {
+      pushAlert({
+        type: "start",
+        tone: "live",
+        row,
+        occurredAt: row.startAt || new Date().toISOString(),
+        title: `${row.teams.left.name} vs ${row.teams.right.name} is live`,
+        detail: `Series ${row.seriesScore.left}-${row.seriesScore.right}${row.tournament ? ` · ${row.tournament}` : ""}.`
+      });
+    }
+
+    if (preferences.swingAlerts && row.keySignal) {
+      pushAlert({
+        type: "swing",
+        tone: "warning",
+        row,
+        occurredAt: row.updatedAt || row.startAt || new Date().toISOString(),
+        title: `${row.teams.left.name} vs ${row.teams.right.name} has a live signal`,
+        detail: `${String(row.keySignal).replaceAll("_", " ")}.`
+      });
+    }
+  }
+
+  for (const row of upcomingRows) {
+    const matchingFollows = followsForUser.filter((follow) => matchTeamFollowAgainstRow(follow, row));
+    if (!matchingFollows.length) {
+      continue;
+    }
+    matchingFollows.forEach((follow) => matchedFollowIds.add(follow.id));
+
+    const startMs = Date.parse(row.startAt || "");
+    if (!preferences.matchStart || !Number.isFinite(startMs) || startMs - nowMs > 45 * oneMinute || startMs < nowMs - 15 * oneMinute) {
+      continue;
+    }
+
+    pushAlert({
+      type: "start",
+      tone: "warning",
+      row,
+      occurredAt: row.startAt,
+      title: `${row.teams.left.name} vs ${row.teams.right.name} starts soon`,
+      detail: `Scheduled for ${new Date(row.startAt).toLocaleString()}.`
+    });
+  }
+
+  for (const row of resultRows) {
+    const matchingFollows = followsForUser.filter((follow) => matchTeamFollowAgainstRow(follow, row));
+    if (!matchingFollows.length) {
+      continue;
+    }
+    matchingFollows.forEach((follow) => matchedFollowIds.add(follow.id));
+
+    const endMs = Date.parse(row.endAt || row.startAt || "");
+    if (!preferences.matchFinal || !Number.isFinite(endMs) || nowMs - endMs > 18 * oneHour) {
+      continue;
+    }
+
+    const winnerName =
+      row.winnerTeamId === row?.teams?.left?.id
+        ? row.teams.left.name
+        : row.winnerTeamId === row?.teams?.right?.id
+          ? row.teams.right.name
+          : "Series finished";
+
+    pushAlert({
+      type: "final",
+      tone: "complete",
+      row,
+      occurredAt: row.endAt || row.startAt,
+      title: `${row.teams.left.name} vs ${row.teams.right.name} is final`,
+      detail: `${winnerName} · ${row.seriesScore.left}-${row.seriesScore.right}.`
+    });
+  }
+
+  candidates.sort((left, right) => Date.parse(right.occurredAt || 0) - Date.parse(left.occurredAt || 0));
+  const outbox = syncAlertOutbox(userId, candidates, preferences);
+
+  return {
+    summary: buildAlertSummary(candidates, matchedFollowIds),
+    alerts: candidates.slice(0, 12),
+    outbox
+  };
+}
+
+function buildAlertOutboxSummary(rows = []) {
+  return {
+    total: rows.length,
+    pending: rows.filter((row) => row.deliveryStatus === "pending").length,
+    acknowledged: rows.filter((row) => row.deliveryStatus === "acknowledged").length
+  };
+}
+
+export async function getAlertPreview(userId) {
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    return {
+      userId: normalizedUserId,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalAlerts: 0,
+        matchedFollows: 0,
+        byType: {}
+      },
+      alerts: []
+    };
+  }
+
+  const followsForUser = follows.filter((follow) => follow.userId === normalizedUserId);
+  const preferences = getNotificationPreferences(normalizedUserId);
+  const [liveRows, upcomingRows, resultRows] = await Promise.all([
+    listLiveMatches({ followedOnly: false, userId: null }),
+    listSchedule({ dateFrom: Date.now() - 30 * oneMinute, dateTo: Date.now() + 6 * oneHour }),
+    listResults({ dateFrom: Date.now() - 12 * oneHour, dateTo: Date.now() + oneHour })
+  ]);
+  const collection = buildAlertCollections({
+    userId: normalizedUserId,
+    followsForUser,
+    preferences,
+    liveRows,
+    upcomingRows,
+    resultRows
+  });
+
+  return {
+    userId: normalizedUserId,
+    generatedAt: new Date().toISOString(),
+    summary: collection.summary,
+    alerts: collection.alerts
+  };
+}
+
+export async function getAlertOutbox(userId) {
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    return {
+      userId: normalizedUserId,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        total: 0,
+        pending: 0,
+        acknowledged: 0
+      },
+      alerts: []
+    };
+  }
+
+  await getAlertPreview(normalizedUserId);
+  const rows = (alertOutboxByUser.get(normalizedUserId) || []).slice().sort((left, right) =>
+    Date.parse(right.lastSeenAt || 0) - Date.parse(left.lastSeenAt || 0)
+  );
+
+  return {
+    userId: normalizedUserId,
+    generatedAt: new Date().toISOString(),
+    summary: buildAlertOutboxSummary(rows),
+    alerts: rows
+  };
+}
+
+export function acknowledgeAlertOutboxItems(userId, alertIds = []) {
+  const normalizedUserId = String(userId || "").trim();
+  const rows = alertOutboxByUser.get(normalizedUserId) || [];
+  const idSet = new Set((Array.isArray(alertIds) ? alertIds : []).map((item) => String(item || "").trim()).filter(Boolean));
+  const acknowledgedAt = new Date().toISOString();
+  let updated = 0;
+
+  for (const row of rows) {
+    if (!idSet.has(row.id)) {
+      continue;
+    }
+    row.deliveryStatus = "acknowledged";
+    row.acknowledgedAt = acknowledgedAt;
+    updated += 1;
+  }
+
+  return {
+    userId: normalizedUserId,
+    updated,
+    acknowledgedAt,
+    alerts: rows
+  };
 }

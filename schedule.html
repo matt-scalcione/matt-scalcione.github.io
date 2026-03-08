@@ -30,22 +30,58 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260307u" />
+    <link rel="stylesheet" href="./styles.css?v=20260308d" />
   </head>
-  <body class="schedule-page">
+  <body class="product-shell schedule-page">
     <div class="noise"></div>
     <header class="hero">
-      <h1>Schedule & Results</h1>
-      <p class="subtitle">
-        Track upcoming series and final results across LoL and Dota 2.
-      </p>
-      <nav class="page-nav">
-        <a id="liveDeskNav" href="./index.html">Live Desk</a>
-        <a id="scheduleNav" href="./schedule.html" aria-current="page">Schedule & Results</a>
-        <a id="followsNav" href="./follows.html">Follows & Alerts</a>
-        <a id="lolHubNav" href="./lol.html">LoL Hub</a>
-        <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
-      </nav>
+      <div class="hero-grid">
+        <div class="hero-main">
+          <div class="hero-kicker-row">
+            <p class="kicker">Pulseboard</p>
+            <span class="hero-badge">Planning board</span>
+          </div>
+          <h1>Schedule & Results</h1>
+          <p class="subtitle">
+            Track upcoming series and final results across LoL and Dota 2.
+          </p>
+          <div class="hero-metrics" aria-label="Schedule highlights">
+            <div class="hero-metric">
+              <span>Mode</span>
+              <strong>Plan + review</strong>
+            </div>
+            <div class="hero-metric">
+              <span>Coverage</span>
+              <strong>Future + finals</strong>
+            </div>
+            <div class="hero-metric">
+              <span>Use case</span>
+              <strong>Find the next match</strong>
+            </div>
+          </div>
+          <div class="hero-chips">
+            <span class="hero-chip">Future schedule</span>
+            <span class="hero-chip">Recent finals</span>
+            <span class="hero-chip">Cross-title coverage</span>
+          </div>
+          <nav class="page-nav">
+            <a id="liveDeskNav" href="./index.html">Live Desk</a>
+            <a id="scheduleNav" href="./schedule.html" aria-current="page">Schedule & Results</a>
+            <a id="followsNav" href="./follows.html">Follows & Alerts</a>
+            <a id="lolHubNav" href="./lol.html">LoL Hub</a>
+            <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
+          </nav>
+        </div>
+        <aside class="hero-side">
+          <p id="heroContextLabel" class="hero-side-label">Window</p>
+          <p id="heroContextValue" class="hero-side-value">Slate review</p>
+          <p id="heroContextCopy" class="hero-side-copy">
+            Shape the window first, then narrow by game, region, or search until the right series stands out.
+          </p>
+          <div id="heroContextChips" class="hero-side-chips"></div>
+          <div id="heroActionRow" class="hero-action-row"></div>
+        </aside>
+      </div>
     </header>
 
     <main class="layout">
@@ -75,6 +111,10 @@
               <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
             </label>
             <label>
+              Search
+              <input id="slateSearchInput" type="text" placeholder="team, event, region..." />
+            </label>
+            <label>
               Game
               <select id="gameSelect">
                 <option value="">All</option>
@@ -99,6 +139,12 @@
               <input id="dateToInput" type="datetime-local" />
             </label>
           </div>
+          <div id="slateModeBar" class="control-preset-bar" aria-label="Slate view">
+            <button type="button" class="preset-chip active" data-mode="all">All</button>
+            <button type="button" class="preset-chip" data-mode="live">Live</button>
+            <button type="button" class="preset-chip" data-mode="upcoming">Up Next</button>
+            <button type="button" class="preset-chip" data-mode="completed">Finals</button>
+          </div>
 
           <div class="actions">
             <button id="refreshButton" type="button">Refresh</button>
@@ -108,7 +154,11 @@
         </div>
       </section>
 
+      <section id="productGuidePanel" class="panel guide-panel hidden-panel"></section>
+
       <section class="panel">
+        <div id="scheduleSummary" class="live-desk-summary" aria-live="polite"></div>
+        <div id="slateLensStrip" class="lens-strip"></div>
         <div id="scheduleViewSwitch" class="mobile-segment" aria-label="Schedule view">
           <button type="button" class="mobile-segment-btn" data-view="both" aria-pressed="true">Both</button>
           <button type="button" class="mobile-segment-btn" data-view="schedule" aria-pressed="false">Schedule</button>
@@ -148,7 +198,7 @@
       </a>
     </nav>
 
-    <script src="./site-config.js?v=20260307u"></script>
-    <script type="module" src="./schedule.js?v=20260308c"></script>
+    <script src="./site-config.js?v=20260308d"></script>
+    <script type="module" src="./schedule.js?v=20260308d"></script>
   </body>
 </html>

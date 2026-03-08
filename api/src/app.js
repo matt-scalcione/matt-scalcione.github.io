@@ -1,7 +1,10 @@
 import { readJsonBody, getUserId, truthy } from "./http/request.js";
 import { applyCorsHeaders, sendJson } from "./http/response.js";
 import {
+  acknowledgeAlertOutboxItems,
   addFollow,
+  getAlertOutbox,
+  getAlertPreview,
   deleteFollowById,
   getMatchDetail,
   getProviderDiagnostics,
@@ -712,6 +715,59 @@ export async function routeRequest({
     }
 
     return methodNotAllowed(["GET", "PUT"]);
+  }
+
+  if (pathname === "/v1/alerts-preview") {
+    if (normalizedMethod !== "GET") {
+      return methodNotAllowed(["GET"]);
+    }
+
+    const userId = getUserId(normalizedHeaders, urlObj);
+    if (!userId) {
+      return errorResponse(
+        400,
+        "bad_request",
+        "user_id query parameter or x-user-id header is required."
+      );
+    }
+
+    return okResponse({
+      data: await getAlertPreview(userId)
+    });
+  }
+
+  if (pathname === "/v1/alert-outbox") {
+    if (normalizedMethod === "GET") {
+      const userId = getUserId(normalizedHeaders, urlObj);
+      if (!userId) {
+        return errorResponse(
+          400,
+          "bad_request",
+          "user_id query parameter or x-user-id header is required."
+        );
+      }
+
+      return okResponse({
+        data: await getAlertOutbox(userId)
+      });
+    }
+
+    if (normalizedMethod === "POST") {
+      if (body === undefined) {
+        return errorResponse(400, "bad_request", "Invalid JSON body.");
+      }
+
+      const userId = getUserId(normalizedHeaders, urlObj, body);
+      if (!userId) {
+        return errorResponse(400, "bad_request", "userId is required.");
+      }
+
+      return okResponse({
+        data: acknowledgeAlertOutboxItems(userId, body?.alertIds)
+      });
+    }
+
+    return methodNotAllowed(["GET", "POST"]);
   }
 
   if (pathParts[0] === "v1" && pathParts[1] === "follows" && pathParts.length === 3) {
