@@ -3785,6 +3785,8 @@ function renderGameCommandCenter(match) {
     return;
   }
 
+  const gameKey = normalizeGameKey(match?.game);
+  const isDota = gameKey === "dota2";
   const leftName = match.teams?.left?.name || "Left Team";
   const rightName = match.teams?.right?.name || "Right Team";
   const elapsedSeconds = Number(match?.playerEconomy?.elapsedSeconds || 0);
@@ -3805,6 +3807,18 @@ function renderGameCommandCenter(match) {
   const pulse = updateMapPulseState(match);
   const liveClock = elapsedSeconds > 0 ? formatGameClock(elapsedSeconds) : "n/a";
   const telemetryMode = String(selected?.telemetryStatus || "none").toLowerCase();
+  const leftTowers = Number(selected?.snapshot?.left?.towers || 0);
+  const rightTowers = Number(selected?.snapshot?.right?.towers || 0);
+  const leftEpic = Number(selected?.snapshot?.left?.barons || 0);
+  const rightEpic = Number(selected?.snapshot?.right?.barons || 0);
+  const leftBase = Number(selected?.snapshot?.left?.inhibitors || 0);
+  const rightBase = Number(selected?.snapshot?.right?.inhibitors || 0);
+  const objectiveRaceLabel = isDota
+    ? `T ${leftTowers}-${rightTowers} · Rax ${leftBase}-${rightBase}`
+    : `T ${leftTowers}-${rightTowers} · Obj ${leftEpic}-${rightEpic}`;
+  const objectiveRaceHint = isDota
+    ? `Roshan ${leftEpic}-${rightEpic} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`
+    : `${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`;
   const objectiveLabel = nextObjective ? `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}` : "Forecast waiting";
   const objectiveHint = nextObjective?.note || "Next major map timer from tracked cadence.";
   const fightLabel = pulse ? "Fight live" : deaths.left + deaths.right > 0 ? "Reset window" : "Calm map";
@@ -3886,8 +3900,15 @@ function renderGameCommandCenter(match) {
       commandCard("Matchup Edge", modelLabel, modelHint, {
         tone: prediction?.favoriteTeamName && prediction.favoriteTeamName !== "Even" ? "warn" : "neutral"
       }),
-      commandCard("Head-to-Head", h2hLabel, h2hHint, {
-        tone: headToHead && Number(headToHead.total || headToHead.matches || 0) > 0 ? "neutral" : "warn"
+      commandCard(isDota ? "Objectives" : "Head-to-Head", isDota ? objectiveRaceLabel : h2hLabel, isDota ? objectiveRaceHint : h2hHint, {
+        tone:
+          isDota
+            ? leftTowers + rightTowers + leftBase + rightBase + leftEpic + rightEpic > 0
+              ? "neutral"
+              : "warn"
+            : headToHead && Number(headToHead.total || headToHead.matches || 0) > 0
+              ? "neutral"
+              : "warn"
       }),
       commandCard("Coverage", liveClock, `${clockHint} · ${coverageHint} · ${sideSummary}`, {
         tone: telemetryMode === "pending" ? "warn" : "neutral"
@@ -3910,6 +3931,9 @@ function renderGameCommandCenter(match) {
     commandCard("Kills", `${leftKills}-${rightKills}`, `${killPace} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`, {
       tone: totalKills >= 18 ? "warn" : "neutral"
     }),
+    commandCard(isDota ? "Objectives" : "Map Race", objectiveRaceLabel, objectiveRaceHint, {
+      tone: leftTowers + rightTowers + leftBase + rightBase + leftEpic + rightEpic > 0 ? "neutral" : "warn"
+    }),
     commandCard("Next Objective", objectiveLabel, objectiveHint, {
       tone: nextObjective?.state === "available" ? "live" : "warn"
     }),
@@ -3919,9 +3943,14 @@ function renderGameCommandCenter(match) {
     commandCard("Players Down", `${deaths.left}-${deaths.right}`, `${displayTeamName(leftName)} · ${displayTeamName(rightName)}`, {
       tone: deaths.left + deaths.right >= 2 ? "warn" : "neutral"
     }),
-    commandCard("Throughput", `${objectiveEvents} obj · ${bursts} bursts`, `${milestones} milestones tracked this map`, {
-      tone: bursts >= 2 ? "warn" : "neutral"
-    })
+    commandCard(
+      isDota ? "Telemetry" : "Throughput",
+      `${objectiveEvents} obj · ${bursts} bursts`,
+      `${milestones} milestones tracked this map`,
+      {
+        tone: bursts >= 2 ? "warn" : "neutral"
+      }
+    )
   ].join("");
 }
 
