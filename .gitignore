@@ -18,6 +18,7 @@ Thumbs.db
 api/.env
 api/.env.*
 !api/.env.example
+.runtime/
 
 # Legacy folder
 /estate
