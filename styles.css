@@ -5402,6 +5402,18 @@ button.ghost,
   gap: 0.42rem;
 }
 
+.trend-card-map-only {
+  grid-template-columns: minmax(190px, 250px) 1fr;
+  align-items: start;
+}
+
+.trend-map-empty {
+  display: grid;
+  gap: 0.34rem;
+  align-content: start;
+  padding: 0.25rem 0.1rem;
+}
+
 .trend-split {
   display: grid;
   grid-template-columns: minmax(190px, 250px) 1fr;
@@ -9687,6 +9699,11 @@ button.ghost,
   }
 
   .trend-split {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .trend-card-map-only {
     grid-template-columns: 1fr;
     gap: 0.45rem;
   }

@@ -3328,7 +3328,9 @@ function applyGamePanelVisibility(match) {
   const selected = match.selectedGame;
   const telemetryStatus = selected?.telemetryStatus || "none";
   const selectedState = selected?.state || "unstarted";
+  const hasBasicTelemetry = telemetryStatus === "basic";
   const hasRichTelemetry = telemetryStatus === "rich";
+  const hasAnyTelemetry = hasBasicTelemetry || hasRichTelemetry;
   const draftPreview = inferDraftPreview(match);
   const setTargetVisibility = (element, visible) => {
     if (!element) {
@@ -3381,7 +3383,7 @@ function applyGamePanelVisibility(match) {
     return;
   }
 
-  if (!hasRichTelemetry) {
+  if (!hasAnyTelemetry) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
     }
@@ -3389,6 +3391,41 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.selectedGameRecapWrap, !draftPreview && selectedState !== "completed" && selectedState !== "inProgress");
     setTargetVisibility(elements.teamCompareWrap, false);
     setTargetVisibility(elements.pulseCard, false);
+    return;
+  }
+
+  if (hasBasicTelemetry) {
+    for (const panel of telemetryPanels) {
+      setPanelVisibility(panel, false);
+    }
+
+    const hasPlayerBoard =
+      hasRows(match?.playerEconomy?.left) ||
+      hasRows(match?.playerEconomy?.right);
+    const hasLeadTrend =
+      hasRows(match?.goldLeadSeries) ||
+      hasPlayerBoard;
+    const hasObjectiveControl = Boolean(match?.objectiveControl?.left || match?.objectiveControl?.right);
+    const hasFeedSignals = [
+      match?.liveTicker,
+      match?.liveAlerts,
+      match?.objectiveTimeline,
+      match?.combatBursts,
+      match?.goldMilestones
+    ].some((rows) => hasRows(rows));
+
+    setTargetVisibility(elements.gameCommandWrap, !draftPreview && selectedState !== "completed");
+    setTargetVisibility(
+      elements.selectedGameRecapWrap,
+      selectedState === "completed" || (!draftPreview && selectedState !== "inProgress")
+    );
+    setTargetVisibility(elements.playerTrackerWrap, hasPlayerBoard);
+    setTargetVisibility(elements.leadTrendWrap, hasLeadTrend);
+    setTargetVisibility(elements.objectiveControlWrap, hasObjectiveControl);
+    setTargetVisibility(elements.liveFeedList, hasFeedSignals);
+    setTargetVisibility(elements.pulseCard, Boolean(match?.pulseCard));
+    setTargetVisibility(elements.teamCompareWrap, false);
+    setTargetVisibility(elements.liveAlertsList, false);
     return;
   }
 
@@ -7055,7 +7092,26 @@ function renderLeadTrend(match) {
   const series = Array.isArray(match.goldLeadSeries) ? match.goldLeadSeries : [];
   const trend = match.leadTrend;
   const selectedState = String(match?.selectedGame?.state || "");
+  const miniMap = buildMiniMap(match);
   if (!series.length || !trend) {
+    const hasMapView = miniMap.mode !== "none" || Array.isArray(miniMap?.structures?.markers);
+    if (hasMapView) {
+      elements.leadTrendWrap.innerHTML = `
+        <article class="trend-card trend-card-map-only">
+          ${renderMiniMap(match)}
+          <div class="trend-map-empty">
+            <p class="trend-headline even">Map view active</p>
+            <p class="meta-text">${
+              selectedState === "completed"
+                ? "Gold trend is unavailable for this final map, but structure state and tracked player positions are still visible."
+                : "Gold trend is unavailable right now, but structure state and tracked player positions are still visible."
+            }</p>
+          </div>
+        </article>
+      `;
+      return;
+    }
+
     elements.leadTrendWrap.innerHTML = `<div class="empty">${
       selectedState === "completed"
         ? "Gold lead story is unavailable for this final map."
