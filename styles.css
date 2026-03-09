@@ -7340,7 +7340,16 @@ button.ghost,
 }
 
 .performer-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
   font-weight: 700;
+}
+
+.completed-spotlight-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
 }
 
 .delta-grid {

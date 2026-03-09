@@ -780,7 +780,7 @@ async function loadDotaHeroCatalog() {
   heroIconCatalog.dota2.promise = (async () => {
     const map = new Map();
     for (const [key, record] of Object.entries(DOTA_HERO_MANIFEST?.byName || {})) {
-      const iconUrl = toAbsoluteAssetUrl(record?.portraitUrl || record?.iconUrl || "");
+      const iconUrl = toAbsoluteAssetUrl(record?.iconUrl || record?.portraitUrl || "");
       if (iconUrl) {
         map.set(key, iconUrl);
       }
@@ -852,7 +852,7 @@ function dotaHeroIconUrl(heroName) {
   }
 
   const localMeta = resolveLocalDotaHeroMeta(heroName);
-  return toAbsoluteAssetUrl(localMeta?.portraitUrl || localMeta?.iconUrl || "");
+  return toAbsoluteAssetUrl(localMeta?.iconUrl || localMeta?.portraitUrl || "");
 }
 
 function heroIconUrlForRow(match, row) {
@@ -3130,7 +3130,7 @@ function renderGameExplorer(match, apiBase) {
         <article class="draft-phase-banner ${draftPreview.tone}">
           <div class="draft-phase-copy">
             <p class="draft-phase-kicker">${draftPreview.badge}</p>
-            <p class="draft-phase-title">${draftPreview.hasDraftRows ? "Champion select is underway" : "Game start is close"}</p>
+            <p class="draft-phase-title">${draftPreview.headline || (draftPreview.hasDraftRows ? "Champion select is underway" : "Game start is close")}</p>
             <p class="meta-text">${draftPreview.summary}</p>
           </div>
           <p class="draft-phase-detail">${draftPreview.detail}</p>
@@ -3138,10 +3138,14 @@ function renderGameExplorer(match, apiBase) {
         <div class="game-context-grid">
           ${infoCards.join("")}
         </div>
-        <div class="recap-draft-grid">
+        ${
+          draftPreview.suppressDraftGrid
+            ? `<article class="recap-note"><p class="meta-text">${sideLabel}</p></article>`
+            : `<div class="recap-draft-grid">
           ${renderRecapDraftTeam(match, match.teams.left.name, draftPreview.leftRows)}
           ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
-        </div>
+        </div>`
+        }
         ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Open Primary Stream</a>` : ""}
         ${watchOptions.length
           ? `<div class="vod-options">${watchOptions
@@ -3180,7 +3184,7 @@ function renderGameExplorer(match, apiBase) {
             .map(
               (player) => `
                 <article class="completed-spotlight-card">
-                  <p class="completed-spotlight-name">${player.name}</p>
+                  <p class="completed-spotlight-name">${heroIconMarkup(match, player)}<span>${player.name}</span></p>
                   <p class="meta-text">${player.champion || "Unknown"} · ${String(player.role || "flex").toUpperCase()}</p>
                   <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · Gold ${formatNumber(player.goldEarned)}</p>
                 </article>
@@ -3263,7 +3267,7 @@ function renderGameExplorer(match, apiBase) {
       <article class="draft-phase-banner ${draftPreview.tone}">
         <div class="draft-phase-copy">
           <p class="draft-phase-kicker">${draftPreview.badge}</p>
-          <p class="draft-phase-title">${draftPreview.hasDraftRows ? "Champion select is underway" : "Game start is close"}</p>
+          <p class="draft-phase-title">${draftPreview.headline || (draftPreview.hasDraftRows ? "Champion select is underway" : "Game start is close")}</p>
           <p class="meta-text">${draftPreview.summary}</p>
         </div>
         <p class="draft-phase-detail">${draftPreview.detail}</p>
@@ -6781,6 +6785,8 @@ function buildStructureLayer(match) {
 
 function buildMiniMap(match) {
   const economy = match?.playerEconomy || null;
+  const gameKey = normalizeGameKey(match?.game);
+  const telemetryStatus = liveTelemetryStatus(match);
   const leftRows = Array.isArray(economy?.left) ? economy.left : [];
   const rightRows = Array.isArray(economy?.right) ? economy.right : [];
   const rows = [
@@ -6794,7 +6800,8 @@ function buildMiniMap(match) {
     point: resolveMapPoint(row)
   }));
   const exactRows = resolved.filter((entry) => entry.point !== null);
-  const exactForAllPlayers = rows.length > 0 && exactRows.length === rows.length;
+  const allowPlayerPositions = gameKey === "dota2" ? telemetryStatus === "rich" : true;
+  const exactForAllPlayers = allowPlayerPositions && rows.length > 0 && exactRows.length === rows.length;
 
   const points = exactForAllPlayers
     ? exactRows.map((entry) => ({
@@ -6811,7 +6818,8 @@ function buildMiniMap(match) {
     totalPlayers: rows.length,
     exactPlayers: exactRows.length,
     points,
-    gameKey: normalizeGameKey(match?.game),
+    gameKey,
+    positionsAllowed: allowPlayerPositions,
     structures: buildStructureLayer(match)
   };
 }
@@ -6847,6 +6855,23 @@ function renderMiniMap(match, options = {}) {
     `;
     })
     .join("");
+  const summaryChips =
+    miniMap.gameKey === "dota2"
+      ? `
+        <div class="minimap-objectives">
+          <span class="minimap-chip left">Radiant ${structures.summary.leftTowers}/${structures.summary.towerTotal} towers</span>
+          <span class="minimap-chip left">Radiant ${structures.summary.leftInhibitors}/${structures.summary.inhibitorTotal} rax</span>
+          <span class="minimap-chip right">Dire ${structures.summary.rightTowers}/${structures.summary.towerTotal} towers</span>
+          <span class="minimap-chip right">Dire ${structures.summary.rightInhibitors}/${structures.summary.inhibitorTotal} rax</span>
+        </div>
+      `
+      : "";
+  const mapNote =
+    miniMap.gameKey === "dota2" && !miniMap.positionsAllowed
+      ? "Player positions are hidden until exact Dota telemetry is available."
+      : miniMap.gameKey === "dota2" && miniMap.mode !== "exact" && miniMap.totalPlayers
+        ? "Current player positions are not exact enough to show on the map."
+        : "";
 
   return `
     <section class="minimap-card${pulse ? ` fight-${pulse.team}` : ""}">
@@ -6856,6 +6881,8 @@ function renderMiniMap(match, options = {}) {
         <div class="minimap-overlay minimap-structures-layer">${structureNodes}</div>
         <div class="minimap-overlay minimap-players-layer">${playerNodes}</div>
       </div>
+      ${summaryChips}
+      ${mapNote ? `<p class="minimap-note">${mapNote}</p>` : ""}
     </section>
   `;
 }
@@ -7890,6 +7917,7 @@ function inferDraftPreview(match) {
     return null;
   }
 
+  const gameKey = normalizeGameKey(match?.game);
   const telemetryStatus = String(selectedGame.telemetryStatus || "").toLowerCase();
   const leftRows = Array.isArray(match?.teamDraft?.left) ? match.teamDraft.left : [];
   const rightRows = Array.isArray(match?.teamDraft?.right) ? match.teamDraft.right : [];
@@ -7898,12 +7926,61 @@ function inferDraftPreview(match) {
   const startedTs = parseIsoTimestamp(selectedGame?.startedAt);
   const elapsedSeconds = startedTs !== null ? Math.max(0, Math.round((Date.now() - startedTs) / 1000)) : null;
   const elapsedLabel = Number.isFinite(elapsedSeconds) && elapsedSeconds > 0 ? shortDuration(elapsedSeconds) : null;
+  const completedGames = Array.isArray(match?.seriesGames)
+    ? match.seriesGames.filter((game) => String(game?.state || "") === "completed")
+    : [];
+  const lastCompletedGame =
+    completedGames.length > 0
+      ? completedGames
+          .slice()
+          .sort((left, right) => Number(right?.number || 0) - Number(left?.number || 0))[0]
+      : null;
+
+  if (gameKey === "dota2" && telemetryStatus === "pending") {
+    const betweenMapsLikely = !selectedGame?.sourceMatchId && completedGames.length > 0;
+    if (betweenMapsLikely) {
+      return {
+        tone: "pending",
+        label: "Current Map Pending",
+        badge: "Live Series",
+        headline: "Current Dota map is not linked yet",
+        summary:
+          "The series is live, but the current map has not been attached to a usable telemetry feed yet. This usually happens between maps or while the provider has not exposed the new lobby.",
+        detail: lastCompletedGame
+          ? `Game ${lastCompletedGame.number} is complete. Waiting for the current map feed to attach.`
+          : elapsedLabel
+            ? `Live state opened ${elapsedLabel} ago.`
+            : "Waiting for the current map feed to attach.",
+        leftRows: [],
+        rightRows: [],
+        hasDraftRows: false,
+        suppressDraftGrid: true
+      };
+    }
+
+    if (zeroSnapshot) {
+      return {
+        tone: "pending",
+        label: "Telemetry Pending",
+        badge: "Feed Pending",
+        headline: "Live Dota feed has not started",
+        summary:
+          "The map is marked live, but no current-map combat telemetry is available yet. Watch links and series context are still valid while the feed catches up.",
+        detail: elapsedLabel ? `Map has been marked live for ${elapsedLabel}.` : "Waiting for the first confirmed current-map frame.",
+        leftRows: [],
+        rightRows: [],
+        hasDraftRows: false,
+        suppressDraftGrid: true
+      };
+    }
+  }
 
   if (telemetryStatus === "pending" && zeroSnapshot) {
     return {
       tone: hasDraftRows ? "draft" : "pending",
       label: hasDraftRows ? "Draft / Loading" : "Likely Draft",
       badge: hasDraftRows ? "Draft Live" : "Awaiting Frame",
+      headline: hasDraftRows ? "Champion select is underway" : "Game start is close",
       summary: hasDraftRows
         ? "Champion selections are available, but combat telemetry has not started yet."
         : "Riot has marked this map live, but no in-game frames are available yet. This usually means champion select, loading, or a stage delay.",
@@ -7919,6 +7996,7 @@ function inferDraftPreview(match) {
       tone: "draft",
       label: "Draft Snapshot",
       badge: "Metadata Only",
+      headline: "Champion select is underway",
       summary: "Current champion selections are available before full live telemetry arrives.",
       detail: elapsedLabel ? `Map state has been live for ${elapsedLabel}.` : "Waiting for telemetry to stabilize.",
       leftRows,
@@ -7999,6 +8077,43 @@ function renderSelectedGameRecap(match) {
     return;
   }
 
+  if (draftPreview) {
+    const tips = Array.isArray(selectedGame.tips) ? selectedGame.tips : [];
+    if (normalizeGameKey(match?.game) === "dota2") {
+      cards.push(
+        recapCard("Series", `${match.seriesScore?.left ?? 0} : ${match.seriesScore?.right ?? 0}`),
+        recapCard("Feed", draftPreview.badge, draftPreview.detail)
+      );
+    }
+    elements.selectedGameRecapWrap.innerHTML = `
+      <div class="recap-grid">${cards.join("")}</div>
+      <article class="recap-draft-state ${draftPreview.tone}">
+        <div>
+          <p class="tempo-label">Map Phase</p>
+          <h3>${draftPreview.label}</h3>
+          <p class="meta-text">${draftPreview.summary}</p>
+        </div>
+        <div class="recap-draft-state-meta">
+          <span class="recap-draft-badge">${draftPreview.badge}</span>
+          <p class="meta-text">${draftPreview.detail}</p>
+        </div>
+      </article>
+      ${
+        draftPreview.suppressDraftGrid
+          ? ""
+          : `<div class="recap-draft-grid">
+        ${renderRecapDraftTeam(match, match.teams.left.name, draftPreview.leftRows)}
+        ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
+      </div>`
+      }
+      <article class="recap-note">
+        <p class="meta-text">${sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available."}</p>
+        ${tips.length ? `<p class="meta-text">${tips.join(" · ")}</p>` : ""}
+      </article>
+    `;
+    return;
+  }
+
   const snapshot = selectedGame.snapshot || {};
   const left = snapshot.left || {};
   const right = snapshot.right || {};
@@ -8027,32 +8142,6 @@ function renderSelectedGameRecap(match) {
     ? topRows.map((player) => `${player.name} (${player.kills}/${player.deaths}/${player.assists})`).join(" · ")
     : "No top performer snapshot for this map.";
   const tips = Array.isArray(selectedGame.tips) ? selectedGame.tips : [];
-
-  if (draftPreview) {
-    elements.selectedGameRecapWrap.innerHTML = `
-      <div class="recap-grid">${cards.join("")}</div>
-      <article class="recap-draft-state ${draftPreview.tone}">
-        <div>
-          <p class="tempo-label">Map Phase</p>
-          <h3>${draftPreview.label}</h3>
-          <p class="meta-text">${draftPreview.summary}</p>
-        </div>
-        <div class="recap-draft-state-meta">
-          <span class="recap-draft-badge">${draftPreview.badge}</span>
-          <p class="meta-text">${draftPreview.detail}</p>
-        </div>
-      </article>
-      <div class="recap-draft-grid">
-        ${renderRecapDraftTeam(match, match.teams.left.name, draftPreview.leftRows)}
-        ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
-      </div>
-      <article class="recap-note">
-        <p class="meta-text">${sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available."}</p>
-        ${tips.length ? `<p class="meta-text">${tips.join(" · ")}</p>` : ""}
-      </article>
-    `;
-    return;
-  }
 
   if (selectedGame.state === "completed") {
     const winnerShort = winnerName ? displayTeamName(winnerName) : "TBD";
@@ -8292,7 +8381,7 @@ function renderTopPerformers(match) {
     .map(
       (player) => `
       <article class="performer-row">
-        <p class="performer-name">${player.name} · ${player.champion || "Unknown"}</p>
+        <p class="performer-name">${heroIconMarkup(match, player)}<span>${player.name} · ${player.champion || "Unknown"}</span></p>
         <p class="meta-text">${teamNameBySide(match, player.team)} · ${String(player.role || "flex").toUpperCase()}</p>
         <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · CS ${player.cs} · Gold ${formatNumber(player.goldEarned)}</p>
         <p class="meta-text">KP ${typeof player.killParticipationPct === "number" ? `${player.killParticipationPct.toFixed(1)}%` : "n/a"} · Score ${typeof player.impactScore === "number" ? player.impactScore.toFixed(1) : "n/a"}</p>
