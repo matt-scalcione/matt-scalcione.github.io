@@ -1,6 +1,6 @@
 # Pulseboard AI Handoff
 
-Last updated: 2026-03-08 (America/New_York)
+Last updated: 2026-03-09 (America/New_York)
 Repo: `/Users/admin/Documents/GitHub/matt-scalcione.github.io`
 
 ## 1. Source of truth
@@ -11,6 +11,10 @@ Do not use:
 - `/Users/admin/Documents/Roblox/...`
 
 That older Roblox repo was used temporarily and should be treated as obsolete. The live site and live API now run from this GitHub Pages repo.
+
+Legacy cleanup note:
+- `estate-src/` and `estate/` were removed from this repo because they belonged to an unrelated older project.
+- Stale repo guidance files tied to that app were removed as well.
 
 Live surfaces:
 - Frontend (GitHub Pages): [https://matt-scalcione.github.io](https://matt-scalcione.github.io)
@@ -463,4 +467,3 @@ Use this order:
   - STRATZ detail integration active
 - Main remaining Dota blocker is STRATZ live discovery entitlement/query support.
 - Team recent-match link bug for Dota synthetic rows was fixed by routing those rows to real detail IDs.
-

@@ -77,6 +77,20 @@ describe("match detail", () => {
     assert.equal(result.payload.data.id, "lol_lta_2026_w2_fly_tl");
   });
 
+  it("preserves summary scheduling metadata in upcoming detail responses", async () => {
+    const result = await routeRequest({
+      method: "GET",
+      url: "/v1/matches/lol_lck_2026_w2_t1_gen"
+    });
+
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.payload.data.id, "lol_lck_2026_w2_t1_gen");
+    assert.equal(result.payload.data.status, "upcoming");
+    assert.equal(result.payload.data.bestOf, 3);
+    assert.equal(result.payload.data.region, "kr");
+    assert.ok(result.payload.data.startAt);
+  });
+
   it("validates match game query selector", async () => {
     const result = await routeRequest({
       method: "GET",

@@ -1,5 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { buildMatchUrl, buildTeamUrl } from "./routes.js";
+import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
 import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 import {
   applySeo,
@@ -441,13 +441,14 @@ function renderKpis() {
 }
 
 function updateNav() {
-  const liveUrl = new URL("./index.html", window.location.href);
-  liveUrl.searchParams.set("title", state.gameKey);
-  const scheduleUrl = new URL("./schedule.html", window.location.href);
-  scheduleUrl.searchParams.set("title", state.gameKey);
-  const followsUrl = new URL("./follows.html", window.location.href);
-  const lolHubUrl = new URL("./lol.html", window.location.href);
-  const dotaHubUrl = new URL("./dota2.html", window.location.href);
+  const apiBase = elements.apiBaseInput?.value.trim() || null;
+  const liveUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
+  liveUrl.searchParams.set("game", state.gameKey);
+  const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
+  scheduleUrl.searchParams.set("game", state.gameKey);
+  const followsUrl = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const lolHubUrl = applyRouteContext(new URL("./lol.html", window.location.href), { apiBase });
+  const dotaHubUrl = applyRouteContext(new URL("./dota2.html", window.location.href), { apiBase });
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();

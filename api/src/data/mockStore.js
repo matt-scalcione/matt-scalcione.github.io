@@ -3084,16 +3084,70 @@ export async function listResults({ game, region, dateFrom, dateTo, dotaTiers })
   return sortByDateDescending(rows, "endAt");
 }
 
+function findMatchSummary(matchId) {
+  const normalizedId = String(matchId || "").trim();
+  if (!normalizedId) {
+    return null;
+  }
+
+  for (const collection of [liveMatches, scheduleMatches, completedMatches]) {
+    const row = collection.find((candidate) => candidate?.id === normalizedId);
+    if (row) {
+      return row;
+    }
+  }
+
+  return null;
+}
+
+function mergeMatchDetailWithSummary(detail, summary) {
+  if (!summary) {
+    return detail;
+  }
+  if (!detail) {
+    return summary;
+  }
+
+  return {
+    ...summary,
+    ...detail,
+    freshness: {
+      ...(summary?.freshness || {}),
+      ...(detail?.freshness || {})
+    },
+    source: {
+      ...(summary?.source || {}),
+      ...(detail?.source || {})
+    },
+    seriesScore: {
+      ...(summary?.seriesScore || {}),
+      ...(detail?.seriesScore || {})
+    },
+    teams: {
+      left: {
+        ...(summary?.teams?.left || {}),
+        ...(detail?.teams?.left || {})
+      },
+      right: {
+        ...(summary?.teams?.right || {}),
+        ...(detail?.teams?.right || {})
+      }
+    }
+  };
+}
+
 export async function getMatchDetail(matchId, options = {}) {
+  const summary = findMatchSummary(matchId);
+
   if (matchDetails[matchId]) {
-    return matchDetails[matchId];
+    return mergeMatchDetailWithSummary(matchDetails[matchId], summary);
   }
 
   if (!String(matchId).startsWith("dota_") && !String(matchId).startsWith("lol_riot_")) {
     return null;
   }
 
-  return loadProviderMatchDetail(matchId, options);
+  return mergeMatchDetailWithSummary(await loadProviderMatchDetail(matchId, options), summary);
 }
 
 async function buildTeamProfile(teamId, {

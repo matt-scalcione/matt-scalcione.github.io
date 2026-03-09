@@ -1,9 +1,11 @@
 # Pulseboard (GitHub Pages + API)
 
-This repo now contains:
+This repo contains:
 
-- Static site (GitHub Pages) at repo root.
-- API service under [`api/`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api).
+- The Pulseboard static site at repo root.
+- The Pulseboard API under [`api/`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api).
+
+Legacy side projects have been removed from the root workflow so this repository stays focused on the scoreboard product.
 
 ## 1. Deploy The API (Render)
 
@@ -32,16 +34,23 @@ Commit and push. GitHub Pages will then call your hosted API instead of localhos
 
 ## 3. Publish GitHub Pages
 
-In GitHub repo settings:
+GitHub Pages is deployed by the workflow in [`.github/workflows/pages.yml`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/.github/workflows/pages.yml).
 
-1. Open **Settings** -> **Pages**.
-2. Source: **Deploy from a branch**.
-3. Branch: `main`, folder: `/ (root)`.
-4. Save.
+The workflow:
+
+1. Regenerates `sitemap.xml`
+2. Runs SEO validation
+3. Builds a Pages artifact with `node scripts/build-pages-artifact.mjs`
+4. Uploads only the public site files in `dist-pages/`
 
 Your site URL will be:
 
 - `https://matt-scalcione.github.io/`
+
+Local verification:
+
+- `npm run verify`
+- `npm run build:pages`
 
 ## 4. SEO Sitemap Automation
 
@@ -54,7 +63,7 @@ Your site URL will be:
   - On every push to `main`
   - Every 6 hours (scheduled run)
   - Deploy is blocked if SEO checks fail
-  - Default policy excludes match/team detail URLs unless `PULSEBOARD_INDEX_DETAIL_PAGES=true`
+- Default policy excludes match/team detail URLs unless `PULSEBOARD_INDEX_DETAIL_PAGES=true`
 
 ## 5. Game Hubs
 

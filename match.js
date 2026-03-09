@@ -1,5 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { buildMatchUrl, buildTeamUrl, parseMatchRoute } from "./routes.js";
+import { applyRouteContext, buildMatchUrl, buildTeamUrl, parseMatchRoute } from "./routes.js?v=20260309c";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -173,7 +173,15 @@ const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   seriesLive: new Set(["Matchup Console", "Series Games", "Series Progress", "Series Highlights"]),
   seriesCompleted: new Set(["Matchup Console", "Series Games", "Series Comparison", "Series Player Trends"]),
   series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
-  upcoming: new Set(["Series Navigator", "Matchup Console", "Series Lineups", "Team Form", "Head-To-Head"]),
+  upcoming: new Set([
+    "Series Navigator",
+    "Matchup Console",
+    "Upcoming Essentials",
+    "Watch Guide",
+    "Prediction Model",
+    "Team Form",
+    "Head-To-Head"
+  ]),
   game: new Set(["Selected Game Recap", "Live Feed", "Player Board", "What Matters Now", "Risk Watch"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
@@ -2443,7 +2451,7 @@ async function ensureMatchupData(match, apiBase) {
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
-    renderGameContext(uiState.match || match);
+    renderGameExplorer(uiState.match || match, apiBase);
   } catch (error) {
     if (token !== uiState.matchupRequestToken) {
       return;
@@ -2459,7 +2467,7 @@ async function ensureMatchupData(match, apiBase) {
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
-    renderGameContext(uiState.match || match);
+    renderGameExplorer(uiState.match || match, apiBase);
   }
 }
 
@@ -3483,9 +3491,9 @@ function applySeriesPanelVisibility(match = uiState.match) {
 
 function applyUpcomingPanelVisibility(match) {
   const isUpcoming = match?.status === "upcoming";
-  setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), false);
-  setPanelVisibility(elements.upcomingWatchWrap?.closest("section.panel"), false);
-  setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), false);
+  setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), isUpcoming);
+  setPanelVisibility(elements.upcomingWatchWrap?.closest("section.panel"), isUpcoming);
+  setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.upcomingFormWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.upcomingH2hWrap?.closest("section.panel"), isUpcoming);
 }
@@ -8845,15 +8853,14 @@ function renderTimeline(rows) {
     .join("");
 }
 
-function applyNavigationLinks(_apiBase) {
-  const backUrl = new URL("./index.html", window.location.href);
+function applyNavigationLinks(apiBase) {
+  const backUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
   elements.backLink.href = backUrl.toString();
 
-  const scheduleUrl = new URL("./schedule.html", window.location.href);
-
-  const followsUrl = new URL("./follows.html", window.location.href);
-  const lolHubUrl = new URL("./lol.html", window.location.href);
-  const dotaHubUrl = new URL("./dota2.html", window.location.href);
+  const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
+  const followsUrl = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const lolHubUrl = applyRouteContext(new URL("./lol.html", window.location.href), { apiBase });
+  const dotaHubUrl = applyRouteContext(new URL("./dota2.html", window.location.href), { apiBase });
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = backUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = backUrl.toString();

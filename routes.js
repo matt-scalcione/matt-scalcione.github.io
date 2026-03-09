@@ -44,18 +44,37 @@ function appendIfPresent(params, key, value) {
   params.set(key, normalized);
 }
 
+function normalizedApiBase(value) {
+  const raw = String(value || "").trim();
+  return raw || null;
+}
+
+export function applyRouteContext(targetUrl, { apiBase = null, sourceUrl = window.location.href } = {}) {
+  const url = targetUrl instanceof URL ? targetUrl : new URL(String(targetUrl), window.location.href);
+  const source = new URL(String(sourceUrl), window.location.origin);
+  const resolvedApiBase = normalizedApiBase(apiBase) || normalizedApiBase(source.searchParams.get("api"));
+
+  if (resolvedApiBase) {
+    url.searchParams.set("api", resolvedApiBase);
+  } else {
+    url.searchParams.delete("api");
+  }
+
+  return url;
+}
+
 export function buildMatchUrl({ matchId, gameNumber = null } = {}) {
   const id = String(matchId || "").trim();
   const game = parsePositiveInt(gameNumber);
   if (!id) {
-    return new URL("./match.html", window.location.href).toString();
+    return applyRouteContext(new URL("./match.html", window.location.href)).toString();
   }
 
   if (shouldUsePrettyRoutes()) {
     const path = game
       ? `/match/${encodeURIComponent(id)}/game/${encodeURIComponent(String(game))}`
       : `/match/${encodeURIComponent(id)}`;
-    return new URL(path, window.location.origin).toString();
+    return applyRouteContext(new URL(path, window.location.origin)).toString();
   }
 
   const url = new URL("./match.html", window.location.href);
@@ -63,7 +82,7 @@ export function buildMatchUrl({ matchId, gameNumber = null } = {}) {
   if (game) {
     url.searchParams.set("game", String(game));
   }
-  return url.toString();
+  return applyRouteContext(url).toString();
 }
 
 export function buildTeamUrl({
@@ -76,7 +95,7 @@ export function buildTeamUrl({
 } = {}) {
   const id = String(teamId || "").trim();
   if (!id) {
-    return new URL("./team.html", window.location.href).toString();
+    return applyRouteContext(new URL("./team.html", window.location.href)).toString();
   }
 
   const base = shouldUsePrettyRoutes()
@@ -97,7 +116,7 @@ export function buildTeamUrl({
     base.searchParams.set("game_number", String(normalizedGameNumber));
   }
 
-  return base.toString();
+  return applyRouteContext(base).toString();
 }
 
 export function parseMatchRoute(urlLike = window.location.href) {

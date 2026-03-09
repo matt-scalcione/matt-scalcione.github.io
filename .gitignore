@@ -6,6 +6,7 @@ api/node_modules
 .dist
 build
 dist
+dist-pages
 
 # Logs
 *.log
@@ -19,6 +20,3 @@ api/.env
 api/.env.*
 !api/.env.example
 .runtime/
-
-# Legacy folder
-/estate

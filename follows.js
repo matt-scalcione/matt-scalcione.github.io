@@ -1,4 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
+import { applyRouteContext } from "./routes.js?v=20260309c";
 import { applySeo, inferRobotsDirective, setJsonLd } from "./seo.js";
 import { productEmptyMarkup } from "./loading.js";
 
@@ -204,13 +205,12 @@ function setupFollowsViewSwitch() {
 }
 
 function updateNav() {
-  const liveUrl = new URL("./index.html", window.location.href);
-
-  const scheduleUrl = new URL("./schedule.html", window.location.href);
-
-  const followsUrl = new URL("./follows.html", window.location.href);
-  const lolHubUrl = new URL("./lol.html", window.location.href);
-  const dotaHubUrl = new URL("./dota2.html", window.location.href);
+  const { apiBase } = getContext();
+  const liveUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
+  const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
+  const followsUrl = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const lolHubUrl = applyRouteContext(new URL("./lol.html", window.location.href), { apiBase });
+  const dotaHubUrl = applyRouteContext(new URL("./dota2.html", window.location.href), { apiBase });
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -351,9 +351,13 @@ function renderHeroActions(previewCount) {
     return;
   }
 
+  const { apiBase } = getContext();
+  const liveDeskHref = applyRouteContext(new URL("./index.html", window.location.href), { apiBase }).toString();
+  const scheduleHref = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase }).toString();
+
   elements.heroActionRow.innerHTML = `
-    <a class="link-btn" href="${previewCount ? "#alertsPreviewWrap" : new URL("./index.html", window.location.href).toString()}">${previewCount ? "Review alerts" : "Open live desk"}</a>
-    <a class="link-btn ghost" href="${new URL("./schedule.html", window.location.href).toString()}">Open schedule</a>
+    <a class="link-btn" href="${previewCount ? "#alertsPreviewWrap" : liveDeskHref}">${previewCount ? "Review alerts" : "Open live desk"}</a>
+    <a class="link-btn ghost" href="${scheduleHref}">Open schedule</a>
   `;
 }
 

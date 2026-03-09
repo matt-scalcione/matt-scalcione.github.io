@@ -31,8 +31,10 @@ jobs:
         env:
           PULSEBOARD_SITE_ORIGIN: https://matt-scalcione.github.io
           PULSEBOARD_INDEX_DETAIL_PAGES: "false"
+      - name: Build Pages artifact
+        run: node scripts/build-pages-artifact.mjs
       - uses: actions/upload-pages-artifact@v3
-        with: { path: . }
+        with: { path: dist-pages }
   deploy:
     needs: build
     runs-on: ubuntu-latest

@@ -1,5 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { buildMatchUrl, buildTeamUrl, parseTeamRoute } from "./routes.js";
+import { applyRouteContext, buildMatchUrl, buildTeamUrl, parseTeamRoute } from "./routes.js?v=20260309c";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -484,13 +484,11 @@ function resultClass(result) {
 }
 
 function updateNav(apiBase) {
-  const liveUrl = new URL("./index.html", window.location.href);
-
-  const scheduleUrl = new URL("./schedule.html", window.location.href);
-
-  const followsUrl = new URL("./follows.html", window.location.href);
-  const lolHubUrl = new URL("./lol.html", window.location.href);
-  const dotaHubUrl = new URL("./dota2.html", window.location.href);
+  const liveUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
+  const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
+  const followsUrl = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const lolHubUrl = applyRouteContext(new URL("./lol.html", window.location.href), { apiBase });
+  const dotaHubUrl = applyRouteContext(new URL("./dota2.html", window.location.href), { apiBase });
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -512,7 +510,7 @@ function buildBackLink(apiBase) {
     return;
   }
 
-  const scheduleUrl = new URL("./schedule.html", window.location.href);
+  const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
   elements.backLink.href = scheduleUrl.toString();
   elements.backLink.textContent = "Back to Schedule";
 }

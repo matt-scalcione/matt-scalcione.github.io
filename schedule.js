@@ -1,5 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { buildMatchUrl, buildTeamUrl } from "./routes.js";
+import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -728,13 +728,12 @@ function teamLink({
 }
 
 function updateNav() {
-  const liveUrl = new URL("./index.html", window.location.href);
-
-  const scheduleUrl = new URL("./schedule.html", window.location.href);
-
-  const followsUrl = new URL("./follows.html", window.location.href);
-  const lolHubUrl = new URL("./lol.html", window.location.href);
-  const dotaHubUrl = new URL("./dota2.html", window.location.href);
+  const apiBase = elements.apiBaseInput?.value.trim() || null;
+  const liveUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
+  const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
+  const followsUrl = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const lolHubUrl = applyRouteContext(new URL("./lol.html", window.location.href), { apiBase });
+  const dotaHubUrl = applyRouteContext(new URL("./dota2.html", window.location.href), { apiBase });
   if (scheduleViewMode === "schedule" || scheduleViewMode === "results") {
     scheduleUrl.searchParams.set("view", scheduleViewMode);
   }
@@ -880,10 +879,14 @@ function renderScheduleHeroActions(scheduleRows = [], resultRows = []) {
   }
 
   const spotlight = scheduleRows[0] || resultRows[0] || null;
-  const primaryHref = spotlight ? rowLink(spotlight.id) : new URL("./index.html", window.location.href).toString();
+  const apiBase = elements.apiBaseInput?.value.trim() || DEFAULT_API_BASE;
+  const primaryHref = spotlight
+    ? rowLink(spotlight.id)
+    : applyRouteContext(new URL("./index.html", window.location.href), { apiBase }).toString();
+  const followsHref = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase }).toString();
   elements.heroActionRow.innerHTML = `
     <a class="link-btn" href="${primaryHref}">${spotlight ? "Open spotlight" : "Open live desk"}</a>
-    <a class="link-btn ghost" href="${new URL("./follows.html", window.location.href).toString()}">Open watchlist</a>
+    <a class="link-btn ghost" href="${followsHref}">Open watchlist</a>
   `;
 }
 
@@ -1519,7 +1522,7 @@ function installEvents() {
 
 function applyInitialUrlFilters() {
   const url = new URL(window.location.href);
-  const title = normalizeGameKey(url.searchParams.get("game"));
+  const title = normalizeGameKey(url.searchParams.get("game") || url.searchParams.get("title"));
   if (title && elements.gameSelect) {
     elements.gameSelect.value = title;
   }

@@ -1,34 +1,22 @@
 {
-  "name": "matt-scalcione-github-io",
+  "name": "pulseboard",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "clean": "rimraf estate",
-    "build": "vite build",
+    "build": "npm run build:pages",
+    "build:pages": "node scripts/build-pages-artifact.mjs",
+    "seo:sitemap": "node scripts/generate-sitemap.mjs",
+    "seo:check": "node scripts/seo-check.mjs",
     "logos:check": "node scripts/check-team-logo-coverage.mjs",
-    "postbuild": "node scripts/copy404.cjs",
     "logos:backfill": "node scripts/backfill-team-logos.mjs",
     "heroes:dota:sync": "node scripts/sync-dota-heroes.mjs",
     "logos:fallback": "node scripts/fallback-team-logos.mjs",
     "logos:optimize": "node scripts/optimize-team-logos.mjs",
     "logos:sync": "node scripts/sync-team-logos.mjs",
-    "seo:sitemap": "node scripts/generate-sitemap.mjs",
-    "seo:check": "node scripts/seo-check.mjs",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint --ext .ts,.tsx estate-src",
-    "escheck": "es-check es2015 'estate/assets/*.js' || exit 1",
-    "verify": "pnpm typecheck && pnpm lint && pnpm escheck"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-legacy": "^4.1.1",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "es-check": "^7.1.1",
-    "eslint": "^8.56.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.0"
+    "providers:check": "npm run providers:check --prefix api",
+    "test:api": "npm test --prefix api",
+    "verify:site": "node scripts/verify-site.mjs",
+    "verify": "npm run verify:site && npm run test:api"
   }
 }

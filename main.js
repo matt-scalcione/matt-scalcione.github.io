@@ -1,5 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { buildMatchUrl } from "./routes.js";
+import { applyRouteContext, buildMatchUrl } from "./routes.js?v=20260309c";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -313,8 +313,8 @@ function liveStatusLabel(status) {
 function liveDeskGuideMarkup(rows = [], apiBase) {
   const featured = sortDeskRows(rows)[0] || null;
   const matchHref = featured ? buildMatchUrl({ matchId: featured.id }) : null;
-  const scheduleHref = new URL("./schedule.html", window.location.href).toString();
-  const followsHref = new URL("./follows.html", window.location.href).toString();
+  const scheduleHref = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase }).toString();
+  const followsHref = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase }).toString();
 
   return `
     <div class="guide-shell">
@@ -388,11 +388,15 @@ function renderHeroActions(rows = []) {
   }
 
   const featured = sortDeskRows(rows)[0] || null;
-  const primaryHref = featured ? buildMatchUrl({ matchId: featured.id }) : new URL("./schedule.html", window.location.href).toString();
+  const apiBase = elements.apiBaseInput?.value.trim() || DEFAULT_API_BASE;
+  const primaryHref = featured
+    ? buildMatchUrl({ matchId: featured.id })
+    : applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase }).toString();
+  const followsHref = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase }).toString();
 
   elements.heroActionRow.innerHTML = `
     <a class="link-btn" href="${primaryHref}">${featured ? "Open spotlight" : "Open schedule"}</a>
-    <a class="link-btn ghost" href="${new URL("./follows.html", window.location.href).toString()}">Open watchlist</a>
+    <a class="link-btn ghost" href="${followsHref}">Open watchlist</a>
   `;
 }
 
@@ -697,13 +701,11 @@ function liveFilterSummaryText(filtered, total, counts) {
 }
 
 function updateNav(apiBase) {
-  const liveUrl = new URL("./index.html", window.location.href);
-
-  const scheduleUrl = new URL("./schedule.html", window.location.href);
-
-  const followsUrl = new URL("./follows.html", window.location.href);
-  const lolHubUrl = new URL("./lol.html", window.location.href);
-  const dotaHubUrl = new URL("./dota2.html", window.location.href);
+  const liveUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
+  const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
+  const followsUrl = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const lolHubUrl = applyRouteContext(new URL("./lol.html", window.location.href), { apiBase });
+  const dotaHubUrl = applyRouteContext(new URL("./dota2.html", window.location.href), { apiBase });
 
   if (elements.liveDeskNav) elements.liveDeskNav.href = liveUrl.toString();
   if (elements.mobileLiveNav) elements.mobileLiveNav.href = liveUrl.toString();
@@ -977,7 +979,7 @@ function installEvents() {
 
 function applyInitialUrlFilters() {
   const url = new URL(window.location.href);
-  const initialGame = normalizeGameKey(url.searchParams.get("game"));
+  const initialGame = normalizeGameKey(url.searchParams.get("game") || url.searchParams.get("title"));
   if (initialGame && GAME_OPTION_VALUES.has(initialGame) && elements.gameSelect) {
     elements.gameSelect.value = initialGame;
   }
