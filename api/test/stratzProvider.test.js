@@ -446,6 +446,96 @@ describe("StratzProvider", () => {
       restoreEnv("STRATZ_DOTA_MATCH_DETAIL_QUERY", previousDetailQuery);
     }
   });
+
+  it("prefers player kill totals when top-level STRATZ kill counters are zero", async () => {
+    const originalFetch = global.fetch;
+    const previousToken = process.env.STRATZ_API_TOKEN;
+    const previousDetailQuery = process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY;
+
+    process.env.STRATZ_API_TOKEN = "test-token";
+    process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY = "query MatchDetail { match(id: $id) { id } }";
+
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("api.stratz.com/graphql")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              data: {
+                match: {
+                  id: 903,
+                  matchId: 903,
+                  didRadiantWin: true,
+                  durationSeconds: 1800,
+                  startDateTime: 1772899200,
+                  endDateTime: 1772901000,
+                  radiantKills: 0,
+                  direKills: 0,
+                  radiantTeam: {
+                    id: 1,
+                    name: "Radiant"
+                  },
+                  direTeam: {
+                    id: 2,
+                    name: "Dire"
+                  },
+                  players: [
+                    {
+                      isRadiant: true,
+                      steamAccount: { name: "Radiant Carry" },
+                      hero: { id: 8, displayName: "Juggernaut" },
+                      kills: 9,
+                      deaths: 2,
+                      assists: 5,
+                      numLastHits: 300,
+                      numDenies: 12,
+                      goldPerMinute: 700,
+                      experiencePerMinute: 720,
+                      level: 25,
+                      networth: 26000
+                    },
+                    {
+                      isRadiant: false,
+                      steamAccount: { name: "Dire Carry" },
+                      hero: { id: 1, displayName: "Anti-Mage" },
+                      kills: 6,
+                      deaths: 5,
+                      assists: 4,
+                      numLastHits: 280,
+                      numDenies: 8,
+                      goldPerMinute: 610,
+                      experiencePerMinute: 650,
+                      level: 23,
+                      networth: 22000
+                    }
+                  ]
+                }
+              }
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/providers/dota/stratzProvider.js"
+      ).href;
+      const { StratzProvider } = await import(`${moduleUrl}?kills=${Date.now()}`);
+      const provider = new StratzProvider({ timeoutMs: 1000 });
+      const detail = await provider.fetchMatchDetail("dota_stratz_903");
+
+      assert.equal(detail?.selectedGame?.snapshot?.left?.kills, 9);
+      assert.equal(detail?.selectedGame?.snapshot?.right?.kills, 6);
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("STRATZ_API_TOKEN", previousToken);
+      restoreEnv("STRATZ_DOTA_MATCH_DETAIL_QUERY", previousDetailQuery);
+    }
+  });
 });
 
 describe("mockStore STRATZ routing", () => {

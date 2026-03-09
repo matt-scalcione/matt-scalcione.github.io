@@ -1511,24 +1511,24 @@ function sumMetric(rows = [], key) {
 
 function extractSnapshot(node, playerEconomy, teamEconomyTotals, { objectiveControl, scoreTimeline } = {}) {
   const lastScore = Array.isArray(scoreTimeline) && scoreTimeline.length ? scoreTimeline[scoreTimeline.length - 1] : null;
+  const leftPlayerKills = toCount(sumMetric(playerEconomy.left, "kills"));
+  const rightPlayerKills = toCount(sumMetric(playerEconomy.right, "kills"));
+  const leftTopLevelKills = toCount(
+    firstPresent(lastScore?.left, node?.radiantKills, node?.teams?.left?.kills, node?.teamRadiant?.kills)
+  );
+  const rightTopLevelKills = toCount(
+    firstPresent(lastScore?.right, node?.direKills, node?.teams?.right?.kills, node?.teamDire?.kills)
+  );
   const leftKills = toCount(
     firstPresent(
-      lastScore?.left,
-      node?.radiantKills,
-      node?.teams?.left?.kills,
-      node?.teamRadiant?.kills,
-      sumMetric(playerEconomy.left, "kills"),
+      Math.max(leftTopLevelKills, leftPlayerKills),
       node?.radiantScore,
       node?.score?.left
     )
   );
   const rightKills = toCount(
     firstPresent(
-      lastScore?.right,
-      node?.direKills,
-      node?.teams?.right?.kills,
-      node?.teamDire?.kills,
-      sumMetric(playerEconomy.right, "kills"),
+      Math.max(rightTopLevelKills, rightPlayerKills),
       node?.direScore,
       node?.score?.right
     )
