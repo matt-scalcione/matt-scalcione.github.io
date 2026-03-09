@@ -148,6 +148,7 @@ const SCHEDULE_RANGE_PRESETS = {
   "3d": { pastHours: 0, futureHours: 72 },
   "7d": { pastHours: 0, futureHours: 168 }
 };
+const SCHEDULE_OVERDUE_GRACE_MS = 15 * 60 * 1000;
 
 function selectedTitleKey() {
   return normalizeGameKey(elements.gameSelect?.value || "");
@@ -243,6 +244,11 @@ function dateTimeCompact(iso) {
   } catch {
     return String(iso || "");
   }
+}
+
+function scheduleTimestamp(iso) {
+  const parsed = Date.parse(String(iso || ""));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function seriesScoreLabel(row, type) {
@@ -426,9 +432,36 @@ function scheduleCardState(row, type) {
   return String(row?.status || (type === "result" ? "completed" : "upcoming")).toLowerCase();
 }
 
+function isOverdueScheduledRow(row, type, nowMs = Date.now()) {
+  if (type === "result") {
+    return false;
+  }
+
+  const state = scheduleCardState(row, type);
+  if (state === "live" || state === "completed") {
+    return false;
+  }
+
+  const startMs = scheduleTimestamp(row?.startAt);
+  return startMs !== null && nowMs > startMs + SCHEDULE_OVERDUE_GRACE_MS;
+}
+
+function scheduleDisplayState(row, type) {
+  if (type === "result") {
+    return "completed";
+  }
+
+  if (scheduleCardState(row, type) === "live") {
+    return "live";
+  }
+
+  return isOverdueScheduledRow(row, type) ? "overdue" : "upcoming";
+}
+
 function scheduleCardStatusLabel(row, type) {
   if (type === "result") return "FINAL";
-  return row?.status === "live" ? "LIVE" : "SCHEDULED";
+  if (row?.status === "live") return "LIVE";
+  return isOverdueScheduledRow(row, type) ? "OVERDUE" : "SCHEDULED";
 }
 
 function scheduleCardContext(row, type, scoreLabel, winnerName) {
@@ -446,6 +479,13 @@ function scheduleCardContext(row, type, scoreLabel, winnerName) {
     return {
       format: formatLabel,
       note: hasSeriesScore ? `${scoreLabel} in series` : "Series live"
+    };
+  }
+
+  if (isOverdueScheduledRow(row, type)) {
+    return {
+      format: formatLabel,
+      note: "Start time passed; waiting for live update"
     };
   }
 
@@ -473,10 +513,48 @@ function scheduleCardFooter(row, type, winnerName) {
     };
   }
 
+  if (isOverdueScheduledRow(row, type)) {
+    return {
+      primary: tournament,
+      secondary: `${formatLabel} · start overdue`
+    };
+  }
+
   return {
     primary: tournament,
     secondary: formatLabel
   };
+}
+
+function scheduleDisplayPriority(row, type) {
+  const state = scheduleDisplayState(row, type);
+  if (state === "live") return 0;
+  if (state === "overdue") return 1;
+  if (state === "upcoming") return 2;
+  return 3;
+}
+
+function sortRowsForDisplay(rows = [], type) {
+  if (type === "result") {
+    return rows.slice();
+  }
+
+  return rows
+    .slice()
+    .sort((left, right) => {
+      const priorityDelta = scheduleDisplayPriority(left, type) - scheduleDisplayPriority(right, type);
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
+
+      const leftStart = scheduleTimestamp(left?.startAt) ?? Number.POSITIVE_INFINITY;
+      const rightStart = scheduleTimestamp(right?.startAt) ?? Number.POSITIVE_INFINITY;
+      if (leftStart !== rightStart) {
+        return leftStart - rightStart;
+      }
+
+      return String(left?.id || "").localeCompare(String(right?.id || ""));
+    });
 }
 
 function gameChipMarkup(game) {
@@ -957,8 +1035,9 @@ function renderScheduleSummary(scheduleRows = [], resultRows = []) {
   renderScheduleGuide(scheduleRows, resultRows);
   renderSlateLens(scheduleRows, resultRows);
 
-  const liveCount = scheduleRows.filter((row) => String(row?.status || "").toLowerCase() === "live").length;
-  const upcomingCount = scheduleRows.length - liveCount;
+  const liveCount = scheduleRows.filter((row) => scheduleDisplayState(row, "scheduled") === "live").length;
+  const upcomingCount = scheduleRows.filter((row) => scheduleDisplayState(row, "scheduled") === "upcoming").length;
+  const overdueCount = scheduleRows.filter((row) => scheduleDisplayState(row, "scheduled") === "overdue").length;
   const spotlight = scheduleRows[0] || resultRows[0] || null;
 
   if (!scheduleRows.length && !resultRows.length) {
@@ -982,7 +1061,7 @@ function renderScheduleSummary(scheduleRows = [], resultRows = []) {
     <article class="overview-card">
       <p class="overview-label">Up Next</p>
       <p class="overview-value">${upcomingCount}</p>
-      <p class="overview-note">Scheduled series still ahead.</p>
+      <p class="overview-note">${overdueCount ? `${overdueCount} start overdue${overdueCount === 1 ? "" : "s"} awaiting provider updates.` : "Scheduled series still ahead."}</p>
     </article>
     <article class="overview-card">
       <p class="overview-label">Finals</p>
@@ -999,7 +1078,7 @@ function renderScheduleSummary(scheduleRows = [], resultRows = []) {
         ? `
           <a class="overview-featured overview-featured-spotlight" href="${rowLink(spotlight.id)}">
             <div class="overview-featured-top">
-              <span class="pill ${spotlight.status === "live" ? "live" : spotlight.status === "completed" ? "complete" : "upcoming"}">${escapeHtml(String(spotlight.status || "upcoming").toUpperCase())}</span>
+              <span class="pill ${scheduleDisplayState(spotlight, resultRows.includes(spotlight) ? "result" : "scheduled")}">${escapeHtml(scheduleCardStatusLabel(spotlight, resultRows.includes(spotlight) ? "result" : "scheduled"))}</span>
               <span class="overview-featured-meta">${escapeHtml(timeOnlyLabel(spotlight.startAt))}</span>
             </div>
             <p class="overview-label">Slate Spotlight</p>
@@ -1058,7 +1137,7 @@ function renderTable(container, rows, type) {
       });
 
       return `
-        <tr class="schedule-row schedule-row-${String(row.status || (type === "result" ? "completed" : "upcoming")).toLowerCase()}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftName} vs ${rightName}">
+        <tr class="schedule-row schedule-row-${scheduleDisplayState(row, type)}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftName} vs ${rightName}">
           <td class="schedule-time-cell"><span class="schedule-time-label">${dateTimeCompact(row.startAt)}</span></td>
           <td class="schedule-game-cell"><a class="hub-chip-link" href="${hubUrl}" aria-label="Open ${gameLabel(row.game)} hub">${gameChipMarkup(row.game)}</a></td>
           <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
@@ -1088,8 +1167,8 @@ function renderTable(container, rows, type) {
                     : null;
               const scoreLabel = seriesScoreLabel(row, type);
               const statusLabel = scheduleCardStatusLabel(row, type);
-              const statusClass = type === "result" ? "complete" : row.status === "live" ? "live" : "upcoming";
-              const stateClass = scheduleCardState(row, type);
+              const statusClass = scheduleDisplayState(row, type);
+              const stateClass = scheduleDisplayState(row, type);
               const context = scheduleCardContext(row, type, scoreLabel, winnerLong);
               const footer = scheduleCardFooter(row, type, winnerLong);
               const showSeriesScore = type === "result" || row?.status === "live" || scoreLabel !== "—";
@@ -1173,8 +1252,14 @@ function renderTable(container, rows, type) {
 }
 
 function renderCollectionsFromState() {
-  const filteredSchedule = applySlateFilters(scheduleCollectionState.scheduleRows, "scheduled");
-  const filteredResults = applySlateFilters(scheduleCollectionState.resultRows, "result");
+  const filteredSchedule = sortRowsForDisplay(
+    applySlateFilters(scheduleCollectionState.scheduleRows, "scheduled"),
+    "scheduled"
+  );
+  const filteredResults = sortRowsForDisplay(
+    applySlateFilters(scheduleCollectionState.resultRows, "result"),
+    "result"
+  );
 
   renderScheduleSummary(filteredSchedule, filteredResults);
   renderTable(elements.scheduleTableWrap, filteredSchedule, "scheduled");

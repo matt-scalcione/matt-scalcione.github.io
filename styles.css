@@ -1024,6 +1024,12 @@ button.ghost,
   background: rgba(168, 93, 20, 0.12);
 }
 
+.pill.overdue {
+  color: #9c4f07;
+  border: 1px solid rgba(196, 112, 24, 0.42);
+  background: rgba(196, 112, 24, 0.16);
+}
+
 .pill.complete {
   color: #44505d;
   border: 1px solid rgba(84, 97, 113, 0.3);
@@ -1534,6 +1540,10 @@ button.ghost,
   border-left: 3px solid rgba(168, 93, 20, 0.42);
 }
 
+.schedule-row.schedule-row-overdue td:first-child {
+  border-left: 3px solid rgba(196, 112, 24, 0.58);
+}
+
 .schedule-row.schedule-row-completed td:first-child {
   border-left: 3px solid rgba(84, 97, 113, 0.38);
 }
@@ -1673,6 +1683,11 @@ button.ghost,
 
 .schedule-row-card.schedule-upcoming {
   border-color: rgba(168, 93, 20, 0.34);
+}
+
+.schedule-row-card.schedule-overdue {
+  border-color: rgba(196, 112, 24, 0.48);
+  background: rgba(255, 248, 240, 0.94);
 }
 
 .schedule-row-card.schedule-completed {
