@@ -52,6 +52,89 @@ const STRATZ_MATCH_DETAIL_QUERY = loadQueryText(
   process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY,
   STRATZ_MATCH_DETAIL_QUERY_FILE || DEFAULT_STRATZ_MATCH_DETAIL_QUERY_FILE
 );
+const STRATZ_LIVE_QUERY_FALLBACKS = [
+  `
+    query PulseboardStratzLiveFallbackA {
+      live {
+        matches(request: { take: 100 }) {
+          matchId
+          radiantScore
+          direScore
+          leagueId
+          league {
+            id
+            name
+            displayName
+            tier
+            streams {
+              id
+              name
+              streamUrl
+            }
+          }
+          completed
+          isUpdating
+          isParsing
+          radiantTeamId
+          direTeamId
+          radiantTeam {
+            id
+            name
+            tag
+            logo
+          }
+          direTeam {
+            id
+            name
+            tag
+            logo
+          }
+          gameState
+          gameMinute
+          createdDateTime
+          modifiedDateTime
+        }
+      }
+    }
+  `,
+  `
+    query PulseboardStratzLiveFallbackB {
+      live {
+        matches {
+          matchId
+          radiantScore
+          direScore
+          leagueId
+          league {
+            id
+            name
+            displayName
+            tier
+          }
+          completed
+          isUpdating
+          isParsing
+          radiantTeamId
+          direTeamId
+          radiantTeam {
+            id
+            name
+          }
+          direTeam {
+            id
+            name
+          }
+          gameState
+          gameMinute
+          createdDateTime
+          modifiedDateTime
+        }
+      }
+    }
+  `
+]
+  .map((value) => String(value || "").trim())
+  .filter(Boolean);
 
 function toOptionalNumber(value) {
   if (value === null || value === undefined || value === "") {
@@ -325,6 +408,27 @@ function extractMatchishArrays(root) {
   }
 
   return arrays;
+}
+
+function summarizeLivePayload(data) {
+  const topKeys = data && typeof data === "object" && !Array.isArray(data) ? Object.keys(data).slice(0, 8) : [];
+  const liveKeys =
+    data?.live && typeof data.live === "object" && !Array.isArray(data.live)
+      ? Object.keys(data.live).slice(0, 8)
+      : [];
+  const arrays = extractMatchishArrays(data).slice(0, 4);
+  return {
+    topKeys,
+    liveKeys,
+    arrayCount: extractMatchishArrays(data).length,
+    arrayPreview: arrays.map((rows) => {
+      const firstObject = Array.isArray(rows) ? rows.find((entry) => entry && typeof entry === "object" && !Array.isArray(entry)) : null;
+      return {
+        length: Array.isArray(rows) ? rows.length : 0,
+        firstKeys: firstObject ? Object.keys(firstObject).slice(0, 8) : []
+      };
+    })
+  };
 }
 
 function looksLikeMatchNode(node) {
@@ -1411,22 +1515,22 @@ function extractSnapshot(node, playerEconomy, teamEconomyTotals, { objectiveCont
     firstPresent(
       lastScore?.left,
       node?.radiantKills,
-      node?.radiantScore,
-      node?.score?.left,
       node?.teams?.left?.kills,
       node?.teamRadiant?.kills,
-      sumMetric(playerEconomy.left, "kills")
+      sumMetric(playerEconomy.left, "kills"),
+      node?.radiantScore,
+      node?.score?.left
     )
   );
   const rightKills = toCount(
     firstPresent(
       lastScore?.right,
       node?.direKills,
-      node?.direScore,
-      node?.score?.right,
       node?.teams?.right?.kills,
       node?.teamDire?.kills,
-      sumMetric(playerEconomy.right, "kills")
+      sumMetric(playerEconomy.right, "kills"),
+      node?.direScore,
+      node?.score?.right
     )
   );
   const leftTowers = toCount(
@@ -1997,6 +2101,12 @@ export class StratzProvider {
       fetchedAt: 0,
       rows: []
     };
+    this.liveDiagnostics = {
+      lastAttemptAt: null,
+      selectedQuery: null,
+      attempts: [],
+      lastError: null
+    };
   }
 
   getCapabilities() {
@@ -2022,7 +2132,8 @@ export class StratzProvider {
         : "missing",
       liveEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_LIVE_QUERY),
       detailEnabled: Boolean(STRATZ_API_TOKEN && STRATZ_MATCH_DETAIL_QUERY),
-      detailContractMode: "normalized_raw_or_contract"
+      detailContractMode: "normalized_raw_or_contract",
+      liveDiagnostics: this.liveDiagnostics
     };
   }
 
@@ -2061,36 +2172,87 @@ export class StratzProvider {
       return this.liveCache.rows.filter((row) => hasTierAllowed(row.competitiveTier, allowedTiers));
     }
 
-    const data = await fetchGraphql(STRATZ_GRAPHQL_URL, {
-      query: STRATZ_LIVE_QUERY,
-      variables: {},
-      headers: this.buildHeaders(),
-      timeoutMs: this.timeoutMs
+    const queryAttempts = [
+      {
+        label: "primary",
+        query: STRATZ_LIVE_QUERY
+      },
+      ...STRATZ_LIVE_QUERY_FALLBACKS.map((query, index) => ({
+        label: `fallback_${index + 1}`,
+        query
+      }))
+    ].filter((attempt, index, all) => {
+      const query = String(attempt?.query || "").trim();
+      return query && all.findIndex((candidate) => String(candidate?.query || "").trim() === query) === index;
     });
-    const rows = this.extractLiveNodes(data)
-      .map((node) => normalizeLiveRow(node))
-      .filter(Boolean)
-      .filter((row) => row.status === "live")
-      .filter((row, index, all) => {
-        const teamKey = [normalizeTeamName(row?.teams?.left?.name), normalizeTeamName(row?.teams?.right?.name)]
-          .sort()
-          .join("::");
-        return (
-          all.findIndex((candidate) => {
-            const candidateKey = [
-              normalizeTeamName(candidate?.teams?.left?.name),
-              normalizeTeamName(candidate?.teams?.right?.name)
-            ]
+
+    let rows = [];
+    const attempts = [];
+    let selectedQuery = null;
+    let lastError = null;
+
+    for (const attempt of queryAttempts) {
+      try {
+        const data = await fetchGraphql(STRATZ_GRAPHQL_URL, {
+          query: attempt.query,
+          variables: {},
+          headers: this.buildHeaders(),
+          timeoutMs: this.timeoutMs
+        });
+        const liveNodes = this.extractLiveNodes(data);
+        rows = liveNodes
+          .map((node) => normalizeLiveRow(node))
+          .filter(Boolean)
+          .filter((row) => row.status === "live")
+          .filter((row, index, all) => {
+            const teamKey = [normalizeTeamName(row?.teams?.left?.name), normalizeTeamName(row?.teams?.right?.name)]
               .sort()
               .join("::");
-            return candidate.providerMatchId === row.providerMatchId || candidateKey === teamKey;
-          }) === index
-        );
-      });
+            return (
+              all.findIndex((candidate) => {
+                const candidateKey = [
+                  normalizeTeamName(candidate?.teams?.left?.name),
+                  normalizeTeamName(candidate?.teams?.right?.name)
+                ]
+                  .sort()
+                  .join("::");
+                return candidate.providerMatchId === row.providerMatchId || candidateKey === teamKey;
+              }) === index
+            );
+          });
+
+        attempts.push({
+          label: attempt.label,
+          rows: rows.length,
+          liveNodes: liveNodes.length,
+          summary: summarizeLivePayload(data)
+        });
+
+        if (rows.length > 0) {
+          selectedQuery = attempt.label;
+          lastError = null;
+          break;
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+        attempts.push({
+          label: attempt.label,
+          rows: 0,
+          liveNodes: 0,
+          error: lastError
+        });
+      }
+    }
 
     this.liveCache = {
       fetchedAt: Date.now(),
       rows
+    };
+    this.liveDiagnostics = {
+      lastAttemptAt: new Date().toISOString(),
+      selectedQuery,
+      attempts,
+      lastError
     };
 
     return rows.filter((row) => hasTierAllowed(row.competitiveTier, allowedTiers));

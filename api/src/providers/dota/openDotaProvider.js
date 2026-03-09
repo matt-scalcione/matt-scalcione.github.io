@@ -941,11 +941,16 @@ function buildSeriesDetail({
   selectedGame.sideSummary = sideSummaryFromSeriesGame(summary, selectedSeriesGame);
   selectedGame.watchUrl = selectedSeriesGame?.watchUrl || null;
   selectedGame.watchOptions = Array.isArray(selectedSeriesGame?.watchOptions) ? selectedSeriesGame.watchOptions : [];
+  selectedGame.sourceMatchId = selectedSeriesGame?.sourceMatchId || null;
   selectedGame.durationMinutes = Number.isFinite(Number(selectedSeriesGame?.durationMinutes))
     ? Number(selectedSeriesGame.durationMinutes)
     : selectedGame.durationMinutes;
   selectedGame.snapshot = selectedSnapshot;
   selectedGame.requestedMissing = Boolean(requestedMissing);
+  const selectedSourceMatchId = selectedSeriesGame?.sourceMatchId || null;
+  const effectiveSourceMatchId =
+    selectedSourceMatchId ||
+    (selectedState === "completed" ? summary?.sourceMatchId || null : null);
 
   const gameNavigation = buildGameNavigation({
     seriesGames,
@@ -1013,8 +1018,9 @@ function buildSeriesDetail({
   return {
     ...summary,
     id: matchId,
+    selectedState,
     providerMatchId: summary?.providerMatchId,
-    sourceMatchId: selectedSeriesGame?.sourceMatchId || summary?.sourceMatchId || null,
+    sourceMatchId: effectiveSourceMatchId,
     patch: mapDetail?.patch || summary?.patch || "unknown",
     freshness,
     timeline: objectiveTimeline.slice(-12).map((row) => ({

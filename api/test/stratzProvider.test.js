@@ -437,6 +437,9 @@ describe("StratzProvider", () => {
       assert.equal(detail?.objectiveControl?.left?.inhibitors, 6);
       assert.equal(detail?.selectedGame?.snapshot?.left?.kills, 31);
       assert.equal(detail?.selectedGame?.snapshot?.right?.kills, 18);
+      assert.equal(detail?.winnerTeamId, "1");
+      assert.equal(detail?.selectedGame?.winnerTeamId, "1");
+      assert.equal(detail?.selectedGame?.title, "Game 1");
     } finally {
       global.fetch = originalFetch;
       restoreEnv("STRATZ_API_TOKEN", previousToken);

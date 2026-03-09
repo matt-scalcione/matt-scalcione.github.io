@@ -653,4 +653,132 @@ describe("OpenDotaProvider.fetchMatchDetail", () => {
       global.fetch = originalFetch;
     }
   });
+
+  it("does not reuse the previous map id for a live deciding game when the current map payload is missing", async () => {
+    const provider = new OpenDotaProvider({ timeoutMs: 50 });
+    const originalFetch = global.fetch;
+    const now = Math.floor(Date.now() / 1000);
+
+    global.fetch = async (url) => {
+      const value = String(url);
+      if (value.endsWith("/proMatches")) {
+        return new Response(
+          JSON.stringify([
+            {
+              match_id: 3001,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: now - 7200,
+              duration: 2200,
+              radiant_team_id: 50,
+              dire_team_id: 60,
+              radiant_name: "Left Squad",
+              dire_name: "Right Squad",
+              radiant_win: true
+            },
+            {
+              match_id: 3002,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: now - 4800,
+              duration: 2100,
+              radiant_team_id: 60,
+              dire_team_id: 50,
+              radiant_name: "Right Squad",
+              dire_name: "Left Squad",
+              radiant_win: true
+            },
+            {
+              match_id: 3003,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: now - 2400,
+              duration: 2300,
+              radiant_team_id: 50,
+              dire_team_id: 60,
+              radiant_name: "Left Squad",
+              dire_name: "Right Squad",
+              radiant_win: true
+            },
+            {
+              match_id: 3004,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: now - 300,
+              duration: 2000,
+              radiant_team_id: 60,
+              dire_team_id: 50,
+              radiant_name: "Right Squad",
+              dire_name: "Left Squad",
+              radiant_win: true
+            }
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (value.endsWith("/live")) {
+        return new Response(
+          JSON.stringify([
+            {
+              match_id: 3004,
+              series_id: 7001,
+              league_id: 99,
+              activate_time: now - 120,
+              last_update_time: now - 10,
+              team_id_radiant: 60,
+              team_id_dire: 50,
+              team_name_radiant: "Right Squad",
+              team_name_dire: "Left Squad",
+              radiant_score: 12,
+              dire_score: 19
+            }
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (value.endsWith("/leagues")) {
+        return new Response(JSON.stringify([{ leagueid: 99, tier: "premium" }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (value.endsWith("/heroes")) {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      throw new Error(`Unexpected fetch URL: ${value}`);
+    };
+
+    try {
+      const detail = await provider.fetchMatchDetail("dota_od_series_7001");
+      assert.ok(detail);
+      assert.equal(detail.status, "live");
+      assert.equal(detail.selectedState, "inProgress");
+      assert.equal(detail.selectedGame.number, 5);
+      assert.equal(detail.selectedGame.state, "inProgress");
+      assert.equal(detail.selectedGame.telemetryStatus, "pending");
+      assert.equal(detail.selectedGame.sourceMatchId, null);
+      assert.equal(detail.sourceMatchId, null);
+      assert.equal(detail.seriesGames[3].sourceMatchId, "3004");
+      assert.equal(detail.seriesGames[4].sourceMatchId, null);
+      assert.equal(detail.playerEconomy.left.length, 0);
+      assert.equal(detail.playerEconomy.right.length, 0);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });
