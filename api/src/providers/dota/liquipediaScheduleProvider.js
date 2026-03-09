@@ -8,6 +8,12 @@ const LIQUIPEDIA_API_URL =
 const LIQUIPEDIA_MATCHES_PAGE_URL =
   process.env.LIQUIPEDIA_DOTA_MATCHES_PAGE_URL ||
   "https://liquipedia.net/dota2/Liquipedia:Matches";
+const LIQUIPEDIA_MATCHES_RENDER_URL =
+  process.env.LIQUIPEDIA_DOTA_MATCHES_RENDER_URL ||
+  "https://liquipedia.net/dota2/index.php?title=Liquipedia:Matches&action=render";
+const LIQUIPEDIA_MATCHES_OUTPUT_URL =
+  process.env.LIQUIPEDIA_DOTA_MATCHES_OUTPUT_URL ||
+  "https://liquipedia.net/dota2/index.php?title=Liquipedia:Matches&output=1";
 const LIQUIPEDIA_USER_AGENT =
   process.env.LIQUIDPEDIA_USER_AGENT || "Pulseboard/1.0 (https://matt-scalcione.github.io)";
 const LIQUIPEDIA_SCHEDULE_LOOKBACK_MS = Number.parseInt(
@@ -414,6 +420,34 @@ export class LiquipediaDotaScheduleProvider {
     return "";
   }
 
+  async fetchFallbackHtml() {
+    const fallbackTargets = [LIQUIPEDIA_MATCHES_RENDER_URL, LIQUIPEDIA_MATCHES_PAGE_URL, LIQUIPEDIA_MATCHES_OUTPUT_URL];
+    const fallbackHeaders = {
+      "user-agent": LIQUIPEDIA_USER_AGENT,
+      accept: "text/html,application/xhtml+xml",
+      "accept-language": "en-US,en;q=0.9"
+    };
+    const errors = [];
+
+    for (const url of fallbackTargets) {
+      try {
+        const html = await fetchText(url, {
+          timeoutMs: this.timeoutMs,
+          headers: fallbackHeaders
+        });
+        if (html && html.includes("match-info")) {
+          return html;
+        }
+
+        errors.push(`No usable Dota schedule markup from ${url}`);
+      } catch (error) {
+        errors.push(error?.message || String(error));
+      }
+    }
+
+    throw new Error(errors.join(" | "));
+  }
+
   async fetchScheduleHtml() {
     const ageMs = Date.now() - this.scheduleCache.fetchedAt;
     if (ageMs <= LIQUIPEDIA_API_CACHE_MS && this.scheduleCache.html) {
@@ -440,14 +474,7 @@ export class LiquipediaDotaScheduleProvider {
       }
     } catch (error) {
       lastError = error;
-      html = await fetchText(LIQUIPEDIA_MATCHES_PAGE_URL, {
-        timeoutMs: this.timeoutMs,
-        headers: {
-          "user-agent": LIQUIPEDIA_USER_AGENT,
-          accept: "text/html,application/xhtml+xml",
-          "accept-language": "en-US,en;q=0.9"
-        }
-      });
+      html = await this.fetchFallbackHtml();
       if (!html || !html.includes("match-info")) {
         const detail = error?.message || String(error);
         throw new Error(`Liquipedia HTML fallback returned no usable Dota schedule markup after ${detail}`);

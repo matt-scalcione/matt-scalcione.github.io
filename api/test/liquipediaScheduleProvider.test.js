@@ -209,6 +209,7 @@ describe("LiquipediaDotaScheduleProvider", () => {
   it("falls back to the public matches page when the parse API is rate-limited", async () => {
     const originalFetch = global.fetch;
     let apiCalls = 0;
+    let renderCalls = 0;
     let pageCalls = 0;
     const futureTimestamp = Math.floor((Date.now() + 90 * 60 * 1000) / 1000);
     const html = withTimestamp(sampleMatchHtml, futureTimestamp);
@@ -217,6 +218,14 @@ describe("LiquipediaDotaScheduleProvider", () => {
       const target = String(url);
       if (target.includes("/api.php?action=parse&page=Liquipedia:Matches")) {
         apiCalls += 1;
+        return {
+          ok: false,
+          status: 429
+        };
+      }
+
+      if (target === "https://liquipedia.net/dota2/index.php?title=Liquipedia:Matches&action=render") {
+        renderCalls += 1;
         return {
           ok: false,
           status: 429
@@ -241,7 +250,63 @@ describe("LiquipediaDotaScheduleProvider", () => {
       const rows = await provider.fetchScheduleMatches();
 
       assert.equal(apiCalls, 1);
+      assert.equal(renderCalls, 1);
       assert.equal(pageCalls, 1);
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].status, "upcoming");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("uses the action=render fallback before the full page fetch", async () => {
+    const originalFetch = global.fetch;
+    let apiCalls = 0;
+    let renderCalls = 0;
+    let pageCalls = 0;
+    const futureTimestamp = Math.floor((Date.now() + 90 * 60 * 1000) / 1000);
+    const html = withTimestamp(sampleMatchHtml, futureTimestamp);
+
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("/api.php?action=parse&page=Liquipedia:Matches")) {
+        apiCalls += 1;
+        return {
+          ok: false,
+          status: 429
+        };
+      }
+
+      if (target === "https://liquipedia.net/dota2/index.php?title=Liquipedia:Matches&action=render") {
+        renderCalls += 1;
+        return {
+          ok: true,
+          async text() {
+            return html;
+          }
+        };
+      }
+
+      if (target === "https://liquipedia.net/dota2/Liquipedia:Matches") {
+        pageCalls += 1;
+        return {
+          ok: true,
+          async text() {
+            return html;
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const provider = new LiquipediaDotaScheduleProvider({ timeoutMs: 1000 });
+      const rows = await provider.fetchScheduleMatches();
+
+      assert.equal(apiCalls, 1);
+      assert.equal(renderCalls, 1);
+      assert.equal(pageCalls, 0);
       assert.equal(rows.length, 1);
       assert.equal(rows[0].status, "upcoming");
     } finally {
