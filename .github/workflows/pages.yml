@@ -25,6 +25,10 @@ jobs:
         env:
           PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL: ""
           PULSEBOARD_PUBLIC_BASE: https://matt-scalcione.github.io
+      - name: Generate Dota results snapshot
+        run: node scripts/generate-dota-results-snapshot.mjs
+        env:
+          PULSEBOARD_PUBLIC_BASE: https://matt-scalcione.github.io
       - name: Generate sitemap from live API data
         run: node scripts/generate-sitemap.mjs
         env:

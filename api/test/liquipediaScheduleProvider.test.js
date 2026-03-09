@@ -911,4 +911,100 @@ describe("mockStore Dota upcoming detail fallback", () => {
       restoreEnv("PROVIDER_CACHE_MS", previousCache);
     }
   });
+
+  it("falls back to the published Dota results snapshot when OpenDota results are rate-limited", async () => {
+    const originalFetch = global.fetch;
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    process.env.ESPORTS_DATA_MODE = "provider";
+
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.endsWith("/proMatches")) {
+        return {
+          ok: false,
+          status: 429
+        };
+      }
+
+      if (target.endsWith("/leagues")) {
+        return {
+          ok: true,
+          async json() {
+            return [];
+          }
+        };
+      }
+
+      if (target === "https://matt-scalcione.github.io/assets/provider-snapshots/dota-results.json") {
+        return {
+          ok: true,
+          async json() {
+            return {
+              generatedAt: new Date().toISOString(),
+              rows: [
+                {
+                  id: "dota_od_series_snapshot_1",
+                  game: "dota2",
+                  status: "completed",
+                  tournament: "PGL Wallachia 2026 Season 7",
+                  region: "global",
+                  competitiveTier: 1,
+                  startAt: "2026-03-09T17:45:00.000Z",
+                  endAt: "2026-03-09T19:20:00.000Z",
+                  bestOf: 3,
+                  seriesScore: {
+                    left: 2,
+                    right: 1
+                  },
+                  teams: {
+                    left: {
+                      id: "team_spirit",
+                      name: "Team Spirit",
+                      shortName: "TSpirit"
+                    },
+                    right: {
+                      id: "team_heroic",
+                      name: "HEROIC",
+                      shortName: "HEROIC"
+                    }
+                  },
+                  source: {
+                    provider: "opendota_snapshot"
+                  }
+                }
+              ]
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?dotaResultsSnapshot=${Date.now()}`);
+      const resultRows = await store.listResults({
+        game: "dota2",
+        region: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        dotaTiers: [1, 2, 3, 4]
+      });
+
+      assert.equal(resultRows.length, 1);
+      assert.equal(resultRows[0].teams.left.name, "Team Spirit");
+      assert.equal(resultRows[0].teams.right.name, "HEROIC");
+      assert.equal(
+        resultRows[0].source.snapshotUrl,
+        "https://matt-scalcione.github.io/assets/provider-snapshots/dota-results.json"
+      );
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
+    }
+  });
 });

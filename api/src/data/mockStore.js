@@ -9,6 +9,7 @@ import {
 } from "../providers/dota/liquipediaScheduleProvider.js";
 import { StratzProvider } from "../providers/dota/stratzProvider.js";
 import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
+import { fetchJson } from "../providers/shared/http.js";
 
 const now = Date.now();
 const oneMinute = 60 * 1000;
@@ -44,6 +45,16 @@ const providerRateLimitCooldownMs = Math.max(
 const providerRateLimitMaxCooldownMs = Math.max(
   providerRateLimitCooldownMs,
   Number.parseInt(process.env.PROVIDER_RATE_LIMIT_MAX_COOLDOWN_MS || String(30 * oneMinute), 10)
+);
+const pulseboardPublicBase = String(process.env.PULSEBOARD_PUBLIC_BASE || "https://matt-scalcione.github.io")
+  .trim()
+  .replace(/\/+$/g, "");
+const pulseboardDotaResultsSnapshotUrl =
+  process.env.PULSEBOARD_DOTA_RESULTS_SNAPSHOT_URL ||
+  (pulseboardPublicBase ? `${pulseboardPublicBase}/assets/provider-snapshots/dota-results.json` : "");
+const pulseboardDotaResultsSnapshotMaxAgeMs = Math.max(
+  providerCacheMs,
+  Number.parseInt(process.env.PULSEBOARD_DOTA_RESULTS_SNAPSHOT_MAX_AGE_MS || String(90 * oneMinute), 10)
 );
 const logAllProviderTiming = String(process.env.API_LOG_PROVIDER_TIMING || "").trim() === "1";
 const providerCachePersistenceEnabled = !import.meta.url.includes("?");
@@ -122,6 +133,26 @@ function cloneRows(rows) {
 
 function cloneValue(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeSnapshotPayload(payload) {
+  if (Array.isArray(payload)) {
+    return {
+      generatedAt: null,
+      rows: payload
+    };
+  }
+
+  return {
+    generatedAt: payload?.generatedAt || payload?.meta?.generatedAt || payload?.data?.generatedAt || null,
+    rows: Array.isArray(payload?.rows)
+      ? payload.rows
+      : Array.isArray(payload?.data?.rows)
+        ? payload.data.rows
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : []
+  };
 }
 
 function readProviderCacheFromDisk() {
@@ -1021,11 +1052,7 @@ async function loadProviderStratzLiveMatches() {
 }
 
 async function loadProviderResults() {
-  return loadProviderRows("results", () =>
-    openDotaProvider.fetchRecentResults({
-      allowedTiers: defaultDotaTiers
-    })
-  );
+  return loadProviderRows("results", () => fetchProviderDotaResults());
 }
 
 async function loadProviderDotaScheduleMatches({ knownRows = [] } = {}) {
@@ -1095,11 +1122,7 @@ function providerRefreshTasks() {
           )
         : Promise.resolve({ status: "disabled", rows: [] }),
     results: () =>
-      refreshProviderRows("results", () =>
-        openDotaProvider.fetchRecentResults({
-          allowedTiers: defaultDotaTiers
-        })
-      ),
+      refreshProviderRows("results", () => fetchProviderDotaResults()),
     dotaSchedule: () =>
       refreshProviderRows("dotaSchedule", async () => {
         const knownRows = dedupeRowsById([
@@ -1125,6 +1148,64 @@ function providerRefreshTasks() {
       ),
     lolResults: () => refreshProviderRows("lolResults", () => lolEsportsProvider.fetchRecentResults())
   };
+}
+
+async function fetchPulseboardDotaResultsSnapshot() {
+  if (!pulseboardDotaResultsSnapshotUrl) {
+    throw new Error("Pulseboard Dota results snapshot fallback is disabled.");
+  }
+
+  const payload = await fetchJson(pulseboardDotaResultsSnapshotUrl, {
+    timeoutMs: providerTimeoutMs,
+    headers: {
+      accept: "application/json"
+    }
+  });
+  const { generatedAt, rows } = normalizeSnapshotPayload(payload);
+  const generatedAtMs = generatedAt ? Date.parse(String(generatedAt)) : Number.NaN;
+  if (generatedAt && Number.isNaN(generatedAtMs)) {
+    throw new Error("Pulseboard Dota results snapshot has an invalid generatedAt timestamp.");
+  }
+
+  if (
+    Number.isFinite(generatedAtMs) &&
+    Date.now() - generatedAtMs > pulseboardDotaResultsSnapshotMaxAgeMs
+  ) {
+    throw new Error(`Pulseboard Dota results snapshot is stale from ${generatedAt}`);
+  }
+
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => row?.game === "dota2")
+    .filter((row) => row?.status === "completed")
+    .filter((row) =>
+      typeof row?.competitiveTier === "number"
+        ? defaultDotaTiers.includes(row.competitiveTier)
+        : true
+    )
+    .map((row) => ({
+      ...row,
+      source: {
+        ...(row?.source || {}),
+        snapshotUrl: pulseboardDotaResultsSnapshotUrl,
+        snapshotGeneratedAt: generatedAt || null
+      }
+    }));
+}
+
+async function fetchProviderDotaResults() {
+  try {
+    return await openDotaProvider.fetchRecentResults({
+      allowedTiers: defaultDotaTiers
+    });
+  } catch (error) {
+    try {
+      return await fetchPulseboardDotaResultsSnapshot();
+    } catch (snapshotError) {
+      throw new Error(
+        `${error?.message || String(error)} | ${snapshotError?.message || String(snapshotError)}`
+      );
+    }
+  }
 }
 
 function normalizeProviderKeys(providerKeys) {
