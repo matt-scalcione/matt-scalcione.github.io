@@ -70,6 +70,26 @@ const sampleMatchHtml = `
   </div>
 </div>`;
 
+function withTimestamp(html, timestampSeconds) {
+  return html.replace(/data-timestamp="\d+"/, `data-timestamp="${timestampSeconds}"`);
+}
+
+function withScore(html, leftScore, rightScore) {
+  return html.replace(
+    /<span class="match-info-header-scoreholder-upper">[\s\S]*?<\/span>\s*<span class="match-info-header-scoreholder-lower">/i,
+    `<span class="match-info-header-scoreholder-upper">
+          <span class="match-info-header-scoreholder-score">${leftScore}</span>
+          <span class="match-info-header-scoreholder-divider">:</span>
+          <span class="match-info-header-scoreholder-score">${rightScore}</span>
+        </span>
+        <span class="match-info-header-scoreholder-lower">`
+  );
+}
+
+function withFinished(html) {
+  return html.replace('data-format="full"', 'data-format="full" data-finished="finished"');
+}
+
 describe("parseLiquipediaMatchesHtml", () => {
   it("normalizes upcoming rows, cleans redlinks, and keeps only usable stream links", () => {
     const rows = parseLiquipediaMatchesHtml(sampleMatchHtml, {
@@ -89,6 +109,17 @@ describe("parseLiquipediaMatchesHtml", () => {
       rows[0].watchOptions.map((option) => option.provider),
       ["twitch", "youtube"]
     );
+  });
+
+  it("marks finished scored rows as completed instead of live", () => {
+    const rows = parseLiquipediaMatchesHtml(withFinished(withScore(sampleMatchHtml, 2, 1)), {
+      knownTeamIds: new Map(),
+      tournamentTierMap: new Map(),
+      nowMs: Date.parse("2026-03-07T20:30:00.000Z")
+    });
+
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].status, "completed");
   });
 });
 
@@ -170,6 +201,110 @@ describe("LiquipediaDotaScheduleProvider", () => {
       assert.equal(firstRows[0].tournament, "PGL Wallachia S7 - Round 1");
       assert.equal(firstRows[0].competitiveTier, 1);
       assert.equal(firstRows[0].teams.left.id, "team_liq");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("falls back to the public matches page when the parse API is rate-limited", async () => {
+    const originalFetch = global.fetch;
+    let apiCalls = 0;
+    let pageCalls = 0;
+    const futureTimestamp = Math.floor((Date.now() + 90 * 60 * 1000) / 1000);
+    const html = withTimestamp(sampleMatchHtml, futureTimestamp);
+
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("/api.php?action=parse&page=Liquipedia:Matches")) {
+        apiCalls += 1;
+        return {
+          ok: false,
+          status: 429
+        };
+      }
+
+      if (target === "https://liquipedia.net/dota2/Liquipedia:Matches") {
+        pageCalls += 1;
+        return {
+          ok: true,
+          async text() {
+            return html;
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const provider = new LiquipediaDotaScheduleProvider({ timeoutMs: 1000 });
+      const rows = await provider.fetchScheduleMatches();
+
+      assert.equal(apiCalls, 1);
+      assert.equal(pageCalls, 1);
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].status, "upcoming");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("retains live rows even after the default schedule lookback window", async () => {
+    const originalFetch = global.fetch;
+    const liveTimestamp = Math.floor((Date.now() - 3 * 60 * 60 * 1000) / 1000);
+    const liveHtml = withTimestamp(withScore(sampleMatchHtml, 1, 0), liveTimestamp);
+
+    global.fetch = async () => {
+      return {
+        ok: true,
+        async json() {
+          return {
+            parse: {
+              text: {
+                "*": liveHtml
+              }
+            }
+          };
+        }
+      };
+    };
+
+    try {
+      const provider = new LiquipediaDotaScheduleProvider({ timeoutMs: 1000 });
+      const rows = await provider.fetchScheduleMatches();
+
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].status, "live");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("filters out finished scored rows from the Liquipedia page", async () => {
+    const originalFetch = global.fetch;
+    const completedTimestamp = Math.floor((Date.now() - 45 * 60 * 1000) / 1000);
+    const html = withTimestamp(withFinished(withScore(sampleMatchHtml, 2, 1)), completedTimestamp);
+
+    global.fetch = async () => {
+      return {
+        ok: true,
+        async json() {
+          return {
+            parse: {
+              text: {
+                "*": html
+              }
+            }
+          };
+        }
+      };
+    };
+
+    try {
+      const provider = new LiquipediaDotaScheduleProvider({ timeoutMs: 1000 });
+      const rows = await provider.fetchScheduleMatches();
+
+      assert.equal(rows.length, 0);
     } finally {
       global.fetch = originalFetch;
     }

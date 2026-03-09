@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
-import { fetchJson } from "../shared/http.js";
+import { fetchJson, fetchText } from "../shared/http.js";
 
 const LIQUIPEDIA_API_URL =
   process.env.LIQUIPEDIA_DOTA_API_URL ||
   process.env.LIQUIDPEDIA_DOTA_API_URL ||
   "https://liquipedia.net/dota2/api.php?action=parse&page=Liquipedia:Matches&prop=text&formatversion=2&format=json";
+const LIQUIPEDIA_MATCHES_PAGE_URL =
+  process.env.LIQUIPEDIA_DOTA_MATCHES_PAGE_URL ||
+  "https://liquipedia.net/dota2/Liquipedia:Matches";
 const LIQUIPEDIA_USER_AGENT =
   process.env.LIQUIDPEDIA_USER_AGENT || "Pulseboard/1.0 (https://matt-scalcione.github.io)";
 const LIQUIPEDIA_SCHEDULE_LOOKBACK_MS = Number.parseInt(
@@ -280,6 +283,14 @@ function parseBestOf(scoreholderHtml) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 3;
 }
 
+function inferMatchStatus(blockHtml, { leftScore, rightScore }) {
+  if (/data-finished="finished"/i.test(String(blockHtml || ""))) {
+    return "completed";
+  }
+
+  return leftScore > 0 || rightScore > 0 ? "live" : "upcoming";
+}
+
 function stableScheduleId({ timestamp, leftName, rightName, tournamentName }) {
   const seed = [timestamp, leftName, rightName, tournamentName].join("|");
   const digest = createHash("sha1").update(seed).digest("hex").slice(0, 12);
@@ -325,7 +336,7 @@ export function parseLiquipediaMatchesHtml(
       firstMatch(block, /<span class="match-info-tournament-name">\s*<a href="([^"]+)"/i)
     );
     const watchOptions = extractWatchOptions(block);
-    const status = leftScore > 0 || rightScore > 0 ? "live" : "upcoming";
+    const status = inferMatchStatus(block, { leftScore, rightScore });
     const startAt = new Date(timestampSeconds * 1000).toISOString();
     const competitiveTier = inferCompetitiveTier(tournamentName, tournamentTierMap);
     const leftName = cleanLiquipediaName(teams[0].title || teams[0].shortName || "Radiant");
@@ -415,19 +426,38 @@ export class LiquipediaDotaScheduleProvider {
       "accept-language": "en-US,en;q=0.9"
     };
 
-    const payload = await fetchJson(LIQUIPEDIA_API_URL, {
-      timeoutMs: this.timeoutMs,
-      headers
-    });
-    const html = this.extractParseHtml(payload);
-    if (!html || !html.includes("match-info")) {
-      throw new Error("Liquipedia parse API returned no usable Dota schedule markup.");
+    let html = "";
+    let lastError = null;
+
+    try {
+      const payload = await fetchJson(LIQUIPEDIA_API_URL, {
+        timeoutMs: this.timeoutMs,
+        headers
+      });
+      html = this.extractParseHtml(payload);
+      if (!html || !html.includes("match-info")) {
+        throw new Error("Liquipedia parse API returned no usable Dota schedule markup.");
+      }
+    } catch (error) {
+      lastError = error;
+      html = await fetchText(LIQUIPEDIA_MATCHES_PAGE_URL, {
+        timeoutMs: this.timeoutMs,
+        headers: {
+          "user-agent": LIQUIPEDIA_USER_AGENT,
+          accept: "text/html,application/xhtml+xml",
+          "accept-language": "en-US,en;q=0.9"
+        }
+      });
+      if (!html || !html.includes("match-info")) {
+        const detail = error?.message || String(error);
+        throw new Error(`Liquipedia HTML fallback returned no usable Dota schedule markup after ${detail}`);
+      }
     }
 
     this.scheduleCache = {
       fetchedAt: Date.now(),
       html,
-      error: null
+      error: lastError ? (lastError?.message || String(lastError)) : null
     };
 
     return html;
@@ -461,10 +491,18 @@ export class LiquipediaDotaScheduleProvider {
       knownTeamIds: teamIdMap,
       tournamentTierMap
     })
-      .filter((row) => row.status === "upcoming")
+      .filter((row) => row.status !== "completed")
       .filter((row) => {
         const startMs = Date.parse(String(row?.startAt || ""));
-        return !Number.isNaN(startMs) && startMs >= Date.now() - LIQUIPEDIA_SCHEDULE_LOOKBACK_MS;
+        if (Number.isNaN(startMs)) {
+          return false;
+        }
+
+        if (row.status === "live") {
+          return true;
+        }
+
+        return startMs >= Date.now() - LIQUIPEDIA_SCHEDULE_LOOKBACK_MS;
       })
       .filter((row) =>
         !Array.isArray(allowedTiers) || allowedTiers.length === 0
