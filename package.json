@@ -8,6 +8,7 @@
     "build:pages": "node scripts/build-pages-artifact.mjs",
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
     "seo:check": "node scripts/seo-check.mjs",
+    "providers:snapshot:dota": "node scripts/generate-dota-schedule-snapshot.mjs",
     "logos:check": "node scripts/check-team-logo-coverage.mjs",
     "logos:backfill": "node scripts/backfill-team-logos.mjs",
     "heroes:dota:sync": "node scripts/sync-dota-heroes.mjs",

@@ -37,6 +37,14 @@ const providerTeamProfileCacheLimit = Number.parseInt(
   process.env.PROVIDER_TEAM_PROFILE_CACHE_LIMIT || "120",
   10
 );
+const providerRateLimitCooldownMs = Math.max(
+  providerCacheMs,
+  Number.parseInt(process.env.PROVIDER_RATE_LIMIT_COOLDOWN_MS || String(5 * oneMinute), 10)
+);
+const providerRateLimitMaxCooldownMs = Math.max(
+  providerRateLimitCooldownMs,
+  Number.parseInt(process.env.PROVIDER_RATE_LIMIT_MAX_COOLDOWN_MS || String(30 * oneMinute), 10)
+);
 const logAllProviderTiming = String(process.env.API_LOG_PROVIDER_TIMING || "").trim() === "1";
 const providerCachePersistenceEnabled = !import.meta.url.includes("?");
 const PROVIDER_CACHE_FILE_URL = new URL("../../../.runtime/provider-cache.json", import.meta.url);
@@ -73,7 +81,9 @@ function createProviderSlot() {
     refreshPromise: null,
     lastDurationMs: null,
     lastOutcome: "stale",
-    lastError: null
+    lastError: null,
+    rateLimitedUntil: 0,
+    consecutiveRateLimitCount: 0
   };
 }
 
@@ -147,7 +157,9 @@ function persistProviderCacheToDisk() {
             rows: cloneRows(current.rows),
             lastDurationMs: current.lastDurationMs,
             lastOutcome: current.lastOutcome,
-            lastError: current.lastError
+            lastError: current.lastError,
+            rateLimitedUntil: current.rateLimitedUntil,
+            consecutiveRateLimitCount: current.consecutiveRateLimitCount
           }
         ];
       })
@@ -255,7 +267,9 @@ function hydrateProviderStateFromDisk() {
         refreshPromise: null,
         lastDurationMs: Number.isFinite(snapshot.lastDurationMs) ? snapshot.lastDurationMs : null,
         lastOutcome: snapshot.rows.length ? "snapshot" : "stale",
-        lastError: typeof snapshot.lastError === "string" ? snapshot.lastError : null
+        lastError: typeof snapshot.lastError === "string" ? snapshot.lastError : null,
+        rateLimitedUntil: Number.parseInt(String(snapshot.rateLimitedUntil || 0), 10) || 0,
+        consecutiveRateLimitCount: Number.parseInt(String(snapshot.consecutiveRateLimitCount || 0), 10) || 0
       };
     }
 
@@ -809,6 +823,16 @@ function providerLogLabel(stateKey) {
   return stateKey;
 }
 
+function isRateLimitedError(error) {
+  const message = String(error?.message || error || "");
+  return /\bHTTP 429\b/i.test(message) || /rate[\s-]?limit/i.test(message);
+}
+
+function providerCooldownMs(nextRateLimitCount) {
+  const safeCount = Math.max(1, Number(nextRateLimitCount || 1));
+  return Math.min(providerRateLimitCooldownMs * 2 ** (safeCount - 1), providerRateLimitMaxCooldownMs);
+}
+
 function logProviderTiming(stateKey, durationMs, outcome, detail = "") {
   if (!logAllProviderTiming && durationMs < providerSlowMs && outcome === "success") {
     return;
@@ -850,7 +874,9 @@ async function refreshProviderRows(stateKey, fetchRows) {
         refreshPromise: null,
         lastDurationMs: durationMs,
         lastOutcome: "success",
-        lastError: null
+        lastError: null,
+        rateLimitedUntil: 0,
+        consecutiveRateLimitCount: 0
       };
       recordProviderRefresh(stateKey, durationMs, "success", {
         rowCount: Array.isArray(rows) ? rows.length : 0
@@ -860,7 +886,17 @@ async function refreshProviderRows(stateKey, fetchRows) {
     } catch (error) {
       const durationMs = performance.now() - startedAt;
       const existingRows = Array.isArray(providerState[stateKey].rows) ? providerState[stateKey].rows : [];
-      const outcome = existingRows.length ? "fallback-cache" : "error";
+      const rateLimited = isRateLimitedError(error);
+      const nextRateLimitCount = rateLimited
+        ? Number(providerState[stateKey].consecutiveRateLimitCount || 0) + 1
+        : 0;
+      const outcome = rateLimited
+        ? existingRows.length
+          ? "rate-limited-cache"
+          : "rate-limited"
+        : existingRows.length
+          ? "fallback-cache"
+          : "error";
       providerState[stateKey] = {
         ...providerState[stateKey],
         fetchedAt: Date.now(),
@@ -869,7 +905,9 @@ async function refreshProviderRows(stateKey, fetchRows) {
         refreshPromise: null,
         lastDurationMs: durationMs,
         lastOutcome: outcome,
-        lastError: error?.message || null
+        lastError: error?.message || null,
+        rateLimitedUntil: rateLimited ? Date.now() + providerCooldownMs(nextRateLimitCount) : 0,
+        consecutiveRateLimitCount: nextRateLimitCount
       };
       recordProviderRefresh(stateKey, durationMs, outcome, {
         rowCount: existingRows.length,
@@ -898,6 +936,13 @@ async function loadProviderRows(stateKey, fetchRows) {
   }
 
   const current = providerState[stateKey];
+  if (current.rateLimitedUntil && current.rateLimitedUntil > Date.now()) {
+    return {
+      status: current.status === "stale" ? "success" : current.status,
+      rows: current.rows
+    };
+  }
+
   const ageMs = Date.now() - current.fetchedAt;
   if (ageMs <= providerCacheMs && current.status !== "stale") {
     return providerRowsSnapshot(stateKey);
@@ -1024,7 +1069,12 @@ function providerDiagnosticsRow(stateKey) {
     fetchedAt: current.fetchedAt ? new Date(current.fetchedAt).toISOString() : null,
     ageMs: current.fetchedAt ? Date.now() - current.fetchedAt : null,
     rowCount: Array.isArray(current.rows) ? current.rows.length : 0,
-    refreshing: Boolean(current.refreshPromise)
+    refreshing: Boolean(current.refreshPromise),
+    rateLimitedUntil: current.rateLimitedUntil ? new Date(current.rateLimitedUntil).toISOString() : null,
+    cooldownRemainingMs:
+      current.rateLimitedUntil && current.rateLimitedUntil > Date.now()
+        ? current.rateLimitedUntil - Date.now()
+        : 0
   };
 }
 

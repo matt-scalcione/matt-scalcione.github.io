@@ -4,7 +4,7 @@ on:
     branches: [ main ]
   workflow_dispatch: {}
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "*/15 * * * *"
 permissions:
   contents: read
   pages: write
@@ -20,6 +20,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Generate Dota schedule snapshot
+        run: node scripts/generate-dota-schedule-snapshot.mjs
+        env:
+          PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL: ""
+          PULSEBOARD_PUBLIC_BASE: https://matt-scalcione.github.io
       - name: Generate sitemap from live API data
         run: node scripts/generate-sitemap.mjs
         env:

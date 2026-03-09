@@ -24,6 +24,18 @@ const LIQUIPEDIA_API_CACHE_MS = Math.max(
   30000,
   Number.parseInt(process.env.LIQUIPEDIA_DOTA_API_CACHE_MS || "30000", 10)
 );
+const PULSEBOARD_PUBLIC_BASE = String(
+  process.env.PULSEBOARD_PUBLIC_BASE || "https://matt-scalcione.github.io"
+)
+  .trim()
+  .replace(/\/+$/g, "");
+const PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL =
+  process.env.PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL ||
+  (PULSEBOARD_PUBLIC_BASE ? `${PULSEBOARD_PUBLIC_BASE}/assets/provider-snapshots/dota-schedule.json` : "");
+const PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_MAX_AGE_MS = Math.max(
+  LIQUIPEDIA_API_CACHE_MS,
+  Number.parseInt(process.env.PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_MAX_AGE_MS || String(90 * 60 * 1000), 10)
+);
 
 function normalizeWhitespace(value) {
   return String(value || "")
@@ -397,6 +409,29 @@ export function parseLiquipediaMatchesHtml(
   return rows;
 }
 
+function normalizeSnapshotRows(payload) {
+  if (Array.isArray(payload)) {
+    return {
+      generatedAt: null,
+      rows: payload
+    };
+  }
+
+  const generatedAt = payload?.generatedAt || payload?.meta?.generatedAt || payload?.data?.generatedAt || null;
+  const rows = Array.isArray(payload?.rows)
+    ? payload.rows
+    : Array.isArray(payload?.data?.rows)
+      ? payload.data.rows
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+  return {
+    generatedAt,
+    rows
+  };
+}
+
 export class LiquipediaDotaScheduleProvider {
   constructor({ timeoutMs = 15000 } = {}) {
     this.timeoutMs = timeoutMs;
@@ -418,6 +453,64 @@ export class LiquipediaDotaScheduleProvider {
     }
 
     return "";
+  }
+
+  filterScheduleRows(rows, { allowedTiers = [1, 2, 3, 4], nowMs = Date.now() } = {}) {
+    return (Array.isArray(rows) ? rows : [])
+      .filter((row) => row?.game === "dota2")
+      .filter((row) => row.status !== "completed")
+      .filter((row) => {
+        const startMs = Date.parse(String(row?.startAt || ""));
+        if (Number.isNaN(startMs)) {
+          return false;
+        }
+
+        if (row.status === "live") {
+          return true;
+        }
+
+        return startMs >= nowMs - LIQUIPEDIA_SCHEDULE_LOOKBACK_MS;
+      })
+      .filter((row) =>
+        !Array.isArray(allowedTiers) || allowedTiers.length === 0
+          ? true
+          : allowedTiers.includes(Number(row.competitiveTier))
+      );
+  }
+
+  async fetchSnapshotRows() {
+    if (!PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL) {
+      throw new Error("Pulseboard Dota snapshot fallback is disabled.");
+    }
+
+    const payload = await fetchJson(PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL, {
+      timeoutMs: this.timeoutMs,
+      headers: {
+        "user-agent": LIQUIPEDIA_USER_AGENT,
+        accept: "application/json",
+        "accept-language": "en-US,en;q=0.9"
+      }
+    });
+    const { generatedAt, rows } = normalizeSnapshotRows(payload);
+    const generatedAtMs = generatedAt ? Date.parse(String(generatedAt)) : Number.NaN;
+    if (generatedAt && Number.isNaN(generatedAtMs)) {
+      throw new Error("Pulseboard Dota snapshot has an invalid generatedAt timestamp.");
+    }
+
+    if (Number.isFinite(generatedAtMs) && Date.now() - generatedAtMs > PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_MAX_AGE_MS) {
+      throw new Error(`Pulseboard Dota snapshot is stale from ${generatedAt}`);
+    }
+
+    return (Array.isArray(rows) ? rows : []).map((row) => ({
+      ...row,
+      updatedAt: row?.updatedAt || generatedAt || new Date().toISOString(),
+      source: {
+        ...(row?.source || {}),
+        provider: row?.source?.provider || "liquipedia",
+        snapshotUrl: PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL,
+        snapshotGeneratedAt: generatedAt || null
+      }
+    }));
   }
 
   async fetchFallbackHtml() {
@@ -491,8 +584,6 @@ export class LiquipediaDotaScheduleProvider {
   }
 
   async fetchScheduleMatches({ knownRows = [], allowedTiers = [1, 2, 3, 4] } = {}) {
-    const html = await this.fetchScheduleHtml();
-
     const teamIdMap = new Map();
     const tournamentTierMap = new Map();
 
@@ -514,27 +605,20 @@ export class LiquipediaDotaScheduleProvider {
       }
     }
 
-    return parseLiquipediaMatchesHtml(html, {
-      knownTeamIds: teamIdMap,
-      tournamentTierMap
-    })
-      .filter((row) => row.status !== "completed")
-      .filter((row) => {
-        const startMs = Date.parse(String(row?.startAt || ""));
-        if (Number.isNaN(startMs)) {
-          return false;
-        }
-
-        if (row.status === "live") {
-          return true;
-        }
-
-        return startMs >= Date.now() - LIQUIPEDIA_SCHEDULE_LOOKBACK_MS;
-      })
-      .filter((row) =>
-        !Array.isArray(allowedTiers) || allowedTiers.length === 0
-          ? true
-          : allowedTiers.includes(Number(row.competitiveTier))
+    try {
+      const html = await this.fetchScheduleHtml();
+      return this.filterScheduleRows(
+        parseLiquipediaMatchesHtml(html, {
+          knownTeamIds: teamIdMap,
+          tournamentTierMap
+        }),
+        { allowedTiers }
       );
+    } catch (error) {
+      const snapshotRows = await this.fetchSnapshotRows();
+      return this.filterScheduleRows(snapshotRows, {
+        allowedTiers
+      });
+    }
   }
 }

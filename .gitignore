@@ -20,3 +20,4 @@ api/.env
 api/.env.*
 !api/.env.example
 .runtime/
+assets/provider-snapshots/

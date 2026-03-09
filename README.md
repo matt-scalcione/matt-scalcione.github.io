@@ -39,9 +39,10 @@ GitHub Pages is deployed by the workflow in [`.github/workflows/pages.yml`](/Use
 The workflow:
 
 1. Regenerates `sitemap.xml`
-2. Runs SEO validation
-3. Builds a Pages artifact with `node scripts/build-pages-artifact.mjs`
-4. Uploads only the public site files in `dist-pages/`
+2. Publishes a Dota schedule snapshot for provider fallback
+3. Runs SEO validation
+4. Builds a Pages artifact with `node scripts/build-pages-artifact.mjs`
+5. Uploads only the public site files in `dist-pages/`
 
 Your site URL will be:
 

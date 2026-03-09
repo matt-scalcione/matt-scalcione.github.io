@@ -18,5 +18,7 @@ services:
         value: 15000
       - key: LIQUIPEDIA_DOTA_API_CACHE_MS
         value: 30000
+      - key: PULSEBOARD_PUBLIC_BASE
+        value: https://matt-scalcione.github.io
       - key: STRATZ_API_TOKEN
         sync: false

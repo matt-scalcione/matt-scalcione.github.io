@@ -314,6 +314,62 @@ describe("LiquipediaDotaScheduleProvider", () => {
     }
   });
 
+  it("falls back to the published Pulseboard snapshot when all Liquipedia endpoints are blocked", async () => {
+    const originalFetch = global.fetch;
+    let snapshotCalls = 0;
+    const futureTimestamp = Math.floor((Date.now() + 90 * 60 * 1000) / 1000);
+    const snapshotRows = parseLiquipediaMatchesHtml(withTimestamp(sampleMatchHtml, futureTimestamp), {
+      knownTeamIds: new Map(),
+      tournamentTierMap: new Map(),
+      nowMs: Date.now()
+    });
+
+    global.fetch = async (url) => {
+      const target = String(url);
+      if (
+        target.includes("/api.php?action=parse&page=Liquipedia:Matches") ||
+        target === "https://liquipedia.net/dota2/index.php?title=Liquipedia:Matches&action=render" ||
+        target === "https://liquipedia.net/dota2/Liquipedia:Matches" ||
+        target === "https://liquipedia.net/dota2/index.php?title=Liquipedia:Matches&output=1"
+      ) {
+        return {
+          ok: false,
+          status: 429
+        };
+      }
+
+      if (target === "https://matt-scalcione.github.io/assets/provider-snapshots/dota-schedule.json") {
+        snapshotCalls += 1;
+        return {
+          ok: true,
+          async json() {
+            return {
+              generatedAt: new Date().toISOString(),
+              rows: snapshotRows
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const provider = new LiquipediaDotaScheduleProvider({ timeoutMs: 1000 });
+      const rows = await provider.fetchScheduleMatches();
+
+      assert.equal(snapshotCalls, 1);
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].status, "upcoming");
+      assert.equal(
+        rows[0].source.snapshotUrl,
+        "https://matt-scalcione.github.io/assets/provider-snapshots/dota-schedule.json"
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("retains live rows even after the default schedule lookback window", async () => {
     const originalFetch = global.fetch;
     const liveTimestamp = Math.floor((Date.now() - 3 * 60 * 60 * 1000) / 1000);
