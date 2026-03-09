@@ -8,6 +8,7 @@
     "logos:check": "node scripts/check-team-logo-coverage.mjs",
     "postbuild": "node scripts/copy404.cjs",
     "logos:backfill": "node scripts/backfill-team-logos.mjs",
+    "heroes:dota:sync": "node scripts/sync-dota-heroes.mjs",
     "logos:fallback": "node scripts/fallback-team-logos.mjs",
     "logos:optimize": "node scripts/optimize-team-logos.mjs",
     "logos:sync": "node scripts/sync-team-logos.mjs",

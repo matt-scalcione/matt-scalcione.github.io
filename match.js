@@ -9,6 +9,7 @@ import {
   setJsonLd,
   toAbsoluteSiteUrl
 } from "./seo.js";
+import { DOTA_HERO_MANIFEST, resolveLocalDotaHeroMeta } from "./dota-heroes.js";
 import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
@@ -178,8 +179,6 @@ const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
 const LOL_CDN_CHAMPION_ICON = "https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{id}.png";
-const DOTA_HERO_STATS_URL = "https://api.opendota.com/api/heroStats";
-const DOTA_ICON_CDN_BASE = "https://cdn.cloudflare.steamstatic.com";
 const MINIMAP_ASSETS = {
   lol: {
     background: "./assets/minimap/lol-map.png",
@@ -779,35 +778,11 @@ async function loadDotaHeroCatalog() {
 
   heroIconCatalog.dota2.status = "loading";
   heroIconCatalog.dota2.promise = (async () => {
-    const response = await fetch(DOTA_HERO_STATS_URL);
-    if (!response.ok) {
-      throw new Error("Failed to fetch Dota hero data");
-    }
-
-    const rows = await response.json();
     const map = new Map();
-    for (const row of rows) {
-      const iconPath = String(row?.icon || row?.img || "").trim();
-      if (!iconPath) {
-        continue;
-      }
-
-      const iconUrl = toAbsoluteAssetUrl(
-        iconPath.startsWith("http://") || iconPath.startsWith("https://") ? iconPath : `${DOTA_ICON_CDN_BASE}${iconPath}`
-      );
-      if (!iconUrl) {
-        continue;
-      }
-
-      const localized = String(row?.localized_name || "").trim();
-      const engineName = String(row?.name || "").trim();
-      const engineSlug = engineName.replace(/^npc_dota_hero_/, "").replace(/_/g, " ");
-      const keyCandidates = [localized, engineName, engineSlug];
-      for (const candidate of keyCandidates) {
-        const key = normalizeLookupKey(candidate);
-        if (key) {
-          map.set(key, iconUrl);
-        }
+    for (const [key, record] of Object.entries(DOTA_HERO_MANIFEST?.byName || {})) {
+      const iconUrl = toAbsoluteAssetUrl(record?.portraitUrl || record?.iconUrl || "");
+      if (iconUrl) {
+        map.set(key, iconUrl);
       }
     }
 
@@ -872,11 +847,12 @@ function lolHeroIconUrl(heroName) {
 
 function dotaHeroIconUrl(heroName) {
   const catalog = heroIconCatalog.dota2;
-  if (catalog.status !== "ready") {
-    return null;
+  if (catalog.status === "ready") {
+    return catalog.map.get(normalizeLookupKey(heroName)) || null;
   }
 
-  return catalog.map.get(normalizeLookupKey(heroName)) || null;
+  const localMeta = resolveLocalDotaHeroMeta(heroName);
+  return toAbsoluteAssetUrl(localMeta?.portraitUrl || localMeta?.iconUrl || "");
 }
 
 function heroIconUrlForRow(match, row) {
