@@ -2412,20 +2412,32 @@ function telemetryRank(status) {
 }
 
 function resolveDotaTelemetryMatchId(detail) {
+  const selectedState = String(detail?.selectedGame?.state || detail?.selectedState || detail?.status || "").toLowerCase();
+  const selectedNumber = Number(detail?.selectedGame?.number || 0);
   const candidates = [
     detail?.selectedGame?.sourceMatchId,
-    detail?.sourceMatchId,
     ...(Array.isArray(detail?.seriesGames)
       ? detail.seriesGames
-          .filter((game) => Number(game?.number) === Number(detail?.selectedGame?.number))
+          .filter((game) => Number(game?.number) === selectedNumber)
           .map((game) => game?.sourceMatchId)
-      : []),
-    ...(Array.isArray(detail?.seriesGames) ? detail.seriesGames.map((game) => game?.sourceMatchId) : [])
+      : [])
   ]
     .map((value) => String(value || "").trim())
     .filter(Boolean);
 
-  return candidates.find((value) => /^\d+$/.test(value)) || null;
+  const primaryMatchId = candidates.find((value) => /^\d+$/.test(value)) || null;
+  if (primaryMatchId) {
+    return primaryMatchId;
+  }
+
+  if (selectedState === "inprogress" || selectedState === "live" || selectedState === "unstarted") {
+    return null;
+  }
+
+  const fallbackCandidates = [detail?.sourceMatchId]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  return fallbackCandidates.find((value) => /^\d+$/.test(value)) || null;
 }
 
 function normalizeDotaTelemetryTeamKey(value) {

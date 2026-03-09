@@ -569,6 +569,177 @@ describe("mockStore STRATZ routing", () => {
     }
   });
 
+  it("does not enrich a live deciding game from an older series map when the current map id is missing", async () => {
+    const originalFetch = global.fetch;
+    const previousMode = process.env.ESPORTS_DATA_MODE;
+    const previousToken = process.env.STRATZ_API_TOKEN;
+    const previousDetailQuery = process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY;
+
+    process.env.ESPORTS_DATA_MODE = "provider";
+    process.env.STRATZ_API_TOKEN = "test-token";
+    process.env.STRATZ_DOTA_MATCH_DETAIL_QUERY = "query MatchDetail { match(id: $id) { id } }";
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+
+    global.fetch = async (url) => {
+      const target = String(url);
+
+      if (target.includes("api.stratz.com/graphql")) {
+        throw new Error("STRATZ detail should not be queried without a current map id");
+      }
+
+      if (target.endsWith("/proMatches")) {
+        return new Response(
+          JSON.stringify([
+            {
+              match_id: 3001,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: nowSeconds - 7200,
+              duration: 2200,
+              radiant_team_id: 50,
+              dire_team_id: 60,
+              radiant_name: "Left Squad",
+              dire_name: "Right Squad",
+              radiant_win: true
+            },
+            {
+              match_id: 3002,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: nowSeconds - 4800,
+              duration: 2100,
+              radiant_team_id: 60,
+              dire_team_id: 50,
+              radiant_name: "Right Squad",
+              dire_name: "Left Squad",
+              radiant_win: true
+            },
+            {
+              match_id: 3003,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: nowSeconds - 2400,
+              duration: 2300,
+              radiant_team_id: 50,
+              dire_team_id: 60,
+              radiant_name: "Left Squad",
+              dire_name: "Right Squad",
+              radiant_win: true
+            },
+            {
+              match_id: 3004,
+              series_id: 7001,
+              series_type: 2,
+              leagueid: 99,
+              league_name: "Decider League",
+              start_time: nowSeconds - 300,
+              duration: 2000,
+              radiant_team_id: 60,
+              dire_team_id: 50,
+              radiant_name: "Right Squad",
+              dire_name: "Left Squad",
+              radiant_win: true
+            }
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (target.endsWith("/live")) {
+        return new Response(
+          JSON.stringify([
+            {
+              match_id: 3004,
+              series_id: 7001,
+              league_id: 99,
+              activate_time: nowSeconds - 120,
+              last_update_time: nowSeconds - 10,
+              team_id_radiant: 60,
+              team_id_dire: 50,
+              team_name_radiant: "Right Squad",
+              team_name_dire: "Left Squad",
+              radiant_score: 12,
+              dire_score: 19
+            }
+          ]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (target.endsWith("/leagues")) {
+        return new Response(JSON.stringify([{ leagueid: 99, tier: "premium" }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (target.endsWith("/heroes")) {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (target.includes("liquipedia.net/dota2/api.php")) {
+        return {
+          ok: true,
+          async json() {
+            return { parse: { text: "" } };
+          }
+        };
+      }
+
+      if (target.includes("esports-api.lolesports.com")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              data: {
+                schedule: {
+                  events: [],
+                  pages: {
+                    older: null,
+                    newer: null
+                  }
+                }
+              }
+            };
+          }
+        };
+      }
+
+      throw new Error(`Unexpected fetch ${target}`);
+    };
+
+    try {
+      const moduleUrl = pathToFileURL(
+        "/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/data/mockStore.js"
+      ).href;
+      const store = await import(`${moduleUrl}?stratzCurrentMap=${Date.now()}`);
+      const detail = await store.getMatchDetail("dota_od_series_7001");
+
+      assert.equal(detail?.selectedGame?.number, 5);
+      assert.equal(detail?.selectedGame?.state, "inProgress");
+      assert.equal(detail?.selectedGame?.telemetryStatus, "pending");
+      assert.equal(detail?.selectedGame?.sourceMatchId, null);
+      assert.equal(detail?.sourceMatchId, null);
+      assert.equal(detail?.playerEconomy?.left?.length, 0);
+      assert.equal(detail?.playerEconomy?.right?.length, 0);
+    } finally {
+      global.fetch = originalFetch;
+      restoreEnv("ESPORTS_DATA_MODE", previousMode);
+      restoreEnv("STRATZ_API_TOKEN", previousToken);
+      restoreEnv("STRATZ_DOTA_MATCH_DETAIL_QUERY", previousDetailQuery);
+    }
+  });
+
   it("reorients STRATZ telemetry to the series team order for OpenDota live series detail", async () => {
     const originalFetch = global.fetch;
     const previousMode = process.env.ESPORTS_DATA_MODE;
