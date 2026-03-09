@@ -2593,7 +2593,7 @@ function renderMatchupConsole(match) {
                 </div>
                 <p class="meta-text">${winnerLabelForH2hRow(row, match)}${row.scoreLabel ? ` · ${row.scoreLabel}` : ""}</p>
                 <p class="meta-text">${row.tournament || "Unknown tournament"}</p>
-                ${row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.matchId, uiState.apiBase)}">Open match</a>` : ""}
+                ${row.detailMatchId || row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.detailMatchId || row.matchId, uiState.apiBase)}">Open match</a>` : ""}
               </article>
             `)
             .join("")}
@@ -2621,7 +2621,7 @@ function renderMatchupConsole(match) {
                     <td class="${h2hResultClass(row.result)}">${h2hResultLabel(row.result)}</td>
                     <td>${row.scoreLabel || "n/a"}</td>
                     <td>${row.tournament || "Unknown"}</td>
-                    <td>${row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.matchId, uiState.apiBase)}">Open</a>` : `<span class="meta-text">-</span>`}</td>
+                    <td>${row.detailMatchId || row.matchId ? `<a class="table-link" href="${detailUrlForGame(row.detailMatchId || row.matchId, uiState.apiBase)}">Open</a>` : `<span class="meta-text">-</span>`}</td>
                   </tr>
                 `)
                 .join("")}
@@ -5754,7 +5754,7 @@ function renderUpcomingHeadToHead(match) {
           : winnerName === match?.teams?.right?.name
             ? "win-right"
             : "even";
-      const detailId = row.matchId || row.id || null;
+      const detailId = row.detailMatchId || row.matchId || row.id || null;
       const detailLink = detailId ? `<a class="table-link" href="${detailUrlForGame(detailId, uiState.apiBase)}">Open</a>` : "";
       return `
         <article class="series-h2h-item upcoming-h2h-card">

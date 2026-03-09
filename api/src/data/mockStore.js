@@ -1689,7 +1689,7 @@ function mergeUniquePerspectives(existingRows = [], additionalRows = []) {
   );
 }
 
-function buildDotaSeriesPerspectivesFromTeamMatches(rows = [], { teamId, teamName } = {}) {
+export function buildDotaSeriesPerspectivesFromTeamMatches(rows = [], { teamId, teamName } = {}) {
   const sortedRows = Array.isArray(rows)
     ? rows
         .filter((row) => Number.isFinite(Number(row?.start_time)))
@@ -1743,9 +1743,23 @@ function buildDotaSeriesPerspectivesFromTeamMatches(rows = [], { teamId, teamNam
     const bestOf = totalMaps >= 3 ? (totalMaps >= 5 ? 5 : 3) : wins === losses ? 2 : 3;
     const opponentId = leadRow?.opposing_team_id ? String(leadRow.opposing_team_id) : null;
     const opponentName = leadRow?.opposing_team_name || "Unknown";
+    const latestProviderMatchId = Number.isFinite(Number(leadRow?.match_id)) && Number(leadRow.match_id) > 0
+      ? Number(leadRow.match_id)
+      : null;
+    const latestSeriesId = maps
+      .map((row) => (Number.isFinite(Number(row?.series_id)) && Number(row.series_id) > 0 ? Number(row.series_id) : null))
+      .find((value) => Number.isInteger(value) && value > 0) || null;
+    const detailMatchId =
+      latestSeriesId
+        ? `dota_od_series_${latestSeriesId}`
+        : latestProviderMatchId
+          ? `dota_od_result_${latestProviderMatchId}`
+          : null;
 
     return {
       matchId: `dota_team_series_${String(teamId || "team")}_${String(opponentId || normalizeTeamName(opponentName))}_${String(leadRow?.leagueid || normalizeTeamName(leadRow?.league_name))}_${String(group.earliestStartMs)}`,
+      detailMatchId,
+      sourceMatchId: latestProviderMatchId ? String(latestProviderMatchId) : null,
       game: "dota2",
       status: "completed",
       tournament: leadRow?.league_name || "Dota 2",

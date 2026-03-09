@@ -733,7 +733,16 @@ function summaryMiniCard(label, value, note = null) {
   `;
 }
 
-function matchDetailUrl(matchId, apiBase) {
+function detailMatchIdForRow(rowOrMatchId) {
+  if (rowOrMatchId && typeof rowOrMatchId === "object") {
+    return String(rowOrMatchId.detailMatchId || rowOrMatchId.matchId || "").trim() || null;
+  }
+
+  return String(rowOrMatchId || "").trim() || null;
+}
+
+function matchDetailUrl(rowOrMatchId, apiBase) {
+  const matchId = detailMatchIdForRow(rowOrMatchId);
   return buildMatchUrl({ matchId });
 }
 
@@ -1011,7 +1020,7 @@ function pastMatchRowMarkup(row, profile, apiBase) {
     teamName: row.opponentName,
     game: row.game || profile.game,
     apiBase,
-    matchId: row.matchId,
+    matchId: detailMatchIdForRow(row),
     opponentId: state.teamId
   });
   const opponentLabel = opponentUrl
@@ -1025,7 +1034,7 @@ function pastMatchRowMarkup(row, profile, apiBase) {
       <td class="${resultClass(row.result)}">${resultLabel(row)}</td>
       <td>${seriesScoreLabel(row)}</td>
       <td>${row.tournament || "Unknown"}</td>
-      <td><a class="table-link" href="${matchDetailUrl(row.matchId, apiBase)}">Open</a></td>
+      <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
     </tr>
   `;
 }
@@ -1036,7 +1045,7 @@ function teamOpponentLabel(row, profile, apiBase) {
     teamName: row.opponentName,
     game: row.game || profile.game,
     apiBase,
-    matchId: row.matchId,
+    matchId: detailMatchIdForRow(row),
     opponentId: state.teamId
   });
 
@@ -1046,11 +1055,11 @@ function teamOpponentLabel(row, profile, apiBase) {
 }
 
 function teamMatchDetailLink(row, apiBase, label = "Open Match") {
-  if (!row?.matchId) {
+  if (!detailMatchIdForRow(row)) {
     return `<span class="meta-text">Match link unavailable</span>`;
   }
 
-  return `<a class="table-link" href="${matchDetailUrl(row.matchId, apiBase)}">${label}</a>`;
+  return `<a class="table-link" href="${matchDetailUrl(row, apiBase)}">${label}</a>`;
 }
 
 function teamMatchCard(row, profile, apiBase, options = {}) {
@@ -1296,7 +1305,7 @@ function renderRecentMatches(profile, apiBase) {
                   teamName: row.opponentName,
                   game: row.game || profile.game,
                   apiBase,
-                  matchId: row.matchId,
+                  matchId: detailMatchIdForRow(row),
                   opponentId: state.teamId
                 });
                 const opponentLabel = opponentUrl
@@ -1309,7 +1318,7 @@ function renderRecentMatches(profile, apiBase) {
                   <td>${seriesScoreLabel(row)}</td>
                   <td>${opponentLabel}</td>
                   <td>${row.tournament || "Unknown"}</td>
-                  <td><a class="table-link" href="${matchDetailUrl(row.matchId, apiBase)}">Open</a></td>
+                  <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
                 </tr>
               `;
               }
@@ -1359,7 +1368,7 @@ function renderUpcomingMatches(profile, apiBase) {
                 teamName: row.opponentName,
                 game: row.game || profile.game,
                 apiBase,
-                matchId: row.matchId,
+                matchId: detailMatchIdForRow(row),
                 opponentId: state.teamId
               });
               const opponentLabel = opponentUrl
@@ -1373,7 +1382,7 @@ function renderUpcomingMatches(profile, apiBase) {
                   <td>${opponentLabel}</td>
                   <td>BO${row.bestOf || 1}</td>
                   <td>${row.tournament || "Unknown"}</td>
-                  <td><a class="table-link" href="${matchDetailUrl(row.matchId, apiBase)}">Open</a></td>
+                  <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
                 </tr>
               `;
             })
@@ -1596,7 +1605,7 @@ function renderHeadToHead(profile, apiBase) {
                       <td class="${resultClass(row.result)}">${resultLabel(row)}</td>
                       <td>${seriesScoreLabel(row)}</td>
                       <td>${row.tournament || "Unknown"}</td>
-                      <td><a class="table-link" href="${matchDetailUrl(row.matchId, apiBase)}">Open</a></td>
+                      <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
                     </tr>
                   `
                 )
