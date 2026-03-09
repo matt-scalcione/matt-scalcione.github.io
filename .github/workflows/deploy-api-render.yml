@@ -1,6 +1,13 @@
 name: Deploy API to Render
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "render.yaml"
+      - ".github/workflows/deploy-api-render.yml"
   workflow_dispatch: {}
 
 jobs:

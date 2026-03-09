@@ -16,7 +16,7 @@ Legacy side projects have been removed from the root workflow so this repository
 5. In GitHub repo settings, add secrets:
    - `RENDER_API_KEY`
    - `RENDER_SERVICE_ID` (from Render service settings)
-6. Run workflow **Deploy API to Render** (or push changes under `api/`).
+6. Run workflow **Deploy API to Render** or push changes to `main` that touch `api/`, `render.yaml`, or the workflow itself.
 7. Copy your API URL (example: `https://pulseboard-api.onrender.com`).
 8. Verify with:
    - `https://YOUR_API_URL/health`
