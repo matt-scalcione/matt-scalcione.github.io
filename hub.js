@@ -1,5 +1,6 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
+import { buildRowDataProvenance } from "./data-provenance.js?v=20260309a";
 import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 import {
   applySeo,
@@ -294,6 +295,7 @@ function matchCard(row, type) {
       : normalizedType === "upcoming"
         ? `${formatLabel(row?.bestOf)} · Starts ${dateTimeLabel(row?.startAt)}`
         : `Winner · ${shortTeamName(winnerName(row))}`;
+  const provenance = buildRowDataProvenance(row);
 
   return `
     <article class="schedule-row-card hub-match-card schedule-${status}">
@@ -320,6 +322,9 @@ function matchCard(row, type) {
         <p class="schedule-card-meta primary">${escapeHtml(footPrimary)}</p>
         <p class="schedule-card-meta secondary">${escapeHtml(footSecondary)}</p>
       </div>
+      ${provenance.text
+        ? `<p class="data-provenance-line ${provenance.tone} schedule-card-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
+        : ""}
       <p class="meta-text"><a class="table-link" href="${detailUrl}">Open match</a></p>
     </article>
   `;

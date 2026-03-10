@@ -1,5 +1,6 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
+import { buildRowDataProvenance } from "./data-provenance.js?v=20260309a";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -1135,10 +1136,18 @@ function renderTable(container, rows, type) {
         matchId: row.id,
         opponentId: row.teams.left.id
       });
+      const provenance = buildRowDataProvenance(row);
 
       return `
         <tr class="schedule-row schedule-row-${scheduleDisplayState(row, type)}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftName} vs ${rightName}">
-          <td class="schedule-time-cell"><span class="schedule-time-label">${dateTimeCompact(row.startAt)}</span></td>
+          <td class="schedule-time-cell">
+            <div class="schedule-time-stack">
+              <span class="schedule-time-label">${dateTimeCompact(row.startAt)}</span>
+              ${provenance.text
+                ? `<span class="data-provenance-line ${provenance.tone} schedule-table-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</span>`
+                : ""}
+            </div>
+          </td>
           <td class="schedule-game-cell"><a class="hub-chip-link" href="${hubUrl}" aria-label="Open ${gameLabel(row.game)} hub">${gameChipMarkup(row.game)}</a></td>
           <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
           <td class="schedule-score-cell"><span class="schedule-score-pill">${scoreLabel}</span></td>
@@ -1174,6 +1183,7 @@ function renderTable(container, rows, type) {
               const showSeriesScore = type === "result" || row?.status === "live" || scoreLabel !== "—";
               const leftSeriesScore = Number(row?.seriesScore?.left ?? 0);
               const rightSeriesScore = Number(row?.seriesScore?.right ?? 0);
+              const provenance = buildRowDataProvenance(row);
               const leftScoreMarkup = showSeriesScore
                 ? `<span class="schedule-card-team-score">${leftSeriesScore}</span>`
                 : "";
@@ -1214,6 +1224,9 @@ function renderTable(container, rows, type) {
                     <p class="schedule-card-meta primary">${footer.primary}</p>
                     <p class="schedule-card-meta secondary">${footer.secondary}</p>
                   </div>
+                  ${provenance.text
+                    ? `<p class="data-provenance-line ${provenance.tone} schedule-card-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
+                    : ""}
                 </a>
               `;
             })

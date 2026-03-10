@@ -1136,8 +1136,14 @@ button.ghost,
 .match-card-footer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
+}
+
+.match-card-footer-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.32rem;
 }
 
 .match-card-summary {
@@ -1157,6 +1163,36 @@ button.ghost,
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 0.16rem 0.46rem;
+}
+
+.data-provenance-line {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 1.36rem;
+  padding: 0.12rem 0.46rem;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 98, 189, 0.12);
+  background: rgba(240, 246, 255, 0.92);
+  color: #3e566b;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-provenance-line.snapshot {
+  border-color: rgba(168, 93, 20, 0.18);
+  background: rgba(255, 247, 238, 0.94);
+  color: #8b4b13;
+}
+
+.match-card-provenance {
+  width: fit-content;
 }
 
 .subline {
@@ -1554,9 +1590,13 @@ button.ghost,
 }
 
 .schedule-time-cell {
-  width: 7.2rem;
-  white-space: nowrap;
+  width: 10.5rem;
   font-variant-numeric: tabular-nums;
+}
+
+.schedule-time-stack {
+  display: grid;
+  gap: 0.28rem;
 }
 
 .schedule-time-label {
@@ -1888,6 +1928,14 @@ button.ghost,
   color: color-mix(in srgb, var(--muted) 82%, #163f6f 18%);
   text-align: right;
   flex: 0 0 auto;
+}
+
+.schedule-card-provenance {
+  margin-top: 0.46rem;
+}
+
+.schedule-table-provenance {
+  max-width: 100%;
 }
 
 .top-space {
