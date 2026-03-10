@@ -443,7 +443,7 @@ function renderBoardLens(rows = []) {
   if (region) chips.push(`<span class="lens-chip">${escapeHtml(region.toUpperCase())}</span>`);
   if (searchTerm) chips.push(`<span class="lens-chip">Search: ${escapeHtml(searchTerm)}</span>`);
   if (followedOnly) chips.push(`<span class="lens-chip">Watchlist only${userId ? ` · ${escapeHtml(userId)}` : ""}</span>`);
-  if ((game === "dota2" || !game) && dotaTiers) chips.push(`<span class="lens-chip">Tiers ${escapeHtml(dotaTiers)}</span>`);
+  if (dotaTiers) chips.push(`<span class="lens-chip">Tiers ${escapeHtml(dotaTiers)}</span>`);
 
   elements.boardLensStrip.innerHTML = `
     <div class="lens-strip-shell">
@@ -702,9 +702,18 @@ function renderLiveMobileOverview({
 
 function buildQuery({ game, region, dotaTiers, followedOnly, userId }) {
   const params = new URLSearchParams();
-  if (game) params.set("game", game);
+  const normalizedGame = normalizeGameKey(game);
+  if (normalizedGame) params.set("game", normalizedGame);
   if (region) params.set("region", region.trim().toLowerCase());
-  if (dotaTiers) params.set("dota_tiers", dotaTiers.trim());
+  if (dotaTiers) {
+    const normalizedTiers = dotaTiers.trim();
+    if (!normalizedGame || normalizedGame === "dota2") {
+      params.set("dota_tiers", normalizedTiers);
+    }
+    if (!normalizedGame || normalizedGame === "lol") {
+      params.set("lol_tiers", normalizedTiers);
+    }
+  }
   if (followedOnly) params.set("followed_only", "true");
   if (userId) params.set("user_id", userId.trim());
   return params.toString();
@@ -869,12 +878,12 @@ function renderLoadingCards() {
   elements.cardGrid.innerHTML = matchCardsSkeletonMarkup(6);
 }
 
-function renderEmpty(message) {
+function renderEmpty(message, tips = ["Switch board mode", "Clear search", "Widen region or game scope"]) {
   elements.cardGrid.innerHTML = productEmptyMarkup({
     eyebrow: "Board empty",
     title: "No matches in the current board",
     body: message,
-    tips: ["Switch board mode", "Clear search", "Widen region or game scope"]
+    tips
   });
   elements.cardGrid.dataset.loaded = "1";
 }
@@ -962,7 +971,12 @@ function renderLiveDesk() {
 
   if (!filteredRows.length) {
     if (totalRows === 0) {
-      renderEmpty("No matches found for the selected filters.");
+      const competitionTiers = String(elements.dotaTiersInput?.value || "").trim() || "1,2";
+      const activeGameLabel = activeGame ? gameLabel(activeGame) : "pro LoL or Dota 2";
+      renderEmpty(
+        `No ${activeGameLabel} tier ${competitionTiers} live matches are active right now. Check Schedule & Results for the next slate and recent finals.`,
+        ["Open Schedule & Results", "Widen tiers to 1,2,3", "Clear game or region filters"]
+      );
     } else {
       renderEmpty("No matches for this quick filter. Try `All` or clear search.");
     }
@@ -1158,7 +1172,7 @@ function boot() {
   applyLiveStatusCounts(statusCounts([]));
   applyLiveStatusButtons();
   refreshLiveSeo();
-  elements.dotaTiersInput.value = "1,2,3,4";
+  elements.dotaTiersInput.value = "1,2";
   elements.userIdInput.value = "demo-user";
   installEvents();
   loadMatches();

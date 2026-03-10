@@ -140,6 +140,7 @@ const scheduleDiscoveryState = {
 };
 let activeLoadRequestId = 0;
 let resultsRetryHandle = null;
+let restoredScheduleModeFromStorage = false;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -1186,13 +1187,23 @@ function renderScheduleSummary(scheduleRows = [], resultRows = []) {
   const upcomingCount = scheduleRows.filter((row) => scheduleDisplayState(row, "scheduled") === "upcoming").length;
   const overdueCount = scheduleRows.filter((row) => scheduleDisplayState(row, "scheduled") === "overdue").length;
   const spotlight = scheduleRows[0] || resultRows[0] || null;
+  const totalScheduleRows = scheduleCollectionState.scheduleRows.length;
+  const totalResultRows = scheduleCollectionState.resultRows.length;
+  const modeFilteredEmpty =
+    !scheduleRows.length &&
+    !resultRows.length &&
+    !scheduleDiscoveryState.searchTerm &&
+    scheduleDiscoveryState.mode !== "all" &&
+    (totalScheduleRows > 0 || totalResultRows > 0);
 
   if (!scheduleRows.length && !resultRows.length) {
     elements.scheduleSummary.innerHTML = productEmptyMarkup({
-      eyebrow: "Slate clear",
+      eyebrow: modeFilteredEmpty ? "Mode narrowed" : "Slate clear",
       title: "No matches in the current slate",
-      body: "Widen the time window, clear search, or switch the slate mode to bring matches back into view.",
-      tips: ["Try All", "Clear search", "Expand the date range"],
+      body: modeFilteredEmpty
+        ? `No ${slateModeLabel(scheduleDiscoveryState.mode).toLowerCase()} rows are active in this window. Switch to All to see ${totalScheduleRows} scheduled row${totalScheduleRows === 1 ? "" : "s"} and ${totalResultRows} final${totalResultRows === 1 ? "" : "s"}.`
+        : "Widen the time window, clear search, or switch the slate mode to bring matches back into view.",
+      tips: modeFilteredEmpty ? ["Switch to All", "Try Up Next", "Try Finals"] : ["Try All", "Clear search", "Expand the date range"],
       compact: true
     });
     elements.scheduleSummary.dataset.loaded = "1";
@@ -1272,6 +1283,14 @@ function renderScheduleMobileOverview(scheduleRows = [], resultRows = []) {
     search ? `<span class="mobile-glance-chip">Search: ${escapeHtml(search)}</span>` : "",
     fallbackSummary.text ? `<span class="mobile-glance-chip warn">${escapeHtml(fallbackSummary.text)}</span>` : ""
   ].filter(Boolean);
+  const totalScheduleRows = scheduleCollectionState.scheduleRows.length;
+  const totalResultRows = scheduleCollectionState.resultRows.length;
+  const modeFilteredEmpty =
+    !scheduleRows.length &&
+    !resultRows.length &&
+    !scheduleDiscoveryState.searchTerm &&
+    scheduleDiscoveryState.mode !== "all" &&
+    (totalScheduleRows > 0 || totalResultRows > 0);
 
   if (!scheduleRows.length && !resultRows.length) {
     elements.scheduleMobileOverview.innerHTML = `
@@ -1281,7 +1300,11 @@ function renderScheduleMobileOverview(scheduleRows = [], resultRows = []) {
             <p class="mobile-glance-kicker">Slate glance</p>
             <h3 class="mobile-glance-title">No rows in the current slate</h3>
           </div>
-          <p class="mobile-glance-copy">Widen the window or clear search to bring schedule and results back into view.</p>
+          <p class="mobile-glance-copy">${
+            modeFilteredEmpty
+              ? `No ${escapeHtml(slateModeLabel(scheduleDiscoveryState.mode).toLowerCase())} rows are active. Switch to All to see ${totalScheduleRows} scheduled and ${totalResultRows} finals.`
+              : "Widen the window or clear search to bring schedule and results back into view."
+          }</p>
         </div>
         <div class="mobile-glance-chip-row">
           ${chips.join("")}
@@ -1344,7 +1367,24 @@ function renderLoadingTable(container) {
 
 function renderTable(container, rows, type) {
   if (!rows.length) {
-    container.innerHTML = `<div class="empty">No ${type} matches for current filters.</div>`;
+    let message = `No ${type} matches for current filters.`;
+    if (!scheduleDiscoveryState.searchTerm && scheduleDiscoveryState.mode === "live") {
+      message =
+        type === "scheduled"
+          ? "No live matches are active in this window. Switch to All or Up Next."
+          : "Live slate is active. Switch to All or Finals to review completed matches.";
+    } else if (!scheduleDiscoveryState.searchTerm && scheduleDiscoveryState.mode === "completed") {
+      message =
+        type === "scheduled"
+          ? "Finals mode hides the schedule. Switch to All or Up Next."
+          : "No completed matches landed in this window.";
+    } else if (!scheduleDiscoveryState.searchTerm && scheduleDiscoveryState.mode === "upcoming") {
+      message =
+        type === "scheduled"
+          ? "No upcoming matches are in this window. Try All or widen the date range."
+          : "Up Next mode hides the finals list. Switch to All or Finals.";
+    }
+    container.innerHTML = `<div class="empty">${message}</div>`;
     return;
   }
 
@@ -1659,6 +1699,55 @@ function clearResultsRetry() {
   }
 }
 
+function syncSlateModeButtons() {
+  if (!elements.slateModeBar) {
+    return;
+  }
+
+  for (const chip of elements.slateModeBar.querySelectorAll(".preset-chip")) {
+    chip.classList.toggle("active", chip.getAttribute("data-mode") === scheduleDiscoveryState.mode);
+  }
+}
+
+function setScheduleDiscoveryMode(mode, { persist = true } = {}) {
+  scheduleDiscoveryState.mode =
+    mode === "live" || mode === "upcoming" || mode === "completed" || mode === "all" ? mode : "all";
+  syncSlateModeButtons();
+  if (!persist) {
+    return;
+  }
+  try {
+    localStorage.setItem("pulseboard.schedule.mode", scheduleDiscoveryState.mode);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function maybeRecoverSavedSlateMode() {
+  if (!restoredScheduleModeFromStorage || scheduleDiscoveryState.mode === "all") {
+    return false;
+  }
+  if (scheduleDiscoveryState.searchTerm) {
+    return false;
+  }
+
+  const filteredSchedule = applySlateFilters(scheduleCollectionState.scheduleRows, "scheduled");
+  const filteredResults = applySlateFilters(scheduleCollectionState.resultRows, "result");
+
+  if (filteredSchedule.length || filteredResults.length) {
+    restoredScheduleModeFromStorage = false;
+    return false;
+  }
+
+  if (!scheduleCollectionState.scheduleRows.length && !scheduleCollectionState.resultRows.length) {
+    return false;
+  }
+
+  setScheduleDiscoveryMode("all");
+  restoredScheduleModeFromStorage = false;
+  return true;
+}
+
 function scheduleResultsRetry(requestId, apiBase, query) {
   clearResultsRetry();
   resultsRetryHandle = window.setTimeout(async () => {
@@ -1758,6 +1847,7 @@ async function loadCollections() {
       scheduleCollectionState.scheduleRows,
       scheduleCollectionState.resultRows
     );
+    maybeRecoverSavedSlateMode();
     renderScheduleCollectionMeta();
     renderCollectionsFromState();
     refreshScheduleSeo();
@@ -1839,15 +1929,8 @@ function installEvents() {
       if (!button) {
         return;
       }
-      scheduleDiscoveryState.mode = String(button.getAttribute("data-mode") || "all");
-      for (const chip of elements.slateModeBar.querySelectorAll(".preset-chip")) {
-        chip.classList.toggle("active", chip === button);
-      }
-      try {
-        localStorage.setItem("pulseboard.schedule.mode", scheduleDiscoveryState.mode);
-      } catch {
-        // Ignore storage failures.
-      }
+      restoredScheduleModeFromStorage = false;
+      setScheduleDiscoveryMode(String(button.getAttribute("data-mode") || "all"));
       renderCollectionsFromState();
     });
   }
@@ -1919,8 +2002,10 @@ function boot() {
   elements.dateToInput.value = toLocalInputValue(initialWindow.end);
   try {
     scheduleDiscoveryState.mode = String(localStorage.getItem("pulseboard.schedule.mode") || "all");
+    restoredScheduleModeFromStorage = scheduleDiscoveryState.mode !== "all";
   } catch {
     scheduleDiscoveryState.mode = "all";
+    restoredScheduleModeFromStorage = false;
   }
   try {
     scheduleDiscoveryState.searchTerm = String(localStorage.getItem("pulseboard.schedule.search") || "").trim();
@@ -1930,11 +2015,7 @@ function boot() {
   if (elements.slateSearchInput) {
     elements.slateSearchInput.value = scheduleDiscoveryState.searchTerm;
   }
-  if (elements.slateModeBar) {
-    for (const chip of elements.slateModeBar.querySelectorAll(".preset-chip")) {
-      chip.classList.toggle("active", chip.getAttribute("data-mode") === scheduleDiscoveryState.mode);
-    }
-  }
+  syncSlateModeButtons();
   syncScheduleFilterVisibility();
   syncScheduleRangePresetState();
 
