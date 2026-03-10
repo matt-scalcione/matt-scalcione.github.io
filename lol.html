@@ -30,20 +30,56 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260309g" />
+    <link rel="stylesheet" href="./styles.css?v=20260309h" />
   </head>
-  <body class="hub-page" data-game="lol">
+  <body class="product-shell hub-page" data-game="lol">
     <div class="noise"></div>
     <header class="hero">
-      <h1 id="hubPageTitle">League of Legends Hub</h1>
-      <p class="subtitle" id="hubSubtitle">Loading game hub...</p>
-      <nav class="page-nav">
-        <a id="liveDeskNav" href="./index.html">Live Desk</a>
-        <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
-        <a id="followsNav" href="./follows.html">Follows & Alerts</a>
-        <a id="lolHubNav" href="./lol.html" aria-current="page">LoL Hub</a>
-        <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
-      </nav>
+      <div class="hero-grid">
+        <div class="hero-main">
+          <div class="hero-kicker-row">
+            <p class="kicker">Pulseboard</p>
+            <span id="hubHeroBadge" class="hero-badge">Game hub</span>
+          </div>
+          <h1 id="hubPageTitle">League of Legends Hub</h1>
+          <p class="subtitle" id="hubSubtitle">Loading game hub...</p>
+          <div class="hero-metrics" aria-label="Hub highlights">
+            <div class="hero-metric">
+              <span>Mode</span>
+              <strong id="hubMetricMode">Live + prep</strong>
+            </div>
+            <div class="hero-metric">
+              <span>Window</span>
+              <strong id="hubMetricWindow">Now + 7d</strong>
+            </div>
+            <div class="hero-metric">
+              <span>Depth</span>
+              <strong id="hubMetricDepth">Match + team</strong>
+            </div>
+          </div>
+          <div id="hubHeroChips" class="hero-chips">
+            <span class="hero-chip">Live series</span>
+            <span class="hero-chip">Upcoming previews</span>
+            <span class="hero-chip">Recent finals</span>
+          </div>
+          <nav class="page-nav">
+            <a id="liveDeskNav" href="./index.html">Live Desk</a>
+            <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
+            <a id="followsNav" href="./follows.html">Follows & Alerts</a>
+            <a id="lolHubNav" href="./lol.html" aria-current="page">LoL Hub</a>
+            <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
+          </nav>
+        </div>
+        <aside class="hero-side">
+          <p id="hubContextLabel" class="hero-side-label">Hub focus</p>
+          <p id="hubContextValue" class="hero-side-value">Loading</p>
+          <p id="hubContextCopy" class="hero-side-copy">
+            This hub keeps live series, upcoming previews, and recent finals in one game-specific surface.
+          </p>
+          <div id="hubContextChips" class="hero-side-chips"></div>
+          <div id="hubActionRow" class="hero-action-row"></div>
+        </aside>
+      </div>
     </header>
 
     <main class="layout detail">
@@ -66,6 +102,15 @@
           </div>
         </div>
       </section>
+
+      <nav id="hubQuickNav" class="team-quick-nav" aria-label="Hub sections">
+        <a class="team-jump-chip active" href="#hubOverviewPanel">Overview</a>
+        <a class="team-jump-chip" href="#hubLivePanel">Live</a>
+        <a class="team-jump-chip" href="#hubUpcomingPanel">Upcoming</a>
+        <a class="team-jump-chip" href="#hubResultsPanel">Results</a>
+        <a class="team-jump-chip" href="#hubRadarPanel">Radar</a>
+      </nav>
+      <div id="hubQuickJump" class="mobile-page-jump" hidden></div>
 
       <section class="panel" id="hubOverviewPanel">
         <div class="section-head">
@@ -124,6 +169,6 @@
     </nav>
 
     <script src="./site-config.js?v=20260309c"></script>
-    <script type="module" src="./hub.js?v=20260309e"></script>
+    <script type="module" src="./hub.js?v=20260309f"></script>
   </body>
 </html>

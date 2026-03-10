@@ -33,6 +33,18 @@ const HUB_GAME_META = {
 const elements = {
   pageTitle: document.querySelector("#hubPageTitle"),
   pageSubtitle: document.querySelector("#hubSubtitle"),
+  heroBadge: document.querySelector("#hubHeroBadge"),
+  metricMode: document.querySelector("#hubMetricMode"),
+  metricWindow: document.querySelector("#hubMetricWindow"),
+  metricDepth: document.querySelector("#hubMetricDepth"),
+  heroChips: document.querySelector("#hubHeroChips"),
+  contextLabel: document.querySelector("#hubContextLabel"),
+  contextValue: document.querySelector("#hubContextValue"),
+  contextCopy: document.querySelector("#hubContextCopy"),
+  contextChips: document.querySelector("#hubContextChips"),
+  actionRow: document.querySelector("#hubActionRow"),
+  quickNav: document.querySelector("#hubQuickNav"),
+  quickJump: document.querySelector("#hubQuickJump"),
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
@@ -63,6 +75,14 @@ const state = {
     results: []
   }
 };
+
+const HUB_JUMP_TARGETS = [
+  { id: "hubOverviewPanel", label: "Overview" },
+  { id: "hubLivePanel", label: "Live" },
+  { id: "hubUpcomingPanel", label: "Upcoming" },
+  { id: "hubResultsPanel", label: "Results" },
+  { id: "hubRadarPanel", label: "Radar" }
+];
 
 function resolveGameKey() {
   const bodyGame = normalizeGameKey(document.body?.dataset?.game || "");
@@ -101,6 +121,126 @@ function setStatus(message, tone = "neutral") {
   if (tone !== "neutral") {
     elements.statusText.classList.add(tone);
   }
+}
+
+function scrollToHubTarget(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return;
+  }
+
+  const anchor = target.closest("section.panel") || target;
+  const topOffset = isCompactViewport() ? 132 : 92;
+  const top = Math.max(0, Math.round(anchor.getBoundingClientRect().top + window.scrollY - topOffset));
+  window.scrollTo({ top, behavior: "smooth" });
+}
+
+function setHubQuickNavActive(targetId) {
+  const activeTarget = String(targetId || HUB_JUMP_TARGETS[0]?.id || "");
+  const selectors = [];
+  if (elements.quickNav) {
+    selectors.push(...Array.from(elements.quickNav.querySelectorAll("[href^=\"#\"]")));
+  }
+  if (elements.quickJump) {
+    selectors.push(...Array.from(elements.quickJump.querySelectorAll("[data-jump-target]")));
+  }
+
+  for (const element of selectors) {
+    const hrefTarget = element.getAttribute("href")?.replace(/^#/, "") || "";
+    const jumpTarget = element.getAttribute("data-jump-target") || "";
+    const matches = activeTarget && (hrefTarget === activeTarget || jumpTarget === activeTarget);
+    element.classList.toggle("active", matches);
+    if (element.tagName === "A") {
+      if (matches) {
+        element.setAttribute("aria-current", "true");
+      } else {
+        element.removeAttribute("aria-current");
+      }
+    } else if (matches) {
+      element.setAttribute("aria-pressed", "true");
+    } else {
+      element.removeAttribute("aria-pressed");
+    }
+  }
+}
+
+function renderHubQuickJump() {
+  if (!elements.quickJump) {
+    return;
+  }
+
+  if (!isCompactViewport()) {
+    elements.quickJump.hidden = true;
+    elements.quickJump.innerHTML = "";
+    return;
+  }
+
+  const visibleTargets = HUB_JUMP_TARGETS.filter((item) => {
+    const target = document.getElementById(item.id);
+    if (!target) {
+      return false;
+    }
+    return !target.hidden && !target.classList.contains("hidden-panel");
+  });
+
+  if (!visibleTargets.length) {
+    elements.quickJump.hidden = true;
+    elements.quickJump.innerHTML = "";
+    return;
+  }
+
+  elements.quickJump.hidden = false;
+  elements.quickJump.innerHTML = visibleTargets
+    .map((item) => `<button type="button" class="team-jump-chip" data-jump-target="${item.id}">${item.label}</button>`)
+    .join("");
+  setHubQuickNavActive(visibleTargets[0]?.id || HUB_JUMP_TARGETS[0]?.id || "");
+}
+
+function bindHubQuickJump() {
+  if (!elements.quickJump || elements.quickJump.dataset.bound === "1") {
+    return;
+  }
+
+  elements.quickJump.dataset.bound = "1";
+  elements.quickJump.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const button = target.closest("[data-jump-target]");
+    if (!button) {
+      return;
+    }
+    const jumpTarget = button.getAttribute("data-jump-target");
+    if (jumpTarget) {
+      setHubQuickNavActive(jumpTarget);
+      scrollToHubTarget(jumpTarget);
+    }
+  });
+}
+
+function bindHubQuickNav() {
+  if (!elements.quickNav || elements.quickNav.dataset.bound === "1") {
+    return;
+  }
+
+  elements.quickNav.dataset.bound = "1";
+  elements.quickNav.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const link = target.closest("a[href^=\"#\"]");
+    if (!link) {
+      return;
+    }
+    event.preventDefault();
+    const targetId = (link.getAttribute("href") || "").replace(/^#/, "");
+    if (targetId) {
+      setHubQuickNavActive(targetId);
+      scrollToHubTarget(targetId);
+    }
+  });
 }
 
 function isCompactViewport() {
@@ -448,6 +588,107 @@ function renderKpis() {
   `;
 }
 
+function renderHubHero() {
+  const meta = HUB_GAME_META[state.gameKey] || HUB_GAME_META.lol;
+  const liveCount = state.rows.live.length;
+  const upcomingCount = state.rows.upcoming.length;
+  const resultCount = state.rows.results.length;
+  const tournamentCount = buildTournamentRadar([
+    ...state.rows.live,
+    ...state.rows.upcoming,
+    ...state.rows.results
+  ]).length;
+  const spotlight = state.rows.live[0] || state.rows.upcoming[0] || state.rows.results[0] || null;
+  const fallbackSummary = buildCollectionFallbackSummary(
+    [...state.rows.live, ...state.rows.upcoming, ...state.rows.results],
+    {
+      game: state.gameKey,
+      label: meta.shortLabel
+    }
+  );
+
+  if (elements.heroBadge) {
+    elements.heroBadge.textContent = `${meta.shortLabel} hub`;
+  }
+
+  if (elements.pageSubtitle) {
+    elements.pageSubtitle.textContent =
+      liveCount || upcomingCount || resultCount
+        ? `${liveCount} live, ${upcomingCount} upcoming, and ${resultCount} recent finals across the current ${meta.shortLabel} window.`
+        : `${meta.fullLabel} live series, previews, and recaps in one game-specific surface.`;
+  }
+
+  if (elements.metricMode) {
+    elements.metricMode.textContent = liveCount
+      ? "Live-first"
+      : upcomingCount
+        ? "Preview slate"
+        : resultCount
+          ? "Recap board"
+          : "Standby";
+  }
+  if (elements.metricWindow) {
+    elements.metricWindow.textContent = liveCount || upcomingCount || resultCount ? "Now + 7d" : "Waiting";
+  }
+  if (elements.metricDepth) {
+    elements.metricDepth.textContent = spotlight ? "Match + team" : "Board scan";
+  }
+
+  if (elements.heroChips) {
+    const chips = [
+      `<span class="hero-chip">${liveCount} live</span>`,
+      `<span class="hero-chip">${upcomingCount} upcoming</span>`,
+      `<span class="hero-chip">${resultCount} finals</span>`,
+      `<span class="hero-chip">${tournamentCount} tournaments</span>`
+    ];
+    if (fallbackSummary.text) {
+      chips.push(`<span class="hero-chip warn">${escapeHtml(fallbackSummary.text)}</span>`);
+    }
+    elements.heroChips.innerHTML = chips.join("");
+  }
+
+  if (elements.contextLabel) {
+    elements.contextLabel.textContent = liveCount ? "Live focus" : upcomingCount ? "Next call" : resultCount ? "Recent read" : "Hub state";
+  }
+  if (elements.contextValue) {
+    elements.contextValue.textContent = liveCount
+      ? `${liveCount} on now`
+      : upcomingCount
+        ? `${upcomingCount} next`
+        : resultCount
+          ? `${resultCount} finals`
+          : "Waiting";
+  }
+  if (elements.contextCopy) {
+    elements.contextCopy.textContent = spotlight
+      ? `${shortTeamName(spotlight?.teams?.left?.name)} vs ${shortTeamName(spotlight?.teams?.right?.name)} is the clearest next stop. Open the match first, then use Radar if you want the wider tournament picture.`
+      : `Use this hub to scan ${meta.fullLabel} activity quickly, then jump into Match Center or team profiles once a series deserves attention.`;
+  }
+  if (elements.contextChips) {
+    const chips = [];
+    if (spotlight?.tournament) {
+      chips.push(`<span class="hero-chip">${escapeHtml(spotlight.tournament)}</span>`);
+    }
+    chips.push(`<span class="hero-chip">${tournamentCount} active tournaments</span>`);
+    if (fallbackSummary.text) {
+      chips.push(`<span class="hero-chip warn">${escapeHtml(fallbackSummary.text)}</span>`);
+    }
+    elements.contextChips.innerHTML = chips.join("");
+  }
+  if (elements.actionRow) {
+    const apiBase = elements.apiBaseInput?.value.trim() || null;
+    const primaryHref = spotlight
+      ? buildMatchUrl({ matchId: spotlight.id })
+      : applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase }).toString();
+    const scheduleHref = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
+    scheduleHref.searchParams.set("game", state.gameKey);
+    elements.actionRow.innerHTML = `
+      <a class="link-btn" href="${primaryHref}">${spotlight ? "Open spotlight" : "Open schedule"}</a>
+      <a class="link-btn ghost" href="${scheduleHref.toString()}">Full schedule</a>
+    `;
+  }
+}
+
 function updateNav() {
   const apiBase = elements.apiBaseInput?.value.trim() || null;
   const liveUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
@@ -558,6 +799,8 @@ async function loadHubData() {
       buildTournamentRadar([...state.rows.live, ...state.rows.upcoming, ...state.rows.results])
     );
     applyStructuredData();
+    renderHubHero();
+    renderHubQuickJump();
 
     if (elements.hubMeta) {
       const fallbackSummary = buildCollectionFallbackSummary(
@@ -577,6 +820,8 @@ async function loadHubData() {
     renderRows(elements.resultRows, [], "results");
     renderTournamentRadar([]);
     setJsonLd("hub-itemlist", null);
+    renderHubHero();
+    renderHubQuickJump();
     setStatus(`Error: ${error.message}`, "error");
   }
 }
@@ -593,6 +838,10 @@ function installEvents() {
       setStatus("API base saved locally.", "success");
     });
   }
+
+  window.addEventListener("resize", () => {
+    renderHubQuickJump();
+  });
 }
 
 function boot() {
@@ -614,6 +863,10 @@ function boot() {
   updateNav();
   setupControlsPanel();
   refreshHubSeo();
+  bindHubQuickNav();
+  bindHubQuickJump();
+  renderHubHero();
+  renderHubQuickJump();
   installEvents();
   loadHubData();
 }

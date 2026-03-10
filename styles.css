@@ -2099,6 +2099,17 @@ button.ghost,
   box-shadow: none;
 }
 
+.team-jump-chip.active,
+.team-jump-chip[aria-current="true"],
+.team-jump-chip[aria-pressed="true"],
+.mobile-mode-chip.active,
+.mobile-mode-chip[aria-current="true"],
+.mobile-mode-chip[aria-pressed="true"] {
+  border-color: rgba(31, 98, 189, 0.24);
+  background: rgba(44, 112, 255, 0.12);
+  color: var(--accent-strong);
+}
+
 .team-jump-chip:active,
 .mobile-mode-chip:active {
   transform: scale(0.985);
@@ -10788,6 +10799,28 @@ body.hub-page .panel {
   border-color: rgba(95, 132, 170, 0.18);
 }
 
+body.hub-page .hero-badge {
+  border-color: rgba(31, 98, 189, 0.16);
+  background: rgba(44, 112, 255, 0.1);
+}
+
+body.hub-page[data-game="dota2"] .hero-badge {
+  border-color: rgba(209, 82, 65, 0.2);
+  background: rgba(209, 82, 65, 0.1);
+}
+
+body.hub-page .hero-side-value {
+  font-size: 1.32rem;
+}
+
+body.hub-page .hero-side-copy {
+  max-width: 28ch;
+}
+
+body.hub-page .team-quick-nav {
+  margin-bottom: 0.22rem;
+}
+
 body.hub-page #hubOverviewPanel {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 252, 255, 0.96)),
@@ -10960,6 +10993,29 @@ body.hub-page #hubOverviewPanel {
 }
 
 @media (max-width: 760px) {
+  .hub-page .mobile-page-jump {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.28rem;
+    position: sticky;
+    top: calc(4.1rem + env(safe-area-inset-top, 0px));
+    z-index: 23;
+    margin-top: -0.12rem;
+    padding: 0.26rem;
+    border-radius: 18px;
+    border: 1px solid rgba(87, 116, 154, 0.18);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 247, 255, 0.8));
+    box-shadow:
+      0 12px 24px rgba(10, 24, 40, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(14px);
+  }
+
+  body.product-shell.hub-page .page-nav #lolHubNav,
+  body.product-shell.hub-page .page-nav #dotaHubNav {
+    display: inline-flex;
+  }
+
   .hub-kpi-card,
   .hub-radar-card,
   .hub-match-card {
