@@ -45,6 +45,7 @@ const elements = {
   apiBaseInput: document.querySelector("#apiBaseInput"),
   controlsPanel: document.querySelector("#controlsPanel"),
   controlsToggle: document.querySelector("#controlsToggle"),
+  teamMobileOverview: document.querySelector("#teamMobileOverview"),
   teamQuickNav: document.querySelector("#teamQuickNav"),
   teamQuickJump: document.querySelector("#teamQuickJump"),
   gameSelect: document.querySelector("#gameSelect"),
@@ -1257,10 +1258,139 @@ function renderSummary(profile) {
     elements.teamMetaText.textContent = metaBits.join(" · ");
   }
 
+  renderTeamMobileOverview(profile);
+
   elements.teamSummaryWrap.innerHTML = `
     ${contextCard}
     <div class="team-summary-grid">
       ${cards.map((row) => summaryMiniCard(row.label, row.value, row.note)).join("")}
+    </div>
+  `;
+}
+
+function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" } = {}) {
+  if (!elements.teamMobileOverview) {
+    return;
+  }
+
+  if (!isCompactViewport()) {
+    elements.teamMobileOverview.hidden = true;
+    elements.teamMobileOverview.innerHTML = "";
+    return;
+  }
+
+  elements.teamMobileOverview.hidden = false;
+
+  if (loading) {
+    elements.teamMobileOverview.innerHTML = `
+      <div class="mobile-glance-shell">
+        <div class="mobile-glance-head">
+          <div>
+            <p class="mobile-glance-kicker">Team glance</p>
+            <h3 class="mobile-glance-title">Loading team context...</h3>
+          </div>
+          <p class="mobile-glance-copy">Pulling form, recent series, and upcoming slate.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!profile) {
+    const title = errorMessage ? "Unable to load team glance" : "Team glance unavailable";
+    const copy = errorMessage || "Refresh the page or return to Schedule while the profile reloads.";
+    elements.teamMobileOverview.innerHTML = `
+      <div class="mobile-glance-shell">
+        <div class="mobile-glance-head">
+          <div>
+            <p class="mobile-glance-kicker">Team glance</p>
+            <h3 class="mobile-glance-title">${escapeHtml(title)}</h3>
+          </div>
+          <p class="mobile-glance-copy">${escapeHtml(copy)}</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
+  const summary = profile.summary || {};
+  const game = normalizeGameKey(profile?.game || elements.gameSelect?.value || "");
+  const recentCount = Array.isArray(profile?.recentMatches) ? profile.recentMatches.length : 0;
+  const upcomingRows = Array.isArray(profile?.upcomingMatches) ? profile.upcomingMatches.slice() : [];
+  const nextMatch = upcomingRows
+    .slice()
+    .sort((left, right) => parseTimestamp(left?.startAt) - parseTimestamp(right?.startAt))[0] || null;
+  const h2h = profile?.headToHead || null;
+  const spotlightHref = nextMatch
+    ? matchDetailUrl(nextMatch, apiBase)
+    : state.seedMatchId
+      ? buildMatchUrl({
+          matchId: state.seedMatchId,
+          gameNumber: state.seedGameNumber || null
+        })
+      : "";
+  const spotlightLabel = nextMatch ? "Next match" : state.seedMatchId ? "Return path" : "";
+  const spotlightTitle = nextMatch
+    ? `${profile.name || "Team"} vs ${nextMatch.opponentName || "Opponent"}`
+    : state.seedMatchId
+      ? `Back to ${state.seedGameNumber ? `Game ${state.seedGameNumber}` : "series"} context`
+      : "";
+  const spotlightCopy = nextMatch
+    ? `${relativeStartLabel(nextMatch.startAt)} · ${nextMatch.tournament || "Tournament"}`
+    : state.seedMatchId
+      ? "Open the source match once you have the team read."
+      : "";
+  const chips = [
+    game ? `<span class="mobile-glance-chip primary">${escapeHtml(gameLabel(game))}</span>` : "",
+    h2h?.opponentName ? `<span class="mobile-glance-chip">vs ${escapeHtml(h2h.opponentName)}</span>` : "",
+    nextMatch ? `<span class="mobile-glance-chip">Next ${escapeHtml(relativeStartLabel(nextMatch.startAt))}</span>` : "",
+    summary.formLast5 ? `<span class="mobile-glance-chip">Form ${escapeHtml(summary.formLast5)}</span>` : ""
+  ].filter(Boolean);
+  const summaryCopy = nextMatch
+    ? `Next ${nextMatch.opponentName || "opponent"} ${relativeStartLabel(nextMatch.startAt)}. ${recentCount} recent series on file.`
+    : h2h?.opponentName
+      ? `Focused on the ${h2h.opponentName} matchup with ${recentCount} recent series for context.`
+      : `${recentCount} recent series and ${upcomingRows.length} upcoming matches on file.`;
+
+  elements.teamMobileOverview.innerHTML = `
+    <div class="mobile-glance-shell">
+      <div class="mobile-glance-head">
+        <div>
+          <p class="mobile-glance-kicker">Team glance</p>
+          <h3 class="mobile-glance-title">${escapeHtml(profile.name || state.teamNameHint || state.teamId || "Team")}</h3>
+        </div>
+        <p class="mobile-glance-copy">${escapeHtml(summaryCopy)}</p>
+      </div>
+      <div class="mobile-glance-chip-row">
+        ${chips.join("")}
+      </div>
+      <div class="mobile-glance-stat-row">
+        <article class="mobile-glance-stat live">
+          <span>Win</span>
+          <strong>${escapeHtml(formatPercent(summary.seriesWinRatePct))}</strong>
+        </article>
+        <article class="mobile-glance-stat upcoming">
+          <span>Recent</span>
+          <strong>${recentCount}</strong>
+        </article>
+        <article class="mobile-glance-stat final">
+          <span>Upcoming</span>
+          <strong>${upcomingRows.length}</strong>
+        </article>
+      </div>
+      ${spotlightHref
+        ? `
+          <a class="mobile-glance-spotlight" href="${spotlightHref}">
+            <div class="mobile-glance-spotlight-top">
+              <span class="mobile-glance-spotlight-label">${escapeHtml(spotlightLabel)}</span>
+              <span class="mobile-glance-spotlight-meta">${escapeHtml(summary.streakLabel || "No streak")}</span>
+            </div>
+            <strong>${escapeHtml(spotlightTitle)}</strong>
+            <span>${escapeHtml(spotlightCopy)}</span>
+          </a>
+        `
+        : ""}
     </div>
   `;
 }
@@ -1671,6 +1801,7 @@ async function fetchJsonWithTimeout(url) {
 }
 
 function renderTeamLoadingState() {
+  renderTeamMobileOverview(null, { loading: true });
   const loadingCard = `
     <article class="upcoming-card loading">
       <div class="skeleton-line short"></div>
@@ -1770,6 +1901,7 @@ async function loadTeamProfile() {
     elements.upcomingMatchesWrap.innerHTML = `<div class="empty">Unable to load upcoming matches.</div>`;
     elements.opponentBreakdownWrap.innerHTML = `<div class="empty">Unable to load past matches.</div>`;
     elements.headToHeadWrap.innerHTML = `<div class="empty">Unable to load head-to-head data.</div>`;
+    renderTeamMobileOverview(null, { errorMessage: error.message });
     refreshTeamSeo(null);
     applyTeamMobilePanelCollapseState();
     renderTeamQuickJump();

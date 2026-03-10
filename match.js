@@ -291,6 +291,7 @@ const elements = {
   seriesHeaderWrap: document.querySelector("#seriesHeaderWrap"),
   gameNavWrap: document.querySelector("#gameNavWrap"),
   gameContextWrap: document.querySelector("#gameContextWrap"),
+  matchQuickNav: document.querySelector("#matchQuickNav"),
   mobileModeToolbar: document.querySelector("#mobileModeToolbar"),
   mobileGameToolbar: document.querySelector("#mobileGameToolbar"),
   gameCommandWrap: document.querySelector("#gameCommandWrap"),
@@ -1220,6 +1221,38 @@ function bindMobileJumpContainer(container, { allowAdvanced = false } = {}) {
   });
 }
 
+function bindMatchQuickNav() {
+  if (!elements.matchQuickNav || elements.matchQuickNav.dataset.bound === "1") {
+    return;
+  }
+
+  elements.matchQuickNav.dataset.bound = "1";
+  elements.matchQuickNav.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const jumpButton = target.closest("[data-jump-target]");
+    if (!jumpButton) {
+      return;
+    }
+
+    const jumpTarget = String(jumpButton.getAttribute("data-jump-target") || "").trim();
+    if (!jumpTarget) {
+      return;
+    }
+
+    for (const button of elements.matchQuickNav.querySelectorAll("[data-jump-target]")) {
+      const active = button === jumpButton;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+
+    scrollToTargetId(jumpTarget);
+  });
+}
+
 function mobileJumpTargetsForCurrentMode(match) {
   if (uiState.viewMode === "game") {
     return MOBILE_GAME_JUMP_TARGETS;
@@ -1238,6 +1271,43 @@ function mobileJumpTargetsForCurrentMode(match) {
   }
 
   return MOBILE_SERIES_JUMP_TARGETS;
+}
+
+function renderMatchQuickNav(match) {
+  if (!elements.matchQuickNav) {
+    return;
+  }
+
+  if (isCompactUI() || !match) {
+    elements.matchQuickNav.hidden = true;
+    elements.matchQuickNav.innerHTML = "";
+    return;
+  }
+
+  const visibleTargets = mobileJumpTargetsForCurrentMode(match).filter((item) => {
+    const panel = panelForTargetId(item.id);
+    return panel && !panel.hidden && !panel.classList.contains("hidden-panel");
+  });
+
+  if (!visibleTargets.length) {
+    elements.matchQuickNav.hidden = true;
+    elements.matchQuickNav.innerHTML = "";
+    return;
+  }
+
+  elements.matchQuickNav.hidden = false;
+  elements.matchQuickNav.innerHTML = visibleTargets
+    .map(
+      (item, index) => `
+        <button
+          type="button"
+          class="team-jump-chip${index === 0 ? " active" : ""}"
+          data-jump-target="${item.id}"
+          aria-pressed="${index === 0 ? "true" : "false"}"
+        >${item.label}</button>
+      `
+    )
+    .join("");
 }
 
 function renderMobileModeToolbar(match) {
@@ -1371,6 +1441,7 @@ function applyMobileGameEnhancements(match) {
     advancedVisibleCount
   });
   renderMobileModeToolbar(match);
+  renderMatchQuickNav(match);
   renderFeedControlsChrome(match);
 }
 
@@ -9164,6 +9235,7 @@ async function loadMatch() {
     refreshMatchSeo(null);
     renderStreamStatus(null);
     renderMatchupConsole(null);
+    renderMatchQuickNav(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);
     return;
   }
@@ -9234,6 +9306,7 @@ async function loadMatch() {
     refreshMatchSeo(null);
     renderStreamStatus(null);
     renderMatchupConsole(null);
+    renderMatchQuickNav(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);
   }
 }
@@ -9249,11 +9322,13 @@ window.addEventListener("resize", () => {
     applyMobileGameEnhancements(uiState.match);
     applyMatchMobilePanelCollapseState(uiState.match);
   } else {
+    renderMatchQuickNav(null);
     applyMatchMobilePanelCollapseState(null);
   }
 });
 
 applyMobileSectionHeadings();
 bindMatchMobilePanelControls();
+bindMatchQuickNav();
 applyMatchMobilePanelCollapseState(null);
 loadMatch();

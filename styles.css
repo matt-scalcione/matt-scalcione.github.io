@@ -10486,6 +10486,16 @@ body.product-shell .team-quick-nav {
   margin-bottom: 0.2rem;
 }
 
+body.product-shell .match-quick-nav {
+  margin-top: -0.1rem;
+  margin-bottom: 0.12rem;
+}
+
+.match-page .match-quick-nav .team-jump-chip {
+  min-height: 1.9rem;
+  padding-inline: 0.66rem;
+}
+
 @keyframes product-shell-skeleton {
   100% {
     transform: translateX(100%);
