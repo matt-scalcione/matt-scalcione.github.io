@@ -115,10 +115,12 @@ const elements = {
   productGuidePanel: document.querySelector("#productGuidePanel"),
   slateLensStrip: document.querySelector("#slateLensStrip"),
   scheduleSummary: document.querySelector("#scheduleSummary"),
+  scheduleMobileOverview: document.querySelector("#scheduleMobileOverview"),
   scheduleMeta: document.querySelector("#scheduleMeta"),
   resultsMeta: document.querySelector("#resultsMeta"),
   scheduleViewSwitch: document.querySelector("#scheduleViewSwitch"),
   scheduleViewButtons: Array.from(document.querySelectorAll("#scheduleViewSwitch [data-view]")),
+  scheduleSectionJump: document.querySelector("#scheduleSectionJump"),
   scheduleSection: document.querySelector("#scheduleSection"),
   resultsSection: document.querySelector("#resultsSection"),
   scheduleTableWrap: document.querySelector("#scheduleTableWrap"),
@@ -153,6 +155,12 @@ const SCHEDULE_RANGE_PRESETS = {
   "7d": { pastHours: 0, futureHours: 168 }
 };
 const SCHEDULE_OVERDUE_GRACE_MS = 15 * 60 * 1000;
+const SCHEDULE_VIEW_LABELS = {
+  both: "Both",
+  schedule: "Schedule",
+  results: "Results"
+};
+let scheduleSectionJumpRaf = 0;
 
 function selectedTitleKey() {
   return normalizeGameKey(elements.gameSelect?.value || "");
@@ -748,8 +756,117 @@ function applyScheduleViewMode(mode) {
     button.setAttribute("aria-pressed", String(active));
   }
 
+  renderScheduleSectionJump();
+  updateScheduleSectionJumpActiveFromViewport();
   updateNav();
   refreshScheduleSeo();
+}
+
+function applyScheduleViewButtonCounts(scheduleCount = 0, resultCount = 0) {
+  for (const button of elements.scheduleViewButtons) {
+    const view = String(button.getAttribute("data-view") || "both");
+    const label = SCHEDULE_VIEW_LABELS[view] || "Both";
+    const count =
+      view === "schedule"
+        ? scheduleCount
+        : view === "results"
+          ? resultCount
+          : scheduleCount + resultCount;
+
+    button.innerHTML = `
+      <span class="mobile-segment-label">${escapeHtml(label)}</span>
+      <span class="mobile-segment-count">${count}</span>
+    `;
+    button.setAttribute("aria-label", `${label} rows ${count}`);
+  }
+}
+
+function setScheduleSectionJumpActive(targetId = "scheduleSection") {
+  if (!elements.scheduleSectionJump || elements.scheduleSectionJump.hidden) {
+    return;
+  }
+
+  for (const button of elements.scheduleSectionJump.querySelectorAll("[data-target]")) {
+    const active = button.getAttribute("data-target") === targetId;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
+function scrollToScheduleSection(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return;
+  }
+
+  const offset = isCompactViewport() ? 120 : 24;
+  const top = target.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({
+    top: Math.max(0, top),
+    behavior: "smooth"
+  });
+}
+
+function renderScheduleSectionJump() {
+  if (!elements.scheduleSectionJump) {
+    return;
+  }
+
+  const showJump =
+    isCompactViewport() &&
+    Boolean(elements.scheduleSection && !elements.scheduleSection.hidden) &&
+    Boolean(elements.resultsSection && !elements.resultsSection.hidden);
+
+  if (!showJump) {
+    elements.scheduleSectionJump.hidden = true;
+    elements.scheduleSectionJump.innerHTML = "";
+    return;
+  }
+
+  elements.scheduleSectionJump.hidden = false;
+  elements.scheduleSectionJump.innerHTML = `
+    <button type="button" class="team-jump-chip" data-target="scheduleSection" aria-pressed="true">Schedule</button>
+    <button type="button" class="team-jump-chip" data-target="resultsSection" aria-pressed="false">Results</button>
+  `;
+  setScheduleSectionJumpActive("scheduleSection");
+}
+
+function updateScheduleSectionJumpActiveFromViewport() {
+  if (!elements.scheduleSectionJump || elements.scheduleSectionJump.hidden) {
+    return;
+  }
+
+  const anchor = 132;
+  const targets = [
+    elements.scheduleSection,
+    elements.resultsSection
+  ].filter((section) => section && !section.hidden);
+
+  if (!targets.length) {
+    return;
+  }
+
+  const closest = targets
+    .map((section) => ({
+      id: section.id,
+      distance: Math.abs(section.getBoundingClientRect().top - anchor)
+    }))
+    .sort((left, right) => left.distance - right.distance)[0];
+
+  if (closest?.id) {
+    setScheduleSectionJumpActive(closest.id);
+  }
+}
+
+function scheduleSectionJumpOnScroll() {
+  if (scheduleSectionJumpRaf) {
+    return;
+  }
+
+  scheduleSectionJumpRaf = window.requestAnimationFrame(() => {
+    scheduleSectionJumpRaf = 0;
+    updateScheduleSectionJumpActiveFromViewport();
+  });
 }
 
 function setupScheduleViewSwitch() {
@@ -1040,6 +1157,8 @@ function renderScheduleSummary(scheduleRows = [], resultRows = []) {
     return;
   }
 
+  renderScheduleMobileOverview(scheduleRows, resultRows);
+
   if (isCompactViewport()) {
     elements.scheduleSummary.innerHTML = "";
     elements.scheduleSummary.hidden = true;
@@ -1115,6 +1234,101 @@ function renderScheduleSummary(scheduleRows = [], resultRows = []) {
     }
   `;
   elements.scheduleSummary.dataset.loaded = "1";
+}
+
+function renderScheduleMobileOverview(scheduleRows = [], resultRows = []) {
+  if (!elements.scheduleMobileOverview) {
+    return;
+  }
+
+  if (!isCompactViewport()) {
+    elements.scheduleMobileOverview.hidden = true;
+    elements.scheduleMobileOverview.innerHTML = "";
+    return;
+  }
+
+  elements.scheduleMobileOverview.hidden = false;
+
+  const liveCount = scheduleRows.filter((row) => scheduleDisplayState(row, "scheduled") === "live").length;
+  const overdueCount = scheduleRows.filter((row) => scheduleDisplayState(row, "scheduled") === "overdue").length;
+  const spotlight = scheduleRows[0] || resultRows[0] || null;
+  const search = String(scheduleDiscoveryState.searchTerm || "").trim();
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  const fallbackSummary = buildCollectionFallbackSummary([...scheduleRows, ...resultRows], {
+    game: "dota2",
+    label: "Dota"
+  });
+  const chips = [
+    `<span class="mobile-glance-chip primary">${escapeHtml(slateModeLabel(scheduleDiscoveryState.mode))}</span>`,
+    `<span class="mobile-glance-chip">${escapeHtml(scheduleViewMode === "both" ? "Schedule + Results" : SCHEDULE_VIEW_LABELS[scheduleViewMode] || "Both")}</span>`,
+    game ? `<span class="mobile-glance-chip">${escapeHtml(gameLabel(game))}</span>` : "",
+    search ? `<span class="mobile-glance-chip">Search: ${escapeHtml(search)}</span>` : "",
+    fallbackSummary.text ? `<span class="mobile-glance-chip warn">${escapeHtml(fallbackSummary.text)}</span>` : ""
+  ].filter(Boolean);
+
+  if (!scheduleRows.length && !resultRows.length) {
+    elements.scheduleMobileOverview.innerHTML = `
+      <div class="mobile-glance-shell">
+        <div class="mobile-glance-head">
+          <div>
+            <p class="mobile-glance-kicker">Slate glance</p>
+            <h3 class="mobile-glance-title">No rows in the current slate</h3>
+          </div>
+          <p class="mobile-glance-copy">Widen the window or clear search to bring schedule and results back into view.</p>
+        </div>
+        <div class="mobile-glance-chip-row">
+          ${chips.join("")}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const summaryTitle = spotlight
+    ? `${teamNameValue(spotlight.teams.left)} vs ${teamNameValue(spotlight.teams.right)}`
+    : `${scheduleRows.length} schedule · ${resultRows.length} finals`;
+  const summaryCopy = `${scheduleRows.length} schedule rows · ${resultRows.length} finals${liveCount ? ` · ${liveCount} live now` : ""}${overdueCount ? ` · ${overdueCount} overdue` : ""}`;
+
+  elements.scheduleMobileOverview.innerHTML = `
+    <div class="mobile-glance-shell">
+      <div class="mobile-glance-head">
+        <div>
+          <p class="mobile-glance-kicker">Slate glance</p>
+          <h3 class="mobile-glance-title">${escapeHtml(summaryTitle)}</h3>
+        </div>
+        <p class="mobile-glance-copy">${escapeHtml(summaryCopy)}</p>
+      </div>
+      <div class="mobile-glance-chip-row">
+        ${chips.join("")}
+      </div>
+      <div class="mobile-glance-stat-row">
+        <article class="mobile-glance-stat live">
+          <span>Live</span>
+          <strong>${liveCount}</strong>
+        </article>
+        <article class="mobile-glance-stat upcoming">
+          <span>Schedule</span>
+          <strong>${scheduleRows.length}</strong>
+        </article>
+        <article class="mobile-glance-stat final">
+          <span>Finals</span>
+          <strong>${resultRows.length}</strong>
+        </article>
+      </div>
+      ${spotlight
+        ? `
+          <a class="mobile-glance-spotlight" href="${rowLink(spotlight.id)}">
+            <div class="mobile-glance-spotlight-top">
+              <span class="mobile-glance-spotlight-label">Spotlight</span>
+              <span class="mobile-glance-spotlight-meta">${escapeHtml(scheduleCardStatusLabel(spotlight, resultRows.includes(spotlight) ? "result" : "scheduled"))} · ${escapeHtml(timeOnlyLabel(spotlight.startAt))}</span>
+            </div>
+            <strong>${escapeHtml(teamNameValue(spotlight.teams.left))} vs ${escapeHtml(teamNameValue(spotlight.teams.right))}</strong>
+            <span>${escapeHtml(spotlight.tournament || "Tournament")}</span>
+          </a>
+        `
+        : ""}
+    </div>
+  `;
 }
 
 function renderLoadingTable(container) {
@@ -1297,6 +1511,7 @@ function renderCollectionsFromState() {
   renderScheduleSummary(filteredSchedule, filteredResults);
   renderTable(elements.scheduleTableWrap, filteredSchedule, "scheduled");
   renderTable(elements.resultsTableWrap, filteredResults, "result");
+  applyScheduleViewButtonCounts(filteredSchedule.length, filteredResults.length);
 
   if (elements.scheduleTableWrap) {
     elements.scheduleTableWrap.dataset.loaded = "1";
@@ -1323,6 +1538,9 @@ function renderCollectionsFromState() {
   if (elements.resultsSection) {
     elements.resultsSection.hidden = !showResults;
   }
+
+  renderScheduleSectionJump();
+  updateScheduleSectionJumpActiveFromViewport();
 }
 
 function applyScheduleStructuredData(scheduleRows = [], resultRows = []) {
@@ -1619,6 +1837,23 @@ function installEvents() {
     });
   }
 
+  if (elements.scheduleSectionJump) {
+    elements.scheduleSectionJump.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const button = target.closest("[data-target]");
+      if (!button) {
+        return;
+      }
+
+      const targetId = String(button.getAttribute("data-target") || "scheduleSection");
+      setScheduleSectionJumpActive(targetId);
+      scrollToScheduleSection(targetId);
+    });
+  }
+
   if (elements.productGuidePanel) {
     elements.productGuidePanel.addEventListener("click", (event) => {
       const target = event.target;
@@ -1636,6 +1871,8 @@ function installEvents() {
       );
     });
   }
+
+  window.addEventListener("scroll", scheduleSectionJumpOnScroll, { passive: true });
 }
 
 function applyInitialUrlFilters() {
@@ -1659,6 +1896,7 @@ function boot() {
   updateNav();
   setupControlsPanel();
   setupScheduleViewSwitch();
+  applyScheduleViewButtonCounts(0, 0);
 
   const now = new Date();
   const initialWindow = presetWindow("live", now);
@@ -1693,6 +1931,7 @@ function boot() {
 window.addEventListener("resize", () => {
   applyScheduleViewMode(scheduleViewMode);
   renderScheduleCollectionMeta();
+  renderCollectionsFromState();
   if (elements.controlsPanel) {
     applyControlsCollapsed(elements.controlsPanel.classList.contains("collapsed"));
   }

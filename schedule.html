@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260309g" />
+    <link rel="stylesheet" href="./styles.css?v=20260310a" />
   </head>
   <body class="product-shell schedule-page">
     <div class="noise"></div>
@@ -159,11 +159,13 @@
       <section class="panel">
         <div id="scheduleSummary" class="live-desk-summary" aria-live="polite"></div>
         <div id="slateLensStrip" class="lens-strip"></div>
+        <div id="scheduleMobileOverview" class="mobile-glance-strip" aria-live="polite"></div>
         <div id="scheduleViewSwitch" class="mobile-segment" aria-label="Schedule view">
           <button type="button" class="mobile-segment-btn" data-view="both" aria-pressed="true">Both</button>
           <button type="button" class="mobile-segment-btn" data-view="schedule" aria-pressed="false">Schedule</button>
           <button type="button" class="mobile-segment-btn" data-view="results" aria-pressed="false">Results</button>
         </div>
+        <div id="scheduleSectionJump" class="mobile-page-jump schedule-page-jump" aria-label="Jump to schedule sections"></div>
 
         <div id="scheduleSection">
           <div class="section-head">
@@ -199,6 +201,6 @@
     </nav>
 
     <script src="./site-config.js?v=20260309c"></script>
-    <script type="module" src="./schedule.js?v=20260309h"></script>
+    <script type="module" src="./schedule.js?v=20260310a"></script>
   </body>
 </html>

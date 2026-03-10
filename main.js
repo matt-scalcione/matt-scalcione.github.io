@@ -61,6 +61,7 @@ const elements = {
   liveResetFiltersButton: document.querySelector("#liveResetFiltersButton"),
   liveFilterMeta: document.querySelector("#liveFilterMeta"),
   liveDeskSummary: document.querySelector("#liveDeskSummary"),
+  liveMobileOverview: document.querySelector("#liveMobileOverview"),
   cardGrid: document.querySelector("#cardGrid")
 };
 const liveDeskState = {
@@ -472,6 +473,17 @@ function renderLiveDeskSummary(totalRows, filteredRows, counts) {
       .map((row) => String(row?.tournament || "").trim())
       .filter(Boolean)
   ).size;
+  renderLiveMobileOverview({
+    totalRows,
+    filteredRows,
+    visibleRows,
+    counts,
+    visibleCounts,
+    featured,
+    activeGame,
+    searchTerm,
+    tournaments
+  });
 
   if (!totalRows.length) {
     elements.liveDeskSummary.innerHTML = `
@@ -575,6 +587,118 @@ function renderLiveDeskSummary(totalRows, filteredRows, counts) {
   elements.liveDeskSummary.dataset.loaded = "1";
 }
 
+function renderLiveMobileOverview({
+  totalRows = [],
+  filteredRows = [],
+  visibleRows = [],
+  counts = { live: 0, upcoming: 0, completed: 0 },
+  visibleCounts = { live: 0, upcoming: 0, completed: 0 },
+  featured = null,
+  activeGame = "",
+  searchTerm = "",
+  tournaments = 0
+} = {}) {
+  if (!elements.liveMobileOverview) {
+    return;
+  }
+
+  if (!isCompactViewport()) {
+    elements.liveMobileOverview.hidden = true;
+    elements.liveMobileOverview.innerHTML = "";
+    return;
+  }
+
+  elements.liveMobileOverview.hidden = false;
+
+  const filterLabel =
+    liveDeskState.statusFilter === "all"
+      ? "All"
+      : liveDeskState.statusFilter === "live"
+        ? "Live"
+        : liveDeskState.statusFilter === "upcoming"
+          ? "Next"
+          : "Final";
+  const fallbackSummary = buildCollectionFallbackSummary(visibleRows.length ? visibleRows : totalRows, {
+    game: "dota2",
+    label: "Dota"
+  });
+
+  if (!totalRows.length) {
+    elements.liveMobileOverview.innerHTML = `
+      <div class="mobile-glance-shell">
+        <div class="mobile-glance-head">
+          <div>
+            <p class="mobile-glance-kicker">Board glance</p>
+            <h3 class="mobile-glance-title">No matches in view</h3>
+          </div>
+          <p class="mobile-glance-copy">Refresh later or widen the board filters to bring matches back into view.</p>
+        </div>
+        <div class="mobile-glance-chip-row">
+          <span class="mobile-glance-chip primary">${escapeHtml(filterLabel)}</span>
+          <span class="mobile-glance-chip">Live 0</span>
+          <span class="mobile-glance-chip">Next 0</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const chips = [
+    `<span class="mobile-glance-chip primary">${escapeHtml(filterLabel)} view</span>`,
+    activeGame ? `<span class="mobile-glance-chip">${escapeHtml(gameLabel(activeGame))}</span>` : "",
+    searchTerm ? `<span class="mobile-glance-chip">Search: ${escapeHtml(searchTerm)}</span>` : "",
+    fallbackSummary.text ? `<span class="mobile-glance-chip warn">${escapeHtml(fallbackSummary.text)}</span>` : ""
+  ].filter(Boolean);
+  const spotlightLink = featured ? buildMatchUrl({ matchId: featured.id }) : "";
+  const summaryTitle = visibleRows.length
+    ? featuredHeadline(visibleRows, visibleCounts)
+    : "No matches in the current filter";
+  const summaryCopy = visibleRows.length
+    ? `${filteredRows.length}/${totalRows.length} in view across ${Math.max(tournaments, 1)} tournaments.`
+    : "Clear search or switch status to widen the board.";
+
+  elements.liveMobileOverview.innerHTML = `
+    <div class="mobile-glance-shell">
+      <div class="mobile-glance-head">
+        <div>
+          <p class="mobile-glance-kicker">Board glance</p>
+          <h3 class="mobile-glance-title">${escapeHtml(summaryTitle)}</h3>
+        </div>
+        <p class="mobile-glance-copy">${escapeHtml(summaryCopy)}</p>
+      </div>
+      <div class="mobile-glance-chip-row">
+        ${chips.join("")}
+      </div>
+      <div class="mobile-glance-stat-row">
+        <article class="mobile-glance-stat live">
+          <span>Live</span>
+          <strong>${counts.live}</strong>
+        </article>
+        <article class="mobile-glance-stat upcoming">
+          <span>Next</span>
+          <strong>${counts.upcoming}</strong>
+        </article>
+        <article class="mobile-glance-stat final">
+          <span>Final</span>
+          <strong>${counts.completed}</strong>
+        </article>
+      </div>
+      ${featured
+        ? `
+          <a class="mobile-glance-spotlight" href="${spotlightLink}">
+            <div class="mobile-glance-spotlight-top">
+              <span class="mobile-glance-spotlight-label">Spotlight</span>
+              <span class="mobile-glance-spotlight-meta">${escapeHtml(String(featured.status || "upcoming").toUpperCase())} · ${escapeHtml(matchTimeLabel(featured))}</span>
+            </div>
+            <strong>${escapeHtml(teamDisplayName(featured.teams.left))} vs ${escapeHtml(teamDisplayName(featured.teams.right))}</strong>
+            <span>${escapeHtml(featured.tournament || "Tournament")}</span>
+          </a>
+        `
+        : ""}
+    </div>
+  `;
+}
+
 function buildQuery({ game, region, dotaTiers, followedOnly, userId }) {
   const params = new URLSearchParams();
   if (game) params.set("game", game);
@@ -595,7 +719,10 @@ function applyControlsCollapsed(collapsed) {
   }
 
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
-  elements.controlsToggle.textContent = collapsed ? "Show Filters" : "Hide Filters";
+  const compact = isCompactViewport();
+  elements.controlsToggle.textContent = compact
+    ? (collapsed ? "Show" : "Hide")
+    : (collapsed ? "Show Filters" : "Hide Filters");
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
@@ -1034,3 +1161,10 @@ function boot() {
 }
 
 boot();
+
+window.addEventListener("resize", () => {
+  if (elements.controlsPanel) {
+    applyControlsCollapsed(elements.controlsPanel.classList.contains("collapsed"));
+  }
+  renderLiveDesk();
+});
