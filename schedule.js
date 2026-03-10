@@ -1989,7 +1989,7 @@ function applyInitialUrlFilters() {
 function boot() {
   const apiBase = readApiBase();
   elements.apiBaseInput.value = apiBase;
-  elements.dotaTiersInput.value = "1,2";
+  elements.dotaTiersInput.value = "1,2,3";
   applyInitialUrlFilters();
   updateNav();
   setupControlsPanel();

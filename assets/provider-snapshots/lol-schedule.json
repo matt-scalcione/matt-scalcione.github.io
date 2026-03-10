@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-10T20:14:38.074Z",
+  "generatedAt": "2026-03-10T20:41:19.885Z",
   "count": 40,
   "rows": [
     {
@@ -8,10 +8,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRN",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-10T23:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -39,10 +39,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRN",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-10T23:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -70,10 +70,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRN",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-11T02:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -101,10 +101,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRN",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-11T02:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -135,7 +135,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -166,7 +166,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -197,7 +197,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -228,7 +228,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -259,7 +259,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -290,7 +290,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -321,7 +321,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -352,7 +352,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-11T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -380,10 +380,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-11T20:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -411,10 +411,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-11T20:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -442,10 +442,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-11T23:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -473,10 +473,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-11T23:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -507,7 +507,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -538,7 +538,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -569,7 +569,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -600,7 +600,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -631,7 +631,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -662,7 +662,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -693,7 +693,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -724,7 +724,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T19:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -752,10 +752,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-12T20:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -783,10 +783,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-12T20:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -814,10 +814,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-12T23:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -845,10 +845,10 @@
       "game": "lol",
       "region": "global",
       "tournament": "LRS",
-      "competitiveTier": 4,
+      "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-12T23:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -879,7 +879,7 @@
       "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-13T08:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -910,7 +910,7 @@
       "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-13T10:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -941,7 +941,7 @@
       "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-13T11:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -972,7 +972,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T13:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1003,7 +1003,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T13:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1034,7 +1034,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T13:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1065,7 +1065,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T13:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1096,7 +1096,7 @@
       "competitiveTier": 3,
       "status": "upcoming",
       "startAt": "2026-03-13T13:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1127,7 +1127,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1158,7 +1158,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1189,7 +1189,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -1220,7 +1220,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T16:00:00Z",
-      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "updatedAt": "2026-03-10T20:41:19.884Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,

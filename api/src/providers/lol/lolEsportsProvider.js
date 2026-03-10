@@ -232,6 +232,7 @@ function inferLolCompetitiveTier(league = {}) {
   const slug = String(league?.slug || "").toLowerCase();
   const name = String(league?.name || "").toLowerCase();
   const combined = `${slug} ${name}`;
+  const normalizedCombined = combined.replace(/[_-]+/g, " ");
 
   const tier1Patterns = [
     /\blck\b/,
@@ -252,11 +253,19 @@ function inferLolCompetitiveTier(league = {}) {
     /challengers korea/,
     /academy league/
   ];
-  const tier3Patterns = [/\bljl\b/, /\bvcs\b/, /\blco\b/, /\bpcs\b/, /\btcl\b/, /\blla\b/];
+  const tier3Patterns = [
+    /\bljl\b/,
+    /\bvcs\b/,
+    /\blco\b/,
+    /\bpcs\b/,
+    /\btcl\b/,
+    /\blla\b/,
+    /regional league/
+  ];
 
-  if (tier1Patterns.some((pattern) => pattern.test(combined))) return 1;
-  if (tier2Patterns.some((pattern) => pattern.test(combined))) return 2;
-  if (tier3Patterns.some((pattern) => pattern.test(combined))) return 3;
+  if (tier1Patterns.some((pattern) => pattern.test(normalizedCombined))) return 1;
+  if (tier2Patterns.some((pattern) => pattern.test(normalizedCombined))) return 2;
+  if (tier3Patterns.some((pattern) => pattern.test(normalizedCombined))) return 3;
   return 4;
 }
 

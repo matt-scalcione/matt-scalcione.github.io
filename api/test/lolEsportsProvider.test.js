@@ -168,19 +168,19 @@ describe("normalizeMatchSummary", () => {
     assert.equal(summary.source?.leagueSlug, "lck");
   });
 
-  it("classifies lower regional leagues below the default pro filter", () => {
+  it("classifies secondary regional leagues as tier-3 pro coverage", () => {
     const summary = normalizeMatchSummary({
       ...buildEvent({
         id: "regional_lol"
       }),
       league: {
         name: "LRN",
-        slug: "lrn"
+        slug: "north_regional_league"
       }
     });
 
     assert.ok(summary);
-    assert.equal(summary.competitiveTier, 4);
+    assert.equal(summary.competitiveTier, 3);
   });
 });
 
