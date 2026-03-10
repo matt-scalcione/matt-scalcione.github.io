@@ -43,6 +43,16 @@ function parseTimestamp(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function rowsForGame(rows, game = null) {
+  const normalizedGame = normalizeToken(game);
+  return (Array.isArray(rows) ? rows : []).filter((row) => {
+    if (!normalizedGame) {
+      return true;
+    }
+    return normalizeToken(row?.game) === normalizedGame;
+  });
+}
+
 function relativeAgeLabel(value, nowMs = Date.now()) {
   const timestampMs = parseTimestamp(value);
   if (timestampMs === null) {
@@ -158,5 +168,56 @@ export function buildRowDataProvenance(row, { fallbackTimestamp = null } = {}) {
     title: sourceLabel && detailLabel ? `${sourceLabel} · ${detailLabel}` : detailLabel || "",
     tone: snapshotTimestamp ? "snapshot" : "provider",
     timestamp: effectiveTimestamp
+  };
+}
+
+export function buildCollectionFallbackSummary(rows, { game = null, label = null } = {}) {
+  const scopedRows = rowsForGame(rows, game);
+  if (!scopedRows.length) {
+    return {
+      text: "",
+      tone: "neutral",
+      snapshotCount: 0,
+      retainedCount: 0,
+      total: 0
+    };
+  }
+
+  const snapshotCount = scopedRows.filter((row) => Boolean(row?.source?.snapshotGeneratedAt)).length;
+  const retainedCount = scopedRows.filter((row) => Boolean(row?.retainedFromScheduleCache)).length;
+  if (!snapshotCount && !retainedCount) {
+    return {
+      text: "",
+      tone: "neutral",
+      snapshotCount: 0,
+      retainedCount: 0,
+      total: scopedRows.length
+    };
+  }
+
+  const scopeLabel =
+    label ||
+    (normalizeToken(game) === "dota2" ? "Dota" : normalizeToken(game) === "lol" ? "LoL" : "Data");
+  let text = "";
+
+  if (snapshotCount > 0) {
+    text =
+      snapshotCount === scopedRows.length
+        ? `${scopeLabel} snapshot mode active`
+        : `${scopeLabel} snapshot rows ${snapshotCount}/${scopedRows.length}`;
+  } else {
+    text = `${scopeLabel} retained cache rows ${retainedCount}`;
+  }
+
+  if (retainedCount > 0 && snapshotCount > 0) {
+    text += ` · ${retainedCount} retained`;
+  }
+
+  return {
+    text,
+    tone: "warn",
+    snapshotCount,
+    retainedCount,
+    total: scopedRows.length
   };
 }

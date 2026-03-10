@@ -1,6 +1,9 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
-import { buildRowDataProvenance } from "./data-provenance.js?v=20260309a";
+import {
+  buildCollectionFallbackSummary,
+  buildRowDataProvenance
+} from "./data-provenance.js?v=20260309b";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -835,27 +838,39 @@ function setStatus(message, tone = "neutral") {
   }
 }
 
-function scheduleMetaText(meta, kind) {
+function scheduleMetaText(meta, kind, rows = []) {
   const count = Number(meta?.count || 0);
   const generatedAt = meta?.generatedAt || null;
+  const fallbackSummary = buildCollectionFallbackSummary(rows, {
+    game: "dota2",
+    label: "Dota"
+  });
   if (isCompactViewport()) {
     const noun = kind === "results"
       ? count === 1 ? "result" : "results"
       : count === 1 ? "match" : "matches";
-    return [count > 0 ? `${count} ${noun}` : `0 ${noun}`, generatedAt ? timeOnlyLabel(generatedAt) : null]
+    return [count > 0 ? `${count} ${noun}` : `0 ${noun}`, generatedAt ? timeOnlyLabel(generatedAt) : null, fallbackSummary.text ? "Snapshot mode" : null]
       .filter(Boolean)
       .join(" · ");
   }
 
-  return `Showing ${count} matches · Updated ${generatedAt ? dateTimeCompact(generatedAt) : "n/a"}`;
+  return `Showing ${count} matches · Updated ${generatedAt ? dateTimeCompact(generatedAt) : "n/a"}${fallbackSummary.text ? ` · ${fallbackSummary.text}` : ""}`;
 }
 
 function renderScheduleCollectionMeta() {
   if (elements.scheduleMeta && scheduleCollectionState.scheduleMeta) {
-    elements.scheduleMeta.textContent = scheduleMetaText(scheduleCollectionState.scheduleMeta, "schedule");
+    elements.scheduleMeta.textContent = scheduleMetaText(
+      scheduleCollectionState.scheduleMeta,
+      "schedule",
+      scheduleCollectionState.scheduleRows
+    );
   }
   if (elements.resultsMeta && scheduleCollectionState.resultsMeta) {
-    elements.resultsMeta.textContent = scheduleMetaText(scheduleCollectionState.resultsMeta, "results");
+    elements.resultsMeta.textContent = scheduleMetaText(
+      scheduleCollectionState.resultsMeta,
+      "results",
+      scheduleCollectionState.resultRows
+    );
   }
 }
 
@@ -937,10 +952,14 @@ function renderScheduleHeroContext(scheduleRows = [], resultRows = []) {
 
   const query = String(scheduleDiscoveryState.searchTerm || "").trim();
   const liveCount = scheduleRows.filter((row) => String(row?.status || "").toLowerCase() === "live").length;
+  const fallbackSummary = buildCollectionFallbackSummary([...scheduleRows, ...resultRows], {
+    game: "dota2",
+    label: "Dota"
+  });
   elements.heroContextLabel.textContent = "Window";
   elements.heroContextValue.textContent = scheduleRows.length || resultRows.length ? `${slateModeLabel(scheduleDiscoveryState.mode)} slate` : "Slate clear";
   elements.heroContextCopy.textContent = scheduleRows.length || resultRows.length
-    ? `${scheduleRows.length} schedule rows and ${resultRows.length} finals in view${query ? ` for "${query}"` : ""}.${liveCount ? ` ${liveCount} live right now.` : ""}`
+    ? `${scheduleRows.length} schedule rows and ${resultRows.length} finals in view${query ? ` for "${query}"` : ""}.${liveCount ? ` ${liveCount} live right now.` : ""}${fallbackSummary.text ? ` ${fallbackSummary.text}.` : ""}`
     : "Shape the window first, then narrow by title, region, or search to isolate the exact slate.";
 
   if (elements.heroContextChips) {
@@ -948,6 +967,7 @@ function renderScheduleHeroContext(scheduleRows = [], resultRows = []) {
       <span class="hero-chip">${scheduleRows.length} schedule</span>
       <span class="hero-chip">${resultRows.length} finals</span>
       <span class="hero-chip">${liveCount} live</span>
+      ${fallbackSummary.text ? `<span class="hero-chip warn">${escapeHtml(fallbackSummary.text)}</span>` : ""}
     `;
   }
 }

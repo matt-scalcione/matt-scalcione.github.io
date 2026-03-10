@@ -1,6 +1,9 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
-import { buildRowDataProvenance } from "./data-provenance.js?v=20260309a";
+import {
+  buildCollectionFallbackSummary,
+  buildRowDataProvenance
+} from "./data-provenance.js?v=20260309b";
 import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 import {
   applySeo,
@@ -557,7 +560,14 @@ async function loadHubData() {
     applyStructuredData();
 
     if (elements.hubMeta) {
-      elements.hubMeta.textContent = `Updated ${dateTimeLabel(new Date().toISOString())} · Live ${state.rows.live.length} · Upcoming ${state.rows.upcoming.length} · Final ${state.rows.results.length}`;
+      const fallbackSummary = buildCollectionFallbackSummary(
+        [...state.rows.live, ...state.rows.upcoming, ...state.rows.results],
+        {
+          game: state.gameKey,
+          label: HUB_GAME_META[state.gameKey]?.shortLabel || "Data"
+        }
+      );
+      elements.hubMeta.textContent = `Updated ${dateTimeLabel(new Date().toISOString())} · Live ${state.rows.live.length} · Upcoming ${state.rows.upcoming.length} · Final ${state.rows.results.length}${fallbackSummary.text ? ` · ${fallbackSummary.text}` : ""}`;
     }
     setStatus("Hub synced.", "success");
   } catch (error) {

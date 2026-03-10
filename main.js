@@ -1,6 +1,9 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl } from "./routes.js?v=20260309c";
-import { buildRowDataProvenance } from "./data-provenance.js?v=20260309a";
+import {
+  buildCollectionFallbackSummary,
+  buildRowDataProvenance
+} from "./data-provenance.js?v=20260309b";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -361,11 +364,15 @@ function renderHeroContext(rows = []) {
   const liveCount = rows.filter((row) => String(row?.status || "").toLowerCase() === "live").length;
   const upcomingCount = rows.filter((row) => String(row?.status || "").toLowerCase() === "upcoming").length;
   const searchTerm = String(liveDeskState.searchTerm || "").trim();
+  const fallbackSummary = buildCollectionFallbackSummary(rows, {
+    game: "dota2",
+    label: "Dota"
+  });
 
   elements.heroContextLabel.textContent = "Board Mode";
   elements.heroContextValue.textContent = rows.length ? `${liveStatusLabel(liveDeskState.statusFilter)} focus` : "Board clear";
   elements.heroContextCopy.textContent = rows.length
-    ? `${rows.length} series in view${searchTerm ? ` for "${searchTerm}"` : ""}. ${liveCount ? `${liveCount} live now` : "No live series"}${upcomingCount ? ` · ${upcomingCount} up next` : ""}.`
+    ? `${rows.length} series in view${searchTerm ? ` for "${searchTerm}"` : ""}. ${liveCount ? `${liveCount} live now` : "No live series"}${upcomingCount ? ` · ${upcomingCount} up next` : ""}${fallbackSummary.text ? ` · ${fallbackSummary.text}.` : "."}`
     : "Use the board like a control room: start broad, then narrow until one series clearly deserves Match Center.";
 
   if (elements.heroContextChips) {
@@ -374,6 +381,7 @@ function renderHeroContext(rows = []) {
         <span class="hero-chip">${rows.length} in view</span>
         <span class="hero-chip">${liveCount} live</span>
         <span class="hero-chip">${upcomingCount} up next</span>
+        ${fallbackSummary.text ? `<span class="hero-chip warn">${escapeHtml(fallbackSummary.text)}</span>` : ""}
       `
       : `
         <span class="hero-chip">Use Live mode</span>
@@ -878,7 +886,11 @@ async function loadMatches() {
 
     liveDeskState.rows = Array.isArray(payload.data) ? payload.data : [];
     renderLiveDesk();
-    elements.metaText.textContent = `Showing ${payload?.meta?.count ?? 0} matches. Updated ${dateTimeLabel(payload?.meta?.generatedAt)}`;
+    const fallbackSummary = buildCollectionFallbackSummary(liveDeskState.rows, {
+      game: "dota2",
+      label: "Dota"
+    });
+    elements.metaText.textContent = `Showing ${payload?.meta?.count ?? 0} matches. Updated ${dateTimeLabel(payload?.meta?.generatedAt)}${fallbackSummary.text ? ` · ${fallbackSummary.text}` : ""}`;
     setStatus("Live desk synced.", "success");
   } catch (error) {
     if (requestId !== activeLoadRequestId) {

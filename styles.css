@@ -9917,6 +9917,13 @@ body.product-shell .hero-chip,
   font-weight: 700;
 }
 
+body.product-shell .hero-chip.warn,
+.lens-chip.warn {
+  border-color: rgba(168, 93, 20, 0.18);
+  background: rgba(255, 247, 238, 0.94);
+  color: #8b4b13;
+}
+
 body.product-shell .hero-side {
   display: grid;
   align-content: start;
