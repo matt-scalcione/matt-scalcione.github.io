@@ -7,6 +7,7 @@ import {
   canonicalDotaTournamentKey,
   LiquipediaDotaScheduleProvider
 } from "../providers/dota/liquipediaScheduleProvider.js";
+import { SteamWebApiDotaProvider } from "../providers/dota/steamWebApiProvider.js";
 import { StratzProvider } from "../providers/dota/stratzProvider.js";
 import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
 import { fetchJson } from "../providers/shared/http.js";
@@ -56,8 +57,33 @@ const pulseboardDotaResultsSnapshotMaxAgeMs = Math.max(
   providerCacheMs,
   Number.parseInt(process.env.PULSEBOARD_DOTA_RESULTS_SNAPSHOT_MAX_AGE_MS || String(90 * oneMinute), 10)
 );
+const pulseboardLolLiveSnapshotUrl =
+  process.env.PULSEBOARD_LOL_LIVE_SNAPSHOT_URL ||
+  (pulseboardPublicBase ? `${pulseboardPublicBase}/assets/provider-snapshots/lol-live.json` : "");
+const pulseboardLolLiveSnapshotMaxAgeMs = Math.max(
+  providerCacheMs,
+  Number.parseInt(process.env.PULSEBOARD_LOL_LIVE_SNAPSHOT_MAX_AGE_MS || String(35 * oneMinute), 10)
+);
+const pulseboardLolScheduleSnapshotUrl =
+  process.env.PULSEBOARD_LOL_SCHEDULE_SNAPSHOT_URL ||
+  (pulseboardPublicBase ? `${pulseboardPublicBase}/assets/provider-snapshots/lol-schedule.json` : "");
+const pulseboardLolScheduleSnapshotMaxAgeMs = Math.max(
+  providerCacheMs,
+  Number.parseInt(process.env.PULSEBOARD_LOL_SCHEDULE_SNAPSHOT_MAX_AGE_MS || String(6 * oneHour), 10)
+);
+const pulseboardLolResultsSnapshotUrl =
+  process.env.PULSEBOARD_LOL_RESULTS_SNAPSHOT_URL ||
+  (pulseboardPublicBase ? `${pulseboardPublicBase}/assets/provider-snapshots/lol-results.json` : "");
+const pulseboardLolResultsSnapshotMaxAgeMs = Math.max(
+  providerCacheMs,
+  Number.parseInt(process.env.PULSEBOARD_LOL_RESULTS_SNAPSHOT_MAX_AGE_MS || String(6 * oneHour), 10)
+);
+const rowQualityOverdueGraceMs = Number.parseInt(
+  process.env.ROW_QUALITY_OVERDUE_GRACE_MS || String(15 * oneMinute),
+  10
+);
 const logAllProviderTiming = String(process.env.API_LOG_PROVIDER_TIMING || "").trim() === "1";
-const providerCachePersistenceEnabled = !import.meta.url.includes("?");
+const providerCachePersistenceEnabled = dataMode !== "mock" && !import.meta.url.includes("?");
 const PROVIDER_CACHE_FILE_URL = new URL("../../../.runtime/provider-cache.json", import.meta.url);
 const PROVIDER_CACHE_FILE_PATH = fileURLToPath(PROVIDER_CACHE_FILE_URL);
 const PROVIDER_CACHE_DIR_PATH = dirname(PROVIDER_CACHE_FILE_PATH);
@@ -67,6 +93,7 @@ const providerSnapshotKeys = [
   "lolResults",
   "live",
   "stratzLive",
+  "steamLive",
   "results",
   "dotaSchedule"
 ];
@@ -75,6 +102,9 @@ const openDotaProvider = new OpenDotaProvider({
   timeoutMs: providerTimeoutMs
 });
 const stratzProvider = new StratzProvider({
+  timeoutMs: providerTimeoutMs
+});
+const steamWebApiDotaProvider = new SteamWebApiDotaProvider({
   timeoutMs: providerTimeoutMs
 });
 const liquipediaDotaScheduleProvider = new LiquipediaDotaScheduleProvider({
@@ -104,6 +134,7 @@ const providerState = {
   lolResults: createProviderSlot(),
   live: createProviderSlot(),
   stratzLive: createProviderSlot(),
+  steamLive: createProviderSlot(),
   results: createProviderSlot(),
   dotaSchedule: createProviderSlot(),
   detailById: new Map(),
@@ -153,6 +184,143 @@ function normalizeSnapshotPayload(payload) {
           ? payload.data
           : []
   };
+}
+
+function countRowsWithSnapshot(rows) {
+  return (Array.isArray(rows) ? rows : []).filter((row) => Boolean(row?.source?.snapshotGeneratedAt)).length;
+}
+
+function countRetainedRows(rows) {
+  return (Array.isArray(rows) ? rows : []).filter((row) => Boolean(row?.retainedFromScheduleCache)).length;
+}
+
+function pushQualityIssue(issues, {
+  code,
+  message,
+  penalty = 0,
+  severity = "warn"
+}) {
+  issues.push({
+    code,
+    message,
+    severity
+  });
+  return penalty;
+}
+
+function summarizeQualityIssues(issues) {
+  const degraded = issues.find((issue) => issue.severity === "degraded");
+  return degraded?.message || issues[0]?.message || "";
+}
+
+function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
+  if (!entity || typeof entity !== "object") {
+    return entity;
+  }
+
+  const status = String(entity?.status || "").toLowerCase();
+  const issues = [];
+  let score = 100;
+  const startMs = Date.parse(String(entity?.startAt || ""));
+  const leftTeamName = String(entity?.teams?.left?.name || "").trim();
+  const rightTeamName = String(entity?.teams?.right?.name || "").trim();
+  const leftTeamId = String(entity?.teams?.left?.id || "").trim();
+  const rightTeamId = String(entity?.teams?.right?.id || "").trim();
+  const leftScore = Number(entity?.seriesScore?.left);
+  const rightScore = Number(entity?.seriesScore?.right);
+  const hasSeriesScore =
+    Number.isFinite(leftScore) &&
+    Number.isFinite(rightScore) &&
+    (leftScore > 0 || rightScore > 0 || Boolean(entity?.winnerTeamId));
+  const freshnessStatus = String(entity?.freshness?.status || "").toLowerCase();
+
+  if (entity?.source?.snapshotGeneratedAt) {
+    score -= pushQualityIssue(issues, {
+      code: "snapshot_fallback",
+      message: "Snapshot fallback active",
+      penalty: 16,
+      severity: "warn"
+    });
+  }
+
+  if (entity?.retainedFromScheduleCache) {
+    score -= pushQualityIssue(issues, {
+      code: "retained_cache",
+      message: "Serving recently retained provider cache",
+      penalty: 18,
+      severity: "warn"
+    });
+  }
+
+  if (entity?.game === "dota2" && status === "live" && String(entity?.keySignal || "").includes("schedule_started")) {
+    score -= pushQualityIssue(issues, {
+      code: "synthetic_live",
+      message: "Live status inferred from schedule timing",
+      penalty: 12,
+      severity: "warn"
+    });
+  }
+
+  if (status === "upcoming" && Number.isFinite(startMs) && nowMs > startMs + rowQualityOverdueGraceMs) {
+    score -= pushQualityIssue(issues, {
+      code: "overdue_start",
+      message: "Start time passed; awaiting provider confirmation",
+      penalty: 30,
+      severity: "degraded"
+    });
+  }
+
+  if (status === "completed" && !entity?.winnerTeamId && !hasSeriesScore) {
+    score -= pushQualityIssue(issues, {
+      code: "missing_result",
+      message: "Result is incomplete from the current source",
+      penalty: 26,
+      severity: "degraded"
+    });
+  }
+
+  if (!leftTeamName || !rightTeamName) {
+    score -= pushQualityIssue(issues, {
+      code: "missing_team_name",
+      message: "Team identity is incomplete",
+      penalty: 24,
+      severity: "degraded"
+    });
+  } else if (!leftTeamId || !rightTeamId) {
+    score -= pushQualityIssue(issues, {
+      code: "missing_team_id",
+      message: "Resolved team IDs are incomplete",
+      penalty: 10,
+      severity: "warn"
+    });
+  }
+
+  if (freshnessStatus === "stale_cache" || freshnessStatus === "degraded") {
+    score -= pushQualityIssue(issues, {
+      code: "stale_detail",
+      message: "Showing cached detail while providers refresh",
+      penalty: freshnessStatus === "stale_cache" ? 18 : 10,
+      severity: "warn"
+    });
+  }
+
+  const normalizedScore = Math.max(0, Math.min(100, score));
+  const level = normalizedScore <= 60 ? "degraded" : normalizedScore <= 85 ? "warn" : "good";
+
+  return {
+    ...entity,
+    quality: {
+      score: normalizedScore,
+      level,
+      summary: summarizeQualityIssues(issues),
+      issues,
+      updatedAt: new Date(nowMs).toISOString()
+    }
+  };
+}
+
+function annotateRowsWithQuality(rows, options = {}) {
+  return (Array.isArray(rows) ? rows : []).map((row) => annotateEntityQuality(row, options));
 }
 
 function readProviderCacheFromDisk() {
@@ -846,6 +1014,7 @@ function providerRowsSnapshot(stateKey) {
 function providerLogLabel(stateKey) {
   if (stateKey === "live") return "dota live";
   if (stateKey === "stratzLive") return "dota stratz live";
+  if (stateKey === "steamLive") return "dota steam live";
   if (stateKey === "results") return "dota results";
   if (stateKey === "dotaSchedule") return "dota schedule";
   if (stateKey === "lolLive") return "lol live";
@@ -1051,6 +1220,18 @@ async function loadProviderStratzLiveMatches() {
   );
 }
 
+async function loadProviderSteamLiveMatches() {
+  if (!steamWebApiDotaProvider.getCapabilities().liveEnabled) {
+    return { status: "disabled", rows: [] };
+  }
+
+  return loadProviderRows("steamLive", () =>
+    steamWebApiDotaProvider.fetchLiveMatches({
+      allowedTiers: defaultDotaTiers
+    })
+  );
+}
+
 async function loadProviderResults() {
   return loadProviderRows("results", () => fetchProviderDotaResults());
 }
@@ -1069,19 +1250,15 @@ async function loadProviderDotaScheduleMatches({ knownRows = [] } = {}) {
 }
 
 async function loadProviderLolLiveMatches() {
-  return loadProviderRows("lolLive", () => lolEsportsProvider.fetchLiveMatches());
+  return loadProviderRows("lolLive", () => fetchProviderLolLiveMatches());
 }
 
 async function loadProviderLolScheduleMatches() {
-  return loadProviderRows("lolSchedule", () =>
-    lolEsportsProvider
-      .fetchScheduleMatches()
-      .then((scheduleRows) => scheduleRows.filter((row) => row.status !== "completed"))
-  );
+  return loadProviderRows("lolSchedule", () => fetchProviderLolScheduleMatches());
 }
 
 async function loadProviderLolResults() {
-  return loadProviderRows("lolResults", () => lolEsportsProvider.fetchRecentResults());
+  return loadProviderRows("lolResults", () => fetchProviderLolResults());
 }
 
 function providerDiagnosticsRow(stateKey) {
@@ -1121,6 +1298,14 @@ function providerRefreshTasks() {
             })
           )
         : Promise.resolve({ status: "disabled", rows: [] }),
+    steamLive: () =>
+      steamWebApiDotaProvider.getCapabilities().liveEnabled
+        ? refreshProviderRows("steamLive", () =>
+            steamWebApiDotaProvider.fetchLiveMatches({
+              allowedTiers: defaultDotaTiers
+            })
+          )
+        : Promise.resolve({ status: "disabled", rows: [] }),
     results: () =>
       refreshProviderRows("results", () => fetchProviderDotaResults()),
     dotaSchedule: () =>
@@ -1128,6 +1313,7 @@ function providerRefreshTasks() {
         const knownRows = dedupeRowsById([
           ...(Array.isArray(providerState.stratzLive.rows) ? providerState.stratzLive.rows : []),
           ...(Array.isArray(providerState.live.rows) ? providerState.live.rows : []),
+          ...(Array.isArray(providerState.steamLive.rows) ? providerState.steamLive.rows : []),
           ...(Array.isArray(providerState.results.rows) ? providerState.results.rows : [])
         ]);
         const rows = await liquipediaDotaScheduleProvider.fetchScheduleMatches({
@@ -1139,23 +1325,23 @@ function providerRefreshTasks() {
         });
         return hydrateDotaScheduleRowsWithResolvedTeams(retainedRows);
       }),
-    lolLive: () => refreshProviderRows("lolLive", () => lolEsportsProvider.fetchLiveMatches()),
-    lolSchedule: () =>
-      refreshProviderRows("lolSchedule", () =>
-        lolEsportsProvider
-          .fetchScheduleMatches()
-          .then((scheduleRows) => scheduleRows.filter((row) => row.status !== "completed"))
-      ),
-    lolResults: () => refreshProviderRows("lolResults", () => lolEsportsProvider.fetchRecentResults())
+    lolLive: () => refreshProviderRows("lolLive", () => fetchProviderLolLiveMatches()),
+    lolSchedule: () => refreshProviderRows("lolSchedule", () => fetchProviderLolScheduleMatches()),
+    lolResults: () => refreshProviderRows("lolResults", () => fetchProviderLolResults())
   };
 }
 
-async function fetchPulseboardDotaResultsSnapshot() {
-  if (!pulseboardDotaResultsSnapshotUrl) {
-    throw new Error("Pulseboard Dota results snapshot fallback is disabled.");
+async function fetchPulseboardSnapshotRows({
+  snapshotUrl,
+  snapshotMaxAgeMs,
+  label,
+  rowFilter = null
+}) {
+  if (!snapshotUrl) {
+    throw new Error(`${label} snapshot fallback is disabled.`);
   }
 
-  const payload = await fetchJson(pulseboardDotaResultsSnapshotUrl, {
+  const payload = await fetchJson(snapshotUrl, {
     timeoutMs: providerTimeoutMs,
     headers: {
       accept: "application/json"
@@ -1164,32 +1350,64 @@ async function fetchPulseboardDotaResultsSnapshot() {
   const { generatedAt, rows } = normalizeSnapshotPayload(payload);
   const generatedAtMs = generatedAt ? Date.parse(String(generatedAt)) : Number.NaN;
   if (generatedAt && Number.isNaN(generatedAtMs)) {
-    throw new Error("Pulseboard Dota results snapshot has an invalid generatedAt timestamp.");
+    throw new Error(`${label} snapshot has an invalid generatedAt timestamp.`);
   }
 
-  if (
-    Number.isFinite(generatedAtMs) &&
-    Date.now() - generatedAtMs > pulseboardDotaResultsSnapshotMaxAgeMs
-  ) {
-    throw new Error(`Pulseboard Dota results snapshot is stale from ${generatedAt}`);
+  if (Number.isFinite(generatedAtMs) && Date.now() - generatedAtMs > snapshotMaxAgeMs) {
+    throw new Error(`${label} snapshot is stale from ${generatedAt}`);
   }
 
   return (Array.isArray(rows) ? rows : [])
-    .filter((row) => row?.game === "dota2")
-    .filter((row) => row?.status === "completed")
-    .filter((row) =>
-      typeof row?.competitiveTier === "number"
-        ? defaultDotaTiers.includes(row.competitiveTier)
-        : true
-    )
+    .filter((row) => (typeof rowFilter === "function" ? rowFilter(row) : true))
     .map((row) => ({
       ...row,
       source: {
         ...(row?.source || {}),
-        snapshotUrl: pulseboardDotaResultsSnapshotUrl,
+        snapshotUrl,
         snapshotGeneratedAt: generatedAt || null
       }
     }));
+}
+
+async function fetchPulseboardDotaResultsSnapshot() {
+  return fetchPulseboardSnapshotRows({
+    snapshotUrl: pulseboardDotaResultsSnapshotUrl,
+    snapshotMaxAgeMs: pulseboardDotaResultsSnapshotMaxAgeMs,
+    label: "Pulseboard Dota results",
+    rowFilter: (row) =>
+      row?.game === "dota2" &&
+      row?.status === "completed" &&
+      (typeof row?.competitiveTier === "number"
+        ? defaultDotaTiers.includes(row.competitiveTier)
+        : true)
+  });
+}
+
+async function fetchPulseboardLolLiveSnapshot() {
+  return fetchPulseboardSnapshotRows({
+    snapshotUrl: pulseboardLolLiveSnapshotUrl,
+    snapshotMaxAgeMs: pulseboardLolLiveSnapshotMaxAgeMs,
+    label: "Pulseboard LoL live",
+    rowFilter: (row) => row?.game === "lol" && row?.status === "live"
+  });
+}
+
+async function fetchPulseboardLolScheduleSnapshot() {
+  return fetchPulseboardSnapshotRows({
+    snapshotUrl: pulseboardLolScheduleSnapshotUrl,
+    snapshotMaxAgeMs: pulseboardLolScheduleSnapshotMaxAgeMs,
+    label: "Pulseboard LoL schedule",
+    rowFilter: (row) => row?.game === "lol" && row?.status !== "completed"
+  });
+}
+
+async function fetchPulseboardLolResultsSnapshot() {
+  return fetchPulseboardSnapshotRows({
+    snapshotUrl: pulseboardLolResultsSnapshotUrl,
+    snapshotMaxAgeMs: pulseboardLolResultsSnapshotMaxAgeMs,
+    label: "Pulseboard LoL results",
+    rowFilter: (row) => row?.game === "lol" && row?.status === "completed"
+  });
 }
 
 async function fetchProviderDotaResults() {
@@ -1200,6 +1418,49 @@ async function fetchProviderDotaResults() {
   } catch (error) {
     try {
       return await fetchPulseboardDotaResultsSnapshot();
+    } catch (snapshotError) {
+      throw new Error(
+        `${error?.message || String(error)} | ${snapshotError?.message || String(snapshotError)}`
+      );
+    }
+  }
+}
+
+async function fetchProviderLolLiveMatches() {
+  try {
+    return await lolEsportsProvider.fetchLiveMatches();
+  } catch (error) {
+    try {
+      return await fetchPulseboardLolLiveSnapshot();
+    } catch (snapshotError) {
+      throw new Error(
+        `${error?.message || String(error)} | ${snapshotError?.message || String(snapshotError)}`
+      );
+    }
+  }
+}
+
+async function fetchProviderLolScheduleMatches() {
+  try {
+    const scheduleRows = await lolEsportsProvider.fetchScheduleMatches();
+    return scheduleRows.filter((row) => row.status !== "completed");
+  } catch (error) {
+    try {
+      return await fetchPulseboardLolScheduleSnapshot();
+    } catch (snapshotError) {
+      throw new Error(
+        `${error?.message || String(error)} | ${snapshotError?.message || String(snapshotError)}`
+      );
+    }
+  }
+}
+
+async function fetchProviderLolResults() {
+  try {
+    return await lolEsportsProvider.fetchRecentResults();
+  } catch (error) {
+    try {
+      return await fetchPulseboardLolResultsSnapshot();
     } catch (snapshotError) {
       throw new Error(
         `${error?.message || String(error)} | ${snapshotError?.message || String(snapshotError)}`
@@ -1407,12 +1668,17 @@ async function resolveDotaAliasMatchId(matchId, cachedDetail = null) {
     return null;
   }
 
-  const [stratzLiveState, liveState, resultsState] = await Promise.all([
+  const [stratzLiveState, liveState, steamLiveState, resultsState] = await Promise.all([
     loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
+    loadProviderSteamLiveMatches(),
     loadProviderResults()
   ]);
-  const mergedProviderDotaLiveRows = mergeDotaLiveRows(stratzLiveState.rows, liveState.rows);
+  const mergedProviderDotaLiveRows = mergeEffectiveDotaLiveRows(
+    stratzLiveState.rows,
+    liveState.rows,
+    steamLiveState.rows
+  );
   const scheduleState = await loadProviderDotaScheduleMatches({
     knownRows: dedupeRowsById([
       ...mergedProviderDotaLiveRows,
@@ -1469,6 +1735,10 @@ function mergeDotaLiveRows(primaryRows = [], secondaryRows = []) {
   }
 
   return dedupeRowsById(merged);
+}
+
+function mergeEffectiveDotaLiveRows(stratzRows = [], openDotaRows = [], steamRows = []) {
+  return mergeDotaLiveRows(mergeDotaLiveRows(stratzRows, openDotaRows), steamRows);
 }
 
 function dotaSyntheticLiveWindowMs(row) {
@@ -1664,6 +1934,7 @@ function perspectiveForTeam(match, { teamId, teamName } = {}) {
     region: match.region,
     startAt: match.startAt,
     endAt: match.endAt || null,
+    updatedAt: match.updatedAt || null,
     bestOf: Number(match.bestOf || 1),
     side,
     result,
@@ -1673,7 +1944,11 @@ function perspectiveForTeam(match, { teamId, teamName } = {}) {
     oppScore,
     scoreLabel: `${ownScore}-${oppScore}`,
     opponentId: match?.teams?.[opponentSide]?.id || null,
-    opponentName: match?.teams?.[opponentSide]?.name || "Unknown"
+    opponentName: match?.teams?.[opponentSide]?.name || "Unknown",
+    keySignal: match?.keySignal || null,
+    source: match?.source ? cloneValue(match.source) : null,
+    freshness: match?.freshness ? cloneValue(match.freshness) : null,
+    quality: match?.quality ? cloneValue(match.quality) : null
   };
 }
 
@@ -2490,12 +2765,17 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
 }
 
 async function fallbackProviderDotaDetail(matchId, options = {}) {
-  const [stratzLiveState, liveState, resultsState] = await Promise.all([
+  const [stratzLiveState, liveState, steamLiveState, resultsState] = await Promise.all([
     loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
+    loadProviderSteamLiveMatches(),
     loadProviderResults()
   ]);
-  const mergedProviderDotaLiveRows = mergeDotaLiveRows(stratzLiveState.rows, liveState.rows);
+  const mergedProviderDotaLiveRows = mergeEffectiveDotaLiveRows(
+    stratzLiveState.rows,
+    liveState.rows,
+    steamLiveState.rows
+  );
   const scheduleState = await loadProviderDotaScheduleMatches({
     knownRows: dedupeRowsById([
       ...mergedProviderDotaLiveRows,
@@ -3093,23 +3373,28 @@ export async function listLiveMatches({
   userId = null,
   dotaTiers
 }) {
-  const [providerStratzLiveState, providerDotaLiveState, providerLolLiveState] = await Promise.all([
+  const [providerStratzLiveState, providerDotaLiveState, providerSteamLiveState, providerLolLiveState] = await Promise.all([
     loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
+    loadProviderSteamLiveMatches(),
     loadProviderLolLiveMatches()
   ]);
   const [providerDotaResultsState, providerDotaScheduleState] = await Promise.all([
     loadProviderResults(),
     loadProviderDotaScheduleMatches({
       knownRows: dedupeRowsById([
-        ...(Array.isArray(providerStratzLiveState?.rows) ? providerStratzLiveState.rows : []),
-        ...(Array.isArray(providerDotaLiveState?.rows) ? providerDotaLiveState.rows : [])
+        ...mergeEffectiveDotaLiveRows(
+          providerStratzLiveState.rows,
+          providerDotaLiveState.rows,
+          providerSteamLiveState.rows
+        )
       ])
     })
   ]);
-  const mergedProviderDotaLiveRows = mergeDotaLiveRows(
+  const mergedProviderDotaLiveRows = mergeEffectiveDotaLiveRows(
     providerStratzLiveState.rows,
-    providerDotaLiveState.rows
+    providerDotaLiveState.rows,
+    providerSteamLiveState.rows
   );
 
   let rows = liveMatches.slice();
@@ -3117,6 +3402,7 @@ export async function listLiveMatches({
   if (
     providerStratzLiveState.status === "success" ||
     providerDotaLiveState.status === "success" ||
+    providerSteamLiveState.status === "success" ||
     providerDotaScheduleState.status === "success"
   ) {
     const syntheticLiveRows = canonicalizeDotaScheduleRows(providerDotaScheduleState.rows, {
@@ -3142,19 +3428,27 @@ export async function listLiveMatches({
     rows = rows.filter((match) => belongsToFollowedTeam(match, followedTeamIds));
   }
 
-  return rows;
+  return annotateRowsWithQuality(rows);
 }
 
 export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }) {
-  const [providerStratzLiveState, providerDotaLiveState, providerDotaResultsState, providerLolScheduleState] = await Promise.all([
+  const [
+    providerStratzLiveState,
+    providerDotaLiveState,
+    providerSteamLiveState,
+    providerDotaResultsState,
+    providerLolScheduleState
+  ] = await Promise.all([
     loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
+    loadProviderSteamLiveMatches(),
     loadProviderResults(),
     loadProviderLolScheduleMatches()
   ]);
-  const mergedProviderDotaLiveRows = mergeDotaLiveRows(
+  const mergedProviderDotaLiveRows = mergeEffectiveDotaLiveRows(
     providerStratzLiveState.rows,
-    providerDotaLiveState.rows
+    providerDotaLiveState.rows,
+    providerSteamLiveState.rows
   );
   const providerDotaScheduleState = await loadProviderDotaScheduleMatches({
     knownRows: dedupeRowsById([
@@ -3172,6 +3466,7 @@ export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }
   if (
     providerStratzLiveState.status === "success" ||
     providerDotaLiveState.status === "success" ||
+    providerSteamLiveState.status === "success" ||
     providerDotaScheduleState.status === "success"
   ) {
     rows = rows
@@ -3189,7 +3484,7 @@ export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }
     getDateField: (row) => row.startAt
   });
 
-  return sortByDateAscending(rows, "startAt");
+  return annotateRowsWithQuality(sortByDateAscending(rows, "startAt"));
 }
 
 export async function listResults({ game, region, dateFrom, dateTo, dotaTiers }) {
@@ -3212,7 +3507,7 @@ export async function listResults({ game, region, dateFrom, dateTo, dotaTiers })
     getDateField: (row) => row.endAt || row.startAt
   });
 
-  return sortByDateDescending(rows, "endAt");
+  return annotateRowsWithQuality(sortByDateDescending(rows, "endAt"));
 }
 
 function findMatchSummary(matchId) {
@@ -3224,7 +3519,7 @@ function findMatchSummary(matchId) {
   for (const collection of [liveMatches, scheduleMatches, completedMatches]) {
     const row = collection.find((candidate) => candidate?.id === normalizedId);
     if (row) {
-      return row;
+      return annotateEntityQuality(row);
     }
   }
 
@@ -3233,13 +3528,13 @@ function findMatchSummary(matchId) {
 
 function mergeMatchDetailWithSummary(detail, summary) {
   if (!summary) {
-    return detail;
+    return annotateEntityQuality(detail);
   }
   if (!detail) {
-    return summary;
+    return annotateEntityQuality(summary);
   }
 
-  return {
+  return annotateEntityQuality({
     ...summary,
     ...detail,
     freshness: {
@@ -3264,7 +3559,7 @@ function mergeMatchDetailWithSummary(detail, summary) {
         ...(detail?.teams?.right || {})
       }
     }
-  };
+  });
 }
 
 export async function getMatchDetail(matchId, options = {}) {
@@ -3545,16 +3840,29 @@ export async function getTeamProfile(teamId, options = {}) {
 }
 
 export async function getProviderCoverageReport() {
-  const [stratzLiveState, openDotaLiveState, openDotaResultsState, lolLiveState, lolScheduleState, lolResultsState] =
+  const [
+    stratzLiveState,
+    openDotaLiveState,
+    steamLiveState,
+    openDotaResultsState,
+    lolLiveState,
+    lolScheduleState,
+    lolResultsState
+  ] =
     await Promise.all([
       loadProviderStratzLiveMatches(),
       loadProviderLiveMatches(),
+      loadProviderSteamLiveMatches(),
       loadProviderResults(),
       loadProviderLolLiveMatches(),
       loadProviderLolScheduleMatches(),
       loadProviderLolResults()
     ]);
-  const mergedProviderDotaLiveRows = mergeDotaLiveRows(stratzLiveState.rows, openDotaLiveState.rows);
+  const mergedProviderDotaLiveRows = mergeEffectiveDotaLiveRows(
+    stratzLiveState.rows,
+    openDotaLiveState.rows,
+    steamLiveState.rows
+  );
   const dotaScheduleState = await loadProviderDotaScheduleMatches({
     knownRows: dedupeRowsById([
       ...mergedProviderDotaLiveRows,
@@ -3580,16 +3888,24 @@ export async function getProviderCoverageReport() {
         cacheStatus: stratzLiveState.status,
         liveRows: Array.isArray(stratzLiveState.rows) ? stratzLiveState.rows.length : 0
       },
+      steam: {
+        ...steamWebApiDotaProvider.getCapabilities(),
+        cacheStatus: steamLiveState.status,
+        liveRows: Array.isArray(steamLiveState.rows) ? steamLiveState.rows.length : 0
+      },
       openDota: {
         cacheStatus: openDotaLiveState.status,
         liveRows: Array.isArray(openDotaLiveState.rows) ? openDotaLiveState.rows.length : 0,
         resultStatus: openDotaResultsState.status,
-        resultRows: Array.isArray(openDotaResultsState.rows) ? openDotaResultsState.rows.length : 0
+        resultRows: Array.isArray(openDotaResultsState.rows) ? openDotaResultsState.rows.length : 0,
+        resultSnapshotRows: countRowsWithSnapshot(openDotaResultsState.rows)
       },
       liquipedia: {
         apiOnly: true,
         cacheStatus: dotaScheduleState.status,
         scheduleRows: Array.isArray(dotaScheduleState.rows) ? dotaScheduleState.rows.length : 0,
+        snapshotRows: countRowsWithSnapshot(dotaScheduleState.rows),
+        retainedRows: countRetainedRows(dotaScheduleState.rows),
         unresolvedScheduledTeams
       },
       effectiveLiveCoverage: {
@@ -3601,10 +3917,13 @@ export async function getProviderCoverageReport() {
     lol: {
       liveStatus: lolLiveState.status,
       liveRows: Array.isArray(lolLiveState.rows) ? lolLiveState.rows.length : 0,
+      liveSnapshotRows: countRowsWithSnapshot(lolLiveState.rows),
       scheduleStatus: lolScheduleState.status,
       scheduleRows: Array.isArray(lolScheduleState.rows) ? lolScheduleState.rows.length : 0,
+      scheduleSnapshotRows: countRowsWithSnapshot(lolScheduleState.rows),
       resultsStatus: lolResultsState.status,
-      resultRows: Array.isArray(lolResultsState.rows) ? lolResultsState.rows.length : 0
+      resultRows: Array.isArray(lolResultsState.rows) ? lolResultsState.rows.length : 0,
+      resultSnapshotRows: countRowsWithSnapshot(lolResultsState.rows)
     }
   };
 }

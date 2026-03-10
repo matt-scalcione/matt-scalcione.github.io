@@ -1,5 +1,6 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl, parseMatchRoute } from "./routes.js?v=20260309c";
+import { buildRowDataProvenance, buildRowQualityNotice } from "./data-provenance.js?v=20260310a";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -1942,6 +1943,32 @@ function compactFreshnessToken(value) {
   return readableMetaToken(value).split(" ")[0] || "Sync";
 }
 
+function matchTrustChips(match, { compact = false } = {}) {
+  const provenance = buildRowDataProvenance(match, {
+    fallbackTimestamp: match?.updatedAt || match?.startAt || null
+  });
+  const qualityNotice = buildRowQualityNotice(match);
+  const chips = [];
+
+  if (provenance.text) {
+    chips.push(
+      `<span class="stream-chip provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(
+        compact ? provenance.label || provenance.text : provenance.text
+      )}</span>`
+    );
+  }
+
+  if (qualityNotice.text) {
+    chips.push(
+      `<span class="stream-chip quality ${qualityNotice.tone}" title="${escapeHtml(
+        qualityNotice.title
+      )}">${escapeHtml(compact ? qualityNotice.text : `Data ${qualityNotice.text}`)}</span>`
+    );
+  }
+
+  return chips.join("");
+}
+
 function renderStreamStatus(match) {
   if (!elements.streamStatusWrap) {
     return;
@@ -1962,6 +1989,7 @@ function renderStreamStatus(match) {
       ? `Err ${errorSeconds}s`
       : `Stream error ${dateTimeCompact(lastErrorAt)}`
     : null;
+  const trustChips = matchTrustChips(match, { compact });
   if (compact) {
     const primaryCompact = uiState.stream.source === "sse"
       ? uiState.stream.connected
@@ -1975,6 +2003,7 @@ function renderStreamStatus(match) {
         <span class="stream-chip primary ${badge}">${primaryCompact}</span>
         <span class="stream-chip">${streamStatusDetail()}</span>
         <span class="stream-chip freshness">${compactFreshnessToken(match?.freshness?.status)}</span>
+        ${trustChips}
         ${errorText ? `<span class="stream-chip error">${errorText}</span>` : ""}
       </article>
     `;
@@ -1986,6 +2015,7 @@ function renderStreamStatus(match) {
       <span class="stream-chip primary ${badge}">${streamStatusText(match)}</span>
       <span class="stream-chip">${streamStatusDetail()}</span>
       <span class="stream-chip freshness">${freshnessStatus}</span>
+      ${trustChips}
       ${freshnessUpdatedAt ? `<span class="stream-chip">${compact ? freshnessUpdatedAt : `Updated ${freshnessUpdatedAt}`}</span>` : ""}
       ${errorText ? `<span class="stream-chip error">${errorText}</span>` : ""}
     </article>

@@ -2,8 +2,9 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl } from "./routes.js?v=20260309c";
 import {
   buildCollectionFallbackSummary,
-  buildRowDataProvenance
-} from "./data-provenance.js?v=20260309b";
+  buildRowDataProvenance,
+  buildRowQualityNotice
+} from "./data-provenance.js?v=20260310a";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -889,6 +890,7 @@ function renderCards(rows) {
       const signal = String(match?.keySignal || "").trim();
       const featured = index === 0 && String(match?.status || "").toLowerCase() === "live" && orderedRows.length > 1;
       const provenance = buildRowDataProvenance(match);
+      const qualityNotice = buildRowQualityNotice(match);
 
       return `
         <a class="match-card${featured ? " featured" : ""}" style="--delay:${index * 55}ms" href="${link}">
@@ -917,6 +919,9 @@ function renderCards(rows) {
               <p class="match-card-summary">${escapeHtml(matchSummaryLead(match))}</p>
               ${provenance.text
                 ? `<p class="data-provenance-line ${provenance.tone} match-card-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
+                : ""}
+              ${qualityNotice.text
+                ? `<p class="data-quality-line ${qualityNotice.tone} match-card-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`
                 : ""}
             </div>
             <span class="match-card-cta">Open</span>

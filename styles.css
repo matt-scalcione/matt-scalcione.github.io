@@ -1191,7 +1191,37 @@ button.ghost,
   color: #8b4b13;
 }
 
+.data-quality-line {
+  margin: 0.28rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 1.36rem;
+  padding: 0.12rem 0.46rem;
+  border-radius: 999px;
+  border: 1px solid rgba(171, 123, 37, 0.18);
+  background: rgba(255, 248, 234, 0.96);
+  color: #8a5a18;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-quality-line.degraded {
+  border-color: rgba(177, 72, 57, 0.22);
+  background: rgba(255, 239, 236, 0.96);
+  color: #9e3628;
+}
+
 .match-card-provenance {
+  width: fit-content;
+}
+
+.match-card-quality {
   width: fit-content;
 }
 
@@ -1944,7 +1974,15 @@ button.ghost,
   margin-top: 0.46rem;
 }
 
+.schedule-card-quality {
+  margin-top: 0.3rem;
+}
+
 .schedule-table-provenance {
+  max-width: 100%;
+}
+
+.schedule-table-quality {
   max-width: 100%;
 }
 
@@ -2568,6 +2606,24 @@ button.ghost,
   border-color: rgba(12, 76, 72, 0.16);
 }
 
+.stream-chip.provenance {
+  border-color: rgba(32, 81, 132, 0.18);
+  background: rgba(240, 246, 255, 0.92);
+  color: #28547f;
+}
+
+.stream-chip.quality {
+  border-color: rgba(171, 123, 37, 0.24);
+  background: rgba(255, 248, 234, 0.96);
+  color: #8a5a18;
+}
+
+.stream-chip.quality.degraded {
+  border-color: rgba(173, 73, 52, 0.32);
+  background: rgba(255, 239, 236, 0.96);
+  color: #8a3a2a;
+}
+
 .stream-chip.error {
   border-color: rgba(173, 73, 52, 0.32);
   background: rgba(173, 73, 52, 0.08);
@@ -2878,6 +2934,21 @@ button.ghost,
   color: var(--muted);
   font-size: 0.66rem;
   line-height: 1.26;
+}
+
+.team-match-trust {
+  display: grid;
+  gap: 0.26rem;
+}
+
+.team-match-provenance,
+.team-match-quality {
+  width: fit-content;
+}
+
+.team-table-meta {
+  display: grid;
+  gap: 0.3rem;
 }
 
 .upcoming-watch {

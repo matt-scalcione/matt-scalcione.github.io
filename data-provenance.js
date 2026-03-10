@@ -171,6 +171,27 @@ export function buildRowDataProvenance(row, { fallbackTimestamp = null } = {}) {
   };
 }
 
+export function buildRowQualityNotice(row) {
+  const summary = String(row?.quality?.summary || "").trim();
+  if (!summary || String(row?.quality?.level || "").toLowerCase() === "good") {
+    return {
+      text: "",
+      title: "",
+      tone: "neutral"
+    };
+  }
+
+  const issues = Array.isArray(row?.quality?.issues) ? row.quality.issues : [];
+  const title = issues.length ? issues.map((issue) => issue?.message).filter(Boolean).join(" · ") : summary;
+  const tone = String(row?.quality?.level || "").toLowerCase() === "degraded" ? "degraded" : "warn";
+
+  return {
+    text: summary,
+    title,
+    tone
+  };
+}
+
 export function buildCollectionFallbackSummary(rows, { game = null, label = null } = {}) {
   const scopedRows = rowsForGame(rows, game);
   if (!scopedRows.length) {

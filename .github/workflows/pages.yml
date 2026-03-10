@@ -20,6 +20,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Generate LoL live snapshot
+        run: node scripts/generate-lol-live-snapshot.mjs
+      - name: Generate LoL schedule snapshot
+        run: node scripts/generate-lol-schedule-snapshot.mjs
+      - name: Generate LoL results snapshot
+        run: node scripts/generate-lol-results-snapshot.mjs
       - name: Generate Dota schedule snapshot
         run: node scripts/generate-dota-schedule-snapshot.mjs
         env:

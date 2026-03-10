@@ -1,5 +1,6 @@
 import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl, parseTeamRoute } from "./routes.js?v=20260309c";
+import { buildRowDataProvenance, buildRowQualityNotice } from "./data-provenance.js?v=20260310a";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -1032,7 +1033,7 @@ function pastMatchRowMarkup(row, profile, apiBase) {
       <td>${opponentLabel}</td>
       <td class="${resultClass(row.result)}">${resultLabel(row)}</td>
       <td>${seriesScoreLabel(row)}</td>
-      <td>${row.tournament || "Unknown"}</td>
+      <td>${teamTableMetaMarkup(row)}</td>
       <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
     </tr>
   `;
@@ -1059,6 +1060,38 @@ function teamMatchDetailLink(row, apiBase, label = "Open Match") {
   }
 
   return `<a class="table-link" href="${matchDetailUrl(row, apiBase)}">${label}</a>`;
+}
+
+function teamTrustSignalsMarkup(row) {
+  const provenance = buildRowDataProvenance(row, {
+    fallbackTimestamp: row?.endAt || row?.startAt || null
+  });
+  const qualityNotice = buildRowQualityNotice(row);
+
+  if (!provenance.text && !qualityNotice.text) {
+    return "";
+  }
+
+  return `
+    <div class="team-match-trust">
+      ${provenance.text
+        ? `<p class="data-provenance-line ${provenance.tone} team-match-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
+        : ""}
+      ${qualityNotice.text
+        ? `<p class="data-quality-line ${qualityNotice.tone} team-match-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`
+        : ""}
+    </div>
+  `;
+}
+
+function teamTableMetaMarkup(row) {
+  const trustMarkup = teamTrustSignalsMarkup(row);
+  return `
+    <div class="team-table-meta">
+      <span>${escapeHtml(row.tournament || "Unknown")}</span>
+      ${trustMarkup}
+    </div>
+  `;
 }
 
 function teamMatchCard(row, profile, apiBase, options = {}) {
@@ -1100,8 +1133,9 @@ function teamMatchCard(row, profile, apiBase, options = {}) {
       </div>
       <div class="team-match-meta">
         <span>${dateTimeLabel(row.startAt)}</span>
-        <span>${row.tournament || "Unknown"}</span>
+        <span>${escapeHtml(row.tournament || "Unknown")}</span>
       </div>
+      ${teamTrustSignalsMarkup(row)}
     </article>
   `;
 }
@@ -1445,7 +1479,7 @@ function renderRecentMatches(profile, apiBase) {
                   <td class="${resultClass(row.result)}">${resultLabel(row)}</td>
                   <td>${seriesScoreLabel(row)}</td>
                   <td>${opponentLabel}</td>
-                  <td>${row.tournament || "Unknown"}</td>
+                  <td>${teamTableMetaMarkup(row)}</td>
                   <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
                 </tr>
               `;
@@ -1509,7 +1543,7 @@ function renderUpcomingMatches(profile, apiBase) {
                   <td><span class="pill ${statusPillClass(row.status)}">${row.status}</span></td>
                   <td>${opponentLabel}</td>
                   <td>BO${row.bestOf || 1}</td>
-                  <td>${row.tournament || "Unknown"}</td>
+                  <td>${teamTableMetaMarkup(row)}</td>
                   <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
                 </tr>
               `;
@@ -1732,7 +1766,7 @@ function renderHeadToHead(profile, apiBase) {
                       <td>${dateTimeLabel(row.startAt)}</td>
                       <td class="${resultClass(row.result)}">${resultLabel(row)}</td>
                       <td>${seriesScoreLabel(row)}</td>
-                      <td>${row.tournament || "Unknown"}</td>
+                      <td>${teamTableMetaMarkup(row)}</td>
                       <td><a class="table-link" href="${matchDetailUrl(row, apiBase)}">Open</a></td>
                     </tr>
                   `

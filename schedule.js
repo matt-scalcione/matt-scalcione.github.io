@@ -2,8 +2,9 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
 import {
   buildCollectionFallbackSummary,
-  buildRowDataProvenance
-} from "./data-provenance.js?v=20260309b";
+  buildRowDataProvenance,
+  buildRowQualityNotice
+} from "./data-provenance.js?v=20260310a";
 import {
   applySeo,
   buildBreadcrumbJsonLd,
@@ -1371,6 +1372,7 @@ function renderTable(container, rows, type) {
         opponentId: row.teams.left.id
       });
       const provenance = buildRowDataProvenance(row);
+      const qualityNotice = buildRowQualityNotice(row);
 
       return `
         <tr class="schedule-row schedule-row-${scheduleDisplayState(row, type)}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftName} vs ${rightName}">
@@ -1379,6 +1381,9 @@ function renderTable(container, rows, type) {
               <span class="schedule-time-label">${dateTimeCompact(row.startAt)}</span>
               ${provenance.text
                 ? `<span class="data-provenance-line ${provenance.tone} schedule-table-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</span>`
+                : ""}
+              ${qualityNotice.text
+                ? `<span class="data-quality-line ${qualityNotice.tone} schedule-table-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</span>`
                 : ""}
             </div>
           </td>
@@ -1418,6 +1423,7 @@ function renderTable(container, rows, type) {
               const leftSeriesScore = Number(row?.seriesScore?.left ?? 0);
               const rightSeriesScore = Number(row?.seriesScore?.right ?? 0);
               const provenance = buildRowDataProvenance(row);
+              const qualityNotice = buildRowQualityNotice(row);
               const leftScoreMarkup = showSeriesScore
                 ? `<span class="schedule-card-team-score">${leftSeriesScore}</span>`
                 : "";
@@ -1460,6 +1466,9 @@ function renderTable(container, rows, type) {
                   </div>
                   ${provenance.text
                     ? `<p class="data-provenance-line ${provenance.tone} schedule-card-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
+                    : ""}
+                  ${qualityNotice.text
+                    ? `<p class="data-quality-line ${qualityNotice.tone} schedule-card-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`
                     : ""}
                 </a>
               `;

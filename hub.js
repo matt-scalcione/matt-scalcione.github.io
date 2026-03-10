@@ -2,8 +2,9 @@ import { resolveInitialApiBase } from "./api-config.js";
 import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
 import {
   buildCollectionFallbackSummary,
-  buildRowDataProvenance
-} from "./data-provenance.js?v=20260309b";
+  buildRowDataProvenance,
+  buildRowQualityNotice
+} from "./data-provenance.js?v=20260310a";
 import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 import {
   applySeo,
@@ -439,6 +440,7 @@ function matchCard(row, type) {
         ? `${formatLabel(row?.bestOf)} · Starts ${dateTimeLabel(row?.startAt)}`
         : `Winner · ${shortTeamName(winnerName(row))}`;
   const provenance = buildRowDataProvenance(row);
+  const qualityNotice = buildRowQualityNotice(row);
 
   return `
     <article class="schedule-row-card hub-match-card schedule-${status}">
@@ -467,6 +469,9 @@ function matchCard(row, type) {
       </div>
       ${provenance.text
         ? `<p class="data-provenance-line ${provenance.tone} schedule-card-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
+        : ""}
+      ${qualityNotice.text
+        ? `<p class="data-quality-line ${qualityNotice.tone} schedule-card-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`
         : ""}
       <p class="meta-text"><a class="table-link" href="${detailUrl}">Open match</a></p>
     </article>

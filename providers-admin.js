@@ -178,6 +178,11 @@ function renderCurrentSummary(report) {
       meta: `${dota?.stratz?.liveRows || 0} live rows`
     },
     {
+      title: "Steam",
+      value: dota?.steam?.liveEnabled ? "Ready" : "Disabled",
+      meta: `${dota?.steam?.liveRows || 0} live rows`
+    },
+    {
       title: "OpenDota",
       value: String(dota?.openDota?.liveRows || 0),
       meta: `${dota?.openDota?.resultRows || 0} result rows`
@@ -222,6 +227,17 @@ function renderDotaSources(report) {
         providerStat("Detail Query", yesNoChip(Boolean(dota?.stratz?.detailQueryConfigured), "Configured", "Missing")),
         providerStat("Detail Mode", dota?.stratz?.detailContractMode || "n/a"),
         providerStat("Live Rows", String(dota?.stratz?.liveRows || 0))
+      ].join("")
+    },
+    {
+      name: "Steam Web API",
+      tone: "secondary",
+      status: coveragePill(dota?.steam?.cacheStatus || "disabled"),
+      body: [
+        providerStat("Key", yesNoChip(Boolean(dota?.steam?.keyConfigured), "Configured", "Missing")),
+        providerStat("Live Enabled", yesNoChip(Boolean(dota?.steam?.liveEnabled), "On", "Off")),
+        providerStat("App ID", String(dota?.steam?.appId || "n/a")),
+        providerStat("Live Rows", String(dota?.steam?.liveRows || 0))
       ].join("")
     },
     {

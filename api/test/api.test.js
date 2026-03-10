@@ -121,6 +121,9 @@ describe("team profile", () => {
     assert.equal(result.payload.data.id, "team_t1");
     assert.ok(Array.isArray(result.payload.data.recentMatches));
     assert.ok(result.payload.data.recentMatches.length <= 5);
+    if (result.payload.data.recentMatches.length > 0) {
+      assert.equal(typeof result.payload.data.recentMatches[0].quality?.score, "number");
+    }
   });
 
   it("validates team profile limit query", async () => {
@@ -239,6 +242,7 @@ describe("provider coverage", () => {
 
     assert.equal(result.statusCode, 200);
     assert.equal(result.payload.data.dota.stratz.provider, "stratz");
+    assert.equal(result.payload.data.dota.steam.provider, "steam");
     assert.equal(result.payload.data.dota.liquipedia.apiOnly, true);
   });
 });
