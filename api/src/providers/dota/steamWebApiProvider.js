@@ -97,6 +97,32 @@ function inferCompetitiveTier(tournamentName) {
   return 2;
 }
 
+function isGenericLeagueName(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return true;
+  }
+
+  return /^league\s+\d+$/i.test(normalized) || /^league$/i.test(normalized);
+}
+
+function isGenericTeamName(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return true;
+  }
+
+  const safe = normalized.toLowerCase();
+  return (
+    safe === "radiant" ||
+    safe === "dire" ||
+    safe === "team 1" ||
+    safe === "team 2" ||
+    safe === "unknown" ||
+    /^[.]+$/.test(normalized)
+  );
+}
+
 function hasTierAllowed(competitiveTier, allowedTiers) {
   if (!Array.isArray(allowedTiers) || allowedTiers.length === 0) {
     return true;
@@ -152,6 +178,10 @@ function leagueTierFromMap(leagueId, leagueMap, fallbackName = null) {
     }
   }
 
+  if (isGenericLeagueName(fallbackName)) {
+    return null;
+  }
+
   return inferCompetitiveTier(fallbackName);
 }
 
@@ -170,6 +200,9 @@ function normalizeLiveMatch(row, leagueMap) {
     leagueNameFromMap(leagueId, leagueMap, tournamentFallback) ||
     tournamentFallback ||
     (leagueId !== null ? `League ${leagueId}` : "Dota 2");
+  if (isGenericLeagueName(tournament)) {
+    return null;
+  }
   const competitiveTier = leagueTierFromMap(leagueId, leagueMap, tournament);
   const updatedAt = toIsoFromSeconds(
     toOptionalNumber(firstPresent(row?.last_update_time, row?.lastUpdateDateTime)),
@@ -189,6 +222,9 @@ function normalizeLiveMatch(row, leagueMap) {
     firstPresent(row?.dire_team, row?.direTeam, row?.dire_team_info) || {},
     "Dire"
   );
+  if (isGenericTeamName(radiantTeam.name) || isGenericTeamName(direTeam.name)) {
+    return null;
+  }
   const providerMatchId = String(seriesId || matchId);
 
   return {

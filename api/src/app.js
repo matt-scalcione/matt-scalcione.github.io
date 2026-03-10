@@ -219,8 +219,8 @@ function parseDateRange(urlObj) {
   };
 }
 
-function parseDotaTiers(urlObj) {
-  const raw = urlObj.searchParams.get("dota_tiers");
+function parseTierQuery(urlObj, queryName) {
+  const raw = urlObj.searchParams.get(queryName);
   if (!raw) {
     return { ok: true, value: undefined };
   }
@@ -233,7 +233,11 @@ function parseDotaTiers(urlObj) {
   if (tiers.length === 0 || tiers.some((tier) => tier < 1 || tier > 4)) {
     return {
       ok: false,
-      response: errorResponse(400, "bad_request", "dota_tiers must be a comma-separated list using 1,2,3,4.")
+      response: errorResponse(
+        400,
+        "bad_request",
+        `${queryName} must be a comma-separated list using 1,2,3,4.`
+      )
     };
   }
 
@@ -241,6 +245,14 @@ function parseDotaTiers(urlObj) {
     ok: true,
     value: Array.from(new Set(tiers))
   };
+}
+
+function parseDotaTiers(urlObj) {
+  return parseTierQuery(urlObj, "dota_tiers");
+}
+
+function parseLolTiers(urlObj) {
+  return parseTierQuery(urlObj, "lol_tiers");
 }
 
 function parseBooleanValue(value, fallback = false) {
@@ -450,11 +462,16 @@ export async function routeRequest({
     const game = urlObj.searchParams.get("game") || undefined;
     const region = urlObj.searchParams.get("region") || undefined;
     const followedOnly = truthy(urlObj.searchParams.get("followed_only"));
-    const parsedTiers = parseDotaTiers(urlObj);
+    const parsedDotaTiers = parseDotaTiers(urlObj);
+    const parsedLolTiers = parseLolTiers(urlObj);
     const userId = getUserId(normalizedHeaders, urlObj);
 
-    if (!parsedTiers.ok) {
-      return parsedTiers.response;
+    if (!parsedDotaTiers.ok) {
+      return parsedDotaTiers.response;
+    }
+
+    if (!parsedLolTiers.ok) {
+      return parsedLolTiers.response;
     }
 
     if (followedOnly && !userId) {
@@ -470,7 +487,8 @@ export async function routeRequest({
       region,
       followedOnly,
       userId,
-      dotaTiers: parsedTiers.value
+      dotaTiers: parsedDotaTiers.value,
+      lolTiers: parsedLolTiers.value
     });
 
     return okResponse(buildLiveMatchesResponse(rows));
@@ -484,14 +502,19 @@ export async function routeRequest({
     const game = urlObj.searchParams.get("game") || undefined;
     const region = urlObj.searchParams.get("region") || undefined;
     const dateRange = parseDateRange(urlObj);
-    const parsedTiers = parseDotaTiers(urlObj);
+    const parsedDotaTiers = parseDotaTiers(urlObj);
+    const parsedLolTiers = parseLolTiers(urlObj);
 
     if (!dateRange.ok) {
       return dateRange.response;
     }
 
-    if (!parsedTiers.ok) {
-      return parsedTiers.response;
+    if (!parsedDotaTiers.ok) {
+      return parsedDotaTiers.response;
+    }
+
+    if (!parsedLolTiers.ok) {
+      return parsedLolTiers.response;
     }
 
     const rows = await listSchedule({
@@ -499,7 +522,8 @@ export async function routeRequest({
       region,
       dateFrom: dateRange.value.dateFrom,
       dateTo: dateRange.value.dateTo,
-      dotaTiers: parsedTiers.value
+      dotaTiers: parsedDotaTiers.value,
+      lolTiers: parsedLolTiers.value
     });
 
     return okResponse(buildCollectionResponse(rows));
@@ -513,14 +537,19 @@ export async function routeRequest({
     const game = urlObj.searchParams.get("game") || undefined;
     const region = urlObj.searchParams.get("region") || undefined;
     const dateRange = parseDateRange(urlObj);
-    const parsedTiers = parseDotaTiers(urlObj);
+    const parsedDotaTiers = parseDotaTiers(urlObj);
+    const parsedLolTiers = parseLolTiers(urlObj);
 
     if (!dateRange.ok) {
       return dateRange.response;
     }
 
-    if (!parsedTiers.ok) {
-      return parsedTiers.response;
+    if (!parsedDotaTiers.ok) {
+      return parsedDotaTiers.response;
+    }
+
+    if (!parsedLolTiers.ok) {
+      return parsedLolTiers.response;
     }
 
     const rows = await listResults({
@@ -528,7 +557,8 @@ export async function routeRequest({
       region,
       dateFrom: dateRange.value.dateFrom,
       dateTo: dateRange.value.dateTo,
-      dotaTiers: parsedTiers.value
+      dotaTiers: parsedDotaTiers.value,
+      lolTiers: parsedLolTiers.value
     });
 
     return okResponse(buildCollectionResponse(rows));

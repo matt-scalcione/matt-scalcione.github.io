@@ -40,6 +40,44 @@ describe("normalizeSeriesScore", () => {
 });
 
 describe("buildSeriesSummaries", () => {
+  it("prefers tournament-name heuristics when league metadata under-ranks a premier event", () => {
+    const rows = [
+      {
+        match_id: 4101,
+        series_id: 8101,
+        series_type: 1,
+        leagueid: 177,
+        league_name: "PGL Wallachia 2026 Season 7",
+        start_time: 1_700_000_000,
+        duration: 2100,
+        radiant_team_id: 10,
+        dire_team_id: 20,
+        radiant_name: "Team Liquid",
+        dire_name: "Team Spirit",
+        radiant_win: true
+      },
+      {
+        match_id: 4102,
+        series_id: 8101,
+        series_type: 1,
+        leagueid: 177,
+        league_name: "PGL Wallachia 2026 Season 7",
+        start_time: 1_700_002_600,
+        duration: 2200,
+        radiant_team_id: 20,
+        dire_team_id: 10,
+        radiant_name: "Team Spirit",
+        dire_name: "Team Liquid",
+        radiant_win: false
+      }
+    ];
+
+    const summaries = buildSeriesSummaries(rows, new Map([[177, 2]]));
+
+    assert.equal(summaries.length, 1);
+    assert.equal(summaries[0].competitiveTier, 1);
+  });
+
   it("groups map rows into a completed BO3 series using series_id", () => {
     const rows = [
       {

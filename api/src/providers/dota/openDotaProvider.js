@@ -65,6 +65,42 @@ function parseLeagueTier(value) {
   return null;
 }
 
+function inferCompetitiveTier(tournamentName) {
+  const normalized = String(tournamentName || "").toLowerCase();
+  if (!normalized.trim()) {
+    return null;
+  }
+
+  const tier1Patterns = [
+    /dreamleague/,
+    /pgl wallachia/,
+    /esl one/,
+    /blast slam/,
+    /the international/,
+    /riyadh masters/,
+    /fissure universe/,
+    /betboom dacha/
+  ];
+  const tier2Patterns = [/cct /, /\bcct\b/, /epl/, /ultras dota pro league/, /americas open premier cup/];
+  const tier3Patterns = [/destiny league/, /space league/];
+  const tier4Patterns = [/party to play/];
+
+  if (tier1Patterns.some((pattern) => pattern.test(normalized))) return 1;
+  if (tier2Patterns.some((pattern) => pattern.test(normalized))) return 2;
+  if (tier3Patterns.some((pattern) => pattern.test(normalized))) return 3;
+  if (tier4Patterns.some((pattern) => pattern.test(normalized))) return 4;
+  return null;
+}
+
+function resolveCompetitiveTier(leagueId, leagueTierMap, tournamentName) {
+  const heuristicTier = inferCompetitiveTier(tournamentName);
+  if (typeof heuristicTier === "number") {
+    return heuristicTier;
+  }
+
+  return leagueTierMap.get(leagueId) ?? null;
+}
+
 function isProLiveLeagueMatch(row) {
   return (
     Number(row?.league_id || 0) > 0 &&
@@ -255,8 +291,8 @@ function normalizeLiveMatch(row, leagueTierMap) {
 
   const leagueId = Number(row?.league_id || 0);
   const seriesId = rowSeriesId(row);
-  const competitiveTier = leagueTierMap.get(leagueId) ?? null;
   const tournament = row?.league_name || `League ${leagueId}`;
+  const competitiveTier = resolveCompetitiveTier(leagueId, leagueTierMap, tournament);
   const providerMatchId = String(seriesId || matchId);
 
   return {
@@ -301,7 +337,8 @@ function normalizeResultMatch(row, leagueTierMap) {
     return null;
   }
 
-  const competitiveTier = leagueTierMap.get(leagueId) ?? null;
+  const tournament = row?.league_name || `League ${leagueId}`;
+  const competitiveTier = resolveCompetitiveTier(leagueId, leagueTierMap, tournament);
   const startSeconds = typeof row?.start_time === "number" ? row.start_time : null;
   const durationSeconds = typeof row?.duration === "number" ? row.duration : 0;
   const endSeconds = startSeconds ? startSeconds + durationSeconds : null;
@@ -316,7 +353,7 @@ function normalizeResultMatch(row, leagueTierMap) {
     competitiveTier,
     game: "dota2",
     region: "global",
-    tournament: row?.league_name || `League ${leagueId}`,
+    tournament,
     status: "completed",
     startAt: toIsoFromSeconds(startSeconds),
     endAt: toIsoFromSeconds(endSeconds, Date.now()),
@@ -433,7 +470,8 @@ function summarizeSeriesRows(rows = [], leagueTierMap = new Map()) {
     return null;
   }
 
-  const competitiveTier = leagueTierMap.get(leagueId) ?? null;
+  const tournament = rowLeagueName(first) || `League ${leagueId}`;
+  const competitiveTier = resolveCompetitiveTier(leagueId, leagueTierMap, tournament);
   const bestOf = normalizeSeriesType(first?.series_type);
   const winsNeeded = Math.floor(bestOf / 2) + 1;
   const leftTeam = rowRadiantTeam(first);
@@ -491,7 +529,7 @@ function summarizeSeriesRows(rows = [], leagueTierMap = new Map()) {
     competitiveTier,
     game: "dota2",
     region: "global",
-    tournament: rowLeagueName(first) || `League ${leagueId}`,
+    tournament,
     startAt: toIsoFromSeconds(startSeconds, Date.now()),
     updatedAt: toIsoFromSeconds(updatedSeconds || endSeconds || startSeconds, Date.now()),
     endAt: endSeconds ? toIsoFromSeconds(endSeconds, Date.now()) : null,
@@ -2456,7 +2494,8 @@ export function normalizeMatchDetail(
   }
 
   const leagueId = Number(payload?.leagueid || payload?.league_id || payload?.league?.leagueid || 0);
-  const competitiveTier = leagueTierMap.get(leagueId) ?? null;
+  const tournamentName = payload?.league?.name || payload?.league_name || payload?.leagueName || null;
+  const competitiveTier = resolveCompetitiveTier(leagueId, leagueTierMap, tournamentName);
   const radiantName = payload?.radiant_team?.name || payload?.radiant_name || "Radiant";
   const direName = payload?.dire_team?.name || payload?.dire_name || "Dire";
   const leftTeamId = String(

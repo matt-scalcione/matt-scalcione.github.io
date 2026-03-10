@@ -228,6 +228,38 @@ function regionFromLeagueSlug(leagueSlug) {
   return "global";
 }
 
+function inferLolCompetitiveTier(league = {}) {
+  const slug = String(league?.slug || "").toLowerCase();
+  const name = String(league?.name || "").toLowerCase();
+  const combined = `${slug} ${name}`;
+
+  const tier1Patterns = [
+    /\blck\b/,
+    /\blpl\b/,
+    /\blec\b/,
+    /\blta[\s_-]?north\b/,
+    /\blta[\s_-]?south\b/,
+    /\blcp\b/,
+    /\bmsi\b/,
+    /worlds?/,
+    /first stand/,
+    /international/
+  ];
+  const tier2Patterns = [
+    /emea masters/,
+    /americas cup/,
+    /\bnacl\b/,
+    /challengers korea/,
+    /academy league/
+  ];
+  const tier3Patterns = [/\bljl\b/, /\bvcs\b/, /\blco\b/, /\bpcs\b/, /\btcl\b/, /\blla\b/];
+
+  if (tier1Patterns.some((pattern) => pattern.test(combined))) return 1;
+  if (tier2Patterns.some((pattern) => pattern.test(combined))) return 2;
+  if (tier3Patterns.some((pattern) => pattern.test(combined))) return 3;
+  return 4;
+}
+
 function isMatchEvent(event) {
   return event?.type === "match" && (event?.match?.id || event?.id);
 }
@@ -245,6 +277,7 @@ export function normalizeMatchSummary(event) {
   const rightOutcome = String(rightTeam?.result?.outcome || "").toLowerCase();
   const league = event.league || {};
   const bestOf = Number(event?.match?.strategy?.count || 1);
+  const competitiveTier = inferLolCompetitiveTier(league);
   const status = statusFromState(
     resolveRiotEventState({
       eventState: event?.state,
@@ -261,6 +294,7 @@ export function normalizeMatchSummary(event) {
     game: "lol",
     region: regionFromLeagueSlug(league.slug),
     tournament: league.name || "LoL Esports",
+    competitiveTier,
     status,
     startAt: event.startTime || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -279,7 +313,11 @@ export function normalizeMatchSummary(event) {
         name: rightTeam.name || "Team 2"
       }
     },
-    keySignal: status === "live" ? "provider_live" : "provider_schedule"
+    keySignal: status === "live" ? "provider_live" : "provider_schedule",
+    source: {
+      provider: "riot",
+      leagueSlug: league.slug || null
+    }
   };
 
   if (leftOutcome === "win") {

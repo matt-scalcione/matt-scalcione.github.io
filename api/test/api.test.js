@@ -208,6 +208,15 @@ describe("schedule", () => {
 
     assert.equal(result.statusCode, 400);
   });
+
+  it("validates lol tier query on schedule", async () => {
+    const result = await routeRequest({
+      method: "GET",
+      url: "/v1/schedule?game=lol&lol_tiers=0,2"
+    });
+
+    assert.equal(result.statusCode, 400);
+  });
 });
 
 describe("results", () => {

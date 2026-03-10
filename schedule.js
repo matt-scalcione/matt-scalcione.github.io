@@ -607,13 +607,21 @@ function buildQuery() {
   const params = new URLSearchParams();
   const game = elements.gameSelect.value;
   const region = elements.regionInput.value.trim().toLowerCase();
-  const dotaTiers = elements.dotaTiersInput.value.trim();
+  const competitionTiers = elements.dotaTiersInput.value.trim();
   const dateFromIso = parseLocalInputToIso(elements.dateFromInput.value);
   const dateToIso = parseLocalInputToIso(elements.dateToInput.value);
 
   if (game) params.set("game", game);
   if (region) params.set("region", region);
-  if (dotaTiers && normalizeGameKey(game) !== "lol") params.set("dota_tiers", dotaTiers);
+  if (competitionTiers) {
+    const normalizedGame = normalizeGameKey(game);
+    if (!normalizedGame || normalizedGame === "dota2") {
+      params.set("dota_tiers", competitionTiers);
+    }
+    if (!normalizedGame || normalizedGame === "lol") {
+      params.set("lol_tiers", competitionTiers);
+    }
+  }
   if (dateFromIso) params.set("date_from", dateFromIso);
   if (dateToIso) params.set("date_to", dateToIso);
 
@@ -680,10 +688,8 @@ function applyScheduleRangePreset(rangeKey, options = {}) {
 }
 
 function syncScheduleFilterVisibility() {
-  const game = normalizeGameKey(elements.gameSelect?.value || "");
-  const showDotaTiers = game !== "lol";
   for (const field of elements.scheduleDotaOnlyFields || []) {
-    field.hidden = !showDotaTiers;
+    field.hidden = false;
   }
 }
 
@@ -1140,7 +1146,7 @@ function renderSlateLens(scheduleRows = [], resultRows = []) {
   if (game) chips.push(`<span class="lens-chip">${escapeHtml(gameLabel(game))}</span>`);
   if (region) chips.push(`<span class="lens-chip">${escapeHtml(region.toUpperCase())}</span>`);
   if (search) chips.push(`<span class="lens-chip">Search: ${escapeHtml(search)}</span>`);
-  if ((game === "dota2" || !game) && tiers) chips.push(`<span class="lens-chip">Tiers ${escapeHtml(tiers)}</span>`);
+  if (tiers) chips.push(`<span class="lens-chip">Tiers ${escapeHtml(tiers)}</span>`);
 
   elements.slateLensStrip.innerHTML = `
     <div class="lens-strip-shell">
@@ -1900,7 +1906,7 @@ function applyInitialUrlFilters() {
 function boot() {
   const apiBase = readApiBase();
   elements.apiBaseInput.value = apiBase;
-  elements.dotaTiersInput.value = "1,2,3,4";
+  elements.dotaTiersInput.value = "1,2";
   applyInitialUrlFilters();
   updateNav();
   setupControlsPanel();

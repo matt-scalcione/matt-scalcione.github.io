@@ -1,0 +1,1246 @@
+{
+  "generatedAt": "2026-03-10T20:14:38.074Z",
+  "count": 40,
+  "rows": [
+    {
+      "id": "lol_riot_116056873411008516",
+      "providerMatchId": "116056873411008516",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRN",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-10T23:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056873411008516",
+          "name": "Polar Squad"
+        },
+        "right": {
+          "id": "lol_right_116056873411008516",
+          "name": "Lyon Academy"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "north_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056873411008524",
+      "providerMatchId": "116056873411008524",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRN",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-10T23:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056873411008524",
+          "name": "G3V e-sports"
+        },
+        "right": {
+          "id": "lol_right_116056873411008524",
+          "name": "SDM Tigres"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "north_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056873411008468",
+      "providerMatchId": "116056873411008468",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRN",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-11T02:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056873411008468",
+          "name": "NCG Esports"
+        },
+        "right": {
+          "id": "lol_right_116056873411008468",
+          "name": "FUEGO"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "north_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056873411008484",
+      "providerMatchId": "116056873411008484",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRN",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-11T02:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056873411008484",
+          "name": "ICON Esports"
+        },
+        "right": {
+          "id": "lol_right_116056873411008484",
+          "name": "Zeu5 Esports"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "north_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936056",
+      "providerMatchId": "116130368700936056",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936056",
+          "name": "Frites Esports Club"
+        },
+        "right": {
+          "id": "lol_right_116130368700936056",
+          "name": "S2G Esports"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936080",
+      "providerMatchId": "116130368700936080",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936080",
+          "name": "Partizan Sangal"
+        },
+        "right": {
+          "id": "lol_right_116130368700936080",
+          "name": "Unicorns of Love Sexy Edition"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936100",
+      "providerMatchId": "116130368700936100",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936100",
+          "name": "Team Phantasma"
+        },
+        "right": {
+          "id": "lol_right_116130368700936100",
+          "name": "FN Esports"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936028",
+      "providerMatchId": "116130368700936028",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936028",
+          "name": "Barcząca Esports"
+        },
+        "right": {
+          "id": "lol_right_116130368700936028",
+          "name": "HMBLE"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936052",
+      "providerMatchId": "116130368700936052",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936052",
+          "name": "Otter Side"
+        },
+        "right": {
+          "id": "lol_right_116130368700936052",
+          "name": "Berlin International Gaming"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936076",
+      "providerMatchId": "116130368700936076",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936076",
+          "name": "The Bandits"
+        },
+        "right": {
+          "id": "lol_right_116130368700936076",
+          "name": "WLGaming"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936104",
+      "providerMatchId": "116130368700936104",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936104",
+          "name": "Eintracht Spandau"
+        },
+        "right": {
+          "id": "lol_right_116130368700936104",
+          "name": "BOMBA Team"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936032",
+      "providerMatchId": "116130368700936032",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-11T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936032",
+          "name": "3BL GALAXY ESPORTS"
+        },
+        "right": {
+          "id": "lol_right_116130368700936032",
+          "name": "French Flair"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916422556",
+      "providerMatchId": "116056974916422556",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-11T20:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916422556",
+          "name": "Volticons"
+        },
+        "right": {
+          "id": "lol_right_116056974916422556",
+          "name": "Malvinas Gaming"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916357004",
+      "providerMatchId": "116056974916357004",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-11T20:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916357004",
+          "name": "9z Globant"
+        },
+        "right": {
+          "id": "lol_right_116056974916357004",
+          "name": "Golden Lions"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916291384",
+      "providerMatchId": "116056974916291384",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-11T23:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916291384",
+          "name": "Tu Papá Esports"
+        },
+        "right": {
+          "id": "lol_right_116056974916291384",
+          "name": "The New Kings"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916356976",
+      "providerMatchId": "116056974916356976",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-11T23:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916356976",
+          "name": "Seven Dark"
+        },
+        "right": {
+          "id": "lol_right_116056974916356976",
+          "name": "Maze Gaming"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700870404",
+      "providerMatchId": "116130368700870404",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700870404",
+          "name": "Karmine Corp Blue"
+        },
+        "right": {
+          "id": "lol_right_116130368700870404",
+          "name": "Barça Esports"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936012",
+      "providerMatchId": "116130368700936012",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936012",
+          "name": "Witchcraft"
+        },
+        "right": {
+          "id": "lol_right_116130368700936012",
+          "name": "G2 NORD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700935964",
+      "providerMatchId": "116130368700935964",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700935964",
+          "name": "UCAM Esports Club"
+        },
+        "right": {
+          "id": "lol_right_116130368700935964",
+          "name": "Galions"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700935988",
+      "providerMatchId": "116130368700935988",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700935988",
+          "name": "Heretics Academy"
+        },
+        "right": {
+          "id": "lol_right_116130368700935988",
+          "name": "Arctic Pandas"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700870408",
+      "providerMatchId": "116130368700870408",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700870408",
+          "name": "DMG Esports"
+        },
+        "right": {
+          "id": "lol_right_116130368700870408",
+          "name": "BRUTE"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700935968",
+      "providerMatchId": "116130368700935968",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700935968",
+          "name": "Bushido Wildcats"
+        },
+        "right": {
+          "id": "lol_right_116130368700935968",
+          "name": "Vantex"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700935992",
+      "providerMatchId": "116130368700935992",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700935992",
+          "name": "NightBirds"
+        },
+        "right": {
+          "id": "lol_right_116130368700935992",
+          "name": "Colossal Gaming"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936016",
+      "providerMatchId": "116130368700936016",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-12T19:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936016",
+          "name": "BAAM Esports"
+        },
+        "right": {
+          "id": "lol_right_116130368700936016",
+          "name": "Lupus Esports"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916356992",
+      "providerMatchId": "116056974916356992",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-12T20:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916356992",
+          "name": "Seven Dark"
+        },
+        "right": {
+          "id": "lol_right_116056974916356992",
+          "name": "Golden Lions"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916291400",
+      "providerMatchId": "116056974916291400",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-12T20:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916291400",
+          "name": "Malvinas Gaming"
+        },
+        "right": {
+          "id": "lol_right_116056974916291400",
+          "name": "The New Kings"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916356988",
+      "providerMatchId": "116056974916356988",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-12T23:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916356988",
+          "name": "9z Globant"
+        },
+        "right": {
+          "id": "lol_right_116056974916356988",
+          "name": "Maze Gaming"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_116056974916356964",
+      "providerMatchId": "116056974916356964",
+      "game": "lol",
+      "region": "global",
+      "tournament": "LRS",
+      "competitiveTier": 4,
+      "status": "upcoming",
+      "startAt": "2026-03-12T23:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116056974916356964",
+          "name": "Volticons"
+        },
+        "right": {
+          "id": "lol_right_116056974916356964",
+          "name": "Tu Papá Esports"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "south_regional_league"
+      }
+    },
+    {
+      "id": "lol_riot_115740063459902689",
+      "providerMatchId": "115740063459902689",
+      "game": "lol",
+      "region": "jp",
+      "tournament": "LJL",
+      "competitiveTier": 3,
+      "status": "upcoming",
+      "startAt": "2026-03-13T08:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_115740063459902689",
+          "name": "VARREL YOUTH"
+        },
+        "right": {
+          "id": "lol_right_115740063459902689",
+          "name": "FENNEL"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "ljl-japan"
+      }
+    },
+    {
+      "id": "lol_riot_116017230763332808",
+      "providerMatchId": "116017230763332808",
+      "game": "lol",
+      "region": "global",
+      "tournament": "VCS",
+      "competitiveTier": 3,
+      "status": "upcoming",
+      "startAt": "2026-03-13T10:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116017230763332808",
+          "name": "Saigon 9Gaming"
+        },
+        "right": {
+          "id": "lol_right_116017230763332808",
+          "name": "Saigon MVKE Academy"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "vcs"
+      }
+    },
+    {
+      "id": "lol_riot_115740063459968257",
+      "providerMatchId": "115740063459968257",
+      "game": "lol",
+      "region": "jp",
+      "tournament": "LJL",
+      "competitiveTier": 3,
+      "status": "upcoming",
+      "startAt": "2026-03-13T11:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_115740063459968257",
+          "name": "Rising Gaming"
+        },
+        "right": {
+          "id": "lol_right_115740063459968257",
+          "name": "Inferno Drive Tokyo"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "ljl-japan"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936020",
+      "providerMatchId": "116130368700936020",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T13:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936020",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700936020",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700935996",
+      "providerMatchId": "116130368700935996",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T13:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700935996",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700935996",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700935972",
+      "providerMatchId": "116130368700935972",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T13:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700935972",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700935972",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700870412",
+      "providerMatchId": "116130368700870412",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T13:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700870412",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700870412",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116017230763398380",
+      "providerMatchId": "116017230763398380",
+      "game": "lol",
+      "region": "global",
+      "tournament": "VCS",
+      "competitiveTier": 3,
+      "status": "upcoming",
+      "startAt": "2026-03-13T13:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116017230763398380",
+          "name": "Saigon Warrior"
+        },
+        "right": {
+          "id": "lol_right_116017230763398380",
+          "name": "Saigon Dino"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "vcs"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936036",
+      "providerMatchId": "116130368700936036",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936036",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700936036",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936060",
+      "providerMatchId": "116130368700936060",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936060",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700936060",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936084",
+      "providerMatchId": "116130368700936084",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936084",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700936084",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    },
+    {
+      "id": "lol_riot_116130368700936108",
+      "providerMatchId": "116130368700936108",
+      "game": "lol",
+      "region": "eu",
+      "tournament": "EMEA Masters",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-13T16:00:00Z",
+      "updatedAt": "2026-03-10T20:14:38.073Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "lol_left_116130368700936108",
+          "name": "TBD"
+        },
+        "right": {
+          "id": "lol_right_116130368700936108",
+          "name": "TBD"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "source": {
+        "provider": "riot",
+        "leagueSlug": "emea_masters"
+      }
+    }
+  ]
+}

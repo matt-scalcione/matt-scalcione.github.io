@@ -1180,6 +1180,18 @@ function normalizeDotaTierInput(dotaTiers) {
   return valid.length ? Array.from(new Set(valid)) : defaultDotaTiers;
 }
 
+function normalizeLolTierInput(lolTiers) {
+  if (!Array.isArray(lolTiers) || lolTiers.length === 0) {
+    return [1, 2, 3, 4];
+  }
+
+  const valid = lolTiers
+    .map((tier) => Number.parseInt(String(tier), 10))
+    .filter((tier) => Number.isInteger(tier) && tier >= 1 && tier <= 4);
+
+  return valid.length ? Array.from(new Set(valid)) : [1, 2, 3, 4];
+}
+
 function stripFallbackDotaRows(rows) {
   return rows.filter((row) => row.game !== "dota2");
 }
@@ -1197,6 +1209,26 @@ function filterByDotaTiers(rows, dotaTiers) {
     }
 
     return !shouldHideFallbackDotaRows();
+  });
+}
+
+function filterByLolTiers(rows, lolTiers) {
+  if (!Array.isArray(lolTiers) || lolTiers.length === 0) {
+    return rows.slice();
+  }
+
+  const normalizedTiers = normalizeLolTierInput(lolTiers);
+
+  return rows.filter((row) => {
+    if (row.game !== "lol") {
+      return true;
+    }
+
+    if (typeof row.competitiveTier === "number") {
+      return normalizedTiers.includes(row.competitiveTier);
+    }
+
+    return false;
   });
 }
 
@@ -3371,7 +3403,8 @@ export async function listLiveMatches({
   region,
   followedOnly = false,
   userId = null,
-  dotaTiers
+  dotaTiers,
+  lolTiers
 }) {
   const [providerStratzLiveState, providerDotaLiveState, providerSteamLiveState, providerLolLiveState] = await Promise.all([
     loadProviderStratzLiveMatches(),
@@ -3417,6 +3450,7 @@ export async function listLiveMatches({
   }
 
   rows = filterByDotaTiers(rows, dotaTiers);
+  rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
   rows = sortByDateAscending(rows, "startAt");
 
@@ -3431,7 +3465,7 @@ export async function listLiveMatches({
   return annotateRowsWithQuality(rows);
 }
 
-export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }) {
+export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers, lolTiers }) {
   const [
     providerStratzLiveState,
     providerDotaLiveState,
@@ -3477,6 +3511,7 @@ export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }
   }
 
   rows = filterByDotaTiers(rows, dotaTiers);
+  rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
   rows = filterByDateRange(rows, {
     dateFrom,
@@ -3487,7 +3522,7 @@ export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers }
   return annotateRowsWithQuality(sortByDateAscending(rows, "startAt"));
 }
 
-export async function listResults({ game, region, dateFrom, dateTo, dotaTiers }) {
+export async function listResults({ game, region, dateFrom, dateTo, dotaTiers, lolTiers }) {
   const [providerDotaResultsState, providerLolResultsState] = await Promise.all([
     loadProviderResults(),
     loadProviderLolResults()
@@ -3500,6 +3535,7 @@ export async function listResults({ game, region, dateFrom, dateTo, dotaTiers })
   });
 
   rows = filterByDotaTiers(rows, dotaTiers);
+  rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
   rows = filterByDateRange(rows, {
     dateFrom,

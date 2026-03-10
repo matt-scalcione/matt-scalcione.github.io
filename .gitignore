@@ -21,3 +21,5 @@ api/.env.*
 !api/.env.example
 .runtime/
 assets/provider-snapshots/
+!assets/provider-snapshots/
+!assets/provider-snapshots/*.json

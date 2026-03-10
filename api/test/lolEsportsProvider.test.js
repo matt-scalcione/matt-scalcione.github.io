@@ -154,6 +154,34 @@ describe("normalizeMatchSummary", () => {
     assert.equal(summary.status, "live");
     assert.equal(summary.bestOf, 3);
   });
+
+  it("classifies major leagues as top-tier and attaches Riot source metadata", () => {
+    const summary = normalizeMatchSummary(
+      buildEvent({
+        id: "top_tier_lol"
+      })
+    );
+
+    assert.ok(summary);
+    assert.equal(summary.competitiveTier, 1);
+    assert.equal(summary.source?.provider, "riot");
+    assert.equal(summary.source?.leagueSlug, "lck");
+  });
+
+  it("classifies lower regional leagues below the default pro filter", () => {
+    const summary = normalizeMatchSummary({
+      ...buildEvent({
+        id: "regional_lol"
+      }),
+      league: {
+        name: "LRN",
+        slug: "lrn"
+      }
+    });
+
+    assert.ok(summary);
+    assert.equal(summary.competitiveTier, 4);
+  });
 });
 
 describe("LolEsportsProvider.fetchLiveMatches", () => {
