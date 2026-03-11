@@ -3902,6 +3902,37 @@ function applyGamePanelVisibility(match) {
     selectedState !== "unneeded";
   const showPulseCard = selectedState === "inProgress" && Boolean(match?.pulseCard);
   const showLiveAlerts = selectedState === "inProgress" && hasAnyTelemetry;
+  const showDataConfidence = Boolean(match?.dataConfidence);
+  const showAnalysis =
+    selectedState === "inProgress" ||
+    Boolean(match?.edgeMeter?.left && match?.edgeMeter?.right);
+  const showPace = Boolean(match?.tempoSnapshot);
+  const showKeysToWin = Array.isArray(match?.tacticalChecklist) && match.tacticalChecklist.length > 0;
+  const showStorylines = Array.isArray(match?.storylines) && match.storylines.length > 0;
+  const showObjectiveControl = Boolean(match?.objectiveControl);
+  const showObjectiveBreakdown = Boolean(match?.objectiveBreakdown?.left || match?.objectiveBreakdown?.right);
+  const showDraftBoard = Boolean(match?.teamDraft);
+  const showDraftDelta = Array.isArray(match?.draftDelta?.rows) && match.draftDelta.rows.length > 0;
+  const showEconomy = hasPlayerBoard;
+  const showLaneMatchups = Array.isArray(match?.laneMatchups) && match.laneMatchups.length > 0;
+  const showRoleDelta = Array.isArray(match?.roleMatchupDeltas) && match.roleMatchupDeltas.length > 0;
+  const showObjectiveRuns = Array.isArray(match?.objectiveRuns) && match.objectiveRuns.length > 0;
+  const showPerformers = Array.isArray(match?.topPerformers) && match.topPerformers.length > 0;
+  const showLiveTicker = selectedState === "inProgress" || hasRows(match?.liveTicker);
+  const showObjectiveTimeline = selectedState === "inProgress" || hasRows(match?.objectiveTimeline);
+  const showObjectiveForecast =
+    selectedState === "inProgress" ||
+    selectedState === "completed" ||
+    hasRows(match?.objectiveForecast);
+  const showPlayerDelta =
+    Array.isArray(match?.playerDeltaPanel?.players) &&
+    match.playerDeltaPanel.players.length > 0;
+  const showSignals =
+    selectedState === "inProgress" ||
+    hasRows(match?.combatBursts) ||
+    hasRows(match?.goldMilestones);
+  const showEconomyMilestones = hasRows(match?.goldMilestones);
+  const showKeyMoments = hasRows(match?.keyMoments);
 
   for (const panel of elements.gamePanels) {
     setPanelVisibility(panel, true);
@@ -3963,40 +3994,39 @@ function applyGamePanelVisibility(match) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
     }
-    const hasObjectiveControl = Boolean(match?.objectiveControl?.left || match?.objectiveControl?.right);
 
     setTargetVisibility(elements.gameCommandWrap, showGameCommand);
     setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
     setTargetVisibility(elements.playerTrackerWrap, hasPlayerBoard);
     setTargetVisibility(elements.liveFeedList, hasLiveFeedPanel);
-    setTargetVisibility(elements.objectiveControlWrap, hasObjectiveControl);
+    setTargetVisibility(elements.objectiveControlWrap, showObjectiveControl);
     setTargetVisibility(elements.pulseCard, showPulseCard);
     setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
     setTargetVisibility(elements.liveAlertsList, showLiveAlerts);
     return;
   }
 
-  setTargetVisibility(elements.dataConfidenceWrap, false);
-  setTargetVisibility(elements.edgeMeterWrap, false);
-  setTargetVisibility(elements.tempoSnapshotWrap, false);
-  setTargetVisibility(elements.tacticalChecklistWrap, false);
-  setTargetVisibility(elements.storylinesList, false);
-  setTargetVisibility(elements.objectiveControlWrap, false);
-  setTargetVisibility(elements.objectiveBreakdownWrap, false);
-  setTargetVisibility(elements.draftBoardWrap, false);
-  setTargetVisibility(elements.draftDeltaWrap, false);
-  setTargetVisibility(elements.economyBoardWrap, false);
-  setTargetVisibility(elements.laneMatchupsWrap, false);
-  setTargetVisibility(elements.roleDeltaWrap, false);
-  setTargetVisibility(elements.objectiveRunsWrap, false);
-  setTargetVisibility(elements.performersWrap, false);
-  setTargetVisibility(elements.liveTickerList, false);
-  setTargetVisibility(elements.objectiveTimelineList, false);
-  setTargetVisibility(elements.objectiveForecastWrap, false);
-  setTargetVisibility(elements.playerDeltaWrap, false);
-  setTargetVisibility(elements.combatBurstsList, false);
-  setTargetVisibility(elements.goldMilestonesList, false);
-  setTargetVisibility(elements.momentsList, false);
+  setTargetVisibility(elements.dataConfidenceWrap, showDataConfidence);
+  setTargetVisibility(elements.edgeMeterWrap, showAnalysis);
+  setTargetVisibility(elements.tempoSnapshotWrap, showPace);
+  setTargetVisibility(elements.tacticalChecklistWrap, showKeysToWin);
+  setTargetVisibility(elements.storylinesList, showStorylines);
+  setTargetVisibility(elements.objectiveControlWrap, showObjectiveControl);
+  setTargetVisibility(elements.objectiveBreakdownWrap, showObjectiveBreakdown);
+  setTargetVisibility(elements.draftBoardWrap, showDraftBoard);
+  setTargetVisibility(elements.draftDeltaWrap, showDraftDelta);
+  setTargetVisibility(elements.economyBoardWrap, showEconomy);
+  setTargetVisibility(elements.laneMatchupsWrap, showLaneMatchups);
+  setTargetVisibility(elements.roleDeltaWrap, showRoleDelta);
+  setTargetVisibility(elements.objectiveRunsWrap, showObjectiveRuns);
+  setTargetVisibility(elements.performersWrap, showPerformers);
+  setTargetVisibility(elements.liveTickerList, showLiveTicker);
+  setTargetVisibility(elements.objectiveTimelineList, showObjectiveTimeline);
+  setTargetVisibility(elements.objectiveForecastWrap, showObjectiveForecast);
+  setTargetVisibility(elements.playerDeltaWrap, showPlayerDelta);
+  setTargetVisibility(elements.combatBurstsList, showSignals);
+  setTargetVisibility(elements.goldMilestonesList, showEconomyMilestones);
+  setTargetVisibility(elements.momentsList, showKeyMoments);
   setTargetVisibility(elements.gameCommandWrap, showGameCommand);
   setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
   setTargetVisibility(elements.playerTrackerWrap, hasPlayerBoard);

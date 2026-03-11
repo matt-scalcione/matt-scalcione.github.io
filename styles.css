@@ -12674,6 +12674,17 @@ body.product-shell.match-page .panel {
   box-shadow: 0 14px 30px rgba(46, 30, 28, 0.04);
 }
 
+body.product-shell.match-page .panel.secondary-panel {
+  border-color: rgba(123, 109, 102, 0.06);
+  background:
+    linear-gradient(180deg, rgba(248, 245, 241, 0.96), rgba(243, 239, 235, 0.92));
+  box-shadow: 0 10px 22px rgba(46, 30, 28, 0.025);
+}
+
+body.product-shell.match-page .panel.secondary-panel::before {
+  opacity: 0.26;
+}
+
 body.product-shell.match-page .section-head {
   margin-bottom: 0.7rem;
   gap: 0.22rem;
@@ -12689,6 +12700,14 @@ body.product-shell.match-page .section-head .meta-text {
   font-size: 0.7rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+body.product-shell.match-page .panel.secondary-panel .section-head h2 {
+  color: #837872;
+}
+
+body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
+  color: #a29690;
 }
 
 body.product-shell.match-page .match-quick-nav {
