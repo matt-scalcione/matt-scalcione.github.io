@@ -2239,8 +2239,13 @@ function resolveMatchFocus(match) {
   if (Number.isInteger(requested)) {
     const activeGameNumber =
       (Number.isInteger(selectedFromNav) && selectedFromNav > 0 && selectedFromNav) ||
-      (Number.isInteger(selectedFromPayload) && selectedFromPayload > 0 && selectedFromPayload) ||
-      requested;
+      (Number.isInteger(selectedFromPayload) && selectedFromPayload > 0 && selectedFromPayload);
+    if (!Number.isInteger(activeGameNumber) || activeGameNumber <= 0) {
+      return {
+        viewMode: "series",
+        activeGameNumber: null
+      };
+    }
     return {
       viewMode: "game",
       activeGameNumber
@@ -10006,6 +10011,17 @@ async function loadMatch() {
 
     if (requestId !== uiState.activeLoadRequestId) {
       return;
+    }
+
+    const resolvedSelectedFromNav = Number(match?.gameNavigation?.selectedGameNumber);
+    const resolvedSelectedFromPayload = Number(match?.selectedGame?.number);
+    const resolvedRequestedGameNumber =
+      (Number.isInteger(resolvedSelectedFromNav) && resolvedSelectedFromNav > 0 && resolvedSelectedFromNav) ||
+      (Number.isInteger(resolvedSelectedFromPayload) && resolvedSelectedFromPayload > 0 && resolvedSelectedFromPayload) ||
+      null;
+    if (Number.isInteger(effectiveRequestedGameNumber) && !Number.isInteger(resolvedRequestedGameNumber)) {
+      uiState.requestedGameFallback = effectiveRequestedGameNumber;
+      effectiveRequestedGameNumber = null;
     }
 
     uiState.requestedGameNumber = effectiveRequestedGameNumber;
