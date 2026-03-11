@@ -3070,7 +3070,7 @@ function renderGameExplorer(match, apiBase) {
   const currentLiveCallout = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
     ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `LIVE NOW · G${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
     : "";
-  for (const game of playedOrLiveGames) {
+  for (const game of availableGames) {
     focusItems.push({
       key: `game:${game.number}`,
       href: detailUrlForGame(match.id, apiBase, game.number),
@@ -3087,25 +3087,38 @@ function renderGameExplorer(match, apiBase) {
   const previousFocus = currentFocusIndex > 0 ? focusItems[currentFocusIndex - 1] : null;
   const nextFocus = currentFocusIndex < focusItems.length - 1 ? focusItems[currentFocusIndex + 1] : null;
 
-  const navPills = focusItems
-    .map((item) => {
-      if (item.key === "series") {
-        return buildGameNavPill({
-          href: item.href,
-          label: item.label,
-          state: seriesNavPillState(match),
-          selected: !isGameMode
-        });
-      }
-
-      const game = item.game;
+  const desktopNavPills = [
+    buildGameNavPill({
+      href: seriesHref,
+      label: compact ? "S" : "Series",
+      state: seriesNavPillState(match),
+      selected: !isGameMode
+    }),
+    ...playedOrLiveGames.map((game) => {
       const isCurrentLiveGame =
         match.status === "live" &&
         Number.isInteger(liveGameNumber) &&
         liveGameNumber === game.number;
       return buildGameNavPill({
-        href: item.href,
-        label: item.label,
+        href: detailUrlForGame(match.id, apiBase, game.number),
+        label: compact ? `G${game.number}` : `Game ${game.number}`,
+        state: game?.state,
+        selected: isGameMode && activeGameNumber === game.number,
+        currentLive: isCurrentLiveGame
+      });
+    })
+  ].join("");
+
+  const compactNavPills = availableGames
+    .map((item) => {
+      const game = item;
+      const isCurrentLiveGame =
+        match.status === "live" &&
+        Number.isInteger(liveGameNumber) &&
+        liveGameNumber === game.number;
+      return buildGameNavPill({
+        href: detailUrlForGame(match.id, apiBase, game.number),
+        label: `G${game.number}`,
         state: game?.state,
         selected: isGameMode && activeGameNumber === game.number,
         currentLive: isCurrentLiveGame
@@ -3140,7 +3153,7 @@ function renderGameExplorer(match, apiBase) {
     ? `
       <div class="game-nav-stepper">
         ${buildGameStepControl({ href: previousFocus?.href || "", direction: "prev", disabled: !previousFocus })}
-        <div class="game-pill-row">${navPills}</div>
+        <div class="game-pill-row">${compactNavPills}</div>
         ${buildGameStepControl({ href: nextFocus?.href || "", direction: "next", disabled: !nextFocus })}
       </div>
     `
@@ -3151,7 +3164,7 @@ function renderGameExplorer(match, apiBase) {
     ${currentLiveCallout}
     ${Number.isInteger(uiState.requestedGameFallback) ? `<p class="meta-text">Requested Game ${uiState.requestedGameFallback} could not be loaded.</p>` : ""}
     ${nav.requestedMissing ? `<p class="meta-text">Requested Game ${nav.requestedGameNumber} not found.</p>` : ""}
-    ${compact ? compactStepper : navPills ? `<div class="game-pill-row">${navPills}</div>` : ""}
+    ${compact ? compactStepper : desktopNavPills ? `<div class="game-pill-row">${desktopNavPills}</div>` : ""}
   `;
 
   if (elements.feedTeamFilter) {
