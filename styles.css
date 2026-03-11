@@ -3818,6 +3818,13 @@ button.ghost,
   background: rgba(183, 70, 50, 0.08);
 }
 
+.completed-result-story {
+  display: grid;
+  gap: 0.3rem;
+  padding-top: 0.52rem;
+  border-top: 1px solid rgba(95, 132, 170, 0.18);
+}
+
 .completed-result-kicker,
 .completed-result-title {
   margin: 0;
@@ -11177,6 +11184,11 @@ body.product-shell .match-quick-nav {
 
   body.product-shell.match-page .series-final-side {
     padding: 0.72rem 0.68rem;
+  }
+
+  body.product-shell.match-page .series-final-center-score,
+  body.product-shell.match-page .series-final-center-copy {
+    display: none;
   }
 }
 

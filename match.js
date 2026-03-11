@@ -167,7 +167,8 @@ const MOBILE_SECTION_HEADINGS = {
   "Series Comparison": { icon: "SC", short: "Series Stats" },
   "Series Player Trends": { icon: "TR", short: "Trends" },
   "Selected Game Recap": { icon: "RC", short: "Game Recap" },
-  "Final Recap": { icon: "RC", short: "Recap" }
+  "Final Recap": { icon: "RC", short: "Recap" },
+  "Closing Stats": { icon: "ST", short: "Stats" }
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
@@ -183,7 +184,7 @@ const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
     "Team Form",
     "Head-To-Head"
   ]),
-  game: new Set(["Selected Game Recap", "Live Feed", "Player Board", "What Matters Now", "Risk Watch"])
+  game: new Set(["Selected Game Recap", "Closing Stats", "Live Feed", "Player Board", "What Matters Now", "Risk Watch"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -1156,7 +1157,7 @@ function applyGameStateSectionTitles(match) {
   const selectedState = String(match?.selectedGame?.state || "");
   if (selectedState === "completed") {
     setPanelHeadingTitleByTargetId("leadTrendWrap", "Game Story");
-    setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Final Recap");
+    setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Closing Stats");
     setPanelHeadingTitleByTargetId("playerTrackerWrap", "Player Box Score");
   }
 
@@ -2858,6 +2859,165 @@ function gameContextInfoCard(label, value, note = null) {
   `;
 }
 
+function formatSeriesSideLabel(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized ? normalized.toUpperCase() : null;
+}
+
+function winningSideLabelForSeriesGame(match, game) {
+  if (!game || !match?.teams?.left || !match?.teams?.right) {
+    return null;
+  }
+
+  const winnerName = resolveSeriesGameWinnerName(game, match);
+  const sideInfo = game?.sideInfo || {};
+  if (winnerName === match.teams.left.name) {
+    return formatSeriesSideLabel(sideInfo.leftSide);
+  }
+  if (winnerName === match.teams.right.name) {
+    return formatSeriesSideLabel(sideInfo.rightSide);
+  }
+  return null;
+}
+
+function buildCompletedSeriesSummaryCards(match) {
+  const games = (Array.isArray(match?.seriesGames) ? match.seriesGames : [])
+    .filter((game) => game?.state === "completed")
+    .slice()
+    .sort((left, right) => Number(left?.number || 0) - Number(right?.number || 0));
+  if (!games.length) {
+    return "";
+  }
+
+  const overallWinner = winnerTeamName(match);
+  const bestOf = Math.max(1, Number(match?.bestOf || games.length || 1));
+  const winsNeeded = Math.floor(bestOf / 2) + 1;
+  const durationGames = games.filter((game) => Number.isFinite(Number(game?.durationMinutes)) && Number(game.durationMinutes) > 0);
+  const averageDuration =
+    durationGames.length > 0
+      ? durationGames.reduce((sum, game) => sum + Number(game.durationMinutes || 0), 0) / durationGames.length
+      : null;
+  const longestGame =
+    durationGames.length > 0
+      ? durationGames.reduce((best, game) => (Number(game.durationMinutes || 0) > Number(best.durationMinutes || 0) ? game : best), durationGames[0])
+      : null;
+  const shortestGame =
+    durationGames.length > 0
+      ? durationGames.reduce((best, game) => (Number(game.durationMinutes || 0) < Number(best.durationMinutes || 0) ? game : best), durationGames[0])
+      : null;
+  const firstWinner = games.find((game) => resolveSeriesGameWinnerName(game, match)) || null;
+  const mapPath = games
+    .map((game) => {
+      const winner = resolveSeriesGameWinnerName(game, match);
+      return winner ? `G${game.number} ${scoreboardTeamName(winner)}` : null;
+    })
+    .filter(Boolean);
+
+  let leftWins = 0;
+  let rightWins = 0;
+  let clincher = null;
+  for (const game of games) {
+    const winner = resolveSeriesGameWinnerName(game, match);
+    if (winner === match?.teams?.left?.name) {
+      leftWins += 1;
+      if (!clincher && overallWinner === winner && leftWins >= winsNeeded) {
+        clincher = game;
+      }
+    } else if (winner === match?.teams?.right?.name) {
+      rightWins += 1;
+      if (!clincher && overallWinner === winner && rightWins >= winsNeeded) {
+        clincher = game;
+      }
+    }
+  }
+
+  const sideCounts = new Map();
+  for (const game of games) {
+    const sideLabel = winningSideLabelForSeriesGame(match, game);
+    if (!sideLabel) {
+      continue;
+    }
+    sideCounts.set(sideLabel, Number(sideCounts.get(sideLabel) || 0) + 1);
+  }
+  const sideEntries = [...sideCounts.entries()].sort((left, right) => Number(right[1]) - Number(left[1]));
+  const sideEntryTotal = sideEntries.reduce((sum, [, count]) => sum + count, 0);
+  const sideWinsValue =
+    sideEntries.length > 0
+      ? sideEntries.map(([label, count]) => `${label} ${count}`).join(" · ")
+      : null;
+
+  const cards = [];
+  if (clinch) {
+    cards.push(
+      seriesInfoCard(
+        "Clincher",
+        `G${clinch.number}`,
+        `${overallWinner ? scoreboardTeamName(overallWinner) : "Series winner"} · ${durationLabelFromMinutes(clinch.durationMinutes)}`
+      )
+    );
+  }
+
+  if (averageDuration !== null) {
+    cards.push(
+      seriesInfoCard(
+        "Avg Map",
+        durationLabelFromMinutes(averageDuration),
+        `${games.length} completed map${games.length === 1 ? "" : "s"}`
+      )
+    );
+  }
+
+  if (longestGame) {
+    cards.push(
+      seriesInfoCard(
+        "Longest",
+        `G${longestGame.number}`,
+        durationLabelFromMinutes(longestGame.durationMinutes)
+      )
+    );
+  }
+
+  if (shortestGame) {
+    cards.push(
+      seriesInfoCard(
+        "Fastest",
+        `G${shortestGame.number}`,
+        durationLabelFromMinutes(shortestGame.durationMinutes)
+      )
+    );
+  }
+
+  if (firstWinner) {
+    cards.push(
+      seriesInfoCard(
+        "Game 1",
+        scoreboardTeamName(resolveSeriesGameWinnerName(firstWinner, match) || "TBD"),
+        "Opened the series"
+      )
+    );
+  }
+
+  if (sideWinsValue) {
+    cards.push(
+      seriesInfoCard(
+        "Side Wins",
+        sideWinsValue,
+        `${sideEntryTotal} map${sideEntryTotal === 1 ? "" : "s"} with side data`
+      )
+    );
+  } else if (mapPath.length) {
+    cards.push(
+      seriesInfoCard(
+        "Map Path",
+        mapPath.join(" · "),
+        `${games.length} completed map${games.length === 1 ? "" : "s"}`
+      )
+    );
+  }
+
+  return cards.join("");
+}
+
 function renderGameExplorer(match, apiBase) {
   const nav = match.gameNavigation;
   const selected = match.selectedGame;
@@ -3094,7 +3254,6 @@ function renderGameExplorer(match, apiBase) {
     }
 
     if (match.status === "completed") {
-      const winnerShort = winner ? displayTeamName(winner) : "TBD";
       const leftWinner =
         match?.winnerTeamId === match?.teams?.left?.id || winner === match?.teams?.left?.name;
       const rightWinner =
@@ -3107,6 +3266,7 @@ function renderGameExplorer(match, apiBase) {
         match.patch ? `Patch ${match.patch}` : null,
         `${completedMaps} maps played`
       ].filter(Boolean);
+      const seriesSummaryCards = buildCompletedSeriesSummaryCards(match);
       elements.gameContextWrap.innerHTML = `
         <article class="game-context-card none series-context-card completed-series-card">
           <div class="game-context-top">
@@ -3115,7 +3275,7 @@ function renderGameExplorer(match, apiBase) {
           <article class="series-context-hero result ${winnerTone}">
             <div class="series-final-status-row">
               <p class="series-final-kicker">Final result</p>
-              <span class="series-final-stamp">${winnerShort !== "TBD" ? `${winnerShort} closed it out` : "Series complete"}</span>
+              <span class="series-final-stamp">Series complete</span>
             </div>
             <div class="series-final-scoreboard">
               <div class="series-final-side left ${leftWinner ? "winner" : "loser"}">
@@ -3129,7 +3289,6 @@ function renderGameExplorer(match, apiBase) {
               <div class="series-final-center">
                 <span class="series-final-center-mark">Series closed</span>
                 <strong class="series-final-center-score">${finalScoreLabel}</strong>
-                <p class="series-final-center-copy">${winnerShort !== "TBD" ? `${winnerShort} finished on top` : matchupLabel}</p>
                 <p class="series-final-center-meta">${completedMaps} maps complete · Started ${kickoffDate}</p>
               </div>
               <div class="series-final-side right ${rightWinner ? "winner" : "loser"}">
@@ -3145,16 +3304,7 @@ function renderGameExplorer(match, apiBase) {
           <div class="series-context-tags">
             ${completedHeroTags.map((tag) => `<span class="series-context-tag">${tag}</span>`).join("")}
           </div>
-          <div class="series-context-grid">
-            ${seriesInfoCard("Final", finalScoreLabel)}
-            ${seriesInfoCard("Winner", winnerShort)}
-            ${seriesInfoCard("Matchup", matchupLabel)}
-            ${seriesInfoCard("Format", formatLabel)}
-            ${seriesInfoCard("Tournament", tournamentName)}
-            ${seriesInfoCard("Maps Played", String(completedMaps))}
-            ${seriesInfoCard("Kickoff", `${kickoffDate} · ${kickoffTime}`)}
-            ${seriesInfoCard("Patch", match.patch || "unknown")}
-          </div>
+          ${seriesSummaryCards ? `<div class="series-context-grid">${seriesSummaryCards}</div>` : ""}
         </article>
       `;
       return;
@@ -3301,7 +3451,6 @@ function renderGameExplorer(match, apiBase) {
     const rightGold = Number(right.gold);
     const hasGold = Number.isFinite(leftGold) && Number.isFinite(rightGold);
     const finalKills = `${left.kills ?? 0} - ${right.kills ?? 0}`;
-    const finalTowers = `${left.towers ?? 0} - ${right.towers ?? 0}`;
     const objectiveSummary = objectiveSummaryLine(match, selected.snapshot);
     const objectives = objectiveSummary.primary.replace(/ · /g, " · ");
     const completedStory = buildCompletedGameStory(match);
@@ -3325,20 +3474,16 @@ function renderGameExplorer(match, apiBase) {
       : "";
     const completedStoryMarkup = completedStory
       ? `
-        <article class="completed-story-card">
-          <div class="completed-story-head">
-            <div>
-              <p class="tempo-label">Game Story</p>
-              <p class="completed-story-title">${completedStory.headline}</p>
-            </div>
-          </div>
+        <div class="completed-result-story">
+          <p class="tempo-label">Game Story</p>
+          <p class="completed-story-title">${completedStory.headline}</p>
           <p class="meta-text">${completedStory.summary}</p>
           <div class="completed-story-pills">
             <span class="completed-story-pill">${completedStory.peakLeadLabel}</span>
             ${completedStory.peakLeadNote ? `<span class="completed-story-pill">${completedStory.peakLeadNote}</span>` : ""}
             ${completedStory.turningPointLabel ? `<span class="completed-story-pill">${completedStory.turningPointLabel}</span>` : ""}
           </div>
-        </article>
+        </div>
       `
       : "";
 
@@ -3354,18 +3499,14 @@ function renderGameExplorer(match, apiBase) {
             <p class="completed-result-title">${winnerShort} won Game ${selected.number}</p>
             <p class="meta-text">${finalKills} kills · ${duration} · ${sideLabel}</p>
           </div>
+          ${completedStoryMarkup}
         </article>
         <div class="game-context-grid">
-          ${gameContextInfoCard("Winner", winnerShort)}
-          ${gameContextInfoCard("Kills", finalKills)}
-          ${gameContextInfoCard("Towers", finalTowers)}
           ${gameContextInfoCard("Objectives", objectives, objectiveSummary.secondary)}
           ${gameContextInfoCard("Gold", hasGold ? `${formatNumber(leftGold)} - ${formatNumber(rightGold)}` : "n/a")}
           ${gameContextInfoCard("Started", startedLabel)}
-          ${gameContextInfoCard("Sides", sideLabel)}
           ${gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine)}
         </div>
-        ${completedStoryMarkup}
         ${spotlightMarkup}
         ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Open VOD / Stream</a>` : ""}
         ${watchOptions.length
@@ -8012,6 +8153,210 @@ function recapCard(label, value, note = null) {
   `;
 }
 
+function eventClockLabel(match, at, gameClockSeconds = null) {
+  if (Number.isFinite(gameClockSeconds)) {
+    return formatGameClock(gameClockSeconds);
+  }
+
+  const eventTs = parseIsoTimestamp(at);
+  const anchor = resolveFeedTimelineAnchor(match, []);
+  if (Number.isFinite(eventTs) && Number.isFinite(anchor.startTs)) {
+    const deltaSeconds = Math.max(0, Math.round((eventTs - anchor.startTs) / 1000));
+    return `${anchor.estimated ? "~" : ""}${formatGameClock(deltaSeconds)}`;
+  }
+
+  return at ? dateTimeCompact(at) : "Time n/a";
+}
+
+function teamShortNameForSide(match, side) {
+  if (side === "left") {
+    return scoreboardTeamName(match?.teams?.left?.name || "Left");
+  }
+  if (side === "right") {
+    return scoreboardTeamName(match?.teams?.right?.name || "Right");
+  }
+  return "Map";
+}
+
+function completedGameFeedRows(match) {
+  return enrichFeedRowsWithState(match, feedRowsWithGameClock(match, buildUnifiedFeed(match)).rows)
+    .slice()
+    .sort((left, right) => Number(left?.eventTs || 0) - Number(right?.eventTs || 0));
+}
+
+function buildCompletedObjectiveRecapCard(label, row, match) {
+  if (!row) {
+    return null;
+  }
+
+  return recapCard(
+    label,
+    teamShortNameForSide(match, row.team),
+    `${eventClockLabel(match, row.at, row.gameClockSeconds)} · ${row.title}`
+  );
+}
+
+function extractBurstScoreSummary(summary) {
+  const text = String(summary || "");
+  const normalized = text.toLowerCase();
+  if (!normalized.includes("score")) {
+    return null;
+  }
+
+  const match = text.match(/(\d+)\s*-\s*(\d+)/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    left: Number(match[1]),
+    right: Number(match[2])
+  };
+}
+
+function buildCompletedGameKillRaceCard(match, threshold = 10) {
+  const bursts = (Array.isArray(match?.combatBursts) ? match.combatBursts : [])
+    .slice()
+    .sort((left, right) => parseTimestamp(left?.occurredAt) - parseTimestamp(right?.occurredAt));
+
+  for (const burst of bursts) {
+    const score = extractBurstScoreSummary(burst?.summary);
+    if (!score) {
+      continue;
+    }
+
+    let side = null;
+    if (score.left >= threshold && score.right < threshold) {
+      side = "left";
+    } else if (score.right >= threshold && score.left < threshold) {
+      side = "right";
+    } else if (score.left >= threshold && score.right >= threshold) {
+      side = burst?.team === "left" || burst?.team === "right" ? burst.team : null;
+    }
+
+    if (!side && score.left < threshold && score.right < threshold) {
+      continue;
+    }
+
+    return recapCard(
+      `First to ${threshold}`,
+      side ? teamShortNameForSide(match, side) : `${score.left}-${score.right}`,
+      `${eventClockLabel(match, burst?.occurredAt)} · score ${score.left}-${score.right}`
+    );
+  }
+
+  return null;
+}
+
+function buildCompletedGameDetailCards(match) {
+  const feedRows = completedGameFeedRows(match);
+  const objectiveRows = feedRows.filter((row) => row.bucket === "objective" && row.team);
+  const firstObjective = objectiveRows[0] || null;
+  const firstBaron = objectiveRows.find((row) => row.objectiveKey === "baron") || null;
+  const firstTower = objectiveRows.find((row) => /tower/i.test(String(row?.title || ""))) || null;
+  const firstInhibitor =
+    objectiveRows.find((row) =>
+      normalizeGameKey(match?.game) === "dota2"
+        ? /barracks|rax/i.test(String(row?.title || ""))
+        : /inhibitor/i.test(String(row?.title || ""))
+    ) || null;
+  const closingObjective = objectiveRows.length ? objectiveRows[objectiveRows.length - 1] : null;
+  const swingRows = feedRows.filter(
+    (row) => row.bucket === "swing" && Number.isFinite(Math.abs(Number(row?.swingDescriptor?.value || 0))) && Math.abs(Number(row?.swingDescriptor?.value || 0)) >= 120
+  );
+  const biggestSwing = swingRows.reduce((best, row) => {
+    if (!best) {
+      return row;
+    }
+    return Math.abs(Number(row?.swingDescriptor?.value || 0)) > Math.abs(Number(best?.swingDescriptor?.value || 0)) ? row : best;
+  }, null);
+  const biggestFight = (Array.isArray(match?.combatBursts) ? match.combatBursts : []).reduce((best, row) => {
+    if (!best) {
+      return row;
+    }
+    const bestKills = Number(best?.kills || 0);
+    const nextKills = Number(row?.kills || 0);
+    if (nextKills !== bestKills) {
+      return nextKills > bestKills ? row : best;
+    }
+    return parseTimestamp(row?.occurredAt) > parseTimestamp(best?.occurredAt) ? row : best;
+  }, null);
+  const completedStory = buildCompletedGameStory(match);
+  const terms = objectiveTerminology(match);
+  const cards = [];
+  const seenKeys = new Set();
+  const pushCard = (key, markup) => {
+    if (!markup || seenKeys.has(key)) {
+      return;
+    }
+    seenKeys.add(key);
+    cards.push(markup);
+  };
+
+  if (firstObjective) {
+    pushCard(`event:${firstObjective.eventId || firstObjective.id || "first_objective"}`, buildCompletedObjectiveRecapCard("First Objective", firstObjective, match));
+  }
+  if (firstBaron) {
+    pushCard(`event:${firstBaron.eventId || firstBaron.id || "first_baron"}`, buildCompletedObjectiveRecapCard(`First ${terms.baronSingle}`, firstBaron, match));
+  }
+  if (firstTower) {
+    pushCard(`event:${firstTower.eventId || firstTower.id || "first_tower"}`, buildCompletedObjectiveRecapCard("First Tower", firstTower, match));
+  }
+  if (firstInhibitor) {
+    pushCard(
+      `event:${firstInhibitor.eventId || firstInhibitor.id || "first_inhibitor"}`,
+      buildCompletedObjectiveRecapCard(
+        normalizeGameKey(match?.game) === "dota2" ? "First Barracks" : "First Inhibitor",
+        firstInhibitor,
+        match
+      )
+    );
+  }
+
+  pushCard("kill_race_10", buildCompletedGameKillRaceCard(match, 10));
+
+  if (biggestFight && Number(biggestFight?.kills || 0) > 0) {
+    pushCard(
+      `fight:${biggestFight.id || "largest"}`,
+      recapCard(
+        "Biggest Fight",
+        `${Number(biggestFight.kills || 0)} kills`,
+        `${eventClockLabel(match, biggestFight?.occurredAt)} · ${biggestFight.title}`
+      )
+    );
+  }
+
+  if (biggestSwing) {
+    pushCard(
+      `swing:${biggestSwing.eventId || biggestSwing.id || "largest"}`,
+      recapCard(
+        "Biggest Swing",
+        biggestSwing.swingDescriptor?.label || biggestSwing.leadDescriptor?.label || "Swing",
+        `${eventClockLabel(match, biggestSwing.at, biggestSwing.gameClockSeconds)} · ${biggestSwing.title}`
+      )
+    );
+  }
+
+  if (closingObjective) {
+    pushCard(
+      `event:${closingObjective.eventId || closingObjective.id || "closing_objective"}`,
+      buildCompletedObjectiveRecapCard("Closing Objective", closingObjective, match)
+    );
+  }
+
+  if (completedStory?.peakLeadLabel) {
+    pushCard("story_peak_lead", recapCard("Peak Lead", completedStory.peakLeadLabel, completedStory.peakLeadNote || null));
+  }
+  if (completedStory?.turningPointLabel) {
+    pushCard(
+      "story_turning_point",
+      recapCard("Turning Point", completedStory.turningPointLabel, completedStory.turningPointNote || null)
+    );
+  }
+
+  return cards.slice(0, 6);
+}
+
 function selectedGameHasZeroSnapshot(selectedGame) {
   const snapshot = selectedGame?.snapshot || {};
   const left = snapshot.left || {};
@@ -8273,25 +8618,14 @@ function renderSelectedGameRecap(match) {
   const tips = Array.isArray(selectedGame.tips) ? selectedGame.tips : [];
 
   if (selectedGame.state === "completed") {
-    const winnerShort = winnerName ? displayTeamName(winnerName) : "TBD";
-    const objectiveSummary = objectiveSummaryLine(match, snapshot);
-    const completedStory = buildCompletedGameStory(match);
-    const recapCards = [
-      recapCard("Winner", winnerShort),
-      recapCard("Duration", duration),
-      recapCard("Peak Lead", completedStory?.peakLeadLabel || "n/a", completedStory?.peakLeadNote || null),
-      recapCard("Turning Point", completedStory?.turningPointLabel || "n/a", completedStory?.turningPointNote || null),
-      recapCard("Objectives", objectiveSummary.primary, objectiveSummary.secondary),
-      recapCard("Gold", hasGold ? `${formatNumber(leftGold)} : ${formatNumber(rightGold)}` : "n/a", hasGold ? `Diff ${signed(Math.round(goldDiff))}` : "No gold totals")
-    ];
+    const detailCards = buildCompletedGameDetailCards(match);
 
     elements.selectedGameRecapWrap.innerHTML = `
-      <article class="recap-note recap-story-note">
-        <p class="tempo-label">Final Recap</p>
-        <p class="recap-story-title">${completedStory?.headline || `${winnerShort} closed out Game ${selectedGame.number}`}</p>
-        <p class="meta-text">${completedStory?.summary || "Final-map summary unavailable."}</p>
-      </article>
-      <div class="recap-grid">${recapCards.join("")}</div>
+      ${
+        detailCards.length
+          ? `<div class="recap-grid">${detailCards.join("")}</div>`
+          : `<div class="empty">Detailed closing stats were not captured for this game.</div>`
+      }
       <article class="recap-note">
         <p class="meta-text">${sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available."}</p>
         <p class="meta-text">${performerText}</p>
