@@ -42,6 +42,10 @@ const dotaSyntheticLivePerGameWindowMs = Number.parseInt(
   process.env.DOTA_SCHEDULE_PROMOTE_PER_GAME_MS || String(90 * oneMinute),
   10
 );
+const canonicalLiveFallbackMaxAgeMs = Number.parseInt(
+  process.env.CANONICAL_LIVE_FALLBACK_MAX_AGE_MS || String(5 * oneMinute),
+  10
+);
 const dotaFallbackEstimatedGameSeconds = Number.parseInt(
   process.env.DOTA_FALLBACK_ESTIMATED_GAME_SECONDS || "2700",
   10
@@ -1663,7 +1667,42 @@ async function mergeCanonicalFallbackRows(rows, {
     return normalizedRows;
   }
 
-  return normalizedRows.concat(canonicalRows);
+  const filteredCanonicalRows = filterCanonicalFallbackRowsBySurface(canonicalRows, {
+    surface
+  });
+  if (filteredCanonicalRows.length === 0) {
+    return normalizedRows;
+  }
+
+  return normalizedRows.concat(filteredCanonicalRows);
+}
+
+export function filterCanonicalFallbackRowsBySurface(rows, {
+  surface,
+  nowMs = Date.now(),
+  liveMaxAgeMs = canonicalLiveFallbackMaxAgeMs
+} = {}) {
+  const normalizedRows = Array.isArray(rows) ? rows : [];
+  const normalizedSurface = String(surface || "").trim().toLowerCase();
+
+  if (normalizedSurface !== "live") {
+    return normalizedRows;
+  }
+
+  return normalizedRows.filter((row) => {
+    if (String(row?.status || "").trim().toLowerCase() !== "live") {
+      return false;
+    }
+
+    const observedMs = Date.parse(
+      String(row?.source?.canonicalObservedAt || row?.freshness?.updatedAt || "")
+    );
+    if (!Number.isFinite(observedMs)) {
+      return false;
+    }
+
+    return nowMs - observedMs <= liveMaxAgeMs;
+  });
 }
 
 function matchDetailCacheKey(matchId, { gameNumber } = {}) {
@@ -3943,11 +3982,18 @@ export async function listLiveMatches({
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
+  const shouldUseCanonicalDotaLiveFallback =
+    (!game || game === "dota2") &&
+    !rows.some((row) => row?.game === "dota2") &&
+    providerDotaScheduleState.status !== "success" &&
+    (providerStratzLiveState.status !== "success" || providerStratzLiveState.rows.length === 0) &&
+    (providerDotaLiveState.status !== "success" || providerDotaLiveState.rows.length === 0) &&
+    (providerSteamLiveState.status !== "success" || providerSteamLiveState.rows.length === 0);
   if (useCanonicalFallback) {
     rows = await mergeCanonicalFallbackRows(rows, {
       surface: "live",
       game: game || "dota2",
-      shouldUseFallback: false
+      shouldUseFallback: shouldUseCanonicalDotaLiveFallback
     });
   }
   rows = sortByDateAscending(rows, "startAt");
@@ -4597,6 +4643,7 @@ export function getProviderDiagnostics() {
     mode: dataMode,
     providerEnabled: isProviderModeEnabled(),
     providerCacheMs,
+    canonicalLiveFallbackMaxAgeMs,
     providerTimeoutMs,
     providerSlowMs,
     diagnosticsHistoryLimit,
