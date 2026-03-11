@@ -1,22 +1,767 @@
 {
-  "generatedAt": "2026-03-10T20:14:38.351Z",
+  "generatedAt": "2026-03-11T19:30:59.535Z",
   "count": 38,
   "rows": [
     {
-      "id": "dota_od_result_8723941425",
-      "providerMatchId": "8723941425",
+      "id": "dota_od_series_1073262",
+      "providerMatchId": "1073262",
+      "sourceMatchId": "8724909631",
+      "leagueId": 19435,
+      "competitiveTier": 1,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "PGL Wallachia 2026 Season 7",
+      "startAt": "2026-03-11T13:36:22.000Z",
+      "updatedAt": "2026-03-11T16:23:09.000Z",
+      "endAt": "2026-03-11T17:10:45.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 1
+      },
+      "teams": {
+        "left": {
+          "id": "8291895",
+          "name": "Tundra Esports"
+        },
+        "right": {
+          "id": "9572001",
+          "name": "PARIVISION"
+        }
+      },
+      "seriesMatchIds": [
+        "8724677097",
+        "8724788453",
+        "8724909631"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "8291895"
+    },
+    {
+      "id": "dota_od_series_1073278",
+      "providerMatchId": "1073278",
+      "sourceMatchId": "8724908494",
+      "leagueId": 18867,
+      "competitiveTier": 2,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Ultras Dota Pro League  2025-26",
+      "startAt": "2026-03-11T14:06:15.000Z",
+      "updatedAt": "2026-03-11T16:19:03.000Z",
+      "endAt": "2026-03-11T17:06:15.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 1,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "9729268",
+          "name": "Teiko"
+        },
+        "right": {
+          "id": "9530716",
+          "name": "Air Defence"
+        }
+      },
+      "seriesMatchIds": [
+        "8724727899",
+        "8724857065",
+        "8724908494"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9530716"
+    },
+    {
+      "id": "dota_od_series_1073288",
+      "providerMatchId": "1073288",
+      "sourceMatchId": "8724876615",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T14:37:23.000Z",
+      "updatedAt": "2026-03-11T15:53:22.000Z",
+      "endAt": "2026-03-11T16:22:01.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 1
+      },
+      "teams": {
+        "left": {
+          "id": "9768002",
+          "name": "Lunar Vibes"
+        },
+        "right": {
+          "id": "9878494",
+          "name": "LV United"
+        }
+      },
+      "seriesMatchIds": [
+        "8724772290",
+        "8724830583",
+        "8724876615"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9768002"
+    },
+    {
+      "id": "dota_od_series_1073258",
+      "providerMatchId": "1073258",
+      "sourceMatchId": "8724723336",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T13:21:10.000Z",
+      "updatedAt": "2026-03-11T14:02:23.000Z",
+      "endAt": "2026-03-11T14:25:44.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "9425656",
+          "name": "LSG"
+        },
+        "right": {
+          "id": "9768243",
+          "name": "Night Force"
+        }
+      },
+      "seriesMatchIds": [
+        "8724666486",
+        "8724723336"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9425656"
+    },
+    {
+      "id": "dota_od_series_1073224",
+      "providerMatchId": "1073224",
+      "sourceMatchId": "8724637850",
+      "leagueId": 18867,
+      "competitiveTier": 2,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Ultras Dota Pro League  2025-26",
+      "startAt": "2026-03-11T11:01:13.000Z",
+      "updatedAt": "2026-03-11T12:59:21.000Z",
+      "endAt": "2026-03-11T13:42:04.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 1,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "9973477",
+          "name": "PYPSIKI"
+        },
+        "right": {
+          "id": "9729767",
+          "name": "BloodyRose"
+        }
+      },
+      "seriesMatchIds": [
+        "8724508822",
+        "8724587370",
+        "8724637850"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9729767"
+    },
+    {
+      "id": "dota_od_series_1073231",
+      "providerMatchId": "1073231",
+      "sourceMatchId": "8724618947",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T12:04:52.000Z",
+      "updatedAt": "2026-03-11T12:44:12.000Z",
+      "endAt": "2026-03-11T13:11:43.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "9426115",
+          "name": "Dark Rebellion"
+        },
+        "right": {
+          "id": "9814269",
+          "name": "Riftwalkers"
+        }
+      },
+      "seriesMatchIds": [
+        "8724571389",
+        "8724618947"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9814269"
+    },
+    {
+      "id": "dota_od_series_1073226",
+      "providerMatchId": "1073226",
+      "sourceMatchId": "8724596548",
+      "leagueId": 19435,
+      "competitiveTier": 1,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "PGL Wallachia 2026 Season 7",
+      "startAt": "2026-03-11T11:28:29.000Z",
+      "updatedAt": "2026-03-11T12:29:49.000Z",
+      "endAt": "2026-03-11T13:03:34.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "8255888",
+          "name": "BetBoom Team"
+        },
+        "right": {
+          "id": "36",
+          "name": "Natus Vincere"
+        }
+      },
+      "seriesMatchIds": [
+        "8724530876",
+        "8724596548"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "8255888"
+    },
+    {
+      "id": "dota_od_series_1073220",
+      "providerMatchId": "1073220",
+      "sourceMatchId": "8724518513",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T10:32:14.000Z",
+      "updatedAt": "2026-03-11T11:11:11.000Z",
+      "endAt": "2026-03-11T11:37:43.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "2443375",
+          "name": "Foxy gaming"
+        },
+        "right": {
+          "id": "9768002",
+          "name": "Lunar Vibes"
+        }
+      },
+      "seriesMatchIds": [
+        "8724486151",
+        "8724518513"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "2443375"
+    },
+    {
+      "id": "dota_od_series_1073207",
+      "providerMatchId": "1073207",
+      "sourceMatchId": "8724456836",
+      "leagueId": 19435,
+      "competitiveTier": 1,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "PGL Wallachia 2026 Season 7",
+      "startAt": "2026-03-11T08:00:37.000Z",
+      "updatedAt": "2026-03-11T09:58:31.000Z",
+      "endAt": "2026-03-11T10:49:45.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 1
+      },
+      "teams": {
+        "left": {
+          "id": "726228",
+          "name": "Vici Gaming"
+        },
+        "right": {
+          "id": "8261500",
+          "name": "Xtreme Gaming"
+        }
+      },
+      "seriesMatchIds": [
+        "8724376776",
+        "8724410677",
+        "8724456836"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "726228"
+    },
+    {
+      "id": "dota_od_series_1073213",
+      "providerMatchId": "1073213",
+      "sourceMatchId": "8724461383",
+      "leagueId": 18867,
+      "competitiveTier": 2,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Ultras Dota Pro League  2025-26",
+      "startAt": "2026-03-11T09:12:31.000Z",
+      "updatedAt": "2026-03-11T09:59:13.000Z",
+      "endAt": "2026-03-11T10:33:34.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "8831040",
+          "name": "Ghost Sheep"
+        },
+        "right": {
+          "id": "9973477",
+          "name": "PYPSIKI"
+        }
+      },
+      "seriesMatchIds": [
+        "8724427175",
+        "8724461383"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9973477"
+    },
+    {
+      "id": "dota_od_series_1073209",
+      "providerMatchId": "1073209",
+      "sourceMatchId": "8724453619",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T08:28:15.000Z",
+      "updatedAt": "2026-03-11T09:49:33.000Z",
+      "endAt": "2026-03-11T10:16:26.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 1,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "9768243",
+          "name": "Night Force"
+        },
+        "right": {
+          "id": "9878494",
+          "name": "LV United"
+        }
+      },
+      "seriesMatchIds": [
+        "8724397563",
+        "8724424768",
+        "8724453619"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9878494"
+    },
+    {
+      "id": "dota_od_series_1073203",
+      "providerMatchId": "1073203",
+      "sourceMatchId": "8724377309",
+      "leagueId": 18867,
+      "competitiveTier": 2,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Ultras Dota Pro League  2025-26",
+      "startAt": "2026-03-11T06:10:13.000Z",
+      "updatedAt": "2026-03-11T08:02:07.000Z",
+      "endAt": "2026-03-11T08:45:54.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 1
+      },
+      "teams": {
+        "left": {
+          "id": "8831040",
+          "name": "Ghost Sheep"
+        },
+        "right": {
+          "id": "9729767",
+          "name": "BloodyRose"
+        }
+      },
+      "seriesMatchIds": [
+        "8724313200",
+        "8724350230",
+        "8724377309"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "8831040"
+    },
+    {
+      "id": "dota_od_series_1073204",
+      "providerMatchId": "1073204",
+      "sourceMatchId": "8724368077",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T06:25:43.000Z",
+      "updatedAt": "2026-03-11T07:42:33.000Z",
+      "endAt": "2026-03-11T08:16:05.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 1
+      },
+      "teams": {
+        "left": {
+          "id": "8629005",
+          "name": "Flawless Goblins"
+        },
+        "right": {
+          "id": "9425656",
+          "name": "LSG"
+        }
+      },
+      "seriesMatchIds": [
+        "8724322020",
+        "8724345777",
+        "8724368077"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "8629005"
+    },
+    {
+      "id": "dota_od_series_1073202",
+      "providerMatchId": "1073202",
+      "sourceMatchId": "8724327395",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T05:53:18.000Z",
+      "updatedAt": "2026-03-11T06:36:09.000Z",
+      "endAt": "2026-03-11T07:04:45.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "9814269",
+          "name": "Riftwalkers"
+        },
+        "right": {
+          "id": "9768002",
+          "name": "Lunar Vibes"
+        }
+      },
+      "seriesMatchIds": [
+        "8724303645",
+        "8724327395"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9814269"
+    },
+    {
+      "id": "dota_od_series_1073197",
+      "providerMatchId": "1073197",
+      "sourceMatchId": "8724297120",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T05:09:36.000Z",
+      "updatedAt": "2026-03-11T05:40:16.000Z",
+      "endAt": "2026-03-11T06:06:49.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "8629315",
+          "name": "Wiser Warriors"
+        },
+        "right": {
+          "id": "9426115",
+          "name": "Dark Rebellion"
+        }
+      },
+      "seriesMatchIds": [
+        "8724280731",
+        "8724297120"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9426115"
+    },
+    {
+      "id": "dota_od_series_1073196",
+      "providerMatchId": "1073196",
+      "sourceMatchId": "8724285346",
+      "leagueId": 18959,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Destiny League",
+      "startAt": "2026-03-11T04:37:07.000Z",
+      "updatedAt": "2026-03-11T05:20:34.000Z",
+      "endAt": "2026-03-11T05:40:07.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "2443375",
+          "name": "Foxy gaming"
+        },
+        "right": {
+          "id": "9768243",
+          "name": "Night Force"
+        }
+      },
+      "seriesMatchIds": [
+        "8724263382",
+        "8724285346"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "2443375"
+    },
+    {
+      "id": "dota_od_series_1073172",
+      "providerMatchId": "1073172",
+      "sourceMatchId": "8724198012",
+      "leagueId": 19201,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Dota 2 Space League",
+      "startAt": "2026-03-11T01:59:15.000Z",
+      "updatedAt": "2026-03-11T02:35:22.000Z",
+      "endAt": "2026-03-11T03:11:23.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "8879077",
+          "name": "Titan Strikers"
+        },
+        "right": {
+          "id": "8849837",
+          "name": "FALL VICTIMS"
+        }
+      },
+      "seriesMatchIds": [
+        "8724178582",
+        "8724198012"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "8879077"
+    },
+    {
+      "id": "dota_od_series_1073137",
+      "providerMatchId": "1073137",
+      "sourceMatchId": "8724153865",
+      "leagueId": 19201,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Dota 2 Space League",
+      "startAt": "2026-03-10T23:43:01.000Z",
+      "updatedAt": "2026-03-11T01:10:21.000Z",
+      "endAt": "2026-03-11T01:42:27.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 1
+      },
+      "teams": {
+        "left": {
+          "id": "9048057",
+          "name": "Vitality Warriors"
+        },
+        "right": {
+          "id": "9025669",
+          "name": "CrimsonSky"
+        }
+      },
+      "seriesMatchIds": [
+        "8724112208",
+        "8724131086",
+        "8724153865"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9048057"
+    },
+    {
+      "id": "dota_od_series_1073123",
+      "providerMatchId": "1073123",
+      "sourceMatchId": "8724090955",
+      "leagueId": 19201,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Dota 2 Space League",
+      "startAt": "2026-03-10T22:22:22.000Z",
+      "updatedAt": "2026-03-10T23:00:12.000Z",
+      "endAt": "2026-03-10T23:31:30.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 2,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "8850015",
+          "name": "DARKNESS GAMING"
+        },
+        "right": {
+          "id": "8936613",
+          "name": "Wild Dragon"
+        }
+      },
+      "seriesMatchIds": [
+        "8724069033",
+        "8724090955"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "8850015"
+    },
+    {
+      "id": "dota_od_series_1073079",
+      "providerMatchId": "1073079",
+      "sourceMatchId": "8724044046",
+      "leagueId": 19201,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Dota 2 Space League",
+      "startAt": "2026-03-10T20:14:57.000Z",
+      "updatedAt": "2026-03-10T21:42:49.000Z",
+      "endAt": "2026-03-10T22:09:10.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 1,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "8849833",
+          "name": "VERTEX PACK"
+        },
+        "right": {
+          "id": "8987220",
+          "name": "HolyTeam"
+        }
+      },
+      "seriesMatchIds": [
+        "8723965843",
+        "8724010923",
+        "8724044046"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "8987220"
+    },
+    {
+      "id": "dota_od_series_1073028",
+      "providerMatchId": "1073028",
+      "sourceMatchId": "8723953978",
+      "leagueId": 18867,
+      "competitiveTier": 2,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Ultras Dota Pro League  2025-26",
+      "startAt": "2026-03-10T19:03:42.000Z",
+      "updatedAt": "2026-03-10T19:49:48.000Z",
+      "endAt": "2026-03-10T20:15:46.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 2
+      },
+      "teams": {
+        "left": {
+          "id": "9718665",
+          "name": "Eye Gaming"
+        },
+        "right": {
+          "id": "9729767",
+          "name": "BloodyRose"
+        }
+      },
+      "seriesMatchIds": [
+        "8723885927",
+        "8723953978"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "completed",
+      "winnerTeamId": "9729767"
+    },
+    {
+      "id": "dota_od_series_1073034",
+      "providerMatchId": "1073034",
       "sourceMatchId": "8723941425",
       "leagueId": 19434,
       "competitiveTier": 2,
       "game": "dota2",
       "region": "global",
       "tournament": "Americas Open Premier Cup",
-      "startAt": "2026-03-10T19:37:35.000Z",
+      "startAt": "2026-03-10T19:02:03.000Z",
       "updatedAt": "2026-03-10T19:37:35.000Z",
       "endAt": "2026-03-10T20:02:20.000Z",
-      "bestOf": 1,
+      "bestOf": 3,
       "seriesScore": {
-        "left": 1,
+        "left": 2,
         "right": 0
       },
       "teams": {
@@ -30,6 +775,7 @@
         }
       },
       "seriesMatchIds": [
+        "8723903559",
         "8723941425"
       ],
       "keySignal": "provider_pro_series",
@@ -540,26 +1286,25 @@
       "game": "dota2",
       "region": "global",
       "tournament": "PGL Wallachia 2026 Season 7",
-      "startAt": "2026-03-10T08:01:09.000Z",
+      "startAt": "2026-03-10T09:20:06.000Z",
       "updatedAt": "2026-03-10T10:31:48.000Z",
       "endAt": "2026-03-10T11:23:53.000Z",
       "bestOf": 3,
       "seriesScore": {
-        "left": 1,
-        "right": 2
+        "left": 2,
+        "right": 0
       },
       "teams": {
         "left": {
-          "id": "9572001",
-          "name": "PARIVISION"
-        },
-        "right": {
           "id": "9823272",
           "name": "Team Yandex"
+        },
+        "right": {
+          "id": "9572001",
+          "name": "PARIVISION"
         }
       },
       "seriesMatchIds": [
-        "8723196309",
         "8723248847",
         "8723300566"
       ],
@@ -601,750 +1346,6 @@
       "keySignal": "provider_pro_series",
       "status": "completed",
       "winnerTeamId": "9425656"
-    },
-    {
-      "id": "dota_od_series_1072880",
-      "providerMatchId": "1072880",
-      "sourceMatchId": "8723242140",
-      "leagueId": 19435,
-      "competitiveTier": 1,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia 2026 Season 7",
-      "startAt": "2026-03-10T08:00:58.000Z",
-      "updatedAt": "2026-03-10T09:09:09.000Z",
-      "endAt": "2026-03-10T09:38:03.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "8255888",
-          "name": "BetBoom Team"
-        },
-        "right": {
-          "id": "2576071",
-          "name": "Yellow Submarine"
-        }
-      },
-      "seriesMatchIds": [
-        "8723196697",
-        "8723242140"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "8255888"
-    },
-    {
-      "id": "dota_od_series_1072878",
-      "providerMatchId": "1072878",
-      "sourceMatchId": "8723245439",
-      "leagueId": 18959,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Destiny League",
-      "startAt": "2026-03-10T07:53:52.000Z",
-      "updatedAt": "2026-03-10T09:10:40.000Z",
-      "endAt": "2026-03-10T09:35:37.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 1,
-        "right": 2
-      },
-      "teams": {
-        "left": {
-          "id": "9814269",
-          "name": "Riftwalkers"
-        },
-        "right": {
-          "id": "9767998",
-          "name": "Nova Pulse"
-        }
-      },
-      "seriesMatchIds": [
-        "8723195188",
-        "8723217091",
-        "8723245439"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9767998"
-    },
-    {
-      "id": "dota_od_series_1072874",
-      "providerMatchId": "1072874",
-      "sourceMatchId": "8723196856",
-      "leagueId": 18867,
-      "competitiveTier": 2,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Ultras Dota Pro League  2025-26",
-      "startAt": "2026-03-10T07:17:46.000Z",
-      "updatedAt": "2026-03-10T07:56:32.000Z",
-      "endAt": "2026-03-10T08:33:38.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "9729767",
-          "name": "BloodyRose"
-        },
-        "right": {
-          "id": "8831040",
-          "name": "Ghost Sheep"
-        }
-      },
-      "seriesMatchIds": [
-        "8723173423",
-        "8723196856"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9729767"
-    },
-    {
-      "id": "dota_od_series_1072869",
-      "providerMatchId": "1072869",
-      "sourceMatchId": "8723181715",
-      "leagueId": 18959,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Destiny League",
-      "startAt": "2026-03-10T06:56:26.000Z",
-      "updatedAt": "2026-03-10T07:32:15.000Z",
-      "endAt": "2026-03-10T08:03:35.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "9878494",
-          "name": "LV United"
-        },
-        "right": {
-          "id": "9425656",
-          "name": "LSG"
-        }
-      },
-      "seriesMatchIds": [
-        "8723153886",
-        "8723181715"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9878494"
-    },
-    {
-      "id": "dota_od_series_1072866",
-      "providerMatchId": "1072866",
-      "sourceMatchId": "8723167626",
-      "leagueId": 18959,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Destiny League",
-      "startAt": "2026-03-10T06:29:43.000Z",
-      "updatedAt": "2026-03-10T07:09:48.000Z",
-      "endAt": "2026-03-10T07:37:41.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "8629005",
-          "name": "Flawless Goblins"
-        },
-        "right": {
-          "id": "8629315",
-          "name": "Wiser Warriors"
-        }
-      },
-      "seriesMatchIds": [
-        "8723144750",
-        "8723167626"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "8629005"
-    },
-    {
-      "id": "dota_od_series_1072855",
-      "providerMatchId": "1072855",
-      "sourceMatchId": "8723128892",
-      "leagueId": 18959,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Destiny League",
-      "startAt": "2026-03-10T04:39:46.000Z",
-      "updatedAt": "2026-03-10T06:00:14.000Z",
-      "endAt": "2026-03-10T06:31:41.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "9767998",
-          "name": "Nova Pulse"
-        },
-        "right": {
-          "id": "2443375",
-          "name": "Foxy gaming"
-        }
-      },
-      "seriesMatchIds": [
-        "8723085868",
-        "8723111462",
-        "8723128892"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9767998"
-    },
-    {
-      "id": "dota_od_series_1072857",
-      "providerMatchId": "1072857",
-      "sourceMatchId": "8723121519",
-      "leagueId": 18959,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Destiny League",
-      "startAt": "2026-03-10T05:09:30.000Z",
-      "updatedAt": "2026-03-10T05:45:56.000Z",
-      "endAt": "2026-03-10T06:15:07.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 2
-      },
-      "teams": {
-        "left": {
-          "id": "9426115",
-          "name": "Dark Rebellion"
-        },
-        "right": {
-          "id": "9768243",
-          "name": "Night Force"
-        }
-      },
-      "seriesMatchIds": [
-        "8723102226",
-        "8723121519"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9768243"
-    },
-    {
-      "id": "dota_od_series_1072829",
-      "providerMatchId": "1072829",
-      "sourceMatchId": "8723032189",
-      "leagueId": 19201,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Dota 2 Space League",
-      "startAt": "2026-03-10T01:29:55.000Z",
-      "updatedAt": "2026-03-10T02:55:58.000Z",
-      "endAt": "2026-03-10T03:28:58.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "8849837",
-          "name": "FALL VICTIMS"
-        },
-        "right": {
-          "id": "8987220",
-          "name": "HolyTeam"
-        }
-      },
-      "seriesMatchIds": [
-        "8722986558",
-        "8723007005",
-        "8723032189"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "8849837"
-    },
-    {
-      "id": "dota_od_series_1072800",
-      "providerMatchId": "1072800",
-      "sourceMatchId": "8722964682",
-      "leagueId": 19201,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Dota 2 Space League",
-      "startAt": "2026-03-09T23:18:59.000Z",
-      "updatedAt": "2026-03-10T00:44:19.000Z",
-      "endAt": "2026-03-10T01:13:02.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "8936613",
-          "name": "Wild Dragon"
-        },
-        "right": {
-          "id": "9048057",
-          "name": "Vitality Warriors"
-        }
-      },
-      "seriesMatchIds": [
-        "8722922637",
-        "8722944270",
-        "8722964682"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "8936613"
-    },
-    {
-      "id": "dota_od_series_1072783",
-      "providerMatchId": "1072783",
-      "sourceMatchId": "8722898064",
-      "leagueId": 19201,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Dota 2 Space League",
-      "startAt": "2026-03-09T21:54:08.000Z",
-      "updatedAt": "2026-03-09T22:34:22.000Z",
-      "endAt": "2026-03-09T23:03:35.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 2
-      },
-      "teams": {
-        "left": {
-          "id": "9025669",
-          "name": "CrimsonSky"
-        },
-        "right": {
-          "id": "8849833",
-          "name": "VERTEX PACK"
-        }
-      },
-      "seriesMatchIds": [
-        "8722872386",
-        "8722898064"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "8849833"
-    },
-    {
-      "id": "dota_od_series_1072757",
-      "providerMatchId": "1072757",
-      "sourceMatchId": "8722841646",
-      "leagueId": 19201,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Dota 2 Space League",
-      "startAt": "2026-03-09T20:00:59.000Z",
-      "updatedAt": "2026-03-09T21:13:31.000Z",
-      "endAt": "2026-03-09T21:41:41.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "8879077",
-          "name": "Titan Strikers"
-        },
-        "right": {
-          "id": "8850015",
-          "name": "DARKNESS GAMING"
-        }
-      },
-      "seriesMatchIds": [
-        "8722778816",
-        "8722813456",
-        "8722841646"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "8879077"
-    },
-    {
-      "id": "dota_od_series_1072693",
-      "providerMatchId": "1072693",
-      "sourceMatchId": "8722783850",
-      "leagueId": 19435,
-      "competitiveTier": 1,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia 2026 Season 7",
-      "startAt": "2026-03-09T17:48:03.000Z",
-      "updatedAt": "2026-03-09T20:09:12.000Z",
-      "endAt": "2026-03-09T20:56:54.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "7119388",
-          "name": "Team Spirit"
-        },
-        "right": {
-          "id": "9303484",
-          "name": "HEROIC"
-        }
-      },
-      "seriesMatchIds": [
-        "8722621723",
-        "8722703843",
-        "8722783850"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "7119388"
-    },
-    {
-      "id": "dota_od_series_1072747",
-      "providerMatchId": "1072747",
-      "sourceMatchId": "8722791041",
-      "leagueId": 19434,
-      "competitiveTier": 2,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Americas Open Premier Cup",
-      "startAt": "2026-03-09T19:30:33.000Z",
-      "updatedAt": "2026-03-09T20:12:54.000Z",
-      "endAt": "2026-03-09T20:52:08.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 2
-      },
-      "teams": {
-        "left": {
-          "id": "10075254",
-          "name": "Aegis Americana"
-        },
-        "right": {
-          "id": "10075106",
-          "name": "Manhattan Melee"
-        }
-      },
-      "seriesMatchIds": [
-        "8722748077",
-        "8722791041"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "10075106"
-    },
-    {
-      "id": "dota_od_series_1072657",
-      "providerMatchId": "1072657",
-      "sourceMatchId": "8722692770",
-      "leagueId": 19435,
-      "competitiveTier": 1,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia 2026 Season 7",
-      "startAt": "2026-03-09T16:21:55.000Z",
-      "updatedAt": "2026-03-09T18:43:36.000Z",
-      "endAt": "2026-03-09T19:24:59.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "2586976",
-          "name": "OG"
-        },
-        "right": {
-          "id": "9338413",
-          "name": "MOUZ"
-        }
-      },
-      "seriesMatchIds": [
-        "8722516483",
-        "8722615864",
-        "8722692770"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "2586976"
-    },
-    {
-      "id": "dota_od_series_1072658",
-      "providerMatchId": "1072658",
-      "sourceMatchId": "8722678235",
-      "leagueId": 19434,
-      "competitiveTier": 2,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Americas Open Premier Cup",
-      "startAt": "2026-03-09T16:19:24.000Z",
-      "updatedAt": "2026-03-09T18:27:52.000Z",
-      "endAt": "2026-03-09T19:05:08.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "10075108",
-          "name": "Valley Smurfs"
-        },
-        "right": {
-          "id": "10075105",
-          "name": "Golden Gate"
-        }
-      },
-      "seriesMatchIds": [
-        "8722519571",
-        "8722612253",
-        "8722678235"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "10075108"
-    },
-    {
-      "id": "dota_od_series_1072650",
-      "providerMatchId": "1072650",
-      "sourceMatchId": "8722567224",
-      "leagueId": 18867,
-      "competitiveTier": 2,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Ultras Dota Pro League  2025-26",
-      "startAt": "2026-03-09T16:03:49.000Z",
-      "updatedAt": "2026-03-09T16:56:29.000Z",
-      "endAt": "2026-03-09T17:55:42.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 2
-      },
-      "teams": {
-        "left": {
-          "id": "9729767",
-          "name": "BloodyRose"
-        },
-        "right": {
-          "id": "9973477",
-          "name": "PYPSIKI"
-        }
-      },
-      "seriesMatchIds": [
-        "8722497579",
-        "8722567224"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9973477"
-    },
-    {
-      "id": "dota_od_series_1072630",
-      "providerMatchId": "1072630",
-      "sourceMatchId": "8722527581",
-      "leagueId": 19435,
-      "competitiveTier": 1,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia 2026 Season 7",
-      "startAt": "2026-03-09T15:00:19.000Z",
-      "updatedAt": "2026-03-09T16:31:40.000Z",
-      "endAt": "2026-03-09T17:13:56.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 2
-      },
-      "teams": {
-        "left": {
-          "id": "9572001",
-          "name": "PARIVISION"
-        },
-        "right": {
-          "id": "2163",
-          "name": "Team Liquid"
-        }
-      },
-      "seriesMatchIds": [
-        "8722402149",
-        "8722527581"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "2163"
-    },
-    {
-      "id": "dota_od_series_1072640",
-      "providerMatchId": "1072640",
-      "sourceMatchId": "8722503466",
-      "leagueId": 18959,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Destiny League",
-      "startAt": "2026-03-09T15:21:10.000Z",
-      "updatedAt": "2026-03-09T16:07:33.000Z",
-      "endAt": "2026-03-09T16:31:02.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "9767998",
-          "name": "Nova Pulse"
-        },
-        "right": {
-          "id": "8629315",
-          "name": "Wiser Warriors"
-        }
-      },
-      "seriesMatchIds": [
-        "8722438892",
-        "8722503466"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9767998"
-    },
-    {
-      "id": "dota_od_series_1072619",
-      "providerMatchId": "1072619",
-      "sourceMatchId": "8722413679",
-      "leagueId": 19435,
-      "competitiveTier": 1,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia 2026 Season 7",
-      "startAt": "2026-03-09T13:57:24.000Z",
-      "updatedAt": "2026-03-09T15:07:44.000Z",
-      "endAt": "2026-03-09T15:53:16.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 2
-      },
-      "teams": {
-        "left": {
-          "id": "9691969",
-          "name": "Team Nemesis"
-        },
-        "right": {
-          "id": "2576071",
-          "name": "Yellow Submarine"
-        }
-      },
-      "seriesMatchIds": [
-        "8722308255",
-        "8722413679"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "2576071"
-    },
-    {
-      "id": "dota_od_series_1072609",
-      "providerMatchId": "1072609",
-      "sourceMatchId": "8722374098",
-      "leagueId": 18959,
-      "competitiveTier": 3,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Destiny League",
-      "startAt": "2026-03-09T13:18:57.000Z",
-      "updatedAt": "2026-03-09T14:37:18.000Z",
-      "endAt": "2026-03-09T15:08:56.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 1
-      },
-      "teams": {
-        "left": {
-          "id": "9426115",
-          "name": "Dark Rebellion"
-        },
-        "right": {
-          "id": "9768002",
-          "name": "Lunar Vibes"
-        }
-      },
-      "seriesMatchIds": [
-        "8722257373",
-        "8722318648",
-        "8722374098"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9426115"
-    },
-    {
-      "id": "dota_od_series_1072616",
-      "providerMatchId": "1072616",
-      "sourceMatchId": "8722360664",
-      "leagueId": 18867,
-      "competitiveTier": 2,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "Ultras Dota Pro League  2025-26",
-      "startAt": "2026-03-09T13:42:28.000Z",
-      "updatedAt": "2026-03-09T14:27:01.000Z",
-      "endAt": "2026-03-09T14:52:22.000Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 2,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "9973477",
-          "name": "PYPSIKI"
-        },
-        "right": {
-          "id": "9729268",
-          "name": "Teiko"
-        }
-      },
-      "seriesMatchIds": [
-        "8722291535",
-        "8722360664"
-      ],
-      "keySignal": "provider_pro_series",
-      "status": "completed",
-      "winnerTeamId": "9973477"
     }
   ]
 }

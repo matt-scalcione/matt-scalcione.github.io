@@ -19,6 +19,7 @@ import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
 import { fetchJson } from "../providers/shared/http.js";
 import {
   getCanonicalStoreDiagnostics,
+  loadCanonicalMatchCollection,
   persistCanonicalMatchCollection
 } from "../storage/canonicalStore.js";
 
@@ -259,6 +260,15 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
       code: "snapshot_fallback",
       message: "Snapshot fallback active",
       penalty: 16,
+      severity: "warn"
+    });
+  }
+
+  if (annotatedEntity?.source?.canonicalObservedAt) {
+    score -= pushQualityIssue(issues, {
+      code: "canonical_fallback",
+      message: "Serving canonical database fallback",
+      penalty: 20,
       severity: "warn"
     });
   }
@@ -1598,6 +1608,34 @@ function replaceFallbackRowsForGame(fallbackRows, game, providerRowsState, { str
   }
 
   return fallbackRows.slice();
+}
+
+async function mergeCanonicalFallbackRows(rows, {
+  surface,
+  game,
+  shouldUseFallback = false
+} = {}) {
+  const normalizedRows = Array.isArray(rows) ? rows : [];
+  const normalizedGame = String(game || "").trim();
+
+  if (!shouldUseFallback || !normalizedGame) {
+    return normalizedRows;
+  }
+
+  const alreadyPresent = normalizedRows.some((row) => row?.game === normalizedGame);
+  if (alreadyPresent) {
+    return normalizedRows;
+  }
+
+  const canonicalRows = await loadCanonicalMatchCollection({
+    surface,
+    game: normalizedGame
+  });
+  if (!Array.isArray(canonicalRows) || canonicalRows.length === 0) {
+    return normalizedRows;
+  }
+
+  return normalizedRows.concat(canonicalRows);
 }
 
 function matchDetailCacheKey(matchId, { gameNumber } = {}) {
@@ -3737,7 +3775,8 @@ export async function listLiveMatches({
   followedOnly = false,
   userId = null,
   dotaTiers,
-  lolTiers
+  lolTiers,
+  useCanonicalFallback = true
 }) {
   const [providerStratzLiveState, providerDotaLiveState, providerSteamLiveState, providerLolLiveState] = await Promise.all([
     loadProviderStratzLiveMatches(),
@@ -3785,6 +3824,13 @@ export async function listLiveMatches({
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
+  if (useCanonicalFallback) {
+    rows = await mergeCanonicalFallbackRows(rows, {
+      surface: "live",
+      game: game || "dota2",
+      shouldUseFallback: false
+    });
+  }
   rows = sortByDateAscending(rows, "startAt");
 
   if (followedOnly) {
@@ -3798,7 +3844,15 @@ export async function listLiveMatches({
   return annotateRowsWithQuality(rows);
 }
 
-export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers, lolTiers }) {
+export async function listSchedule({
+  game,
+  region,
+  dateFrom,
+  dateTo,
+  dotaTiers,
+  lolTiers,
+  useCanonicalFallback = true
+}) {
   const [
     providerStratzLiveState,
     providerDotaLiveState,
@@ -3843,6 +3897,14 @@ export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers, 
     rows = stripFallbackDotaRows(rows);
   }
 
+  rows = await mergeCanonicalFallbackRows(rows, {
+    surface: "schedule",
+    game: game || "dota2",
+    shouldUseFallback:
+      useCanonicalFallback &&
+      game !== "lol" &&
+      providerDotaScheduleState.status !== "success"
+  });
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
@@ -3855,7 +3917,15 @@ export async function listSchedule({ game, region, dateFrom, dateTo, dotaTiers, 
   return annotateRowsWithQuality(sortByDateAscending(rows, "startAt"));
 }
 
-export async function listResults({ game, region, dateFrom, dateTo, dotaTiers, lolTiers }) {
+export async function listResults({
+  game,
+  region,
+  dateFrom,
+  dateTo,
+  dotaTiers,
+  lolTiers,
+  useCanonicalFallback = true
+}) {
   const [providerDotaResultsState, providerLolResultsState] = await Promise.all([
     loadProviderResults(),
     loadProviderLolResults()
@@ -3867,6 +3937,14 @@ export async function listResults({ game, region, dateFrom, dateTo, dotaTiers, l
     strictNoFallback: shouldHideFallbackDotaRows()
   });
 
+  rows = await mergeCanonicalFallbackRows(rows, {
+    surface: "results",
+    game: game || "dota2",
+    shouldUseFallback:
+      useCanonicalFallback &&
+      game !== "lol" &&
+      providerDotaResultsState.status !== "success"
+  });
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
@@ -3896,7 +3974,8 @@ async function persistCanonicalPublicCollections({ reason = "manual", providerKe
       followedOnly: false,
       userId: null,
       dotaTiers: undefined,
-      lolTiers: undefined
+      lolTiers: undefined,
+      useCanonicalFallback: false
     }),
     listSchedule({
       game: undefined,
@@ -3904,7 +3983,8 @@ async function persistCanonicalPublicCollections({ reason = "manual", providerKe
       dateFrom: undefined,
       dateTo: undefined,
       dotaTiers: undefined,
-      lolTiers: undefined
+      lolTiers: undefined,
+      useCanonicalFallback: false
     }),
     listResults({
       game: undefined,
@@ -3912,7 +3992,8 @@ async function persistCanonicalPublicCollections({ reason = "manual", providerKe
       dateFrom: undefined,
       dateTo: undefined,
       dotaTiers: undefined,
-      lolTiers: undefined
+      lolTiers: undefined,
+      useCanonicalFallback: false
     })
   ]);
 

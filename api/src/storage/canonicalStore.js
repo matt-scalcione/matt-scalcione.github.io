@@ -264,6 +264,72 @@ export function getCanonicalStoreDiagnostics() {
   };
 }
 
+export async function loadCanonicalMatchCollection({
+  surface,
+  game = null
+} = {}) {
+  const config = canonicalStoreConfig();
+  const normalizedSurface = normalizeToken(surface) || "unknown";
+  const normalizedGame = normalizeToken(game) || null;
+
+  if (!config.enabled) {
+    return [];
+  }
+
+  const initialized = await ensureInitialized();
+  if (!initialized || !storeState.pool) {
+    return [];
+  }
+
+  const tables = canonicalTables(config.schema);
+
+  try {
+    const result = await storeState.pool.query(
+      `
+        SELECT payload, last_seen_at, row_updated_at, surface
+        FROM ${tables.matchState}
+        WHERE surface = $1
+          AND ($2::text IS NULL OR game = $2)
+        ORDER BY
+          COALESCE(start_at, end_at, row_updated_at, last_seen_at) DESC,
+          match_id ASC
+      `,
+      [normalizedSurface, normalizedGame]
+    );
+
+    return result.rows
+      .map((row) => {
+        const payload = safeJson(row?.payload);
+        if (!payload || typeof payload !== "object") {
+          return null;
+        }
+
+        return {
+          ...payload,
+          source: {
+            ...(payload?.source || {}),
+            canonicalFallback: true,
+            canonicalObservedAt: toIsoTimestamp(row?.last_seen_at, null),
+            canonicalSurface: normalizedSurface
+          },
+          freshness: {
+            ...(payload?.freshness || {}),
+            source: payload?.freshness?.source || payload?.source?.provider || "canonical_store",
+            status: payload?.freshness?.status || "stale_cache",
+            updatedAt:
+              payload?.freshness?.updatedAt ||
+              toIsoTimestamp(row?.row_updated_at, null) ||
+              toIsoTimestamp(row?.last_seen_at, null)
+          }
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    storeState.lastPersistError = error?.message || String(error);
+    return [];
+  }
+}
+
 export async function persistCanonicalMatchCollection({
   surface,
   rows = [],

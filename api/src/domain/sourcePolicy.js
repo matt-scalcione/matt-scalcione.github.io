@@ -240,6 +240,7 @@ const SOURCE_POLICY_MATRIX = {
 
 const DELIVERY_PENALTIES = {
   provider_feed: 0,
+  canonical_store: -22,
   provider_cache: -8,
   snapshot_fallback: -18,
   retained_cache: -15,
@@ -392,6 +393,13 @@ function resolveDelivery(entity) {
     return {
       mode: "snapshot_fallback",
       derivedFromSurface: null
+    };
+  }
+
+  if (entity?.source?.canonicalObservedAt) {
+    return {
+      mode: "canonical_store",
+      derivedFromSurface: entity?.source?.canonicalSurface || null
     };
   }
 

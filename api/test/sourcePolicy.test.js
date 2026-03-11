@@ -84,6 +84,22 @@ describe("sourcePolicy", () => {
     assert.equal(summary.providers.some((provider) => provider.provider === "liquipedia"), true);
   });
 
+  it("marks canonical fallback rows with canonical_store delivery", () => {
+    const row = annotateEntitySource({
+      id: "dota_od_result_1",
+      game: "dota2",
+      status: "completed",
+      source: {
+        provider: "opendota",
+        canonicalObservedAt: "2026-03-11T19:00:00.000Z",
+        canonicalSurface: "results"
+      }
+    });
+
+    assert.equal(row.source.provenance.delivery, "canonical_store");
+    assert.equal(row.source.provenance.derivedFromSurface, "results");
+  });
+
   it("publishes the Dota source policy catalog with DLTV as experimental", () => {
     const catalog = getSourcePolicyCatalog();
     const dltv = catalog.dota2.live.find((provider) => provider.provider === "dltv");

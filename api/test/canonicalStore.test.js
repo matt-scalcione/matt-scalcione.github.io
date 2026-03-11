@@ -31,6 +31,10 @@ describe("canonicalStore", () => {
     try {
       const module = await import(`../src/storage/canonicalStore.js?test=${Date.now()}`);
       const diagnostics = module.getCanonicalStoreDiagnostics();
+      const rows = await module.loadCanonicalMatchCollection({
+        surface: "results",
+        game: "dota2"
+      });
       const result = await module.persistCanonicalMatchCollection({
         surface: "live",
         rows: []
@@ -38,6 +42,7 @@ describe("canonicalStore", () => {
 
       assert.equal(diagnostics.enabled, false);
       assert.equal(diagnostics.backend, "disabled");
+      assert.deepEqual(rows, []);
       assert.equal(result.enabled, false);
       assert.equal(result.skipped, true);
       assert.equal(result.reason, "disabled");

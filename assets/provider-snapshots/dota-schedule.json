@@ -1,124 +1,7 @@
 {
-  "generatedAt": "2026-03-10T20:14:38.258Z",
-  "count": 23,
+  "generatedAt": "2026-03-11T19:30:59.673Z",
+  "count": 26,
   "rows": [
-    {
-      "id": "dota_lp_sched_ef6b262d0e83",
-      "providerMatchId": "liquipedia_1773216000",
-      "sourceMatchId": null,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia S7 - Round 5",
-      "tournamentUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7/Group_Stage#Round_5",
-      "competitiveTier": 1,
-      "status": "upcoming",
-      "startAt": "2026-03-11T08:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "dota_lp_team_xtreme_gaming",
-          "name": "Xtreme Gaming",
-          "shortName": "XG",
-          "sourceUrl": "https://liquipedia.net/dota2/Xtreme_Gaming"
-        },
-        "right": {
-          "id": "dota_lp_team_vici_gaming",
-          "name": "Vici Gaming",
-          "shortName": "VG",
-          "sourceUrl": "https://liquipedia.net/dota2/Vici_Gaming"
-        }
-      },
-      "keySignal": "provider_schedule",
-      "watchUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7/Group_Stage#Round_5",
-      "watchOptions": [],
-      "source": {
-        "provider": "liquipedia",
-        "page": "Liquipedia:Matches"
-      }
-    },
-    {
-      "id": "dota_lp_sched_a6428ba09f6a",
-      "providerMatchId": "liquipedia_1773226800",
-      "sourceMatchId": null,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia S7 - Round 5",
-      "tournamentUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7/Group_Stage#Round_5",
-      "competitiveTier": 1,
-      "status": "upcoming",
-      "startAt": "2026-03-11T11:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "dota_lp_team_natus_vincere",
-          "name": "Natus Vincere",
-          "shortName": "NAVI",
-          "sourceUrl": "https://liquipedia.net/dota2/Natus_Vincere"
-        },
-        "right": {
-          "id": "dota_lp_team_betboom_team",
-          "name": "BetBoom Team",
-          "shortName": "BB",
-          "sourceUrl": "https://liquipedia.net/dota2/BetBoom_Team"
-        }
-      },
-      "keySignal": "provider_schedule",
-      "watchUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7/Group_Stage#Round_5",
-      "watchOptions": [],
-      "source": {
-        "provider": "liquipedia",
-        "page": "Liquipedia:Matches"
-      }
-    },
-    {
-      "id": "dota_lp_sched_93c5bd37bc57",
-      "providerMatchId": "liquipedia_1773237600",
-      "sourceMatchId": null,
-      "game": "dota2",
-      "region": "global",
-      "tournament": "PGL Wallachia S7 - Round 5",
-      "tournamentUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7/Group_Stage#Round_5",
-      "competitiveTier": 1,
-      "status": "upcoming",
-      "startAt": "2026-03-11T14:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
-      "bestOf": 3,
-      "seriesScore": {
-        "left": 0,
-        "right": 0
-      },
-      "teams": {
-        "left": {
-          "id": "dota_lp_team_parivision",
-          "name": "PARIVISION",
-          "shortName": "PARI",
-          "sourceUrl": "https://liquipedia.net/dota2/PARIVISION"
-        },
-        "right": {
-          "id": "dota_lp_team_tundra_esports",
-          "name": "Tundra Esports",
-          "shortName": "Tundra",
-          "sourceUrl": "https://liquipedia.net/dota2/Tundra_Esports"
-        }
-      },
-      "keySignal": "provider_schedule",
-      "watchUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7/Group_Stage#Round_5",
-      "watchOptions": [],
-      "source": {
-        "provider": "liquipedia",
-        "page": "Liquipedia:Matches"
-      }
-    },
     {
       "id": "dota_lp_sched_ac19fc5a7343",
       "providerMatchId": "liquipedia_1773288000",
@@ -130,7 +13,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T04:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -169,7 +52,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T07:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -198,6 +81,45 @@
       }
     },
     {
+      "id": "dota_lp_sched_96da5a17d093",
+      "providerMatchId": "liquipedia_1773302400",
+      "sourceMatchId": null,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "PGL Wallachia S7 - Playoffs",
+      "tournamentUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "competitiveTier": 1,
+      "status": "upcoming",
+      "startAt": "2026-03-12T08:00:00.000Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "dota_lp_team_heroic",
+          "name": "HEROIC",
+          "shortName": "HEROIC",
+          "sourceUrl": "https://liquipedia.net/dota2/HEROIC"
+        },
+        "right": {
+          "id": "dota_lp_team_betboom_team",
+          "name": "BetBoom Team",
+          "shortName": "BB",
+          "sourceUrl": "https://liquipedia.net/dota2/BetBoom_Team"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "watchUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "watchOptions": [],
+      "source": {
+        "provider": "liquipedia",
+        "page": "Liquipedia:Matches"
+      }
+    },
+    {
       "id": "dota_lp_sched_1a120c0b1308",
       "providerMatchId": "liquipedia_1773306000",
       "sourceMatchId": null,
@@ -208,7 +130,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T09:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -237,6 +159,45 @@
       }
     },
     {
+      "id": "dota_lp_sched_3446ea962c30",
+      "providerMatchId": "liquipedia_1773313200",
+      "sourceMatchId": null,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "PGL Wallachia S7 - Playoffs",
+      "tournamentUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "competitiveTier": 1,
+      "status": "upcoming",
+      "startAt": "2026-03-12T11:00:00.000Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "dota_lp_team_team_spirit",
+          "name": "Team Spirit",
+          "shortName": "TSpirit",
+          "sourceUrl": "https://liquipedia.net/dota2/Team_Spirit"
+        },
+        "right": {
+          "id": "dota_lp_team_vici_gaming",
+          "name": "Vici Gaming",
+          "shortName": "VG",
+          "sourceUrl": "https://liquipedia.net/dota2/Vici_Gaming"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "watchUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "watchOptions": [],
+      "source": {
+        "provider": "liquipedia",
+        "page": "Liquipedia:Matches"
+      }
+    },
+    {
       "id": "dota_lp_sched_8dcf5aa90469",
       "providerMatchId": "liquipedia_1773316800",
       "sourceMatchId": null,
@@ -247,7 +208,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T12:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -276,6 +237,45 @@
       }
     },
     {
+      "id": "dota_lp_sched_ffa2f8358203",
+      "providerMatchId": "liquipedia_1773324000",
+      "sourceMatchId": null,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "PGL Wallachia S7 - Playoffs",
+      "tournamentUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "competitiveTier": 1,
+      "status": "upcoming",
+      "startAt": "2026-03-12T14:00:00.000Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "dota_lp_team_aurora_gaming",
+          "name": "Aurora Gaming",
+          "shortName": "Aurora",
+          "sourceUrl": "https://liquipedia.net/dota2/Aurora_Gaming"
+        },
+        "right": {
+          "id": "dota_lp_team_team_yandex",
+          "name": "Team Yandex",
+          "shortName": "Yandex",
+          "sourceUrl": "https://liquipedia.net/dota2/Team_Yandex"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "watchUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "watchOptions": [],
+      "source": {
+        "provider": "liquipedia",
+        "page": "Liquipedia:Matches"
+      }
+    },
+    {
       "id": "dota_lp_sched_d5df5bebee12",
       "providerMatchId": "liquipedia_1773327600",
       "sourceMatchId": null,
@@ -286,7 +286,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T15:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -315,6 +315,45 @@
       }
     },
     {
+      "id": "dota_lp_sched_48303e2a145a",
+      "providerMatchId": "liquipedia_1773334800",
+      "sourceMatchId": null,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "PGL Wallachia S7 - Playoffs",
+      "tournamentUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "competitiveTier": 1,
+      "status": "upcoming",
+      "startAt": "2026-03-12T17:00:00.000Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "dota_lp_team_team_liquid",
+          "name": "Team Liquid",
+          "shortName": "Liquid",
+          "sourceUrl": "https://liquipedia.net/dota2/Team_Liquid"
+        },
+        "right": {
+          "id": "dota_lp_team_tundra_esports",
+          "name": "Tundra Esports",
+          "shortName": "Tundra",
+          "sourceUrl": "https://liquipedia.net/dota2/Tundra_Esports"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "watchUrl": "https://liquipedia.net/dota2/PGL/Wallachia/7#Playoffs",
+      "watchOptions": [],
+      "source": {
+        "provider": "liquipedia",
+        "page": "Liquipedia:Matches"
+      }
+    },
+    {
       "id": "dota_lp_sched_39837190ebf2",
       "providerMatchId": "liquipedia_1773338400",
       "sourceMatchId": null,
@@ -325,7 +364,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-12T18:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -364,7 +403,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T04:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -403,7 +442,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T07:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -442,7 +481,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-13T10:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -481,7 +520,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-14T04:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -520,7 +559,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-14T07:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -559,7 +598,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-15T04:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -598,7 +637,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-15T07:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -637,7 +676,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-16T04:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -676,7 +715,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-16T07:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -715,7 +754,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-16T10:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -754,7 +793,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-16T10:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -793,7 +832,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-16T13:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -832,7 +871,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-16T16:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -871,7 +910,7 @@
       "competitiveTier": 2,
       "status": "upcoming",
       "startAt": "2026-03-16T19:00:00.000Z",
-      "updatedAt": "2026-03-10T20:14:38.250Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
       "bestOf": 3,
       "seriesScore": {
         "left": 0,
@@ -893,6 +932,84 @@
       },
       "keySignal": "provider_schedule",
       "watchUrl": "https://liquipedia.net/dota2/European_Pro_League/35#March_16",
+      "watchOptions": [],
+      "source": {
+        "provider": "liquipedia",
+        "page": "Liquipedia:Matches"
+      }
+    },
+    {
+      "id": "dota_lp_sched_45cc8d98e814",
+      "providerMatchId": "liquipedia_1773720000",
+      "sourceMatchId": null,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "EPL World SEA S13 - March 17",
+      "tournamentUrl": "https://liquipedia.net/dota2/EPL/World_Series/Southeast_Asia/13#March_17",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-17T04:00:00.000Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "dota_lp_team_interactive_philippines",
+          "name": "InterActive Philippines",
+          "shortName": "IAP",
+          "sourceUrl": "https://liquipedia.net/dota2/index.php?title=InterActive_Philippines&action=edit&redlink=1"
+        },
+        "right": {
+          "id": "dota_lp_team_yangon_galacticos",
+          "name": "Yangon Galacticos",
+          "shortName": "YG",
+          "sourceUrl": "https://liquipedia.net/dota2/Yangon_Galacticos"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "watchUrl": "https://liquipedia.net/dota2/EPL/World_Series/Southeast_Asia/13#March_17",
+      "watchOptions": [],
+      "source": {
+        "provider": "liquipedia",
+        "page": "Liquipedia:Matches"
+      }
+    },
+    {
+      "id": "dota_lp_sched_415f32fb5957",
+      "providerMatchId": "liquipedia_1773730800",
+      "sourceMatchId": null,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "EPL World SEA S13 - March 17",
+      "tournamentUrl": "https://liquipedia.net/dota2/EPL/World_Series/Southeast_Asia/13#March_17",
+      "competitiveTier": 2,
+      "status": "upcoming",
+      "startAt": "2026-03-17T07:00:00.000Z",
+      "updatedAt": "2026-03-11T19:30:59.665Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "dota_lp_team_team_essence",
+          "name": "Team Essence",
+          "shortName": "ESS",
+          "sourceUrl": "https://liquipedia.net/dota2/index.php?title=Team_Essence&action=edit&redlink=1"
+        },
+        "right": {
+          "id": "dota_lp_team_ivory",
+          "name": "Ivory",
+          "shortName": "Ivory",
+          "sourceUrl": "https://liquipedia.net/dota2/Ivory"
+        }
+      },
+      "keySignal": "provider_schedule",
+      "watchUrl": "https://liquipedia.net/dota2/EPL/World_Series/Southeast_Asia/13#March_17",
       "watchOptions": [],
       "source": {
         "provider": "liquipedia",
