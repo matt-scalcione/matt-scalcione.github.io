@@ -3018,6 +3018,18 @@ function buildCompletedSeriesSummaryCards(match) {
   return cards.join("");
 }
 
+function currentSeriesLeader(match) {
+  const leftScore = Number(match?.seriesScore?.left || 0);
+  const rightScore = Number(match?.seriesScore?.right || 0);
+  if (leftScore > rightScore) {
+    return match?.teams?.left?.name || null;
+  }
+  if (rightScore > leftScore) {
+    return match?.teams?.right?.name || null;
+  }
+  return null;
+}
+
 function seriesNavPillState(match) {
   const status = String(match?.status || "").toLowerCase();
   if (status === "live") {
@@ -4244,11 +4256,24 @@ function renderGameCommandCenter(match) {
     const favoredPct = prediction
       ? Math.max(Number(prediction.leftWinPct || 0), Number(prediction.rightWinPct || 0))
       : 0;
+    const favoriteTeamName = String(prediction?.favoriteTeamName || "").trim();
+    const seriesLeaderName = currentSeriesLeader(match);
+    const neutralPrediction = !favoriteTeamName || favoriteTeamName === "Even";
     const modelLabel = prediction
-      ? `${prediction.favoriteTeamName || "Even"} ${favoredPct.toFixed(1)}%`
+      ? neutralPrediction
+        ? match.status === "live" && seriesLeaderName
+          ? "No clear edge"
+          : `Toss-up ${favoredPct.toFixed(1)}%`
+        : `${favoriteTeamName} ${favoredPct.toFixed(1)}%`
       : "Edge loading";
     const modelHint = prediction
-      ? `${String(prediction.confidence || "low").toUpperCase()} confidence · ${Array.isArray(prediction.drivers) && prediction.drivers.length ? prediction.drivers[0] : "Recent Dota history only."}`
+      ? `${
+          match.status === "live" && neutralPrediction && seriesLeaderName
+            ? `Series lead: ${scoreboardTeamName(seriesLeaderName)} ${seriesLabel} · `
+            : ""
+        }${String(prediction.confidence || "low").toUpperCase()} confidence · ${
+          Array.isArray(prediction.drivers) && prediction.drivers.length ? prediction.drivers[0] : "Recent Dota history only."
+        }`
       : "Need more recent series history to score the matchup.";
     const h2hLabel =
       headToHead && Number(headToHead.total || headToHead.matches || 0) > 0
@@ -4274,7 +4299,7 @@ function renderGameCommandCenter(match) {
         tone: leftForm || rightForm ? "neutral" : "warn"
       }),
       commandCard("Matchup Edge", modelLabel, modelHint, {
-        tone: prediction?.favoriteTeamName && prediction.favoriteTeamName !== "Even" ? "warn" : "neutral"
+        tone: !neutralPrediction ? "warn" : "neutral"
       }),
       commandCard(isDota ? "Objectives" : "Head-to-Head", isDota ? objectiveRaceLabel : h2hLabel, isDota ? objectiveRaceHint : h2hHint, {
         tone:
