@@ -1724,6 +1724,43 @@ export function filterCanonicalFallbackRowsBySurface(rows, {
   });
 }
 
+function providerStateHasLiveRows(state) {
+  return Array.isArray(state?.rows) && state.rows.length > 0;
+}
+
+export function shouldUseCanonicalLiveFallbackForGame({
+  targetGame,
+  rows = [],
+  providerStates = [],
+  scheduleState = null,
+  requireScheduleFailure = false
+} = {}) {
+  const normalizedGame = String(targetGame || "").trim();
+  if (!normalizedGame) {
+    return false;
+  }
+
+  const normalizedRows = Array.isArray(rows) ? rows : [];
+  if (normalizedRows.some((row) => row?.game === normalizedGame)) {
+    return false;
+  }
+
+  const normalizedProviderStates = Array.isArray(providerStates) ? providerStates : [];
+  if (normalizedProviderStates.some((state) => state?.status === "success" && providerStateHasLiveRows(state))) {
+    return false;
+  }
+
+  if (!normalizedProviderStates.some((state) => state?.status !== "success")) {
+    return false;
+  }
+
+  if (requireScheduleFailure && scheduleState?.status === "success") {
+    return false;
+  }
+
+  return true;
+}
+
 function canonicalPrewarmMatchPriority(row, nowMs = Date.now()) {
   const status = String(row?.status || "").trim().toLowerCase();
   const tier = Number.isFinite(Number(row?.competitiveTier)) ? Number(row.competitiveTier) : 4;
@@ -4097,21 +4134,27 @@ export async function listLiveMatches({
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
+  const shouldUseCanonicalLolLiveFallback =
+    (!game || game === "lol") &&
+    shouldUseCanonicalLiveFallbackForGame({
+      targetGame: "lol",
+      rows,
+      providerStates: [providerLolLiveState]
+    });
   const shouldUseCanonicalDotaLiveFallback =
     (!game || game === "dota2") &&
-    !rows.some((row) => row?.game === "dota2") &&
-    providerDotaScheduleState.status !== "success" &&
-    (providerStratzLiveState.status !== "success" || providerStratzLiveState.rows.length === 0) &&
-    (providerDotaLiveState.status !== "success" || providerDotaLiveState.rows.length === 0) &&
-    (providerSteamLiveState.status !== "success" || providerSteamLiveState.rows.length === 0);
+    shouldUseCanonicalLiveFallbackForGame({
+      targetGame: "dota2",
+      rows,
+      providerStates: [providerStratzLiveState, providerDotaLiveState, providerSteamLiveState],
+      scheduleState: providerDotaScheduleState,
+      requireScheduleFailure: true
+    });
   if (useCanonicalFallback) {
     rows = await mergeCanonicalFallbackRows(rows, {
       surface: "live",
       game: game === "dota2" ? null : "lol",
-      shouldUseFallback:
-        (!game || game === "lol") &&
-        !rows.some((row) => row?.game === "lol") &&
-        providerLolLiveState.status !== "success"
+      shouldUseFallback: shouldUseCanonicalLolLiveFallback
     });
     rows = await mergeCanonicalFallbackRows(rows, {
       surface: "live",
