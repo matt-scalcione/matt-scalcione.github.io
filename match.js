@@ -277,6 +277,12 @@ const DOTA_CORE_LAYOUT = {
 
 const elements = {
   matchTitle: document.querySelector("#matchTitle"),
+  matchHeroKicker: document.querySelector("#matchHeroKicker"),
+  matchHeroMeta: document.querySelector("#matchHeroMeta"),
+  matchHeroChips: document.querySelector("#matchHeroChips"),
+  matchHeroFocus: document.querySelector("#matchHeroFocus"),
+  matchHeroCopy: document.querySelector("#matchHeroCopy"),
+  brandHomeLink: document.querySelector("#brandHomeLink"),
   backLink: document.querySelector("#backLink"),
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
@@ -1113,7 +1119,7 @@ function dateTimeCompact(iso) {
 
 function applyMobileSectionHeadings() {
   if (elements.backLink) {
-    elements.backLink.textContent = isCompactUI() ? "Back" : "Back to Live Desk";
+    elements.backLink.textContent = isCompactUI() ? "Live Desk" : "Back to Live Desk";
   }
 
   const headings = Array.from(document.querySelectorAll(".match-page .section-head h2"));
@@ -1708,6 +1714,148 @@ function selectedGameScoreContext(match) {
   };
 }
 
+function headerFormFacts(profile, compact = false) {
+  if (!profile) {
+    return [];
+  }
+
+  const facts = [];
+  const wins = Number(profile.wins || 0);
+  const losses = Number(profile.losses || 0);
+  const draws = Number(profile.draws || 0);
+  if (wins + losses + draws > 0) {
+    facts.push(`Series ${wins}-${losses}${draws ? `-${draws}` : ""}`);
+  }
+  if (Number.isFinite(profile.seriesWinRatePct) && profile.seriesWinRatePct > 0) {
+    facts.push(`${compact ? "SER WR" : "Series WR"} ${formatRatePct(profile.seriesWinRatePct)}`);
+  }
+  if (Number.isFinite(profile.gameWinRatePct) && profile.gameWinRatePct > 0) {
+    facts.push(`${compact ? "MAP WR" : "Map WR"} ${formatRatePct(profile.gameWinRatePct)}`);
+  }
+  if (profile.streakLabel && profile.streakLabel !== "n/a") {
+    facts.push(String(profile.streakLabel).toUpperCase());
+  }
+  if (profile.formLabel && profile.formLabel !== "n/a" && !compact) {
+    facts.push(`FORM ${String(profile.formLabel).toUpperCase()}`);
+  }
+
+  return facts.slice(0, compact ? 2 : 4);
+}
+
+function matchHeroChipMarkup(label, tone = "neutral") {
+  return `<span class="match-shell-chip ${tone}">${escapeHtml(label)}</span>`;
+}
+
+function setMatchHeroState({ title, kicker = "", meta = "", focus = "", copy = "", chips = [] }) {
+  if (elements.matchTitle) {
+    elements.matchTitle.textContent = title;
+  }
+  if (elements.matchHeroKicker) {
+    elements.matchHeroKicker.textContent = kicker;
+  }
+  if (elements.matchHeroMeta) {
+    elements.matchHeroMeta.textContent = meta;
+  }
+  if (elements.matchHeroFocus) {
+    elements.matchHeroFocus.textContent = focus;
+  }
+  if (elements.matchHeroCopy) {
+    elements.matchHeroCopy.textContent = copy;
+  }
+  if (elements.matchHeroChips) {
+    elements.matchHeroChips.innerHTML = chips.map((chip) => matchHeroChipMarkup(chip.label, chip.tone)).join("");
+  }
+}
+
+function clearMatchShellBoard() {
+  if (elements.scoreboard) {
+    elements.scoreboard.innerHTML = "";
+  }
+  if (elements.streamStatusWrap) {
+    elements.streamStatusWrap.innerHTML = "";
+  }
+}
+
+function renderMatchHero(match) {
+  if (!match) {
+    setMatchHeroState({
+      title: "Match Center",
+      kicker: "Series Center",
+      meta: "Live series and map-level context.",
+      focus: "Series",
+      copy: "Keep the series read visible, then drill into individual games when you need map detail.",
+      chips: []
+    });
+    return;
+  }
+
+  const compact = isCompactUI();
+  const isGameMode = uiState.viewMode === "game" && Number.isInteger(uiState.activeGameNumber);
+  const liveGameNumber = firstInProgressGameNumber(match);
+  const bestOf = Number(match?.bestOf || match?.seriesProgress?.bestOf || 1);
+  const startTs = Date.parse(String(match?.startAt || ""));
+  const startLabel = Number.isFinite(startTs)
+    ? compact
+      ? dateTimeCompact(match.startAt)
+      : dateTimeLabel(match.startAt)
+    : "TBD";
+  const seriesScore = `${Number(match?.seriesScore?.left || 0)}-${Number(match?.seriesScore?.right || 0)}`;
+  const focusLabel = isGameMode ? `Game ${uiState.activeGameNumber}` : match.status === "completed" ? "Final Series" : "Series";
+  const gameLabel = match.game === "dota2" ? "DOTA 2" : match.game === "lol" ? "LEAGUE OF LEGENDS" : "ESPORTS";
+  const heroKicker = [gameLabel, match.tournament || "Tournament", match.region ? String(match.region).toUpperCase() : null]
+    .filter(Boolean)
+    .join(" · ");
+
+  let meta = `BO${bestOf} · ${match.tournament || "Tournament"}`;
+  let copy = "Stay on the series layer for the broad read, then move into games when you want the full map story.";
+  const chips = [];
+
+  if (match.status === "upcoming") {
+    meta = `${startLabel} · BO${bestOf}${match.patch ? ` · Patch ${match.patch}` : ""}`;
+    copy = "Use the series layer for kickoff timing, lineup context, and matchup strength before the first game starts.";
+    chips.push({ label: "Upcoming", tone: "upcoming" });
+    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
+    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
+    if (Number.isFinite(startTs)) chips.push({ label: `Starts ${dateTimeCompact(match.startAt)}`, tone: "neutral" });
+  } else if (match.status === "live") {
+    meta = `${seriesScore} series${Number.isInteger(liveGameNumber) ? ` · Game ${liveGameNumber} live` : " · Live now"}${match.patch ? ` · Patch ${match.patch}` : ""}`;
+    copy = Number.isInteger(liveGameNumber)
+      ? isGameMode
+        ? `You are on Game ${uiState.activeGameNumber}. Keep the series score in view, then use the navigator to move one game at a time.`
+        : `Game ${liveGameNumber} is live. Stay on the series read for context, or open the active map when you want live game detail.`
+      : "The series is live. Use the header for score and status, then drop into the active game for the detailed read.";
+    chips.push({ label: "Live", tone: "live" });
+    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
+    if (Number.isInteger(liveGameNumber)) chips.push({ label: `G${liveGameNumber} Live`, tone: "live" });
+    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
+  } else {
+    const winner = winnerTeamName(match);
+    meta = `${seriesScore} final${winner ? ` · ${scoreboardTeamName(winner)} won` : ""}${match.patch ? ` · Patch ${match.patch}` : ""}`;
+    copy = isGameMode
+      ? `This game is final. Use the series score up top and the recap sections below to move between the match result and map-level detail.`
+      : "The series is complete. Read the result first, then move through the games below for the full match story.";
+    chips.push({ label: "Final", tone: "complete" });
+    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
+    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
+    if (winner) chips.push({ label: `${scoreboardTeamName(winner)} won`, tone: "complete" });
+  }
+
+  if (isGameMode) {
+    chips.unshift({ label: `Game ${uiState.activeGameNumber}`, tone: "focus" });
+  } else {
+    chips.unshift({ label: "Series View", tone: "focus" });
+  }
+
+  setMatchHeroState({
+    title: `${displayTeamName(match.teams.left.name, match.game)} vs ${displayTeamName(match.teams.right.name, match.game)}`,
+    kicker: heroKicker,
+    meta,
+    focus: focusLabel,
+    copy,
+    chips
+  });
+}
+
 function renderScoreboard(match) {
   const compact = isCompactUI();
   const isSeriesView = uiState.viewMode === "series";
@@ -1715,8 +1863,10 @@ function renderScoreboard(match) {
   const winnerLabel = winner ? scoreboardTeamName(winner) : null;
   const leftRawName = String(match?.teams?.left?.name || "Unknown");
   const rightRawName = String(match?.teams?.right?.name || "Unknown");
-  const leftDisplayName = scoreboardTeamName(leftRawName);
-  const rightDisplayName = scoreboardTeamName(rightRawName);
+  const leftDisplayName = displayTeamName(leftRawName, match?.game);
+  const rightDisplayName = displayTeamName(rightRawName, match?.game);
+  const leftCode = scoreboardTeamName(leftRawName, match?.game);
+  const rightCode = scoreboardTeamName(rightRawName, match?.game);
   const selectedGameNumber = contextGameNumber();
   const bestOf = Number(match?.bestOf || match?.seriesProgress?.bestOf || 1);
   const formatLabel = `BO${bestOf}`;
@@ -1735,6 +1885,7 @@ function renderScoreboard(match) {
   const completedMaps = Array.isArray(match?.seriesGames)
     ? match.seriesGames.filter((game) => game?.state === "completed").length
     : 0;
+  const seriesHref = detailUrlForGame(match.id, uiState.apiBase, null);
   const leftTeamUrl = teamDetailUrl(match.teams.left.id, match.game, uiState.apiBase, {
     matchId: match.id,
     gameNumber: selectedGameNumber,
@@ -1750,112 +1901,107 @@ function renderScoreboard(match) {
   const gameContext = selectedGameScoreContext(match);
   const gameStatus = gameContext?.state ? stateLabel(gameContext.state) : "";
   const statusTone = match.status === "live" ? "live" : match.status === "completed" ? "complete" : "upcoming";
-  const phaseKicker = match.status === "live" ? "Live series" : match.status === "completed" ? "Final result" : "Upcoming series";
-  let phaseTitle = `${leftDisplayName} vs ${rightDisplayName}`;
-  let phaseSubline = tournamentName;
-  const phasePills = [`${formatLabel}`, compact ? null : tournamentName, !compact && match.patch ? `Patch ${match.patch}` : null].filter(Boolean);
-  let seriesSubline = compactStatusLabel(match.status);
+  const matchupProfiles = resolvedUpcomingFormProfiles(match);
+  const leftFacts = headerFormFacts(matchupProfiles.left, compact);
+  const rightFacts = headerFormFacts(matchupProfiles.right, compact);
 
+  let centerNote = `${tournamentName} · ${formatLabel}`;
   if (match.status === "upcoming") {
-    phaseTitle = countdown !== null ? `Starts in ${countdownLabel}` : "Start time pending";
-    phaseSubline = compact ? `${tournamentName} · ${startLabel}` : startLabel;
-    seriesSubline = compact ? startLabel : `Starts ${startLabel}`;
+    centerNote = `${startLabel}${countdown !== null ? ` · Starts in ${countdownLabel}` : ""}`;
   } else if (match.status === "live") {
-    phaseTitle = Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} live now` : "Series live";
-    phaseSubline = compact
-      ? `${tournamentName} · ${match.seriesScore.left}-${match.seriesScore.right}`
-      : `Series ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps complete` : ""}`;
-    seriesSubline = Number.isInteger(liveGameNumber)
-      ? compact
-        ? `G${liveGameNumber} live`
-        : `Current game ${liveGameNumber} live`
-      : compactStatusLabel(match.status);
-    if (Number.isFinite(Number(match?.momentum?.goldLead))) {
-      phasePills.push(`Lead ${signed(match.momentum.goldLead)}`);
-    }
+    centerNote = `Series ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} complete` : ""}`;
   } else if (match.status === "completed") {
-    phaseTitle = winnerLabel ? `${winnerLabel} won the series` : "Series complete";
-    phaseSubline = compact
-      ? `${tournamentName} · ${match.seriesScore.left}-${match.seriesScore.right}`
-      : `Final ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps played` : ""}`;
-    seriesSubline = compact ? "Final" : `${completedMaps || bestOf} maps recorded`;
+    centerNote = winnerLabel
+      ? `${winnerLabel} closed ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps played` : ""}`
+      : `Final ${match.seriesScore.left}-${match.seriesScore.right}`;
   }
 
-  if (isSeriesView) {
-    if (match.status === "upcoming") {
-      seriesSubline = compact ? "Upcoming" : `${formatLabel} · Upcoming`;
-    } else if (match.status === "live") {
-      seriesSubline = compact
-        ? (Number.isInteger(liveGameNumber) ? `G${liveGameNumber} live` : "Live")
-        : `${formatLabel} · Live`;
-    } else if (match.status === "completed") {
-      seriesSubline = compact ? "Final" : `${formatLabel} · Final`;
-    }
-  }
+  const centerStatuses = [
+    { label: match.status === "live" ? "Live" : match.status === "completed" ? "Final" : "Upcoming", tone: statusTone },
+    { label: formatLabel, tone: "neutral" },
+    match.patch ? { label: `Patch ${match.patch}`, tone: "neutral" } : null,
+    Number.isInteger(liveGameNumber) && match.status === "live" ? { label: `G${liveGameNumber} Live`, tone: "live" } : null
+  ].filter(Boolean);
 
-  const seriesCenterLabel = compact ? formatLabel : "Series Score";
-  const phaseBannerMarkup = isSeriesView
-    ? ""
-    : `
-    <article class="match-phase-banner ${statusTone}">
-      <div class="match-phase-copy">
-        <p class="match-phase-kicker">${phaseKicker}</p>
-        <p class="match-phase-title">${phaseTitle}</p>
-        <p class="match-phase-sub">${phaseSubline}</p>
-      </div>
-      <div class="match-phase-pills">
-        ${phasePills.map((pill) => `<span class="match-phase-pill">${pill}</span>`).join("")}
-      </div>
-    </article>
-  `;
-  const gameStripMarkup =
-    gameContext && !isSeriesView
-      ? `
-    <article class="score-strip game-strip ${gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming"}">
-      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
-        ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
-        ${
-          gameContext.leftSide
-            ? `<span class="score-team-side ${gameContext.leftSide === "BLUE" ? "blue" : gameContext.leftSide === "RED" ? "red" : ""}">${gameContext.leftSide}</span>`
-            : ""
-        }
-        <span class="score-team-name">${leftDisplayName}</span>
-      </a>
-      <div class="score-center game-center">
-        <p class="score-center-label">${gameContext.number ? (compact ? `G${gameContext.number}` : `Game ${gameContext.number}`) : compact ? "Game" : "Selected Game"}${gameStatus ? ` · ${gameStatus}` : ""}</p>
-        <p class="score-center-main">${Number.isFinite(gameContext.leftKills) ? gameContext.leftKills : "—"}<span class="score-divider">-</span>${Number.isFinite(gameContext.rightKills) ? gameContext.rightKills : "—"}</p>
-        <p class="score-center-sub">${compact ? "Kills" : "Kills this game"}</p>
-      </div>
-      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
-        ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
-        ${
-          gameContext.rightSide
-            ? `<span class="score-team-side ${gameContext.rightSide === "BLUE" ? "blue" : gameContext.rightSide === "RED" ? "red" : ""}">${gameContext.rightSide}</span>`
-            : ""
-        }
-        <span class="score-team-name">${rightDisplayName}</span>
-      </a>
-    </article>
-    `
-      : "";
+  let gameStripMarkup = "";
+  if (gameContext && !isSeriesView) {
+    const tone =
+      gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming";
+    const sideSummary = [gameContext.leftSide, gameContext.rightSide].filter(Boolean).join(" · ");
+    gameStripMarkup = `
+      <article class="score-hero-game-band ${tone}">
+        <div class="score-hero-game-copy">
+          <p class="score-hero-game-label">${gameContext.number ? `Game ${gameContext.number}` : "Selected Game"}</p>
+          <p class="score-hero-game-main">${Number.isFinite(gameContext.leftKills) ? gameContext.leftKills : "—"}<span>-</span>${Number.isFinite(gameContext.rightKills) ? gameContext.rightKills : "—"}</p>
+          <p class="score-hero-game-note">${gameStatus || "Awaiting map state"}${sideSummary ? ` · ${sideSummary}` : ""}</p>
+        </div>
+        <div class="score-hero-game-links">
+          <a class="score-hero-mini-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
+            ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
+            <span>${leftCode}</span>
+          </a>
+          <a class="score-hero-mini-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
+            ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
+            <span>${rightCode}</span>
+          </a>
+        </div>
+      </article>
+    `;
+  } else if (match.status === "live" && Number.isInteger(liveGameNumber)) {
+    gameStripMarkup = `
+      <article class="score-hero-game-band live">
+        <div class="score-hero-game-copy">
+          <p class="score-hero-game-label">Current Game</p>
+          <p class="score-hero-game-main">Game ${liveGameNumber} Live</p>
+          <p class="score-hero-game-note">Use the navigator below to open the live map view.</p>
+        </div>
+        <div class="score-hero-game-links">
+          <a class="link-btn score-hero-open-link" href="${detailUrlForGame(match.id, uiState.apiBase, liveGameNumber)}">Open Game ${liveGameNumber}</a>
+          <a class="link-btn ghost score-hero-open-link" href="${seriesHref}">Series View</a>
+        </div>
+      </article>
+    `;
+  }
 
   elements.scoreboard.classList.toggle("scoreboard-series-only", isSeriesView);
 
   elements.scoreboard.innerHTML = `
-    ${phaseBannerMarkup}
-    <article class="score-strip series-strip ${statusTone}">
-      <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
-        ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
-        <span class="score-team-name">${leftDisplayName}</span>
+    <article class="score-hero-board ${statusTone}">
+      <a class="score-hero-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
+        <span class="score-hero-team-brand">
+          ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
+          <span class="score-hero-team-copy">
+            <span class="score-hero-team-code">${leftCode}</span>
+            <span class="score-hero-team-name">${escapeHtml(leftDisplayName)}</span>
+          </span>
+        </span>
+        ${
+          leftFacts.length
+            ? `<span class="score-hero-team-facts">${leftFacts.map((fact) => `<span class="score-hero-team-fact">${escapeHtml(fact)}</span>`).join("")}</span>`
+            : ""
+        }
       </a>
-      <div class="score-center">
-        <p class="score-center-label">${seriesCenterLabel}</p>
-        <p class="score-center-main">${match.seriesScore.left}<span class="score-divider">-</span>${match.seriesScore.right}</p>
-        <p class="score-center-sub">${seriesSubline}</p>
+      <div class="score-hero-center">
+        <p class="score-hero-event">${escapeHtml(tournamentName)}</p>
+        <p class="score-hero-score">${match.seriesScore.left}<span>-</span>${match.seriesScore.right}</p>
+        <div class="score-hero-statuses">
+          ${centerStatuses.map((item) => `<span class="score-hero-status ${item.tone}">${escapeHtml(item.label)}</span>`).join("")}
+        </div>
+        <p class="score-hero-note">${escapeHtml(centerNote)}</p>
       </div>
-      <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
-        ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
-        <span class="score-team-name">${rightDisplayName}</span>
+      <a class="score-hero-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
+        <span class="score-hero-team-brand">
+          ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
+          <span class="score-hero-team-copy">
+            <span class="score-hero-team-code">${rightCode}</span>
+            <span class="score-hero-team-name">${escapeHtml(rightDisplayName)}</span>
+          </span>
+        </span>
+        ${
+          rightFacts.length
+            ? `<span class="score-hero-team-facts">${rightFacts.map((fact) => `<span class="score-hero-team-fact">${escapeHtml(fact)}</span>`).join("")}</span>`
+            : ""
+        }
       </a>
     </article>
     ${gameStripMarkup}
@@ -2551,6 +2697,8 @@ async function ensureMatchupData(match, apiBase) {
       leftProfile,
       rightProfile
     };
+    renderMatchHero(uiState.match || match);
+    renderScoreboard(uiState.match || match);
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
@@ -2567,6 +2715,8 @@ async function ensureMatchupData(match, apiBase) {
       leftProfile: null,
       rightProfile: null
     };
+    renderMatchHero(uiState.match || match);
+    renderScoreboard(uiState.match || match);
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
@@ -3085,9 +3235,7 @@ function renderGameExplorer(match, apiBase) {
   const seriesHref = detailUrlForGame(match.id, apiBase, null);
   const focusItems = [{ key: "series", href: seriesHref, label: compact ? "S" : "Series" }];
   const liveGameNumber = firstInProgressGameNumber(match);
-  const currentLiveCallout = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
-    ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `LIVE NOW · G${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
-    : "";
+  const currentLiveCallout = "";
   for (const game of availableGames) {
     if (game?.state === "unneeded") {
       continue;
@@ -9447,6 +9595,9 @@ function renderTimeline(rows) {
 function applyNavigationLinks(apiBase) {
   const backUrl = applyRouteContext(new URL("./index.html", window.location.href), { apiBase });
   elements.backLink.href = backUrl.toString();
+  if (elements.brandHomeLink) {
+    elements.brandHomeLink.href = backUrl.toString();
+  }
 
   const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
   const followsUrl = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
@@ -9543,10 +9694,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
     uiState.stream.connected = false;
   }
 
-  const focusedLabel = Number.isInteger(uiState.activeGameNumber) && uiState.viewMode === "game"
-    ? ` · ${isCompactUI() ? `G${uiState.activeGameNumber}` : `Game ${uiState.activeGameNumber}`}`
-    : "";
-  elements.matchTitle.textContent = `${displayTeamName(match.teams.left.name)} vs ${displayTeamName(match.teams.right.name)} · ${match.tournament}${focusedLabel}`;
+  renderMatchHero(match);
   if (elements.freshnessText) {
     elements.freshnessText.textContent = "";
     elements.freshnessText.hidden = true;
@@ -9683,7 +9831,15 @@ function startMatchStream({ matchId, requestedGameNumber, apiBase }) {
     try {
       const payload = JSON.parse(event.data);
       if (payload?.code === "not_found") {
-        elements.matchTitle.textContent = `Error loading match: ${payload.message}`;
+        setMatchHeroState({
+          title: `Error loading match: ${payload.message}`,
+          kicker: "Match Center",
+          meta: "The live stream could not resolve this match.",
+          focus: "Unavailable",
+          copy: "Return to the live desk and reopen the match from the board.",
+          chips: []
+        });
+        clearMatchShellBoard();
       }
     } catch {
       // Keep stream alive even if notice payload parse fails.
@@ -9751,9 +9907,16 @@ async function loadMatch() {
     uiState.viewMode = "series";
     uiState.activeGameNumber = null;
     resetMatchupState();
-    elements.matchTitle.textContent = "Missing match id. Use /match/<match-id> or ?id=<match-id>.";
+    setMatchHeroState({
+      title: "Missing match id.",
+      kicker: "Match Center",
+      meta: "Use /match/<match-id> or ?id=<match-id>.",
+      focus: "Unavailable",
+      copy: "Open a match from the live desk or schedule to load the series page.",
+      chips: []
+    });
+    clearMatchShellBoard();
     refreshMatchSeo(null);
-    renderStreamStatus(null);
     renderMatchupConsole(null);
     renderMatchQuickNav(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);
@@ -9818,13 +9981,20 @@ async function loadMatch() {
     uiState.viewMode = "series";
     uiState.activeGameNumber = null;
     resetMatchupState();
-    elements.matchTitle.textContent = `Error loading match: ${error.message}`;
+    setMatchHeroState({
+      title: `Error loading match: ${error.message}`,
+      kicker: "Match Center",
+      meta: error?.code === "timeout" ? "The match detail request timed out." : "The match page could not be loaded.",
+      focus: "Unavailable",
+      copy: "Try the live desk or schedule again once the source responds.",
+      chips: []
+    });
+    clearMatchShellBoard();
     if (elements.freshnessText) {
       elements.freshnessText.textContent = error?.code === "timeout" ? "Match detail request timed out." : "";
       elements.freshnessText.hidden = !elements.freshnessText.textContent;
     }
     refreshMatchSeo(null);
-    renderStreamStatus(null);
     renderMatchupConsole(null);
     renderMatchQuickNav(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);

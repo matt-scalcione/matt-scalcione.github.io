@@ -30,66 +30,52 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260311f" />
+    <link rel="stylesheet" href="./styles.css?v=20260311g" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
-    <header class="hero compact">
-      <div class="hero-grid">
-        <div class="hero-main">
-          <div class="hero-kicker-row">
-            <p class="kicker">Pulseboard</p>
-            <span class="hero-badge">Match center</span>
-          </div>
-          <h1>Match Center</h1>
-          <p class="subtitle" id="matchTitle">Loading match...</p>
-          <div class="hero-metrics" aria-label="Match center highlights">
-            <div class="hero-metric">
-              <span>Layer</span>
-              <strong>Series</strong>
-            </div>
-            <div class="hero-metric">
-              <span>Depth</span>
-              <strong>Map detail</strong>
-            </div>
-            <div class="hero-metric">
-              <span>Use case</span>
-              <strong>Follow live</strong>
-            </div>
-          </div>
-          <div class="hero-chips">
-            <span class="hero-chip">Series view</span>
-            <span class="hero-chip">Map detail</span>
-            <span class="hero-chip">Context + live state</span>
-          </div>
-          <nav class="page-nav">
-            <a id="liveDeskNav" href="./index.html">Live Desk</a>
-            <a id="scheduleNav" href="./schedule.html">Schedule & Results</a>
-            <a id="followsNav" href="./follows.html">Follows & Alerts</a>
-            <a id="lolHubNav" href="./lol.html">LoL Hub</a>
-            <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
-          </nav>
+    <header class="match-shell">
+      <div class="match-shell-bar">
+        <a id="brandHomeLink" href="./index.html" class="match-brand" aria-label="Pulseboard home">
+          <span class="match-brand-mark" aria-hidden="true">PB</span>
+          <span class="match-brand-copy">
+            <span class="match-brand-name">Pulseboard</span>
+            <span class="match-brand-tag">Series + Game Center</span>
+          </span>
+        </a>
+        <nav class="match-shell-nav" aria-label="Primary">
+          <a id="liveDeskNav" href="./index.html">Live Desk</a>
+          <a id="scheduleNav" href="./schedule.html">Schedule</a>
+          <a id="followsNav" href="./follows.html">Follows</a>
+          <a id="lolHubNav" href="./lol.html">LoL</a>
+          <a id="dotaHubNav" href="./dota2.html">Dota</a>
+        </nav>
+        <a id="backLink" href="./index.html" class="link-btn match-shell-back">Back to Live Desk</a>
+      </div>
+
+      <div class="match-shell-hero">
+        <div class="match-shell-copy">
+          <p id="matchHeroKicker" class="match-shell-kicker">Series Center</p>
+          <h1 id="matchTitle">Loading match...</h1>
+          <p id="matchHeroMeta" class="match-shell-subtitle">Live series and map-level context.</p>
+          <div id="matchHeroChips" class="match-shell-chips" aria-label="Match summary"></div>
         </div>
-        <aside class="hero-side hero-side-actions">
-          <p class="hero-side-label">Route</p>
-          <p class="hero-side-value">Back to board</p>
-          <p class="hero-side-copy">
-            Stay here for the full series read, then drill into each game without losing the overall match context.
+        <aside class="match-shell-side" aria-label="Current focus">
+          <p class="match-shell-side-label">Focus</p>
+          <p id="matchHeroFocus" class="match-shell-side-value">Series</p>
+          <p id="matchHeroCopy" class="match-shell-side-copy">
+            Keep the series read visible, then drill into individual games when you need map detail.
           </p>
-          <a id="backLink" href="./index.html" class="link-btn hero-back-link">Back to Live Desk</a>
         </aside>
+      </div>
+
+      <div class="match-shell-board">
+        <div id="scoreboard" class="scoreboard scoreboard-hero"></div>
+        <div id="streamStatusWrap" class="stream-status stream-status-hero"></div>
       </div>
     </header>
 
     <main class="layout detail">
-      <section class="panel match-state-panel">
-        <div class="section-head">
-          <h2>Series Command</h2>
-        </div>
-        <div id="scoreboard" class="scoreboard"></div>
-        <div id="streamStatusWrap" class="stream-status"></div>
-      </section>
-
       <section class="panel hidden-panel">
         <div class="section-head">
           <h2>Series Read</h2>
@@ -525,6 +511,6 @@
     </nav>
 
     <script src="./site-config.js?v=20260309c"></script>
-    <script type="module" src="./match.js?v=20260311k"></script>
+    <script type="module" src="./match.js?v=20260311l"></script>
   </body>
 </html>
