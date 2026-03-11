@@ -3020,11 +3020,11 @@ function buildCompletedSeriesSummaryCards(match) {
 
 function gameNavMetaLabel({ isSeries = false, matchStatus = "", gameState = "", isCurrentLiveGame = false } = {}) {
   if (isSeries) {
-    if (matchStatus === "completed") {
-      return "Final view";
-    }
     if (matchStatus === "live") {
       return "Overview";
+    }
+    if (matchStatus === "completed") {
+      return "";
     }
     return "Series view";
   }
@@ -3033,7 +3033,7 @@ function gameNavMetaLabel({ isSeries = false, matchStatus = "", gameState = "", 
     return "Live now";
   }
   if (gameState === "completed") {
-    return "Final";
+    return "";
   }
   if (gameState === "unneeded") {
     return "Skipped";
@@ -3060,11 +3060,14 @@ function buildGameNavPill({ href, label, meta = "", state = "complete", selected
   if (currentLive) {
     classes.push("current-live");
   }
+  if (!meta) {
+    classes.push("no-meta");
+  }
 
   return `
     <a class="${classes.join(" ")}" href="${href}">
       <span class="game-pill-label">${escapeHtml(label)}</span>
-      <span class="game-pill-meta">${escapeHtml(meta)}</span>
+      ${meta ? `<span class="game-pill-meta">${escapeHtml(meta)}</span>` : ""}
     </a>
   `;
 }

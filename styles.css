@@ -3602,6 +3602,10 @@ button.ghost,
   display: none;
 }
 
+.game-pill.no-meta {
+  align-items: center;
+}
+
 .game-pill.live {
   border-color: rgba(19, 125, 79, 0.45);
   color: #0f6942;
@@ -11153,6 +11157,10 @@ body.product-shell .match-quick-nav {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.82),
       0 6px 14px rgba(18, 46, 72, 0.06);
+  }
+
+  body.product-shell.match-page .game-pill.no-meta {
+    align-items: center;
   }
 
   body.product-shell.match-page .game-pill-label {
