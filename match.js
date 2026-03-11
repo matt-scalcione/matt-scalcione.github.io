@@ -3018,58 +3018,35 @@ function buildCompletedSeriesSummaryCards(match) {
   return cards.join("");
 }
 
-function gameNavMetaLabel({ isSeries = false, matchStatus = "", gameState = "", isCurrentLiveGame = false } = {}) {
-  if (isSeries) {
-    if (matchStatus === "live") {
-      return "Overview";
-    }
-    if (matchStatus === "completed") {
-      return "";
-    }
-    return "Series view";
-  }
-
-  if (isCurrentLiveGame || gameState === "inProgress") {
-    return "Live now";
-  }
-  if (gameState === "completed") {
-    return "";
-  }
-  if (gameState === "unneeded") {
-    return "Skipped";
-  }
-  return "Upcoming";
-}
-
 function seriesNavPillState(match) {
   const status = String(match?.status || "").toLowerCase();
   if (status === "live") {
-    return "live";
+    return "inProgress";
   }
   if (status === "completed") {
-    return "complete";
+    return "completed";
   }
-  return "upcoming";
+  return "unstarted";
 }
 
-function buildGameNavPill({ href, label, meta = "", state = "complete", selected = false, currentLive = false }) {
-  const classes = ["game-pill", state];
-  if (selected) {
-    classes.push("selected");
-  }
+function buildGameNavPill({ href, label, state = "complete", selected = false, currentLive = false }) {
+  const classes = ["game-pill", gameNavPillClass(state, selected)];
   if (currentLive) {
     classes.push("current-live");
   }
-  if (!meta) {
-    classes.push("no-meta");
-  }
 
-  return `
-    <a class="${classes.join(" ")}" href="${href}">
-      <span class="game-pill-label">${escapeHtml(label)}</span>
-      ${meta ? `<span class="game-pill-meta">${escapeHtml(meta)}</span>` : ""}
-    </a>
-  `;
+  return `<a class="${classes.join(" ")}" href="${href}">${escapeHtml(label)}${
+    currentLive ? `<span class="game-pill-live-dot" aria-hidden="true"></span>` : ""
+  }</a>`;
+}
+
+function buildGameStepControl({ href = "", direction = "prev", disabled = false }) {
+  const label = direction === "prev" ? "&lt;&lt;" : "&gt;&gt;";
+  const ariaLabel = direction === "prev" ? "Previous view" : "Next view";
+  if (disabled || !href) {
+    return `<span class="game-step-control ${direction} disabled" aria-hidden="true">${label}</span>`;
+  }
+  return `<a class="game-step-control ${direction}" href="${href}" aria-label="${ariaLabel}">${label}</a>`;
 }
 
 function renderGameExplorer(match, apiBase) {
@@ -3088,57 +3065,70 @@ function renderGameExplorer(match, apiBase) {
   const availableGames = Array.isArray(nav.availableGames) ? nav.availableGames : [];
   const playedOrLiveGames = availableGames.filter((game) => game?.state === "completed" || game?.state === "inProgress");
   const seriesHref = detailUrlForGame(match.id, apiBase, null);
-  const matchStatus = String(match?.status || "").toLowerCase();
-  const seriesPill = buildGameNavPill({
-    href: seriesHref,
-    label: "Series",
-    meta: gameNavMetaLabel({ isSeries: true, matchStatus }),
-    state: seriesNavPillState(match),
-    selected: !isGameMode
-  });
+  const focusItems = [{ key: "series", href: seriesHref, label: compact ? "S" : "Series" }];
   const liveGameNumber = firstInProgressGameNumber(match);
   const currentLiveCallout = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
-    ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `Live now: Game ${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open Game ${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
+    ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `LIVE NOW · G${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
     : "";
-  const navPills = [
-    seriesPill,
-    ...playedOrLiveGames.map((game) => {
-      const href = detailUrlForGame(match.id, apiBase, game.number);
-      const selectedGamePill = isGameMode && activeGameNumber === game.number;
+  for (const game of playedOrLiveGames) {
+    focusItems.push({
+      key: `game:${game.number}`,
+      href: detailUrlForGame(match.id, apiBase, game.number),
+      label: compact ? `G${game.number}` : `Game ${game.number}`,
+      game
+    });
+  }
+
+  const currentFocusKey = isGameMode && Number.isInteger(activeGameNumber) ? `game:${activeGameNumber}` : "series";
+  const currentFocusIndex = Math.max(
+    0,
+    focusItems.findIndex((item) => item.key === currentFocusKey)
+  );
+  const previousFocus = currentFocusIndex > 0 ? focusItems[currentFocusIndex - 1] : null;
+  const nextFocus = currentFocusIndex < focusItems.length - 1 ? focusItems[currentFocusIndex + 1] : null;
+
+  const navPills = focusItems
+    .map((item) => {
+      if (item.key === "series") {
+        return buildGameNavPill({
+          href: item.href,
+          label: item.label,
+          state: seriesNavPillState(match),
+          selected: !isGameMode
+        });
+      }
+
+      const game = item.game;
       const isCurrentLiveGame =
         match.status === "live" &&
         Number.isInteger(liveGameNumber) &&
         liveGameNumber === game.number;
       return buildGameNavPill({
-        href,
-        label: `Game ${game.number}`,
-        meta: gameNavMetaLabel({
-          gameState: game?.state,
-          isCurrentLiveGame
-        }),
-        state: gameNavPillClass(game.state, false),
-        selected: selectedGamePill,
+        href: item.href,
+        label: item.label,
+        state: game?.state,
+        selected: isGameMode && activeGameNumber === game.number,
         currentLive: isCurrentLiveGame
       });
     })
-  ].join("");
+    .join("");
 
   const navActions = [];
-  if (isGameMode && Number.isInteger(nav.previousGameNumber)) {
+  if (!compact && isGameMode && Number.isInteger(nav.previousGameNumber)) {
     navActions.push(
       `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">${
         compact ? `Previous Game ${nav.previousGameNumber}` : "Previous Game"
       }</a>`
     );
   }
-  if (isGameMode && Number.isInteger(nav.nextGameNumber)) {
+  if (!compact && isGameMode && Number.isInteger(nav.nextGameNumber)) {
     navActions.push(
       `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">${
         compact ? `Next Game ${nav.nextGameNumber}` : "Next Game"
       }</a>`
     );
   }
-  if (!isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)) {
+  if (!compact && !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)) {
     navActions.push(
       `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${
         compact ? `Open Game ${liveGameNumber}` : `Open Live Game ${liveGameNumber}`
@@ -3146,12 +3136,22 @@ function renderGameExplorer(match, apiBase) {
     );
   }
 
+  const compactStepper = compact
+    ? `
+      <div class="game-nav-stepper">
+        ${buildGameStepControl({ href: previousFocus?.href || "", direction: "prev", disabled: !previousFocus })}
+        <div class="game-pill-row">${navPills}</div>
+        ${buildGameStepControl({ href: nextFocus?.href || "", direction: "next", disabled: !nextFocus })}
+      </div>
+    `
+    : "";
+
   elements.gameNavWrap.innerHTML = `
     ${navActions.length ? `<div class="game-nav-head"><div class="game-nav-links">${navActions.join("")}</div></div>` : ""}
     ${currentLiveCallout}
     ${Number.isInteger(uiState.requestedGameFallback) ? `<p class="meta-text">Requested Game ${uiState.requestedGameFallback} could not be loaded.</p>` : ""}
     ${nav.requestedMissing ? `<p class="meta-text">Requested Game ${nav.requestedGameNumber} not found.</p>` : ""}
-    ${navPills ? `<div class="game-pill-row">${navPills}</div>` : ""}
+    ${compact ? compactStepper : navPills ? `<div class="game-pill-row">${navPills}</div>` : ""}
   `;
 
   if (elements.feedTeamFilter) {
