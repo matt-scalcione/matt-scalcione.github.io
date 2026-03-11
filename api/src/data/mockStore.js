@@ -54,6 +54,14 @@ const dotaFallbackBetweenGamesSeconds = Number.parseInt(
   process.env.DOTA_FALLBACK_BETWEEN_GAMES_SECONDS || "480",
   10
 );
+const lolFallbackEstimatedGameSeconds = Number.parseInt(
+  process.env.LOL_FALLBACK_ESTIMATED_GAME_SECONDS || "2700",
+  10
+);
+const lolFallbackBetweenGamesSeconds = Number.parseInt(
+  process.env.LOL_FALLBACK_BETWEEN_GAMES_SECONDS || "480",
+  10
+);
 
 const dataMode = String(process.env.ESPORTS_DATA_MODE || "hybrid").toLowerCase();
 const providerCacheMs = Number.parseInt(process.env.PROVIDER_CACHE_MS || "30000", 10);
@@ -2944,7 +2952,7 @@ function buildFallbackPredictionFromProfiles(match, { leftProfile = null, rightP
   const confidence = confidenceSignals >= 4 ? "high" : confidenceSignals >= 2 ? "medium" : "low";
 
   if (!drivers.length) {
-    drivers.push("Limited recent Dota history available; model confidence is reduced.");
+    drivers.push("Limited recent team history available; model confidence is reduced.");
   }
 
   return {
@@ -2989,7 +2997,7 @@ function buildFallbackPreMatchInsights(match, { seriesGames = [], teamForm = nul
       countdownSeconds: Number.isFinite(startMs) ? Math.max(0, Math.round((startMs - Date.now()) / 1000)) : null,
       estimatedEndAt: null,
       bestOf: Number(match?.bestOf || 1),
-      tournament: match?.tournament || "Dota 2",
+      tournament: match?.tournament || (String(match?.game || "").toLowerCase() === "lol" ? "League of Legends" : "Dota 2"),
       region: match?.region || "global"
     },
     watchOptions,
@@ -2999,7 +3007,15 @@ function buildFallbackPreMatchInsights(match, { seriesGames = [], teamForm = nul
   };
 }
 
-function fallbackDotaCurrentGameNumber({ status, bestOf, completedWins, startAt, nowMs = Date.now() } = {}) {
+function fallbackCurrentGameNumber({
+  status,
+  bestOf,
+  completedWins,
+  startAt,
+  estimatedGameSeconds,
+  betweenGamesSeconds,
+  nowMs = Date.now()
+} = {}) {
   if (status === "completed") {
     return Math.max(1, completedWins || 1);
   }
@@ -3017,10 +3033,26 @@ function fallbackDotaCurrentGameNumber({ status, bestOf, completedWins, startAt,
     return Math.max(1, completedWins + 1);
   }
 
-  const cadenceMs = Math.max(1, (dotaFallbackEstimatedGameSeconds + dotaFallbackBetweenGamesSeconds) * 1000);
+  const cadenceMs = Math.max(1, (estimatedGameSeconds + betweenGamesSeconds) * 1000);
   const elapsedMs = Math.max(0, nowMs - startMs);
   const inferredByClock = Math.floor(elapsedMs / cadenceMs) + 1;
   return Math.min(Math.max(1, bestOf || 1), Math.max(completedWins + 1, inferredByClock));
+}
+
+function fallbackDotaCurrentGameNumber(options = {}) {
+  return fallbackCurrentGameNumber({
+    ...options,
+    estimatedGameSeconds: dotaFallbackEstimatedGameSeconds,
+    betweenGamesSeconds: dotaFallbackBetweenGamesSeconds
+  });
+}
+
+function fallbackLolCurrentGameNumber(options = {}) {
+  return fallbackCurrentGameNumber({
+    ...options,
+    estimatedGameSeconds: lolFallbackEstimatedGameSeconds,
+    betweenGamesSeconds: lolFallbackBetweenGamesSeconds
+  });
 }
 
 function fallbackCompletedWinnerTeamId(match, gameNumber, completedWins) {
@@ -3407,6 +3439,324 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
   };
 }
 
+function buildFallbackLolDetailFromSummary(match, options = {}) {
+  if (!match || match.game !== "lol") {
+    return null;
+  }
+
+  const status = String(match?.status || "upcoming");
+  const bestOf = Math.max(1, Number(match?.bestOf || 1));
+  const seriesScore = {
+    left: Number(match?.seriesScore?.left || 0),
+    right: Number(match?.seriesScore?.right || 0)
+  };
+  const completedWins = seriesScore.left + seriesScore.right;
+  const currentGameNumber = fallbackLolCurrentGameNumber({
+    status,
+    bestOf,
+    completedWins,
+    startAt: match?.startAt || null
+  });
+  const totalSlots = Math.max(bestOf, currentGameNumber);
+  const requestedGameNumber = parseRequestedFallbackGameNumber(options?.gameNumber);
+  const baseWatchOptions = Array.isArray(match?.watchOptions) ? match.watchOptions : [];
+  const baseWatchUrl = match?.watchUrl || null;
+  const baseWatchProvider =
+    baseWatchOptions[0]?.provider || match?.watchProvider || watchProviderFromUrl(baseWatchUrl);
+
+  const seriesGames = [];
+  const startMs = Date.parse(String(match?.startAt || ""));
+  for (let number = 1; number <= totalSlots; number += 1) {
+    let state = "unstarted";
+    if (number < currentGameNumber) {
+      state = "completed";
+    } else if (number === currentGameNumber) {
+      state = status === "live" ? "inProgress" : status === "completed" ? "completed" : "unstarted";
+    }
+
+    if (number > currentGameNumber && completedWins >= Math.floor(bestOf / 2) + 1) {
+      state = "unneeded";
+    }
+
+    const startedAt =
+      Number.isFinite(startMs)
+        ? new Date(
+            startMs + (number - 1) * (lolFallbackEstimatedGameSeconds + lolFallbackBetweenGamesSeconds) * 1000
+          ).toISOString()
+        : null;
+
+    seriesGames.push({
+      id: `fallback_lol_game_${number}`,
+      number,
+      state,
+      selected: false,
+      label:
+        state === "completed"
+          ? "Completed game."
+          : state === "inProgress"
+            ? "Currently live."
+            : state === "unneeded"
+              ? "Not played (series already decided)."
+              : "Scheduled next.",
+      winnerTeamId:
+        state === "completed"
+          ? fallbackCompletedWinnerTeamId(match, number, completedWins)
+          : null,
+      sideInfo: {
+        leftSide: "blue",
+        rightSide: "red"
+      },
+      durationMinutes: state === "completed" ? Math.round(lolFallbackEstimatedGameSeconds / 60) : null,
+      startedAt,
+      watchUrl: baseWatchUrl,
+      watchProvider: baseWatchProvider,
+      watchOptions: baseWatchOptions
+    });
+  }
+
+  let selectedGame = null;
+  if (requestedGameNumber !== null) {
+    selectedGame = seriesGames.find((game) => game.number === requestedGameNumber) || null;
+  }
+  if (!selectedGame) {
+    selectedGame = seriesGames.find((game) => game.state === "inProgress") || null;
+  }
+  if (!selectedGame) {
+    selectedGame = seriesGames.filter((game) => game.state === "completed").pop() || null;
+  }
+  if (!selectedGame) {
+    selectedGame = seriesGames[0] || null;
+  }
+
+  if (selectedGame) {
+    selectedGame.selected = true;
+  }
+
+  const selectedGameNumber = Number(selectedGame?.number || 1);
+  const selectedState = String(selectedGame?.state || "unstarted");
+  const liveTicker =
+    status === "live"
+      ? [
+          {
+            id: `fallback_start_${selectedGameNumber}`,
+            type: "state",
+            team: null,
+            title: `Game ${selectedGameNumber} in progress`,
+            summary: `${match?.teams?.left?.name || "Blue side"} vs ${match?.teams?.right?.name || "Red side"}`,
+            importance: "high",
+            occurredAt: match?.updatedAt || match?.startAt || new Date().toISOString()
+          }
+        ]
+      : [];
+  const selectedSnapshot = {
+    left: {
+      kills: Number(match?.teams?.left?.kills || 0),
+      towers: Number(match?.teams?.left?.towers || 0),
+      dragons: Number(match?.teams?.left?.dragons || 0),
+      barons: Number(match?.teams?.left?.barons || 0),
+      inhibitors: Number(match?.teams?.left?.inhibitors || 0),
+      gold: Number.isFinite(Number(match?.teams?.left?.gold)) ? Number(match.teams.left.gold) : null
+    },
+    right: {
+      kills: Number(match?.teams?.right?.kills || 0),
+      towers: Number(match?.teams?.right?.towers || 0),
+      dragons: Number(match?.teams?.right?.dragons || 0),
+      barons: Number(match?.teams?.right?.barons || 0),
+      inhibitors: Number(match?.teams?.right?.inhibitors || 0),
+      gold: Number.isFinite(Number(match?.teams?.right?.gold)) ? Number(match.teams.right.gold) : null
+    }
+  };
+  const selectedReason =
+    requestedGameNumber !== null && selectedGame?.number !== requestedGameNumber
+      ? "fallback_nearest"
+      : requestedGameNumber !== null
+        ? "requested"
+        : selectedState === "inProgress"
+          ? "in_progress"
+          : selectedState === "completed"
+            ? "latest_completed"
+            : "first_scheduled";
+  const selectedIndex = seriesGames.findIndex((game) => game.number === selectedGameNumber);
+  const previousGameNumber = selectedIndex > 0 ? seriesGames[selectedIndex - 1].number : null;
+  const nextGameNumber =
+    selectedIndex >= 0 && selectedIndex < seriesGames.length - 1
+      ? seriesGames[selectedIndex + 1].number
+      : null;
+  const liveGame = seriesGames.find((game) => game.state === "inProgress") || null;
+  const seriesProgress = fallbackSeriesProgress(seriesScore, bestOf, seriesGames);
+  const teamForm = buildFallbackTeamFormProfiles(match);
+  const headToHead = buildFallbackHeadToHeadFromProfiles(match);
+  const prediction = {
+    ...buildFallbackPredictionFromProfiles(match, {
+      leftProfile: null,
+      rightProfile: null,
+      headToHead
+    }),
+    modelVersion: "fallback-lol-v1"
+  };
+  const preMatchInsights = buildFallbackPreMatchInsights(match, {
+    seriesGames,
+    teamForm,
+    headToHead,
+    prediction
+  });
+  if (!Array.isArray(preMatchInsights.watchOptions) || preMatchInsights.watchOptions.length === 0) {
+    preMatchInsights.watchOptions = [
+      {
+        label: "LoL Esports (Official)",
+        url: "https://lolesports.com/",
+        note: "Official broadcast hub."
+      }
+    ];
+  }
+
+  return {
+    ...match,
+    patch: match?.patch || "unknown",
+    freshness: {
+      source: "provider_fallback",
+      status: status === "live" ? "partial" : "degraded",
+      updatedAt: match?.updatedAt || new Date().toISOString()
+    },
+    keyMoments: [],
+    seriesMoments: [],
+    timeline: seriesGames.map((game) => ({
+      at: `Game ${game.number}`,
+      type: "game",
+      label: `${game.state}${game.selected ? " · selected" : ""}`,
+      watchUrl: game.watchUrl || null
+    })),
+    objectiveTimeline: [],
+    objectiveControl: {
+      left: { towers: 0, dragons: 0, barons: 0, inhibitors: 0, score: 0, controlPct: 50 },
+      right: { towers: 0, dragons: 0, barons: 0, inhibitors: 0, score: 0, controlPct: 50 }
+    },
+    objectiveBreakdown: {
+      left: { total: 0, dragon: 0, baron: 0, tower: 0, inhibitor: 0, other: 0 },
+      right: { total: 0, dragon: 0, baron: 0, tower: 0, inhibitor: 0, other: 0 }
+    },
+    objectiveRuns: [],
+    goldLeadSeries: [],
+    leadTrend: null,
+    playerEconomy: null,
+    teamEconomyTotals: {
+      left: { totalGold: 0, totalGpm: 0, avgGpm: 0 },
+      right: { totalGold: 0, totalGpm: 0, avgGpm: 0 }
+    },
+    topPerformers: [],
+    momentum: null,
+    dataConfidence: {
+      grade: "low",
+      score: 45,
+      telemetry: status === "live" ? "summary_only" : "fallback",
+      notes: [
+        status === "live"
+          ? "Live series summary is available, but detailed game telemetry is currently unavailable."
+          : "Riot detail is temporarily unavailable; fallback summary applied."
+      ]
+    },
+    pulseCard: {
+      tone: status === "live" ? "warn" : status === "completed" ? "good" : "neutral",
+      title: status === "live" ? "Live summary only" : "Fallback Summary",
+      summary:
+        status === "live"
+          ? "Series state is live, but full per-game telemetry is temporarily unavailable."
+          : status === "completed"
+            ? "Series final is available while detailed telemetry refreshes."
+            : "Upcoming series summary is available while detailed data refreshes."
+    },
+    edgeMeter: {
+      left: { team: match?.teams?.left?.name || "Blue side", score: 50, drivers: ["Detailed signal unavailable"] },
+      right: { team: match?.teams?.right?.name || "Red side", score: 50, drivers: ["Detailed signal unavailable"] },
+      verdict: "No clear edge signal without full per-game telemetry."
+    },
+    tacticalChecklist: [
+      {
+        tone: "neutral",
+        title: "Telemetry degraded",
+        detail: "Provider detail is currently unavailable for this series."
+      }
+    ],
+    storylines: [],
+    teamDraft: null,
+    laneMatchups: [],
+    roleMatchupDeltas: [],
+    seriesPlayerTrends: [],
+    draftDelta: null,
+    objectiveForecast: [],
+    combatBursts: [],
+    goldMilestones: [],
+    playerDeltaPanel: null,
+    preMatchInsights,
+    seriesGames,
+    selectedGame: {
+      number: selectedGameNumber,
+      state: selectedState,
+      label:
+        selectedState === "completed"
+          ? "Completed game."
+          : selectedState === "inProgress"
+            ? "Currently live."
+            : selectedState === "unneeded"
+              ? "Not played (series already decided)."
+              : "Scheduled next.",
+      startedAt: selectedGame?.startedAt || match?.startAt || null,
+      watchUrl: selectedGame?.watchUrl || null,
+      watchOptions: Array.isArray(selectedGame?.watchOptions) ? selectedGame.watchOptions : [],
+      sideSummary: [],
+      telemetryStatus: "none",
+      telemetryCounts: {
+        tickerEvents: liveTicker.length,
+        objectiveEvents: 0,
+        combatBursts: 0,
+        goldMilestones: 0
+      },
+      snapshot: selectedSnapshot,
+      tips: [
+        status === "live"
+          ? "Series state is live, but detailed map telemetry is currently unavailable."
+          : "No in-game telemetry yet for this map."
+      ],
+      durationMinutes: selectedGame?.durationMinutes || null,
+      requestedMissing: requestedGameNumber !== null && selectedGameNumber !== requestedGameNumber,
+      winnerTeamId: selectedGame?.winnerTeamId || null
+    },
+    gameNavigation: {
+      availableGames: seriesGames,
+      selectedGameNumber,
+      previousGameNumber,
+      nextGameNumber,
+      currentLiveGameNumber: liveGame?.number || null,
+      requestedGameNumber,
+      requestedMissing: requestedGameNumber !== null && selectedGameNumber !== requestedGameNumber,
+      selectedReason
+    },
+    seriesHeader: {
+      headline:
+        status === "upcoming"
+          ? `Upcoming BO${bestOf} between ${match?.teams?.left?.name || "Left Team"} and ${match?.teams?.right?.name || "Right Team"}`
+          : `${match?.teams?.left?.name || "Left Team"} ${seriesScore.left} - ${seriesScore.right} ${match?.teams?.right?.name || "Right Team"}`,
+      subhead:
+        status === "completed"
+          ? "Series complete"
+          : status === "live"
+            ? `Live BO${bestOf} · Focus: Game ${selectedGameNumber}`
+            : `First to ${Math.floor(bestOf / 2) + 1} wins · Focus: Game ${selectedGameNumber}`
+    },
+    seriesProgress,
+    seriesProjection: {
+      matchStartAt: match?.startAt || null,
+      countdownSeconds: Number.isFinite(startMs) ? Math.max(0, Math.round((startMs - Date.now()) / 1000)) : null,
+      estimatedEndAt: null,
+      games: seriesGames.map((game) => ({
+        number: game.number,
+        estimatedStartAt: game.startedAt || null
+      }))
+    },
+    liveTicker
+  };
+}
+
 async function fallbackProviderDotaDetail(matchId, options = {}) {
   const [stratzLiveState, liveState, steamLiveState, resultsState] = await Promise.all([
     loadProviderStratzLiveMatches(),
@@ -3473,6 +3823,25 @@ async function fallbackProviderDotaDetail(matchId, options = {}) {
     ...options,
     enrichment
   });
+}
+
+async function fallbackProviderLolDetail(matchId, options = {}) {
+  const [liveState, scheduleState, resultsState] = await Promise.all([
+    loadProviderLolLiveMatches(),
+    loadProviderLolScheduleMatches(),
+    loadProviderLolResults()
+  ]);
+  const match = [
+    ...(Array.isArray(liveState?.rows) ? liveState.rows : []),
+    ...(Array.isArray(scheduleState?.rows) ? scheduleState.rows : []),
+    ...(Array.isArray(resultsState?.rows) ? resultsState.rows : [])
+  ].find((row) => String(row?.id || "") === String(matchId));
+
+  if (!match) {
+    return null;
+  }
+
+  return buildFallbackLolDetailFromSummary(match, options);
 }
 
 function telemetryRank(status) {
@@ -4053,6 +4422,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
 
   if (String(matchId).startsWith("lol_riot_")) {
     const cached = providerState.lolDetailById.get(cacheKey);
+    const staleCachedDetail = cached?.detail || null;
     if (cached && Date.now() - cached.fetchedAt <= providerCacheMs) {
       return cached.detail;
     }
@@ -4064,7 +4434,13 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         cacheMap: providerState.lolDetailById,
         matchId,
         options,
-        fetchDetail: () => lolEsportsProvider.fetchMatchDetail(matchId, options)
+        fetchDetail: async () => {
+          try {
+            return (await lolEsportsProvider.fetchMatchDetail(matchId, options)) || (await fallbackProviderLolDetail(matchId, options));
+          } catch {
+            return fallbackProviderLolDetail(matchId, options);
+          }
+        }
       });
       return cached.detail;
     }
@@ -4081,15 +4457,23 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         cacheMap: providerState.lolDetailById,
         matchId,
         options,
-        fetchDetail: () => lolEsportsProvider.fetchMatchDetail(matchId, options)
+        fetchDetail: async () => {
+          try {
+            return (await lolEsportsProvider.fetchMatchDetail(matchId, options)) || (await fallbackProviderLolDetail(matchId, options));
+          } catch {
+            return fallbackProviderLolDetail(matchId, options);
+          }
+        }
       });
       return canonicalDetail;
     }
 
     try {
-      const detail = await lolEsportsProvider.fetchMatchDetail(matchId, options);
+      const detail =
+        (await lolEsportsProvider.fetchMatchDetail(matchId, options)) ||
+        (await fallbackProviderLolDetail(matchId, options));
       if (!detail) {
-        return null;
+        return materializeStaleDetail(staleCachedDetail);
       }
 
       await cacheAndPersistMatchDetail(providerState.lolDetailById, cacheKey, detail, {
@@ -4098,7 +4482,16 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       });
       return detail;
     } catch {
-      return null;
+      const fallback = await fallbackProviderLolDetail(matchId, options);
+      if (!fallback) {
+        return materializeStaleDetail(staleCachedDetail);
+      }
+
+      await cacheAndPersistMatchDetail(providerState.lolDetailById, cacheKey, fallback, {
+        matchId,
+        options
+      });
+      return fallback;
     }
   }
 
