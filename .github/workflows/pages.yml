@@ -31,6 +31,12 @@ jobs:
         env:
           PULSEBOARD_DOTA_SCHEDULE_SNAPSHOT_URL: ""
           PULSEBOARD_PUBLIC_BASE: https://matt-scalcione.github.io
+      - name: Generate Dota live snapshot
+        run: node scripts/generate-dota-live-snapshot.mjs
+        env:
+          PULSEBOARD_DOTA_LIVE_SNAPSHOT_URL: ""
+          PULSEBOARD_DOTA_RESULTS_SNAPSHOT_URL: ""
+          PULSEBOARD_PUBLIC_BASE: https://matt-scalcione.github.io
       - name: Generate Dota results snapshot
         run: node scripts/generate-dota-results-snapshot.mjs
         env:

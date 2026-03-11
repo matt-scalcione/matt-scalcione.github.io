@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-03-11T21:12:46.496Z",
+  "count": 2,
+  "rows": [
+    {
+      "id": "dota_od_series_1073390",
+      "providerMatchId": "1073390",
+      "sourceMatchId": "8725170390",
+      "leagueId": 19201,
+      "competitiveTier": 3,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "Dota 2 Space League",
+      "startAt": "2026-03-11T20:12:46.000Z",
+      "updatedAt": "2026-03-11T20:12:46.000Z",
+      "endAt": "2026-03-11T20:42:17.000Z",
+      "bestOf": 3,
+      "seriesScore": {
+        "left": 1,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "9025669",
+          "name": "CrimsonSky"
+        },
+        "right": {
+          "id": "8850015",
+          "name": "DARKNESS GAMING"
+        }
+      },
+      "seriesMatchIds": [
+        "8725170390"
+      ],
+      "keySignal": "provider_pro_series",
+      "status": "live",
+      "source": {
+        "provider": "opendota",
+        "providerLabel": "OpenDota",
+        "provenance": {
+          "surface": "live",
+          "ownership": "secondary",
+          "priority": 85,
+          "adjustedPriority": 85,
+          "sourceType": "community_api",
+          "delivery": "provider_feed",
+          "recommendedRole": "live_backup",
+          "official": false,
+          "experimental": false,
+          "disabledByDefault": false,
+          "derivedFromSurface": null
+        }
+      },
+      "quality": {
+        "score": 100,
+        "level": "good",
+        "summary": "",
+        "issues": [],
+        "updatedAt": "2026-03-11T21:12:46.495Z"
+      }
+    },
+    {
+      "id": "dota_od_series_1073407",
+      "providerMatchId": "1073407",
+      "sourceMatchId": "8725202076",
+      "leagueId": 18867,
+      "competitiveTier": 2,
+      "game": "dota2",
+      "region": "global",
+      "tournament": "League 18867",
+      "status": "live",
+      "startAt": "2026-03-11T20:39:12.000Z",
+      "updatedAt": "2026-03-11T21:10:00.000Z",
+      "bestOf": 1,
+      "seriesScore": {
+        "left": 0,
+        "right": 0
+      },
+      "teams": {
+        "left": {
+          "id": "9828921",
+          "name": "Air Defence"
+        },
+        "right": {
+          "id": "9593609",
+          "name": "Nethercore"
+        }
+      },
+      "keySignal": "provider_pro_live",
+      "source": {
+        "provider": "opendota",
+        "providerLabel": "OpenDota",
+        "provenance": {
+          "surface": "live",
+          "ownership": "secondary",
+          "priority": 85,
+          "adjustedPriority": 85,
+          "sourceType": "community_api",
+          "delivery": "provider_feed",
+          "recommendedRole": "live_backup",
+          "official": false,
+          "experimental": false,
+          "disabledByDefault": false,
+          "derivedFromSurface": null
+        }
+      },
+      "quality": {
+        "score": 100,
+        "level": "good",
+        "summary": "",
+        "issues": [],
+        "updatedAt": "2026-03-11T21:12:46.495Z"
+      }
+    }
+  ]
+}
