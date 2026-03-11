@@ -3018,6 +3018,57 @@ function buildCompletedSeriesSummaryCards(match) {
   return cards.join("");
 }
 
+function gameNavMetaLabel({ isSeries = false, matchStatus = "", gameState = "", isCurrentLiveGame = false } = {}) {
+  if (isSeries) {
+    if (matchStatus === "completed") {
+      return "Final view";
+    }
+    if (matchStatus === "live") {
+      return "Overview";
+    }
+    return "Series view";
+  }
+
+  if (isCurrentLiveGame || gameState === "inProgress") {
+    return "Live now";
+  }
+  if (gameState === "completed") {
+    return "Final";
+  }
+  if (gameState === "unneeded") {
+    return "Skipped";
+  }
+  return "Upcoming";
+}
+
+function seriesNavPillState(match) {
+  const status = String(match?.status || "").toLowerCase();
+  if (status === "live") {
+    return "live";
+  }
+  if (status === "completed") {
+    return "complete";
+  }
+  return "upcoming";
+}
+
+function buildGameNavPill({ href, label, meta = "", state = "complete", selected = false, currentLive = false }) {
+  const classes = ["game-pill", state];
+  if (selected) {
+    classes.push("selected");
+  }
+  if (currentLive) {
+    classes.push("current-live");
+  }
+
+  return `
+    <a class="${classes.join(" ")}" href="${href}">
+      <span class="game-pill-label">${escapeHtml(label)}</span>
+      <span class="game-pill-meta">${escapeHtml(meta)}</span>
+    </a>
+  `;
+}
+
 function renderGameExplorer(match, apiBase) {
   const nav = match.gameNavigation;
   const selected = match.selectedGame;
@@ -3034,13 +3085,20 @@ function renderGameExplorer(match, apiBase) {
   const availableGames = Array.isArray(nav.availableGames) ? nav.availableGames : [];
   const playedOrLiveGames = availableGames.filter((game) => game?.state === "completed" || game?.state === "inProgress");
   const seriesHref = detailUrlForGame(match.id, apiBase, null);
-  const seriesPill = `<a class="game-pill complete${!isGameMode ? " selected" : ""}" href="${seriesHref}">${compact ? "S" : "Series"}</a>`;
+  const matchStatus = String(match?.status || "").toLowerCase();
+  const seriesPill = buildGameNavPill({
+    href: seriesHref,
+    label: "Series",
+    meta: gameNavMetaLabel({ isSeries: true, matchStatus }),
+    state: seriesNavPillState(match),
+    selected: !isGameMode
+  });
   const liveGameNumber = firstInProgressGameNumber(match);
   const currentLiveCallout = !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)
-    ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `LIVE NOW · G${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
+    ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `Live now: Game ${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open Game ${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
     : "";
   const navPills = [
-    ...(isGameMode ? [seriesPill] : []),
+    seriesPill,
     ...playedOrLiveGames.map((game) => {
       const href = detailUrlForGame(match.id, apiBase, game.number);
       const selectedGamePill = isGameMode && activeGameNumber === game.number;
@@ -3048,26 +3106,41 @@ function renderGameExplorer(match, apiBase) {
         match.status === "live" &&
         Number.isInteger(liveGameNumber) &&
         liveGameNumber === game.number;
-      const liveLabel = compact
-        ? isCurrentLiveGame
-          ? `G${game.number} ●`
-          : `G${game.number}`
-        : isCurrentLiveGame
-          ? `Game ${game.number} · LIVE`
-          : `Game ${game.number}`;
-      return `<a class="game-pill ${gameNavPillClass(game.state, selectedGamePill)}${isCurrentLiveGame ? " current-live" : ""}" href="${href}">${liveLabel}</a>`;
+      return buildGameNavPill({
+        href,
+        label: `Game ${game.number}`,
+        meta: gameNavMetaLabel({
+          gameState: game?.state,
+          isCurrentLiveGame
+        }),
+        state: gameNavPillClass(game.state, false),
+        selected: selectedGamePill,
+        currentLive: isCurrentLiveGame
+      });
     })
   ].join("");
 
   const navActions = [];
   if (isGameMode && Number.isInteger(nav.previousGameNumber)) {
-    navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">${compact ? `← G${nav.previousGameNumber}` : "Previous Game"}</a>`);
+    navActions.push(
+      `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">${
+        compact ? `Previous Game ${nav.previousGameNumber}` : "Previous Game"
+      }</a>`
+    );
   }
   if (isGameMode && Number.isInteger(nav.nextGameNumber)) {
-    navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">${compact ? `G${nav.nextGameNumber} →` : "Next Game"}</a>`);
+    navActions.push(
+      `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">${
+        compact ? `Next Game ${nav.nextGameNumber}` : "Next Game"
+      }</a>`
+    );
   }
   if (!isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)) {
-    navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a>`);
+    navActions.push(
+      `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${
+        compact ? `Open Game ${liveGameNumber}` : `Open Live Game ${liveGameNumber}`
+      }</a>`
+    );
   }
 
   elements.gameNavWrap.innerHTML = `

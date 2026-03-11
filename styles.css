@@ -3587,6 +3587,19 @@ button.ghost,
   font-size: 0.78rem;
   font-family: "Archivo Black", "Impact", sans-serif;
   background: rgba(255, 255, 255, 0.88);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.game-pill-label {
+  display: block;
+}
+
+.game-pill-meta {
+  display: none;
 }
 
 .game-pill.live {
@@ -11097,8 +11110,8 @@ body.product-shell .match-quick-nav {
   body.product-shell.match-page .mobile-jump-row,
   body.product-shell.match-page .game-pill-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
-    gap: 0.24rem;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    gap: 0.34rem;
   }
 
   body.product-shell.match-page .mobile-jump-row {
@@ -11119,6 +11132,53 @@ body.product-shell .match-quick-nav {
     justify-content: center;
     border-radius: 10px;
     padding: 0.34rem 0.42rem;
+  }
+
+  body.product-shell.match-page .game-nav-links {
+    gap: 0.36rem;
+  }
+
+  body.product-shell.match-page .game-nav-links .link-btn {
+    flex: 1 1 calc(50% - 0.18rem);
+    justify-content: center;
+  }
+
+  body.product-shell.match-page .game-pill {
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 2.7rem;
+    padding: 0.48rem 0.58rem;
+    border-radius: 14px;
+    white-space: normal;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      0 6px 14px rgba(18, 46, 72, 0.06);
+  }
+
+  body.product-shell.match-page .game-pill-label {
+    font-size: 0.76rem;
+    line-height: 1.08;
+    letter-spacing: 0.01em;
+  }
+
+  body.product-shell.match-page .game-pill-meta {
+    display: block;
+    margin-top: 0.16rem;
+    font-family: "Fraunces", "Palatino Linotype", "Book Antiqua", serif;
+    font-size: 0.57rem;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5d6a78;
+  }
+
+  body.product-shell.match-page .game-pill.selected .game-pill-meta {
+    color: #1d4ea1;
+  }
+
+  body.product-shell.match-page .game-pill.current-live .game-pill-meta,
+  body.product-shell.match-page .game-pill.live .game-pill-meta {
+    color: #8f2810;
   }
 
   body.product-shell.match-page .match-phase-pill,
@@ -11407,7 +11467,7 @@ body.product-shell .match-quick-nav {
   body.product-shell.match-page .mobile-mode-row,
   body.product-shell.match-page .mobile-jump-row,
   body.product-shell.match-page .game-pill-row {
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .match-page .section-head h2 {
@@ -11581,8 +11641,16 @@ body.product-shell .match-quick-nav {
   }
 
   .match-page .game-pill {
-    font-size: 0.62rem;
-    padding: 0.18rem 0.4rem;
+    min-height: 2.54rem;
+    padding: 0.42rem 0.5rem;
+  }
+
+  .match-page .game-pill-label {
+    font-size: 0.72rem;
+  }
+
+  .match-page .game-pill-meta {
+    font-size: 0.52rem;
   }
 }
 
