@@ -3095,8 +3095,10 @@ function renderGameExplorer(match, apiBase) {
 
     if (match.status === "completed") {
       const winnerShort = winner ? displayTeamName(winner) : "TBD";
-      const leftWinner = winner?.id === match?.teams?.left?.id;
-      const rightWinner = winner?.id === match?.teams?.right?.id;
+      const leftWinner =
+        match?.winnerTeamId === match?.teams?.left?.id || winner === match?.teams?.left?.name;
+      const rightWinner =
+        match?.winnerTeamId === match?.teams?.right?.id || winner === match?.teams?.right?.name;
       const winnerTone = leftWinner ? "winner-left" : rightWinner ? "winner-right" : "winner-neutral";
       const finalScoreLabel = `${match.seriesScore.left} - ${match.seriesScore.right}`;
       const completedHeroTags = [
