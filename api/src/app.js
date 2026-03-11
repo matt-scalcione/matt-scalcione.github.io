@@ -1,5 +1,6 @@
 import { readJsonBody, getUserId, truthy } from "./http/request.js";
 import { applyCorsHeaders, sendJson } from "./http/response.js";
+import { summarizeSourceUsage } from "./domain/sourcePolicy.js";
 import {
   acknowledgeAlertOutboxItems,
   addFollow,
@@ -71,21 +72,20 @@ function methodNotAllowed(allowedMethods) {
 }
 
 function buildLiveMatchesResponse(rows) {
-  return {
-    data: rows,
-    meta: {
-      count: rows.length,
-      generatedAt: new Date().toISOString()
-    }
-  };
+  return buildCollectionResponse(rows, {
+    surface: "live"
+  });
 }
 
-function buildCollectionResponse(rows) {
+function buildCollectionResponse(rows, { surface } = {}) {
   return {
     data: rows,
     meta: {
       count: rows.length,
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
+      sourceSummary: summarizeSourceUsage(rows, {
+        surface
+      })
     }
   };
 }
@@ -526,7 +526,9 @@ export async function routeRequest({
       lolTiers: parsedLolTiers.value
     });
 
-    return okResponse(buildCollectionResponse(rows));
+    return okResponse(buildCollectionResponse(rows, {
+      surface: "schedule"
+    }));
   }
 
   if (pathname === "/v1/results") {
@@ -561,7 +563,9 @@ export async function routeRequest({
       lolTiers: parsedLolTiers.value
     });
 
-    return okResponse(buildCollectionResponse(rows));
+    return okResponse(buildCollectionResponse(rows, {
+      surface: "results"
+    }));
   }
 
   if (pathname === "/v1/provider-coverage") {

@@ -2,6 +2,12 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  annotateEntitySource,
+  compareSourcePriority,
+  getSourcePolicyCatalog,
+  summarizeSourceUsage
+} from "../domain/sourcePolicy.js";
 import { OpenDotaProvider } from "../providers/dota/openDotaProvider.js";
 import {
   canonicalDotaTournamentKey,
@@ -11,6 +17,10 @@ import { SteamWebApiDotaProvider } from "../providers/dota/steamWebApiProvider.j
 import { StratzProvider } from "../providers/dota/stratzProvider.js";
 import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
 import { fetchJson } from "../providers/shared/http.js";
+import {
+  getCanonicalStoreDiagnostics,
+  persistCanonicalMatchCollection
+} from "../storage/canonicalStore.js";
 
 const now = Date.now();
 const oneMinute = 60 * 1000;
@@ -226,23 +236,25 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
     return entity;
   }
 
-  const status = String(entity?.status || "").toLowerCase();
+  const annotatedEntity = annotateEntitySource(entity);
+
+  const status = String(annotatedEntity?.status || "").toLowerCase();
   const issues = [];
   let score = 100;
-  const startMs = Date.parse(String(entity?.startAt || ""));
-  const leftTeamName = String(entity?.teams?.left?.name || "").trim();
-  const rightTeamName = String(entity?.teams?.right?.name || "").trim();
-  const leftTeamId = String(entity?.teams?.left?.id || "").trim();
-  const rightTeamId = String(entity?.teams?.right?.id || "").trim();
-  const leftScore = Number(entity?.seriesScore?.left);
-  const rightScore = Number(entity?.seriesScore?.right);
+  const startMs = Date.parse(String(annotatedEntity?.startAt || ""));
+  const leftTeamName = String(annotatedEntity?.teams?.left?.name || "").trim();
+  const rightTeamName = String(annotatedEntity?.teams?.right?.name || "").trim();
+  const leftTeamId = String(annotatedEntity?.teams?.left?.id || "").trim();
+  const rightTeamId = String(annotatedEntity?.teams?.right?.id || "").trim();
+  const leftScore = Number(annotatedEntity?.seriesScore?.left);
+  const rightScore = Number(annotatedEntity?.seriesScore?.right);
   const hasSeriesScore =
     Number.isFinite(leftScore) &&
     Number.isFinite(rightScore) &&
-    (leftScore > 0 || rightScore > 0 || Boolean(entity?.winnerTeamId));
-  const freshnessStatus = String(entity?.freshness?.status || "").toLowerCase();
+    (leftScore > 0 || rightScore > 0 || Boolean(annotatedEntity?.winnerTeamId));
+  const freshnessStatus = String(annotatedEntity?.freshness?.status || "").toLowerCase();
 
-  if (entity?.source?.snapshotGeneratedAt) {
+  if (annotatedEntity?.source?.snapshotGeneratedAt) {
     score -= pushQualityIssue(issues, {
       code: "snapshot_fallback",
       message: "Snapshot fallback active",
@@ -251,7 +263,7 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
     });
   }
 
-  if (entity?.retainedFromScheduleCache) {
+  if (annotatedEntity?.retainedFromScheduleCache) {
     score -= pushQualityIssue(issues, {
       code: "retained_cache",
       message: "Serving recently retained provider cache",
@@ -260,7 +272,11 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
     });
   }
 
-  if (entity?.game === "dota2" && status === "live" && String(entity?.keySignal || "").includes("schedule_started")) {
+  if (
+    annotatedEntity?.game === "dota2" &&
+    status === "live" &&
+    String(annotatedEntity?.keySignal || "").includes("schedule_started")
+  ) {
     score -= pushQualityIssue(issues, {
       code: "synthetic_live",
       message: "Live status inferred from schedule timing",
@@ -278,7 +294,7 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
     });
   }
 
-  if (status === "completed" && !entity?.winnerTeamId && !hasSeriesScore) {
+  if (status === "completed" && !annotatedEntity?.winnerTeamId && !hasSeriesScore) {
     score -= pushQualityIssue(issues, {
       code: "missing_result",
       message: "Result is incomplete from the current source",
@@ -316,7 +332,7 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
   const level = normalizedScore <= 60 ? "degraded" : normalizedScore <= 85 ? "warn" : "good";
 
   return {
-    ...entity,
+    ...annotatedEntity,
     quality: {
       score: normalizedScore,
       level,
@@ -1548,12 +1564,17 @@ async function forceRefreshProviderCaches({ providerKeys, reason = "manual" } = 
       rowCount: Array.isArray(providerState[stateKey].rows) ? providerState[stateKey].rows.length : 0
     };
   });
+  const canonicalPersistence = await persistCanonicalPublicCollections({
+    reason,
+    providerKeys: targetKeys
+  });
 
   pushBounded(providerWarmHistory, {
     timestamp: new Date().toISOString(),
     reason,
     durationMs,
     providers,
+    canonicalPersistence,
     skipped: false
   });
 
@@ -1561,7 +1582,8 @@ async function forceRefreshProviderCaches({ providerKeys, reason = "manual" } = 
     skipped: false,
     reason,
     durationMs,
-    providers
+    providers,
+    canonicalPersistence
   };
 }
 
@@ -1993,15 +2015,18 @@ function mergeDotaScheduleRows(liveRows = [], upcomingRows = []) {
 }
 
 function mergeDotaLiveRows(primaryRows = [], secondaryRows = []) {
-  const normalizedPrimaryRows = Array.isArray(primaryRows) ? primaryRows : [];
-  const merged = [...normalizedPrimaryRows];
+  const merged = Array.isArray(primaryRows) ? primaryRows.slice() : [];
 
   for (const row of Array.isArray(secondaryRows) ? secondaryRows : []) {
     if (!row?.id) {
       continue;
     }
 
-    if (normalizedPrimaryRows.some((primaryRow) => sameDotaSeries(primaryRow, row))) {
+    const existingIndex = merged.findIndex((primaryRow) => sameDotaSeries(primaryRow, row));
+    if (existingIndex >= 0) {
+      if (compareSourcePriority(row, merged[existingIndex], { surface: "live" }) > 0) {
+        merged[existingIndex] = row;
+      }
       continue;
     }
 
@@ -3854,6 +3879,81 @@ export async function listResults({ game, region, dateFrom, dateTo, dotaTiers, l
   return annotateRowsWithQuality(sortByDateDescending(rows, "endAt"));
 }
 
+async function persistCanonicalPublicCollections({ reason = "manual", providerKeys = [] } = {}) {
+  const diagnostics = getCanonicalStoreDiagnostics();
+  if (!diagnostics.enabled) {
+    return {
+      enabled: false,
+      persisted: false,
+      surfaces: []
+    };
+  }
+
+  const [liveRows, scheduleRows, resultRows] = await Promise.all([
+    listLiveMatches({
+      game: undefined,
+      region: undefined,
+      followedOnly: false,
+      userId: null,
+      dotaTiers: undefined,
+      lolTiers: undefined
+    }),
+    listSchedule({
+      game: undefined,
+      region: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+      dotaTiers: undefined,
+      lolTiers: undefined
+    }),
+    listResults({
+      game: undefined,
+      region: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+      dotaTiers: undefined,
+      lolTiers: undefined
+    })
+  ]);
+
+  const metadata = {
+    reason,
+    providerKeys: Array.isArray(providerKeys) ? providerKeys : []
+  };
+  const surfaces = await Promise.all([
+    persistCanonicalMatchCollection({
+      surface: "live",
+      rows: liveRows,
+      sourceSummary: summarizeSourceUsage(liveRows, {
+        surface: "live"
+      }),
+      metadata
+    }),
+    persistCanonicalMatchCollection({
+      surface: "schedule",
+      rows: scheduleRows,
+      sourceSummary: summarizeSourceUsage(scheduleRows, {
+        surface: "schedule"
+      }),
+      metadata
+    }),
+    persistCanonicalMatchCollection({
+      surface: "results",
+      rows: resultRows,
+      sourceSummary: summarizeSourceUsage(resultRows, {
+        surface: "results"
+      }),
+      metadata
+    })
+  ]);
+
+  return {
+    enabled: true,
+    persisted: surfaces.some((entry) => entry?.persisted),
+    surfaces
+  };
+}
+
 function findMatchSummary(matchId) {
   const normalizedId = String(matchId || "").trim();
   if (!normalizedId) {
@@ -4226,6 +4326,7 @@ export async function getProviderCoverageReport() {
   return {
     generatedAt: new Date().toISOString(),
     providerMode: dataMode,
+    sourcePolicy: getSourcePolicyCatalog(),
     dota: {
       stratz: {
         ...stratzProvider.getCapabilities(),
@@ -4285,6 +4386,7 @@ export function getProviderDiagnostics() {
     providerSnapshot: {
       ...providerSnapshotMeta
     },
+    canonicalStore: getCanonicalStoreDiagnostics(),
     detailCacheEntries: providerState.detailById.size,
     lolDetailCacheEntries: providerState.lolDetailById.size,
     teamProfileCacheEntries: providerState.teamProfileByKey.size,

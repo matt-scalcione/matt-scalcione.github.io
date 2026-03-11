@@ -25,6 +25,9 @@ describe("live matches", () => {
     assert.equal(result.statusCode, 200);
     assert.ok(Array.isArray(result.payload.data));
     assert.ok(result.payload.data.length >= 1);
+    assert.equal(result.payload.meta.sourceSummary.total, result.payload.data.length);
+    assert.equal(typeof result.payload.data[0].source?.provenance?.priority, "number");
+    assert.equal(result.payload.data[0].source?.provenance?.surface, "live");
   });
 
   it("filters matches by game", async () => {
@@ -253,6 +256,25 @@ describe("provider coverage", () => {
     assert.equal(result.payload.data.dota.stratz.provider, "stratz");
     assert.equal(result.payload.data.dota.steam.provider, "steam");
     assert.equal(result.payload.data.dota.liquipedia.apiOnly, true);
+    assert.equal(Array.isArray(result.payload.data.sourcePolicy.dota2.live), true);
+    assert.equal(
+      result.payload.data.sourcePolicy.dota2.live.some((provider) => provider.provider === "dltv"),
+      true
+    );
+  });
+});
+
+describe("provider diagnostics", () => {
+  it("returns provider and canonical store diagnostics", async () => {
+    const result = await routeRequest({
+      method: "GET",
+      url: "/v1/provider-diagnostics"
+    });
+
+    assert.equal(result.statusCode, 200);
+    assert.equal(typeof result.payload.data.providerCacheMs, "number");
+    assert.equal(typeof result.payload.data.canonicalStore.enabled, "boolean");
+    assert.equal(typeof result.payload.data.canonicalStore.backend, "string");
   });
 });
 

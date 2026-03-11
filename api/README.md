@@ -90,6 +90,9 @@ Environment variable `ESPORTS_DATA_MODE` controls source behavior:
 Optional provider settings:
 - `PROVIDER_CACHE_MS` (default `30000`)
 - `PROVIDER_TIMEOUT_MS` (default `15000`)
+- `CANONICAL_STORE_ENABLED` (`1` to persist canonical match snapshots when `DATABASE_URL` is set)
+- `CANONICAL_STORE_SCHEMA` (default `pulseboard`)
+- `DATABASE_URL` (optional Postgres connection string for durable canonical storage)
 - `OPENDOTA_BASE_URL` (default `https://api.opendota.com/api`)
 - `LOL_ESPORTS_API_BASE_URL` (default `https://esports-api.lolesports.com/persisted/gw`)
 - `LOL_ESPORTS_API_KEY` (defaults to the public LoL esports web key)
@@ -110,6 +113,7 @@ Dota provider precedence:
 3. `Liquipedia API` for future schedule and watch metadata
 
 Use `GET /v1/provider-coverage` to inspect which Dota provider path is active.
+Use `GET /v1/provider-diagnostics` to inspect provider cache health plus canonical store status.
 
 Bundled STRATZ query files:
 - [`api/src/providers/dota/queries/stratzLive.graphql`](/Users/admin/Documents/GitHub/matt-scalcione.github.io/api/src/providers/dota/queries/stratzLive.graphql)
