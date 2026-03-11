@@ -3095,6 +3095,9 @@ function renderGameExplorer(match, apiBase) {
 
     if (match.status === "completed") {
       const winnerShort = winner ? displayTeamName(winner) : "TBD";
+      const leftWinner = winner?.id === match?.teams?.left?.id;
+      const rightWinner = winner?.id === match?.teams?.right?.id;
+      const winnerTone = leftWinner ? "winner-left" : rightWinner ? "winner-right" : "winner-neutral";
       const finalScoreLabel = `${match.seriesScore.left} - ${match.seriesScore.right}`;
       const completedHeroTags = [
         formatLabel,
@@ -3107,19 +3110,34 @@ function renderGameExplorer(match, apiBase) {
           <div class="game-context-top">
             <p class="game-context-title">Series final view</p>
           </div>
-          <article class="series-context-hero result">
-            <div class="series-context-headline">
-              <div class="series-context-matchup">
-                <span class="series-context-team left">${scoreboardTeamName(match.teams.left.name)}</span>
-                <span class="series-context-vs">vs</span>
-                <span class="series-context-team right">${scoreboardTeamName(match.teams.right.name)}</span>
-              </div>
-              <p class="series-context-fullname">${winnerShort !== "TBD" ? `${winnerShort} won the series` : matchupLabel}</p>
+          <article class="series-context-hero result ${winnerTone}">
+            <div class="series-final-status-row">
+              <p class="series-final-kicker">Final result</p>
+              <span class="series-final-stamp">${winnerShort !== "TBD" ? `${winnerShort} closed it out` : "Series complete"}</span>
             </div>
-            <div class="series-context-timing">
-              <p class="series-context-kicker">Final result</p>
-              <p class="series-context-countdown final">${finalScoreLabel}</p>
-              <p class="meta-text">${completedMaps} maps complete · Started ${kickoffDate}</p>
+            <div class="series-final-scoreboard">
+              <div class="series-final-side left ${leftWinner ? "winner" : "loser"}">
+                <div class="series-final-side-head">
+                  ${teamBadgeMarkup(match.teams.left, match.game)}
+                  <span class="series-final-side-name">${scoreboardTeamName(match.teams.left.name)}</span>
+                </div>
+                <strong class="series-final-side-score">${match.seriesScore.left}</strong>
+                <span class="series-final-side-label">${leftWinner ? "Winner" : "Finalist"}</span>
+              </div>
+              <div class="series-final-center">
+                <span class="series-final-center-mark">Series closed</span>
+                <strong class="series-final-center-score">${finalScoreLabel}</strong>
+                <p class="series-final-center-copy">${winnerShort !== "TBD" ? `${winnerShort} finished on top` : matchupLabel}</p>
+                <p class="series-final-center-meta">${completedMaps} maps complete · Started ${kickoffDate}</p>
+              </div>
+              <div class="series-final-side right ${rightWinner ? "winner" : "loser"}">
+                <div class="series-final-side-head">
+                  ${teamBadgeMarkup(match.teams.right, match.game)}
+                  <span class="series-final-side-name">${scoreboardTeamName(match.teams.right.name)}</span>
+                </div>
+                <strong class="series-final-side-score">${match.seriesScore.right}</strong>
+                <span class="series-final-side-label">${rightWinner ? "Winner" : "Finalist"}</span>
+              </div>
             </div>
           </article>
           <div class="series-context-tags">

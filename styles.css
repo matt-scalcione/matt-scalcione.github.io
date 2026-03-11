@@ -3926,8 +3926,218 @@ button.ghost,
 }
 
 .series-context-hero.result {
-  border-color: rgba(95, 132, 170, 0.18);
-  background: rgba(244, 247, 252, 0.92);
+  grid-template-columns: 1fr;
+  gap: 0.82rem;
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(33, 104, 76, 0.18);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(59, 170, 102, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(17, 79, 53, 0.12), rgba(250, 255, 252, 0.98) 34%, rgba(237, 245, 252, 0.94) 100%);
+}
+
+.series-context-hero.result.winner-left {
+  background:
+    radial-gradient(circle at 14% 24%, rgba(32, 159, 93, 0.22), transparent 30%),
+    linear-gradient(130deg, rgba(16, 96, 61, 0.16), rgba(248, 255, 251, 0.98) 38%, rgba(235, 243, 251, 0.94) 100%);
+}
+
+.series-context-hero.result.winner-right {
+  background:
+    radial-gradient(circle at 86% 24%, rgba(32, 159, 93, 0.22), transparent 30%),
+    linear-gradient(230deg, rgba(16, 96, 61, 0.16), rgba(248, 255, 251, 0.98) 38%, rgba(235, 243, 251, 0.94) 100%);
+}
+
+.series-final-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.series-final-kicker,
+.series-final-stamp,
+.series-final-center-copy,
+.series-final-center-meta,
+.series-final-side-name,
+.series-final-side-label,
+.series-final-center-mark,
+.series-final-center-score {
+  margin: 0;
+}
+
+.series-final-kicker {
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2d644a;
+}
+
+.series-final-stamp {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.7rem;
+  padding: 0.18rem 0.64rem;
+  border-radius: 999px;
+  border: 1px solid rgba(25, 124, 77, 0.22);
+  background: linear-gradient(180deg, rgba(18, 129, 79, 0.14), rgba(255, 255, 255, 0.96));
+  color: #156943;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 6px 16px rgba(15, 73, 46, 0.08);
+}
+
+.series-final-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.72rem;
+  align-items: stretch;
+}
+
+.series-final-side {
+  display: grid;
+  gap: 0.42rem;
+  align-content: start;
+  min-width: 0;
+  padding: 0.88rem 0.82rem 0.74rem;
+  border-radius: 18px;
+  border: 1px solid rgba(95, 132, 170, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(240, 246, 252, 0.92));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.series-final-side.winner {
+  border-color: rgba(22, 124, 78, 0.28);
+  background:
+    linear-gradient(180deg, rgba(20, 128, 79, 0.16), rgba(255, 255, 255, 0.98) 44%, rgba(242, 252, 247, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 14px 28px rgba(15, 73, 46, 0.1);
+  transform: translateY(-2px);
+}
+
+.series-final-side.loser {
+  opacity: 0.92;
+}
+
+.series-final-side.right {
+  text-align: right;
+}
+
+.series-final-side-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.series-final-side.right .series-final-side-head {
+  justify-content: flex-end;
+}
+
+.series-final-side .team-badge {
+  width: 2.54rem;
+  height: 2.54rem;
+  font-size: 0.78rem;
+  flex: 0 0 auto;
+}
+
+.series-final-side-name {
+  color: #153149;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.94rem;
+  line-height: 1.04;
+}
+
+.series-final-side-score {
+  color: #17324b;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 2rem;
+  line-height: 0.96;
+}
+
+.series-final-side.winner .series-final-side-score {
+  color: #0d7246;
+}
+
+.series-final-side-label {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 1.45rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(84, 97, 113, 0.18);
+  background: rgba(255, 255, 255, 0.8);
+  color: #4c5a68;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.series-final-side.winner .series-final-side-label {
+  border-color: rgba(22, 124, 78, 0.24);
+  background: rgba(246, 255, 250, 0.96);
+  color: #0f6d44;
+}
+
+.series-final-side.right .series-final-side-label {
+  justify-self: end;
+}
+
+.series-final-center {
+  display: grid;
+  gap: 0.22rem;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  min-width: 138px;
+  padding: 0.36rem 0.14rem;
+}
+
+.series-final-center-mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.34rem;
+  padding: 0.08rem 0.44rem;
+  border-radius: 999px;
+  border: 1px solid rgba(33, 104, 76, 0.16);
+  background: rgba(255, 255, 255, 0.84);
+  color: #2d644a;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.series-final-center-score {
+  color: #16334b;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 2.35rem;
+  line-height: 0.92;
+  letter-spacing: 0.03em;
+  text-shadow: 0 8px 18px rgba(18, 55, 74, 0.08);
+}
+
+.series-final-center-copy {
+  color: #19374f;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.16;
+}
+
+.series-final-center-meta {
+  color: color-mix(in srgb, var(--muted) 82%, #1a5d42 18%);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
 }
 
 .series-context-headline,
@@ -7792,6 +8002,30 @@ button.ghost,
     gap: 0.5rem;
   }
 
+  .series-final-scoreboard {
+    grid-template-columns: 1fr;
+    gap: 0.54rem;
+  }
+
+  .series-final-center {
+    order: -1;
+    min-width: 0;
+    padding: 0 0 0.18rem;
+  }
+
+  .series-final-side,
+  .series-final-side.right {
+    text-align: left;
+  }
+
+  .series-final-side.right .series-final-side-head {
+    justify-content: flex-start;
+  }
+
+  .series-final-side.right .series-final-side-label {
+    justify-self: start;
+  }
+
   .series-context-team {
     min-height: 1.86rem;
     padding-inline: 0.56rem;
@@ -7808,6 +8042,24 @@ button.ghost,
 
   .series-context-countdown {
     font-size: 0.9rem;
+  }
+
+  .series-final-side .team-badge {
+    width: 2.18rem;
+    height: 2.18rem;
+    font-size: 0.72rem;
+  }
+
+  .series-final-side-name {
+    font-size: 0.82rem;
+  }
+
+  .series-final-side-score {
+    font-size: 1.7rem;
+  }
+
+  .series-final-center-score {
+    font-size: 2rem;
   }
 
   .upcoming-grid,
