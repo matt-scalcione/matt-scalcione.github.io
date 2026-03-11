@@ -79,11 +79,11 @@ const TEAM_LOGO_BY_KEY = {
   "red canids": "./assets/team-logos/red-canids.png"
 };
 const MOBILE_GAME_JUMP_TARGETS = [
-  { id: "gameContextWrap", label: "Game" },
-  { id: "selectedGameRecapWrap", label: "Recap" },
-  { id: "leadTrendWrap", label: "Story" },
+  { id: "selectedGameRecapWrap", label: "Overview" },
+  { id: "gameCommandWrap", label: "Snapshot" },
   { id: "playerTrackerWrap", label: "Players" },
-  { id: "liveAlertsList", label: "Alerts" }
+  { id: "liveFeedList", label: "Feed" },
+  { id: "teamCompareWrap", label: "Stats" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Games" },
@@ -118,17 +118,18 @@ const MOBILE_UPCOMING_JUMP_TARGETS = [
 const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
   inProgress: [
     "selectedGameRecapWrap",
+    "gameCommandWrap",
     "playerTrackerWrap",
-    "leadTrendWrap",
     "liveFeedList",
-    "pulseCard",
-    "liveAlertsList"
+    "teamCompareWrap",
+    "pulseCard"
   ],
   completed: [
     "selectedGameRecapWrap",
+    "gameCommandWrap",
     "playerTrackerWrap",
-    "leadTrendWrap",
-    "liveFeedList"
+    "liveFeedList",
+    "teamCompareWrap"
   ],
   unstarted: ["selectedGameRecapWrap", "gameCommandWrap"],
   unneeded: ["selectedGameRecapWrap", "gameCommandWrap"]
@@ -150,27 +151,46 @@ const MOBILE_SECTION_HEADINGS = {
   "Past Matches": { icon: "FM", short: "Past" },
   "Head-to-Head": { icon: "H2H", short: "H2H" },
   "Prediction": { icon: "PR", short: "Prediction" },
-  "Map Command": { icon: "CC", short: "Command" },
-  "Game Command Center": { icon: "CC", short: "Command" },
-  "Team Comparison": { icon: "TC", short: "Team Compare" },
+  "Live Snapshot": { icon: "CC", short: "Snapshot" },
+  "Map Command": { icon: "CC", short: "Snapshot" },
+  "Game Command Center": { icon: "CC", short: "Snapshot" },
+  "Team Stats": { icon: "TC", short: "Stats" },
+  "Team Comparison": { icon: "TC", short: "Stats" },
+  "Players": { icon: "PT", short: "Players" },
   "Player Board": { icon: "PT", short: "Players" },
   "Player Tracker": { icon: "PT", short: "Players" },
   "Player Box Score": { icon: "PT", short: "Players" },
+  "Map Overview": { icon: "RC", short: "Overview" },
+  "Final Map": { icon: "RC", short: "Overview" },
   "Live Feed": { icon: "FE", short: "Live Feed" },
+  "Map Feed": { icon: "FE", short: "Feed" },
   "Game Story": { icon: "GS", short: "Story" },
   "Lead Trend": { icon: "LD", short: "Lead Trend" },
-  "What Matters Now": { icon: "NOW", short: "Now" },
-  "Risk Watch": { icon: "AL", short: "Risk" },
+  "Key Story": { icon: "NOW", short: "Story" },
+  "What Matters Now": { icon: "NOW", short: "Story" },
+  "Alerts": { icon: "AL", short: "Alerts" },
+  "Risk Watch": { icon: "AL", short: "Alerts" },
   "Live Alerts": { icon: "AL", short: "Alerts" },
   "Signal Log": { icon: "SG", short: "Signals" },
+  "Signals": { icon: "SG", short: "Signals" },
+  "Economy Milestones": { icon: "EC", short: "Economy" },
   "Objective Control": { icon: "OBJ", short: "Objective" },
-  "Analyst Desk": { icon: "AD", short: "Analyst" },
+  "Coverage": { icon: "CF", short: "Coverage" },
+  "Analysis": { icon: "AD", short: "Analysis" },
+  "Analyst Desk": { icon: "AD", short: "Analysis" },
+  "Pace": { icon: "PC", short: "Pace" },
+  "Keys to Win": { icon: "KW", short: "Keys" },
+  "Economy": { icon: "EC", short: "Economy" },
   "Game Results": { icon: "SG", short: "Games" },
   "Results Table": { icon: "SC", short: "Results" },
   "Player Trends": { icon: "TR", short: "Trends" },
-  "Selected Game Recap": { icon: "RC", short: "Game Recap" },
-  "Final Recap": { icon: "RC", short: "Recap" },
+  "Selected Game Recap": { icon: "RC", short: "Overview" },
+  "Final Recap": { icon: "RC", short: "Overview" },
   "Closing Stats": { icon: "ST", short: "Stats" },
+  "Performance Leaders": { icon: "PL", short: "Leaders" },
+  "Objective Forecast": { icon: "OF", short: "Forecast" },
+  "Player Delta": { icon: "PD", short: "Delta" },
+  "Player Delta Panel": { icon: "PD", short: "Delta" },
   "Timeline": { icon: "TL", short: "Timeline" }
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
@@ -187,7 +207,7 @@ const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
     "Past Matches",
     "Head-to-Head"
   ]),
-  game: new Set(["Selected Game Recap", "Closing Stats", "Live Feed", "Player Board", "What Matters Now", "Risk Watch"])
+  game: new Set(["Map Overview", "Final Map", "Selected Game Recap", "Live Snapshot", "Players", "Live Feed", "Map Feed", "Team Stats", "Key Story", "Alerts"])
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -1155,8 +1175,12 @@ function setPanelHeadingTitleByTargetId(targetId, fullTitle) {
 
 function applyGameStateSectionTitles(match) {
   setPanelHeadingTitleByTargetId("leadTrendWrap", "Live Feed");
-  setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Selected Game Recap");
-  setPanelHeadingTitleByTargetId("playerTrackerWrap", "Player Board");
+  setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Map Overview");
+  setPanelHeadingTitleByTargetId("playerTrackerWrap", "Players");
+  setPanelHeadingTitleByTargetId("gameCommandWrap", "Live Snapshot");
+  setPanelHeadingTitleByTargetId("teamCompareWrap", "Team Stats");
+  setPanelHeadingTitleByTargetId("pulseCard", "Key Story");
+  setPanelHeadingTitleByTargetId("liveAlertsList", "Alerts");
 
   if (uiState.viewMode !== "game") {
     applyMobileSectionHeadings();
@@ -1165,9 +1189,8 @@ function applyGameStateSectionTitles(match) {
 
   const selectedState = String(match?.selectedGame?.state || "");
   if (selectedState === "completed") {
-    setPanelHeadingTitleByTargetId("leadTrendWrap", "Game Story");
-    setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Closing Stats");
-    setPanelHeadingTitleByTargetId("playerTrackerWrap", "Player Box Score");
+    setPanelHeadingTitleByTargetId("leadTrendWrap", "Map Feed");
+    setPanelHeadingTitleByTargetId("selectedGameRecapWrap", "Final Map");
   }
 
   applyMobileSectionHeadings();
@@ -3844,6 +3867,7 @@ function applyGamePanelVisibility(match) {
   const hasRichTelemetry = telemetryStatus === "rich";
   const hasAnyTelemetry = hasBasicTelemetry || hasRichTelemetry;
   const draftPreview = inferDraftPreview(match);
+  const hasSnapshot = Boolean(selected?.snapshot && (selected.snapshot.left || selected.snapshot.right));
   const setTargetVisibility = (element, visible) => {
     if (!element) {
       return;
@@ -3851,6 +3875,33 @@ function applyGamePanelVisibility(match) {
     setPanelVisibility(element.closest("section.panel"), visible);
   };
   const hasRows = (rows) => Array.isArray(rows) && rows.length > 0;
+  const hasPlayerBoard =
+    hasRows(match?.playerEconomy?.left) ||
+    hasRows(match?.playerEconomy?.right);
+  const hasLeadTrend =
+    hasRows(match?.goldLeadSeries) ||
+    hasPlayerBoard;
+  const hasFeedSignals = [
+    match?.liveTicker,
+    match?.liveAlerts,
+    match?.objectiveTimeline,
+    match?.combatBursts,
+    match?.goldMilestones
+  ].some((rows) => hasRows(rows));
+  const hasLiveFeedPanel = hasLeadTrend || hasFeedSignals;
+  const showGameCommand = selectedState === "completed" || !draftPreview;
+  const showSelectedGameRecap =
+    Boolean(draftPreview) ||
+    hasSnapshot ||
+    selectedState === "completed" ||
+    selectedState === "unstarted" ||
+    selectedState === "unneeded";
+  const showTeamCompare =
+    hasSnapshot &&
+    selectedState !== "unstarted" &&
+    selectedState !== "unneeded";
+  const showPulseCard = selectedState === "inProgress" && Boolean(match?.pulseCard);
+  const showLiveAlerts = selectedState === "inProgress" && hasAnyTelemetry;
 
   for (const panel of elements.gamePanels) {
     setPanelVisibility(panel, true);
@@ -3892,6 +3943,8 @@ function applyGamePanelVisibility(match) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
     }
+    setTargetVisibility(elements.gameCommandWrap, showGameCommand);
+    setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
     return;
   }
 
@@ -3899,9 +3952,9 @@ function applyGamePanelVisibility(match) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
     }
-    setTargetVisibility(elements.gameCommandWrap, !draftPreview && selectedState !== "completed");
-    setTargetVisibility(elements.selectedGameRecapWrap, !draftPreview && selectedState !== "completed" && selectedState !== "inProgress");
-    setTargetVisibility(elements.teamCompareWrap, false);
+    setTargetVisibility(elements.gameCommandWrap, showGameCommand);
+    setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
+    setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
     setTargetVisibility(elements.pulseCard, false);
     return;
   }
@@ -3910,34 +3963,16 @@ function applyGamePanelVisibility(match) {
     for (const panel of telemetryPanels) {
       setPanelVisibility(panel, false);
     }
-
-    const hasPlayerBoard =
-      hasRows(match?.playerEconomy?.left) ||
-      hasRows(match?.playerEconomy?.right);
-    const hasLeadTrend =
-      hasRows(match?.goldLeadSeries) ||
-      hasPlayerBoard;
     const hasObjectiveControl = Boolean(match?.objectiveControl?.left || match?.objectiveControl?.right);
-    const hasFeedSignals = [
-      match?.liveTicker,
-      match?.liveAlerts,
-      match?.objectiveTimeline,
-      match?.combatBursts,
-      match?.goldMilestones
-    ].some((rows) => hasRows(rows));
 
-    setTargetVisibility(elements.gameCommandWrap, !draftPreview && selectedState !== "completed");
-    setTargetVisibility(
-      elements.selectedGameRecapWrap,
-      selectedState === "completed" || (!draftPreview && selectedState !== "inProgress")
-    );
+    setTargetVisibility(elements.gameCommandWrap, showGameCommand);
+    setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
     setTargetVisibility(elements.playerTrackerWrap, hasPlayerBoard);
-    setTargetVisibility(elements.leadTrendWrap, hasLeadTrend);
+    setTargetVisibility(elements.liveFeedList, hasLiveFeedPanel);
     setTargetVisibility(elements.objectiveControlWrap, hasObjectiveControl);
-    setTargetVisibility(elements.liveFeedList, hasFeedSignals);
-    setTargetVisibility(elements.pulseCard, Boolean(match?.pulseCard));
-    setTargetVisibility(elements.teamCompareWrap, false);
-    setTargetVisibility(elements.liveAlertsList, false);
+    setTargetVisibility(elements.pulseCard, showPulseCard);
+    setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
+    setTargetVisibility(elements.liveAlertsList, showLiveAlerts);
     return;
   }
 
@@ -3962,23 +3997,13 @@ function applyGamePanelVisibility(match) {
   setTargetVisibility(elements.combatBurstsList, false);
   setTargetVisibility(elements.goldMilestonesList, false);
   setTargetVisibility(elements.momentsList, false);
-
-  if (selectedState === "inProgress") {
-    setTargetVisibility(elements.gameCommandWrap, false);
-    setTargetVisibility(elements.teamCompareWrap, false);
-    setTargetVisibility(elements.liveAlertsList, false);
-    return;
-  }
-
-  if (selectedState === "completed") {
-    setTargetVisibility(elements.gameCommandWrap, false);
-    setTargetVisibility(elements.teamCompareWrap, false);
-    setTargetVisibility(elements.pulseCard, false);
-    setTargetVisibility(elements.liveAlertsList, false);
-    return;
-  }
-
-  setTargetVisibility(elements.liveAlertsList, false);
+  setTargetVisibility(elements.gameCommandWrap, showGameCommand);
+  setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
+  setTargetVisibility(elements.playerTrackerWrap, hasPlayerBoard);
+  setTargetVisibility(elements.liveFeedList, hasLiveFeedPanel);
+  setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
+  setTargetVisibility(elements.pulseCard, showPulseCard);
+  setTargetVisibility(elements.liveAlertsList, showLiveAlerts);
 }
 
 function applySeriesPanelVisibility(match = uiState.match) {
