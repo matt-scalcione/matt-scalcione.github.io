@@ -11007,6 +11007,177 @@ body.product-shell .match-quick-nav {
       inset 0 1px 0 rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(14px);
   }
+
+  body.product-shell.match-page .hero {
+    max-width: none;
+    padding: 0.88rem 0 0.18rem;
+  }
+
+  body.product-shell.match-page .hero::before,
+  body.product-shell.match-page .hero::after {
+    display: none;
+  }
+
+  body.product-shell.match-page .hero-grid {
+    gap: 0.44rem;
+    padding-inline: 0.72rem;
+  }
+
+  body.product-shell.match-page .hero-main {
+    gap: 0.38rem;
+  }
+
+  body.product-shell.match-page .page-nav {
+    padding: 0;
+    gap: 0.28rem;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  body.product-shell.match-page .page-nav a,
+  body.product-shell.match-page .hero .link-btn {
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  body.product-shell.match-page .layout.detail {
+    max-width: none;
+    padding: 0 0 calc(1rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.42rem;
+  }
+
+  body.product-shell.match-page .panel {
+    padding: 0.78rem 0.72rem 0.84rem;
+    border-inline: 0;
+    border-radius: 0;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 250, 255, 0.9));
+  }
+
+  body.product-shell.match-page .panel::before {
+    left: 0;
+    right: 0;
+    opacity: 0.56;
+  }
+
+  body.product-shell.match-page .panel::after {
+    display: none;
+  }
+
+  body.product-shell.match-page .match-state-panel {
+    padding: 0.72rem;
+    background:
+      linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(241, 246, 251, 0.94));
+  }
+
+  body.product-shell.match-page .game-nav,
+  body.product-shell.match-page .game-context {
+    margin-top: 0.42rem;
+  }
+
+  body.product-shell.match-page .mobile-mode-toolbar,
+  body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
+    margin-inline: -0.72rem;
+    padding: 0.34rem 0.72rem;
+    border-inline: 0;
+    border-radius: 0;
+    background: rgba(247, 251, 255, 0.96);
+    box-shadow: 0 8px 18px rgba(18, 46, 72, 0.12);
+  }
+
+  body.product-shell.match-page .mobile-mode-row,
+  body.product-shell.match-page .mobile-jump-row,
+  body.product-shell.match-page .game-pill-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+    gap: 0.24rem;
+  }
+
+  body.product-shell.match-page .mobile-jump-row {
+    grid-auto-flow: row;
+    grid-auto-columns: initial;
+    overflow: visible;
+    scroll-snap-type: none;
+    padding-bottom: 0;
+  }
+
+  body.product-shell.match-page .team-jump-chip,
+  body.product-shell.match-page .mobile-mode-chip,
+  body.product-shell.match-page .mobile-jump-chip,
+  body.product-shell.match-page .game-pill,
+  body.product-shell.match-page .mobile-advanced-toggle {
+    width: 100%;
+    min-height: 1.98rem;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 0.34rem 0.42rem;
+  }
+
+  body.product-shell.match-page .match-phase-pill,
+  body.product-shell.match-page .series-summary-chip,
+  body.product-shell.match-page .series-context-tag,
+  body.product-shell.match-page .series-context-more,
+  body.product-shell.match-page .series-context-team,
+  body.product-shell.match-page .series-final-stamp {
+    border-radius: 10px;
+  }
+
+  body.product-shell.match-page .score-strip,
+  body.product-shell.match-page .match-phase-banner,
+  body.product-shell.match-page .series-header-card,
+  body.product-shell.match-page .series-context-hero,
+  body.product-shell.match-page .series-forecast-card,
+  body.product-shell.match-page .series-watch-card,
+  body.product-shell.match-page .series-games-overview,
+  body.product-shell.match-page .series-game-card,
+  body.product-shell.match-page .progress-card,
+  body.product-shell.match-page .upcoming-card,
+  body.product-shell.match-page .upcoming-note,
+  body.product-shell.match-page .form-card,
+  body.product-shell.match-page .command-card,
+  body.product-shell.match-page .game-context-info-card,
+  body.product-shell.match-page .completed-result-banner,
+  body.product-shell.match-page .completed-story-card,
+  body.product-shell.match-page .completed-spotlight-card,
+  body.product-shell.match-page .recap-card,
+  body.product-shell.match-page .recap-note,
+  body.product-shell.match-page .draft-phase-banner,
+  body.product-shell.match-page .pulse,
+  body.product-shell.match-page .trend-card,
+  body.product-shell.match-page .minimap-card,
+  body.product-shell.match-page .series-final-side {
+    border-radius: 10px;
+    box-shadow: none;
+  }
+
+  body.product-shell.match-page .game-context-card,
+  body.product-shell.match-page .series-context-card {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    gap: 0.5rem;
+  }
+
+  body.product-shell.match-page .series-context-hero {
+    padding: 0.68rem;
+  }
+
+  body.product-shell.match-page .series-context-team {
+    min-height: 1.7rem;
+    padding: 0.16rem 0.5rem;
+  }
+
+  body.product-shell.match-page .series-context-tag,
+  body.product-shell.match-page .series-context-more,
+  body.product-shell.match-page .series-summary-chip {
+    min-height: 1.42rem;
+    padding: 0.12rem 0.42rem;
+  }
+
+  body.product-shell.match-page .series-final-side {
+    padding: 0.72rem 0.68rem;
+  }
 }
 
 @media (max-width: 430px) {
@@ -11134,6 +11305,14 @@ body.product-shell .match-quick-nav {
     top: calc(3.9rem + env(safe-area-inset-top, 0px));
   }
 
+  body.product-shell.match-page .hero {
+    padding-top: 0.72rem;
+  }
+
+  body.product-shell.match-page .hero-grid {
+    padding-inline: 0.58rem;
+  }
+
   .match-page .mobile-mode-toolbar {
     top: calc(3.9rem + env(safe-area-inset-top, 0px));
     padding: 0.26rem;
@@ -11195,6 +11374,28 @@ body.product-shell .match-quick-nav {
   .match-page .match-state-panel {
     padding: 0.38rem;
     border-radius: 14px;
+  }
+
+  body.product-shell.match-page .layout.detail {
+    padding: 0 0 calc(0.96rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.product-shell.match-page .panel,
+  body.product-shell.match-page .match-state-panel {
+    padding-inline: 0.58rem;
+    border-radius: 0;
+  }
+
+  body.product-shell.match-page .mobile-mode-toolbar,
+  body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
+    margin-inline: -0.58rem;
+    padding-inline: 0.58rem;
+  }
+
+  body.product-shell.match-page .mobile-mode-row,
+  body.product-shell.match-page .mobile-jump-row,
+  body.product-shell.match-page .game-pill-row {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
   }
 
   .match-page .section-head h2 {
