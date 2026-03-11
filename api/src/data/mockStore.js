@@ -1677,6 +1677,237 @@ function sameDotaSeries(left, right) {
   return Math.abs(leftStart - rightStart) <= 6 * oneHour;
 }
 
+function hasGenericDotaTournamentLabel(row) {
+  const normalized = canonicalDotaTournamentKey(row?.tournament);
+  return /^league\d+$/.test(normalized) || normalized === "dota2" || normalized === "unknown";
+}
+
+export function sameDotaSeriesForAlias(left, right) {
+  if (!left || !right || left.game !== "dota2" || right.game !== "dota2") {
+    return false;
+  }
+
+  const leftIds = [String(left?.teams?.left?.id || ""), String(left?.teams?.right?.id || "")]
+    .filter(Boolean)
+    .sort();
+  const rightIds = [String(right?.teams?.left?.id || ""), String(right?.teams?.right?.id || "")]
+    .filter(Boolean)
+    .sort();
+  if (
+    leftIds.length === 2 &&
+    rightIds.length === 2 &&
+    (leftIds[0] !== rightIds[0] || leftIds[1] !== rightIds[1])
+  ) {
+    return false;
+  }
+
+  const leftTeams = [normalizeTeamName(left?.teams?.left?.name), normalizeTeamName(left?.teams?.right?.name)].sort();
+  const rightTeams = [normalizeTeamName(right?.teams?.left?.name), normalizeTeamName(right?.teams?.right?.name)].sort();
+  if (leftTeams[0] !== rightTeams[0] || leftTeams[1] !== rightTeams[1]) {
+    return false;
+  }
+
+  const leftTournament = canonicalDotaTournamentKey(left?.tournament);
+  const rightTournament = canonicalDotaTournamentKey(right?.tournament);
+  if (
+    leftTournament &&
+    rightTournament &&
+    leftTournament !== rightTournament &&
+    !hasGenericDotaTournamentLabel(left) &&
+    !hasGenericDotaTournamentLabel(right)
+  ) {
+    return false;
+  }
+
+  const leftStart = Date.parse(String(left?.startAt || ""));
+  const rightStart = Date.parse(String(right?.startAt || ""));
+  if (Number.isNaN(leftStart) || Number.isNaN(rightStart)) {
+    return true;
+  }
+
+  return Math.abs(leftStart - rightStart) <= 6 * oneHour;
+}
+
+export function dotaAliasCandidateScore(row, reference = null) {
+  if (!row?.id) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  let score = 0;
+  const id = String(row.id);
+  if (id.startsWith("dota_stratz_")) score += 50;
+  else if (id.startsWith("dota_od_series_")) score += 40;
+  else if (id.startsWith("dota_od_result_")) score += 28;
+  else if (id.startsWith("dota_od_live_")) score += 20;
+  else if (id.startsWith("dota_lp_sched_")) score += 10;
+
+  if (Number(row?.bestOf || 1) > 1) score += 12;
+  if (String(row?.status || "") === "live") score += 8;
+  if (String(row?.status || "") === "completed") score += 5;
+  if (Number(row?.seriesScore?.left || 0) + Number(row?.seriesScore?.right || 0) > 0) score += 6;
+  if (row?.sourceMatchId) score += 3;
+  if (!hasGenericDotaTournamentLabel(row)) score += 2;
+  if (reference && !hasGenericDotaTournamentLabel(reference) && !hasGenericDotaTournamentLabel(row)) {
+    const referenceTournament = canonicalDotaTournamentKey(reference?.tournament);
+    const candidateTournament = canonicalDotaTournamentKey(row?.tournament);
+    if (referenceTournament && candidateTournament && referenceTournament === candidateTournament) {
+      score += 4;
+    }
+  }
+
+  return score;
+}
+
+function sameDotaTeamOrientation(left, right) {
+  const leftLeftId = String(left?.teams?.left?.id || "").trim();
+  const leftRightId = String(left?.teams?.right?.id || "").trim();
+  const rightLeftId = String(right?.teams?.left?.id || "").trim();
+  const rightRightId = String(right?.teams?.right?.id || "").trim();
+
+  if (leftLeftId && leftRightId && rightLeftId && rightRightId) {
+    if (leftLeftId === rightLeftId && leftRightId === rightRightId) return "same";
+    if (leftLeftId === rightRightId && leftRightId === rightLeftId) return "swap";
+  }
+
+  const leftLeftName = normalizeTeamName(left?.teams?.left?.name);
+  const leftRightName = normalizeTeamName(left?.teams?.right?.name);
+  const rightLeftName = normalizeTeamName(right?.teams?.left?.name);
+  const rightRightName = normalizeTeamName(right?.teams?.right?.name);
+  if (leftLeftName && leftRightName && rightLeftName && rightRightName) {
+    if (leftLeftName === rightLeftName && leftRightName === rightRightName) return "same";
+    if (leftLeftName === rightRightName && leftRightName === rightLeftName) return "swap";
+  }
+
+  return "same";
+}
+
+function orientDotaSeriesScoreToReference(row, reference) {
+  const rowScore = {
+    left: Number(row?.seriesScore?.left || 0),
+    right: Number(row?.seriesScore?.right || 0)
+  };
+  if (sameDotaTeamOrientation(row, reference) === "swap") {
+    return {
+      left: rowScore.right,
+      right: rowScore.left
+    };
+  }
+
+  return rowScore;
+}
+
+function totalDotaSeriesWins(score) {
+  return Number(score?.left || 0) + Number(score?.right || 0);
+}
+
+function buildDotaFallbackSummary(match, relatedRows = []) {
+  const candidates = [match, ...(Array.isArray(relatedRows) ? relatedRows : [])].filter(Boolean);
+  if (!candidates.length) {
+    return match;
+  }
+
+  let bestOf = Math.max(1, Number(match?.bestOf || 1));
+  let seriesScore = {
+    left: Number(match?.seriesScore?.left || 0),
+    right: Number(match?.seriesScore?.right || 0)
+  };
+  let startAt = match?.startAt || null;
+  let tournament = match?.tournament || null;
+  let watchUrl = match?.watchUrl || null;
+  let watchOptions = Array.isArray(match?.watchOptions) ? match.watchOptions : [];
+  let status = String(match?.status || "upcoming");
+  let competitiveTier = Number(match?.competitiveTier || 0) || null;
+  let sourceMatchId = match?.sourceMatchId || null;
+
+  for (const row of candidates) {
+    if (!sameDotaSeriesForAlias(row, match)) {
+      continue;
+    }
+
+    const orientedScore = orientDotaSeriesScoreToReference(row, match);
+    if (totalDotaSeriesWins(orientedScore) > totalDotaSeriesWins(seriesScore)) {
+      seriesScore = orientedScore;
+    }
+
+    if (Number(row?.bestOf || 1) > bestOf) {
+      bestOf = Math.max(1, Number(row.bestOf || 1));
+    }
+
+    const rowStartMs = Date.parse(String(row?.startAt || ""));
+    const currentStartMs = Date.parse(String(startAt || ""));
+    if (Number.isFinite(rowStartMs) && (!Number.isFinite(currentStartMs) || rowStartMs < currentStartMs)) {
+      startAt = row.startAt;
+    }
+
+    if ((hasGenericDotaTournamentLabel({ tournament }) || !tournament) && !hasGenericDotaTournamentLabel(row)) {
+      tournament = row.tournament;
+    }
+
+    if (!watchUrl && row?.watchUrl) {
+      watchUrl = row.watchUrl;
+    }
+    if ((!Array.isArray(watchOptions) || watchOptions.length === 0) && Array.isArray(row?.watchOptions) && row.watchOptions.length) {
+      watchOptions = row.watchOptions;
+    }
+
+    if (status !== "live" && String(row?.status || "") === "live") {
+      status = "live";
+    } else if (status === "upcoming" && String(row?.status || "") === "completed") {
+      status = "completed";
+    }
+
+    if ((!competitiveTier || competitiveTier > Number(row?.competitiveTier || competitiveTier)) && Number(row?.competitiveTier || 0) > 0) {
+      competitiveTier = Number(row.competitiveTier);
+    }
+
+    if (!sourceMatchId && row?.sourceMatchId) {
+      sourceMatchId = row.sourceMatchId;
+    }
+  }
+
+  return {
+    ...match,
+    bestOf,
+    seriesScore,
+    startAt,
+    tournament,
+    watchUrl,
+    watchOptions,
+    status,
+    competitiveTier,
+    sourceMatchId
+  };
+}
+
+function dotaDetailStrength(detail) {
+  if (!detail || detail.game !== "dota2") {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const bestOf = Math.max(1, Number(detail?.bestOf || 1));
+  const seriesWins = totalDotaSeriesWins(detail?.seriesScore);
+  const seriesGames = Array.isArray(detail?.seriesGames) ? detail.seriesGames : [];
+  const selectedGameNumber = Number(detail?.selectedGame?.number || 0);
+  const explicitWinners = seriesGames.filter((game) => game?.winnerTeamId).length;
+  let score = 0;
+
+  score += bestOf * 8;
+  score += seriesWins * 20;
+  score += seriesGames.length * 10;
+  score += explicitWinners * 6;
+  if (selectedGameNumber > 1) score += 8;
+  if (String(detail?.selectedGame?.state || "") === "inProgress") score += 4;
+  if (!hasGenericDotaTournamentLabel(detail)) score += 2;
+
+  return score;
+}
+
+function preferDotaDetail(primaryDetail, secondaryDetail) {
+  return dotaDetailStrength(primaryDetail) >= dotaDetailStrength(secondaryDetail)
+    ? primaryDetail
+    : secondaryDetail;
+}
+
 function materializeStaleDetail(detail, {
   reason = "stale_cache",
   aliasMatchId = null
@@ -1704,7 +1935,8 @@ function materializeStaleDetail(detail, {
 }
 
 async function resolveDotaAliasMatchId(matchId, cachedDetail = null) {
-  if (!cachedDetail || cachedDetail?.game !== "dota2") {
+  const referenceMatch = cachedDetail || findMatchSummary(matchId);
+  if (!referenceMatch || referenceMatch?.game !== "dota2") {
     return null;
   }
 
@@ -1730,7 +1962,9 @@ async function resolveDotaAliasMatchId(matchId, cachedDetail = null) {
     resultRows: Array.isArray(resultsState?.rows) ? resultsState.rows : []
   });
   const candidate = [...mergedProviderDotaLiveRows, ...scheduleRows, ...(Array.isArray(resultsState?.rows) ? resultsState.rows : [])]
-    .find((row) => sameDotaSeries(row, cachedDetail));
+    .filter((row) => String(row?.id || "") !== String(matchId))
+    .filter((row) => sameDotaSeriesForAlias(row, referenceMatch))
+    .sort((left, right) => dotaAliasCandidateScore(right, referenceMatch) - dotaAliasCandidateScore(left, referenceMatch))[0];
 
   if (!candidate?.id || String(candidate.id) === String(matchId)) {
     return null;
@@ -2461,6 +2695,10 @@ function fallbackDotaCurrentGameNumber({ status, bestOf, completedWins, startAt,
     return 1;
   }
 
+  if (completedWins > 0) {
+    return Math.min(Math.max(1, bestOf || 1), completedWins + 1);
+  }
+
   const startMs = Date.parse(String(startAt || ""));
   if (!Number.isFinite(startMs)) {
     return Math.max(1, completedWins + 1);
@@ -2470,6 +2708,33 @@ function fallbackDotaCurrentGameNumber({ status, bestOf, completedWins, startAt,
   const elapsedMs = Math.max(0, nowMs - startMs);
   const inferredByClock = Math.floor(elapsedMs / cadenceMs) + 1;
   return Math.min(Math.max(1, bestOf || 1), Math.max(completedWins + 1, inferredByClock));
+}
+
+function fallbackCompletedWinnerTeamId(match, gameNumber, completedWins) {
+  if (!match || gameNumber > completedWins) {
+    return null;
+  }
+
+  const leftWins = Number(match?.seriesScore?.left || 0);
+  const rightWins = Number(match?.seriesScore?.right || 0);
+  if (leftWins === completedWins && rightWins === 0) {
+    return match?.teams?.left?.id || null;
+  }
+
+  if (rightWins === completedWins && leftWins === 0) {
+    return match?.teams?.right?.id || null;
+  }
+
+  if (completedWins === 1) {
+    if (leftWins === 1 && rightWins === 0) {
+      return match?.teams?.left?.id || null;
+    }
+    if (rightWins === 1 && leftWins === 0) {
+      return match?.teams?.right?.id || null;
+    }
+  }
+
+  return null;
 }
 
 function buildFallbackDotaDetailFromSummary(match, options = {}) {
@@ -2536,7 +2801,10 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
             : state === "unneeded"
               ? "Not played (series already decided)."
               : "Scheduled next.",
-      winnerTeamId: state === "completed" && number === currentGameNumber ? match?.winnerTeamId || null : null,
+      winnerTeamId:
+        state === "completed"
+          ? fallbackCompletedWinnerTeamId(match, number, completedWins)
+          : null,
       sideInfo: {
         leftSide: "radiant",
         rightSide: "dire"
@@ -2883,7 +3151,12 @@ async function fallbackProviderDotaDetail(matchId, options = {}) {
     enrichment = {};
   }
 
-  return buildFallbackDotaDetailFromSummary(match, {
+  const relatedRows = [...liveRows, ...scheduleRows, ...resultRows].filter(
+    (row) => String(row?.id || "") !== String(match?.id || "") && sameDotaSeriesForAlias(row, match)
+  );
+  const effectiveMatch = buildDotaFallbackSummary(match, relatedRows);
+
+  return buildFallbackDotaDetailFromSummary(effectiveMatch, {
     ...options,
     enrichment
   });
@@ -3372,15 +3645,20 @@ async function loadProviderMatchDetail(matchId, options = {}) {
     if (aliasMatchId) {
       const aliasDetail = await loadProviderMatchDetail(aliasMatchId, options);
       if (aliasDetail) {
-        const resolvedAliasDetail = {
-          ...aliasDetail,
-          resolvedFromMatchId: String(matchId),
-          freshness: {
-            ...(aliasDetail?.freshness || {}),
-            status: aliasDetail?.freshness?.status || "resolved_alias",
-            updatedAt: aliasDetail?.freshness?.updatedAt || new Date().toISOString()
-          }
-        };
+        const referenceFallback = await fallbackProviderDotaDetail(matchId, options);
+        const preferredDetail = preferDotaDetail(aliasDetail, referenceFallback);
+        const resolvedAliasDetail =
+          preferredDetail === aliasDetail
+            ? {
+                ...aliasDetail,
+                resolvedFromMatchId: String(matchId),
+                freshness: {
+                  ...(aliasDetail?.freshness || {}),
+                  status: aliasDetail?.freshness?.status || "resolved_alias",
+                  updatedAt: aliasDetail?.freshness?.updatedAt || new Date().toISOString()
+                }
+              }
+            : preferredDetail;
 
         setDetailCacheEntry(providerState.detailById, cacheKey, resolvedAliasDetail);
         return resolvedAliasDetail;
