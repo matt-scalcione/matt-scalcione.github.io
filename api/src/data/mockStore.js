@@ -27,6 +27,14 @@ const dotaSyntheticLivePerGameWindowMs = Number.parseInt(
   process.env.DOTA_SCHEDULE_PROMOTE_PER_GAME_MS || String(90 * oneMinute),
   10
 );
+const dotaFallbackEstimatedGameSeconds = Number.parseInt(
+  process.env.DOTA_FALLBACK_ESTIMATED_GAME_SECONDS || "2700",
+  10
+);
+const dotaFallbackBetweenGamesSeconds = Number.parseInt(
+  process.env.DOTA_FALLBACK_BETWEEN_GAMES_SECONDS || "480",
+  10
+);
 
 const dataMode = String(process.env.ESPORTS_DATA_MODE || "hybrid").toLowerCase();
 const providerCacheMs = Number.parseInt(process.env.PROVIDER_CACHE_MS || "30000", 10);
@@ -2444,6 +2452,26 @@ function buildFallbackPreMatchInsights(match, { seriesGames = [], teamForm = nul
   };
 }
 
+function fallbackDotaCurrentGameNumber({ status, bestOf, completedWins, startAt, nowMs = Date.now() } = {}) {
+  if (status === "completed") {
+    return Math.max(1, completedWins || 1);
+  }
+
+  if (status !== "live") {
+    return 1;
+  }
+
+  const startMs = Date.parse(String(startAt || ""));
+  if (!Number.isFinite(startMs)) {
+    return Math.max(1, completedWins + 1);
+  }
+
+  const cadenceMs = Math.max(1, (dotaFallbackEstimatedGameSeconds + dotaFallbackBetweenGamesSeconds) * 1000);
+  const elapsedMs = Math.max(0, nowMs - startMs);
+  const inferredByClock = Math.floor(elapsedMs / cadenceMs) + 1;
+  return Math.min(Math.max(1, bestOf || 1), Math.max(completedWins + 1, inferredByClock));
+}
+
 function buildFallbackDotaDetailFromSummary(match, options = {}) {
   if (!match || match.game !== "dota2") {
     return null;
@@ -2456,12 +2484,12 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
     right: Number(match?.seriesScore?.right || 0)
   };
   const completedWins = seriesScore.left + seriesScore.right;
-  const currentGameNumber =
-    status === "live"
-      ? Math.max(1, completedWins + 1)
-      : status === "completed"
-        ? Math.max(1, completedWins || 1)
-        : 1;
+  const currentGameNumber = fallbackDotaCurrentGameNumber({
+    status,
+    bestOf,
+    completedWins,
+    startAt: match?.startAt || null
+  });
   const totalSlots = Math.max(bestOf, currentGameNumber);
   const requestedGameNumber = parseRequestedFallbackGameNumber(options?.gameNumber);
   const baseWatchOptions = Array.isArray(match?.watchOptions) ? match.watchOptions : [];
@@ -2490,7 +2518,9 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
 
     const startedAt =
       Number.isFinite(startMs)
-        ? new Date(startMs + (number - 1) * 45 * 60 * 1000).toISOString()
+        ? new Date(
+            startMs + (number - 1) * (dotaFallbackEstimatedGameSeconds + dotaFallbackBetweenGamesSeconds) * 1000
+          ).toISOString()
         : null;
 
     seriesGames.push({
