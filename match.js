@@ -86,31 +86,33 @@ const MOBILE_GAME_JUMP_TARGETS = [
   { id: "liveAlertsList", label: "Alerts" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
-  { id: "gameContextWrap", label: "Series" },
-  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "gameContextWrap", label: "Games" },
+  { id: "matchupConsoleWrap", label: "Stats" },
   { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "seriesProgressWrap", label: "Progress" },
-  { id: "seriesMomentsList", label: "Highlights" }
+  { id: "upcomingFormWrap", label: "Past" },
+  { id: "upcomingH2hWrap", label: "H2H" }
 ];
 const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
-  { id: "gameContextWrap", label: "Series" },
-  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "gameContextWrap", label: "Games" },
+  { id: "matchupConsoleWrap", label: "Stats" },
+  { id: "upcomingFormWrap", label: "Past" },
+  { id: "upcomingH2hWrap", label: "H2H" },
   { id: "seriesGamesWrap", label: "Maps" },
-  { id: "seriesProgressWrap", label: "Progress" },
-  { id: "seriesMomentsList", label: "Story" }
+  { id: "seriesProgressWrap", label: "Progress" }
 ];
 const MOBILE_COMPLETED_SERIES_JUMP_TARGETS = [
-  { id: "gameContextWrap", label: "Result" },
-  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "gameContextWrap", label: "Games" },
+  { id: "matchupConsoleWrap", label: "Stats" },
+  { id: "upcomingFormWrap", label: "Past" },
+  { id: "upcomingH2hWrap", label: "H2H" },
   { id: "seriesGamesWrap", label: "Maps" },
-  { id: "seriesCompareWrap", label: "Stats" },
-  { id: "seriesPlayerTrendsWrap", label: "Trends" }
+  { id: "seriesCompareWrap", label: "Results" }
 ];
 const MOBILE_UPCOMING_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Overview" },
-  { id: "matchupConsoleWrap", label: "Matchup" },
+  { id: "matchupConsoleWrap", label: "Stats" },
   { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "upcomingFormWrap", label: "Form" },
+  { id: "upcomingFormWrap", label: "Past" },
   { id: "upcomingH2hWrap", label: "H2H" }
 ];
 const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
@@ -134,20 +136,20 @@ const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
 const MOBILE_SECTION_HEADINGS = {
   "Series Command": { icon: "ST", short: "State" },
   "Series Read": { icon: "SR", short: "Series" },
-  "Series Navigator": { icon: "GX", short: "Games" },
+  "Games": { icon: "GX", short: "Games" },
   "Current State": { icon: "ST", short: "State" },
   "Series Overview": { icon: "SR", short: "Series" },
   "Game Explorer": { icon: "GX", short: "Games" },
   "Match Snapshot": { icon: "SN", short: "Snapshot" },
-  "Matchup Console": { icon: "H2H", short: "Matchup" },
-  "Series Lineups": { icon: "LU", short: "Lineups" },
-  "Series Progress": { icon: "PG", short: "Progress" },
-  "Series Highlights": { icon: "HL", short: "Highlights" },
-  "Upcoming Essentials": { icon: "UP", short: "Upcoming" },
-  "Watch Guide": { icon: "TV", short: "Watch" },
-  "Team Form": { icon: "FM", short: "Form" },
+  "Statistics": { icon: "ST", short: "Stats" },
+  "Lineups": { icon: "LU", short: "Lineups" },
+  "Progress": { icon: "PG", short: "Progress" },
+  "Highlights": { icon: "HL", short: "Highlights" },
+  "Overview": { icon: "UP", short: "Overview" },
+  "Watch": { icon: "TV", short: "Watch" },
+  "Past Matches": { icon: "FM", short: "Past" },
   "Head-to-Head": { icon: "H2H", short: "H2H" },
-  "Prediction Model": { icon: "PR", short: "Prediction" },
+  "Prediction": { icon: "PR", short: "Prediction" },
   "Map Command": { icon: "CC", short: "Command" },
   "Game Command Center": { icon: "CC", short: "Command" },
   "Team Comparison": { icon: "TC", short: "Team Compare" },
@@ -163,25 +165,26 @@ const MOBILE_SECTION_HEADINGS = {
   "Signal Log": { icon: "SG", short: "Signals" },
   "Objective Control": { icon: "OBJ", short: "Objective" },
   "Analyst Desk": { icon: "AD", short: "Analyst" },
-  "Series Games": { icon: "SG", short: "Series Games" },
-  "Series Comparison": { icon: "SC", short: "Series Stats" },
-  "Series Player Trends": { icon: "TR", short: "Trends" },
+  "Game Results": { icon: "SG", short: "Games" },
+  "Results Table": { icon: "SC", short: "Results" },
+  "Player Trends": { icon: "TR", short: "Trends" },
   "Selected Game Recap": { icon: "RC", short: "Game Recap" },
   "Final Recap": { icon: "RC", short: "Recap" },
-  "Closing Stats": { icon: "ST", short: "Stats" }
+  "Closing Stats": { icon: "ST", short: "Stats" },
+  "Timeline": { icon: "TL", short: "Timeline" }
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
-  seriesLive: new Set(["Matchup Console", "Series Games", "Series Progress", "Series Highlights"]),
-  seriesCompleted: new Set(["Matchup Console", "Series Games", "Series Comparison", "Series Player Trends"]),
-  series: new Set(["Matchup Console", "Series Lineups", "Series Progress", "Series Highlights"]),
+  seriesLive: new Set(["Games", "Statistics", "Past Matches", "Head-to-Head", "Game Results", "Progress"]),
+  seriesCompleted: new Set(["Games", "Statistics", "Past Matches", "Head-to-Head", "Game Results", "Results Table", "Player Trends"]),
+  series: new Set(["Games", "Statistics", "Lineups", "Past Matches", "Head-to-Head"]),
   upcoming: new Set([
-    "Series Navigator",
-    "Matchup Console",
-    "Upcoming Essentials",
-    "Watch Guide",
-    "Prediction Model",
-    "Team Form",
+    "Games",
+    "Statistics",
+    "Overview",
+    "Watch",
+    "Prediction",
+    "Past Matches",
     "Head-to-Head"
   ]),
   game: new Set(["Selected Game Recap", "Closing Stats", "Live Feed", "Player Board", "What Matters Now", "Risk Watch"])
@@ -2792,7 +2795,7 @@ function renderMatchupConsole(match) {
   }
 
   if (!match?.teams?.left || !match?.teams?.right) {
-    elements.matchupMetaText.textContent = "Matchup console unavailable.";
+    elements.matchupMetaText.textContent = "Series statistics unavailable.";
     elements.matchupConsoleWrap.innerHTML = `<div class="empty">Load a valid match to view head-to-head and matchup compare.</div>`;
     return;
   }
@@ -2803,19 +2806,19 @@ function renderMatchupConsole(match) {
   const expectedKey = matchupRequestKey(match, uiState.apiBase);
 
   if (matchupState.key && matchupState.key !== expectedKey && !matchupState.loading) {
-    elements.matchupMetaText.textContent = "Loading matchup...";
+    elements.matchupMetaText.textContent = "Loading statistics...";
     elements.matchupConsoleWrap.innerHTML = `<div class="empty">Loading team profile and head-to-head data.</div>`;
     return;
   }
 
   if (matchupState.loading) {
-    elements.matchupMetaText.textContent = "Loading matchup...";
+    elements.matchupMetaText.textContent = "Loading statistics...";
     elements.matchupConsoleWrap.innerHTML = `<div class="empty">Loading team profile and head-to-head data.</div>`;
     return;
   }
 
   if (matchupState.error) {
-    elements.matchupMetaText.textContent = "Matchup compare unavailable.";
+    elements.matchupMetaText.textContent = "Statistics unavailable.";
     elements.matchupConsoleWrap.innerHTML = `<div class="empty">Unable to load matchup data: ${matchupState.error}</div>`;
     return;
   }
@@ -2839,7 +2842,7 @@ function renderMatchupConsole(match) {
   const favoriteTone =
     edge.favoriteName === leftName ? "left" : edge.favoriteName === rightName ? "right" : "neutral";
 
-  elements.matchupMetaText.textContent = `Favorite ${scoreboardTeamName(edge.favoriteName)} · ${edge.confidence.toUpperCase()} confidence · H2H ${total}`;
+  elements.matchupMetaText.textContent = `Edge ${scoreboardTeamName(edge.favoriteName)} · ${edge.confidence.toUpperCase()} confidence · H2H ${total}`;
 
   const h2hTable = h2hRows.length
     ? compact
@@ -2897,7 +2900,7 @@ function renderMatchupConsole(match) {
       <article class="prediction-card matchup-overview-card ${favoriteTone}">
         <div class="matchup-overview-head">
           <div>
-            <p class="tempo-label">Matchup edge</p>
+            <p class="tempo-label">Series edge</p>
             <p class="matchup-overview-title">${scoreboardTeamName(edge.favoriteName)} favored</p>
           </div>
           <span class="form-summary-pill">Confidence ${edge.confidence.toUpperCase()}</span>
@@ -4003,7 +4006,9 @@ function applySeriesPanelVisibility(match = uiState.match) {
 
   setSeriesVisibility(elements.matchupConsoleWrap, true);
   setSeriesVisibility(elements.seriesLineupsWrap, true);
-  setSeriesVisibility(elements.seriesProgressWrap, status === "live");
+  setSeriesVisibility(elements.upcomingFormWrap, true);
+  setSeriesVisibility(elements.upcomingH2hWrap, true);
+  setSeriesVisibility(elements.seriesProgressWrap, status === "live" || status === "completed");
   setSeriesVisibility(elements.seriesMomentsList, hasSeriesMoments && (status === "live" || status === "completed"));
   setSeriesVisibility(elements.seriesGamesWrap, status === "live" || status === "completed");
   setSeriesVisibility(elements.seriesCompareWrap, status === "completed" && completedGames > 0);
@@ -4015,8 +4020,6 @@ function applyUpcomingPanelVisibility(match) {
   setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.upcomingWatchWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), isUpcoming);
-  setPanelVisibility(elements.upcomingFormWrap?.closest("section.panel"), isUpcoming);
-  setPanelVisibility(elements.upcomingH2hWrap?.closest("section.panel"), isUpcoming);
 }
 
 function commandCard(label, value, hint, options = {}) {
@@ -6249,8 +6252,8 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
 }
 
 function renderUpcomingForm(match) {
-  if (match.status !== "upcoming") {
-    elements.upcomingFormWrap.innerHTML = `<div class="empty">Team form appears for scheduled matches.</div>`;
+  if (!match?.teams?.left || !match?.teams?.right) {
+    elements.upcomingFormWrap.innerHTML = `<div class="empty">Past match history is unavailable for this series.</div>`;
     return;
   }
 
@@ -6276,8 +6279,8 @@ function renderUpcomingForm(match) {
 }
 
 function renderUpcomingHeadToHead(match) {
-  if (match.status !== "upcoming") {
-    elements.upcomingH2hWrap.innerHTML = `<div class="empty">Head-to-head appears for scheduled matches.</div>`;
+  if (!match?.teams?.left || !match?.teams?.right) {
+    elements.upcomingH2hWrap.innerHTML = `<div class="empty">Head-to-head is unavailable for this series.</div>`;
     return;
   }
 
