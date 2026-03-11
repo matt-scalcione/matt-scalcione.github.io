@@ -21,6 +21,20 @@ describe("canonicalStore", () => {
     );
   });
 
+  it("derives a stable canonical key for team profile queries", async () => {
+    const module = await import(`../src/storage/canonicalStore.js?test=profile-key-${Date.now()}`);
+    const key = module.canonicalTeamProfileKey("team_t1", {
+      game: "lol",
+      opponentId: "team_gen",
+      limit: 5,
+      seedMatchId: "lol_lck_2026_w2_t1_gen",
+      teamNameHint: "T1"
+    });
+
+    assert.equal(typeof key, "string");
+    assert.equal(key.length, 64);
+  });
+
   it("stays disabled cleanly when DATABASE_URL is not configured", async () => {
     const previousEnabled = process.env.CANONICAL_STORE_ENABLED;
     const previousDatabaseUrl = process.env.DATABASE_URL;
@@ -35,17 +49,40 @@ describe("canonicalStore", () => {
         surface: "results",
         game: "dota2"
       });
+      const profile = await module.loadCanonicalTeamProfile({
+        teamId: "team_t1",
+        options: {
+          game: "lol",
+          limit: 5
+        }
+      });
       const result = await module.persistCanonicalMatchCollection({
         surface: "live",
         rows: []
+      });
+      const profileResult = await module.persistCanonicalTeamProfile({
+        teamId: "team_t1",
+        options: {
+          game: "lol",
+          limit: 5
+        },
+        profile: {
+          id: "team_t1",
+          game: "lol",
+          name: "T1"
+        }
       });
 
       assert.equal(diagnostics.enabled, false);
       assert.equal(diagnostics.backend, "disabled");
       assert.deepEqual(rows, []);
+      assert.equal(profile, null);
       assert.equal(result.enabled, false);
       assert.equal(result.skipped, true);
       assert.equal(result.reason, "disabled");
+      assert.equal(profileResult.enabled, false);
+      assert.equal(profileResult.skipped, true);
+      assert.equal(profileResult.reason, "disabled");
     } finally {
       if (previousEnabled === undefined) {
         delete process.env.CANONICAL_STORE_ENABLED;

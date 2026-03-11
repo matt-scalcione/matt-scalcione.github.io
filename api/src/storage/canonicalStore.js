@@ -9,6 +9,7 @@ const storeState = {
   lastPersistError: null,
   lastPersistResults: [],
   collectionHashes: new Map(),
+  profileHashes: new Map(),
   activeConnectionString: null,
   activeSchema: null
 };
@@ -104,6 +105,28 @@ export function canonicalStorageMatchId(row) {
   return externalMatchId;
 }
 
+export function canonicalTeamProfileKey(teamId, options = {}) {
+  const normalizedTeamId = String(teamId || "").trim();
+  if (!normalizedTeamId) {
+    return null;
+  }
+
+  const parsedLimit = Number.parseInt(String(options?.limit || 5), 10);
+
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        teamId: normalizedTeamId,
+        game: normalizeToken(options?.game),
+        opponentId: String(options?.opponentId || "").trim(),
+        limit: Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5,
+        seedMatchId: String(options?.seedMatchId || "").trim(),
+        teamNameHint: normalizeKey(options?.teamNameHint || "")
+      })
+    )
+    .digest("hex");
+}
+
 function collectionHash({ surface, rows, sourceSummary, metadata }) {
   return createHash("sha256")
     .update(
@@ -117,13 +140,27 @@ function collectionHash({ surface, rows, sourceSummary, metadata }) {
     .digest("hex");
 }
 
+function profileHash({ teamId, options, profile }) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        teamId: String(teamId || "").trim(),
+        options: safeJson(options),
+        profile: safeJson(profile)
+      })
+    )
+    .digest("hex");
+}
+
 function canonicalTables(schema) {
   const namespace = quoteIdentifier(schema);
   return {
     schema: namespace,
     ingestRuns: `${namespace}.pulseboard_ingest_runs`,
     matchState: `${namespace}.pulseboard_match_state`,
-    matchSnapshots: `${namespace}.pulseboard_match_snapshots`
+    matchSnapshots: `${namespace}.pulseboard_match_snapshots`,
+    teamProfileState: `${namespace}.pulseboard_team_profile_state`,
+    teamProfileSnapshots: `${namespace}.pulseboard_team_profile_snapshots`
   };
 }
 
@@ -206,6 +243,31 @@ async function ensureInitialized() {
         )
       `);
       await pool.query(`
+        CREATE TABLE IF NOT EXISTS ${tables.teamProfileState} (
+          profile_key TEXT PRIMARY KEY,
+          team_id TEXT NOT NULL,
+          game TEXT,
+          opponent_id TEXT,
+          row_updated_at TIMESTAMPTZ,
+          first_seen_at TIMESTAMPTZ NOT NULL,
+          last_seen_at TIMESTAMPTZ NOT NULL,
+          last_ingest_run_id UUID REFERENCES ${tables.ingestRuns}(ingest_run_id) ON DELETE SET NULL,
+          payload JSONB NOT NULL
+        )
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS ${tables.teamProfileSnapshots} (
+          snapshot_id UUID PRIMARY KEY,
+          ingest_run_id UUID NOT NULL REFERENCES ${tables.ingestRuns}(ingest_run_id) ON DELETE CASCADE,
+          profile_key TEXT NOT NULL,
+          team_id TEXT NOT NULL,
+          game TEXT,
+          opponent_id TEXT,
+          observed_at TIMESTAMPTZ NOT NULL,
+          payload JSONB NOT NULL
+        )
+      `);
+      await pool.query(`
         CREATE INDEX IF NOT EXISTS pulseboard_match_state_surface_idx
         ON ${tables.matchState} (surface, game, status, last_seen_at DESC)
       `);
@@ -216,6 +278,14 @@ async function ensureInitialized() {
       await pool.query(`
         CREATE INDEX IF NOT EXISTS pulseboard_ingest_runs_surface_idx
         ON ${tables.ingestRuns} (surface, observed_at DESC)
+      `);
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_team_idx
+        ON ${tables.teamProfileState} (team_id, game, last_seen_at DESC)
+      `);
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS pulseboard_team_profile_snapshots_profile_idx
+        ON ${tables.teamProfileSnapshots} (profile_key, observed_at DESC)
       `);
 
       if (storeState.pool && storeState.pool !== pool) {
@@ -260,6 +330,11 @@ export function getCanonicalStoreDiagnostics() {
       hash: value.hash,
       persistedAt: value.persistedAt,
       rowCount: value.rowCount
+    })),
+    trackedProfiles: Array.from(storeState.profileHashes.entries()).map(([key, value]) => ({
+      key,
+      hash: value.hash,
+      persistedAt: value.persistedAt
     }))
   };
 }
@@ -327,6 +402,66 @@ export async function loadCanonicalMatchCollection({
   } catch (error) {
     storeState.lastPersistError = error?.message || String(error);
     return [];
+  }
+}
+
+export async function loadCanonicalTeamProfile({
+  teamId,
+  options = {}
+} = {}) {
+  const config = canonicalStoreConfig();
+  const normalizedTeamId = String(teamId || "").trim();
+  const profileKey = canonicalTeamProfileKey(normalizedTeamId, options);
+
+  if (!config.enabled || !profileKey) {
+    return null;
+  }
+
+  const initialized = await ensureInitialized();
+  if (!initialized || !storeState.pool) {
+    return null;
+  }
+
+  const tables = canonicalTables(config.schema);
+
+  try {
+    const result = await storeState.pool.query(
+      `
+        SELECT payload, last_seen_at, row_updated_at
+        FROM ${tables.teamProfileState}
+        WHERE profile_key = $1
+        LIMIT 1
+      `,
+      [profileKey]
+    );
+    const row = result.rows[0];
+    const payload = safeJson(row?.payload);
+
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+
+    return {
+      ...payload,
+      source: {
+        ...(payload?.source || {}),
+        canonicalFallback: true,
+        canonicalObservedAt: toIsoTimestamp(row?.last_seen_at, null),
+        canonicalSurface: "team_profile"
+      },
+      freshness: {
+        ...(payload?.freshness || {}),
+        source: payload?.freshness?.source || payload?.source?.provider || "canonical_store",
+        status: payload?.freshness?.status || "stale_cache",
+        updatedAt:
+          payload?.freshness?.updatedAt ||
+          toIsoTimestamp(row?.row_updated_at, null) ||
+          toIsoTimestamp(row?.last_seen_at, null)
+      }
+    };
+  } catch (error) {
+    storeState.lastPersistError = error?.message || String(error);
+    return null;
   }
 }
 
@@ -561,6 +696,226 @@ export async function persistCanonicalMatchCollection({
       surface: normalizedSurface,
       scope: normalizedScope,
       rowCount: normalizedRows.length,
+      error: storeState.lastPersistError
+    };
+  } finally {
+    client.release();
+  }
+}
+
+export async function persistCanonicalTeamProfile({
+  teamId,
+  options = {},
+  profile = null
+} = {}) {
+  const config = canonicalStoreConfig();
+  const normalizedTeamId = String(teamId || "").trim();
+  const payload = safeJson(profile);
+  const profileKey = canonicalTeamProfileKey(normalizedTeamId, options);
+
+  if (!config.enabled) {
+    return {
+      enabled: false,
+      persisted: false,
+      skipped: true,
+      reason: "disabled",
+      surface: "team_profile",
+      rowCount: payload ? 1 : 0
+    };
+  }
+
+  if (!normalizedTeamId || !profileKey || !payload || typeof payload !== "object") {
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "invalid_profile",
+      surface: "team_profile",
+      rowCount: 0
+    };
+  }
+
+  const hash = profileHash({
+    teamId: normalizedTeamId,
+    options,
+    profile: payload
+  });
+  const previous = storeState.profileHashes.get(profileKey);
+
+  if (previous?.hash === hash) {
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "unchanged",
+      surface: "team_profile",
+      scope: profileKey,
+      rowCount: 1
+    };
+  }
+
+  const initialized = await ensureInitialized();
+  if (!initialized || !storeState.pool) {
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "init_failed",
+      surface: "team_profile",
+      rowCount: 1,
+      error: storeState.lastInitError
+    };
+  }
+
+  const tables = canonicalTables(config.schema);
+  const observedAt = new Date().toISOString();
+  const ingestRunId = randomUUID();
+  const client = await storeState.pool.connect();
+  const normalizedGame = normalizeToken(options?.game || payload?.game) || null;
+  const normalizedOpponentId =
+    String(options?.opponentId || payload?.headToHead?.opponentId || "").trim() || null;
+  const rowUpdatedAt = toIsoTimestamp(payload?.generatedAt || payload?.freshness?.updatedAt, observedAt);
+
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `
+        INSERT INTO ${tables.ingestRuns} (
+          ingest_run_id,
+          surface,
+          scope,
+          row_count,
+          collection_hash,
+          source_summary,
+          metadata,
+          observed_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8)
+      `,
+      [
+        ingestRunId,
+        "team_profile",
+        profileKey,
+        1,
+        hash,
+        JSON.stringify(
+          safeJson({
+            game: normalizedGame,
+            provider: payload?.source?.provider || null
+          })
+        ),
+        JSON.stringify(
+          safeJson({
+            teamId: normalizedTeamId,
+            opponentId: normalizedOpponentId,
+            limit: Number.parseInt(String(options?.limit || 5), 10) || 5,
+            seedMatchId: String(options?.seedMatchId || "").trim() || null,
+            teamNameHint: String(options?.teamNameHint || "").trim() || null
+          })
+        ),
+        observedAt
+      ]
+    );
+    await client.query(
+      `
+        INSERT INTO ${tables.teamProfileSnapshots} (
+          snapshot_id,
+          ingest_run_id,
+          profile_key,
+          team_id,
+          game,
+          opponent_id,
+          observed_at,
+          payload
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+      `,
+      [
+        randomUUID(),
+        ingestRunId,
+        profileKey,
+        normalizedTeamId,
+        normalizedGame,
+        normalizedOpponentId,
+        observedAt,
+        JSON.stringify(payload)
+      ]
+    );
+    await client.query(
+      `
+        INSERT INTO ${tables.teamProfileState} (
+          profile_key,
+          team_id,
+          game,
+          opponent_id,
+          row_updated_at,
+          first_seen_at,
+          last_seen_at,
+          last_ingest_run_id,
+          payload
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+        ON CONFLICT (profile_key)
+        DO UPDATE SET
+          team_id = EXCLUDED.team_id,
+          game = EXCLUDED.game,
+          opponent_id = EXCLUDED.opponent_id,
+          row_updated_at = EXCLUDED.row_updated_at,
+          last_seen_at = EXCLUDED.last_seen_at,
+          last_ingest_run_id = EXCLUDED.last_ingest_run_id,
+          payload = EXCLUDED.payload
+      `,
+      [
+        profileKey,
+        normalizedTeamId,
+        normalizedGame,
+        normalizedOpponentId,
+        rowUpdatedAt,
+        observedAt,
+        observedAt,
+        ingestRunId,
+        JSON.stringify(payload)
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    const result = {
+      enabled: true,
+      persisted: true,
+      skipped: false,
+      surface: "team_profile",
+      scope: profileKey,
+      rowCount: 1,
+      hash,
+      observedAt
+    };
+
+    storeState.profileHashes.set(profileKey, {
+      hash,
+      persistedAt: observedAt
+    });
+    storeState.lastPersistAt = observedAt;
+    storeState.lastPersistError = null;
+    storeState.lastPersistResults = [
+      result,
+      ...storeState.lastPersistResults.filter(
+        (entry) => entry.surface !== "team_profile" || entry.scope !== profileKey
+      )
+    ].slice(0, 12);
+
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    storeState.lastPersistError = error?.message || String(error);
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "persist_failed",
+      surface: "team_profile",
+      scope: profileKey,
+      rowCount: 1,
       error: storeState.lastPersistError
     };
   } finally {

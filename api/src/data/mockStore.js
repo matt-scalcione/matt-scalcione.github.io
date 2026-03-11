@@ -20,7 +20,9 @@ import { fetchJson } from "../providers/shared/http.js";
 import {
   getCanonicalStoreDiagnostics,
   loadCanonicalMatchCollection,
-  persistCanonicalMatchCollection
+  loadCanonicalTeamProfile,
+  persistCanonicalMatchCollection,
+  persistCanonicalTeamProfile
 } from "../storage/canonicalStore.js";
 
 const now = Date.now();
@@ -1663,7 +1665,7 @@ function teamProfileCacheKey(teamId, {
   });
 }
 
-function refreshTeamProfile(cacheKey, buildProfile) {
+function refreshTeamProfile(cacheKey, buildProfile, { teamId = null, options = null } = {}) {
   if (teamProfileRefreshState.has(cacheKey)) {
     return teamProfileRefreshState.get(cacheKey);
   }
@@ -1673,6 +1675,11 @@ function refreshTeamProfile(cacheKey, buildProfile) {
       const profile = await buildProfile();
       if (profile) {
         setTeamProfileCacheEntry(cacheKey, profile);
+        await persistCanonicalTeamProfile({
+          teamId,
+          options,
+          profile
+        });
       }
       return profile;
     } finally {
@@ -4357,11 +4364,30 @@ export async function getTeamProfile(teamId, options = {}) {
   }
 
   if (cached?.detail) {
-    void refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options));
+    void refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options), {
+      teamId: normalizedTeamId,
+      options
+    });
     return cached.detail;
   }
 
-  return refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options));
+  const canonicalProfile = await loadCanonicalTeamProfile({
+    teamId: normalizedTeamId,
+    options
+  });
+  if (canonicalProfile) {
+    setTeamProfileCacheEntry(cacheKey, canonicalProfile);
+    void refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options), {
+      teamId: normalizedTeamId,
+      options
+    });
+    return canonicalProfile;
+  }
+
+  return refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options), {
+    teamId: normalizedTeamId,
+    options
+  });
 }
 
 export async function getProviderCoverageReport() {
