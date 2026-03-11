@@ -66,6 +66,15 @@ const providerTeamProfileCacheLimit = Number.parseInt(
   process.env.PROVIDER_TEAM_PROFILE_CACHE_LIMIT || "120",
   10
 );
+const canonicalPrewarmEnabled = String(process.env.CANONICAL_PREWARM_ENABLED || "1").trim() !== "0";
+const canonicalPrewarmMatchLimit = Math.max(
+  0,
+  Number.parseInt(process.env.CANONICAL_PREWARM_MATCH_LIMIT || "6", 10) || 6
+);
+const canonicalPrewarmTeamLimit = Math.max(
+  0,
+  Number.parseInt(process.env.CANONICAL_PREWARM_TEAM_LIMIT || "10", 10) || 10
+);
 const providerRateLimitCooldownMs = Math.max(
   providerCacheMs,
   Number.parseInt(process.env.PROVIDER_RATE_LIMIT_COOLDOWN_MS || String(5 * oneMinute), 10)
@@ -1610,6 +1619,10 @@ async function forceRefreshProviderCaches({ providerKeys, reason = "manual" } = 
     reason,
     providerKeys: targetKeys
   });
+  const canonicalPrewarm = await prewarmCanonicalEntities({
+    reason,
+    providerKeys: targetKeys
+  });
 
   pushBounded(providerWarmHistory, {
     timestamp: new Date().toISOString(),
@@ -1617,6 +1630,7 @@ async function forceRefreshProviderCaches({ providerKeys, reason = "manual" } = 
     durationMs,
     providers,
     canonicalPersistence,
+    canonicalPrewarm,
     skipped: false
   });
 
@@ -1625,7 +1639,8 @@ async function forceRefreshProviderCaches({ providerKeys, reason = "manual" } = 
     reason,
     durationMs,
     providers,
-    canonicalPersistence
+    canonicalPersistence,
+    canonicalPrewarm
   };
 }
 
@@ -1703,6 +1718,100 @@ export function filterCanonicalFallbackRowsBySurface(rows, {
 
     return nowMs - observedMs <= liveMaxAgeMs;
   });
+}
+
+function canonicalPrewarmMatchPriority(row, nowMs = Date.now()) {
+  const status = String(row?.status || "").trim().toLowerCase();
+  const tier = Number.isFinite(Number(row?.competitiveTier)) ? Number(row.competitiveTier) : 4;
+  const startMs = Date.parse(String(row?.startAt || row?.updatedAt || row?.endAt || ""));
+  const deltaMs = Number.isFinite(startMs) ? startMs - nowMs : Number.NaN;
+  let recencyBoost = 0;
+  if (Number.isFinite(deltaMs)) {
+    if (status === "live") {
+      recencyBoost = Math.max(0, 2 * oneHour - Math.abs(deltaMs)) / oneHour;
+    } else if (status === "upcoming" && deltaMs >= 0) {
+      recencyBoost = Math.max(0, 6 * oneHour - deltaMs) / oneHour;
+    } else if (status === "completed" && deltaMs <= 0) {
+      recencyBoost = Math.max(0, 12 * oneHour - Math.abs(deltaMs)) / oneHour;
+    }
+  }
+  const statusBase =
+    status === "live"
+      ? 300
+      : status === "upcoming"
+        ? 140
+        : status === "completed"
+          ? 120
+          : 0;
+  const tierBoost = Math.max(0, 5 - Math.max(1, Math.min(4, tier))) * 20;
+  const idBoost =
+    String(row?.teams?.left?.id || "").trim() && String(row?.teams?.right?.id || "").trim() ? 8 : 0;
+
+  return statusBase + tierBoost + recencyBoost + idBoost;
+}
+
+export function buildCanonicalPrewarmTargets({
+  liveRows = [],
+  scheduleRows = [],
+  resultRows = [],
+  matchLimit = canonicalPrewarmMatchLimit,
+  teamLimit = canonicalPrewarmTeamLimit,
+  nowMs = Date.now()
+} = {}) {
+  const allRows = []
+    .concat(Array.isArray(liveRows) ? liveRows : [])
+    .concat(Array.isArray(scheduleRows) ? scheduleRows : [])
+    .concat(Array.isArray(resultRows) ? resultRows : []);
+
+  const uniqueMatches = dedupeRowsById(allRows)
+    .slice()
+    .sort((left, right) => canonicalPrewarmMatchPriority(right, nowMs) - canonicalPrewarmMatchPriority(left, nowMs))
+    .slice(0, Math.max(0, matchLimit));
+
+  const teamTargets = [];
+  const seenTeams = new Set();
+  for (const match of uniqueMatches) {
+    for (const side of ["left", "right"]) {
+      const team = match?.teams?.[side];
+      const teamId = String(team?.id || "").trim();
+      if (!teamId) {
+        continue;
+      }
+
+      const game = String(match?.game || "").trim() || null;
+      const key = `${game || "unknown"}::${teamId}`;
+      if (seenTeams.has(key)) {
+        continue;
+      }
+      seenTeams.add(key);
+
+      teamTargets.push({
+        teamId,
+        options: {
+          game,
+          teamNameHint: String(team?.name || "").trim() || undefined,
+          seedMatchId: String(match?.id || "").trim() || undefined,
+          limit: 5
+        }
+      });
+      if (teamTargets.length >= Math.max(0, teamLimit)) {
+        break;
+      }
+    }
+
+    if (teamTargets.length >= Math.max(0, teamLimit)) {
+      break;
+    }
+  }
+
+  return {
+    matchTargets: uniqueMatches.map((row) => ({
+      matchId: String(row?.id || "").trim(),
+      game: row?.game || null,
+      status: row?.status || null
+    })),
+    teamTargets
+  };
 }
 
 function matchDetailCacheKey(matchId, { gameNumber } = {}) {
@@ -4200,6 +4309,137 @@ async function persistCanonicalPublicCollections({ reason = "manual", providerKe
   };
 }
 
+async function prewarmCanonicalEntities({ reason = "manual", providerKeys = [] } = {}) {
+  const diagnostics = getCanonicalStoreDiagnostics();
+  if (!canonicalPrewarmEnabled) {
+    return {
+      enabled: false,
+      skipped: true,
+      reason: "disabled"
+    };
+  }
+
+  if (!diagnostics.enabled) {
+    return {
+      enabled: false,
+      skipped: true,
+      reason: "canonical_store_disabled"
+    };
+  }
+
+  if (canonicalPrewarmMatchLimit <= 0 && canonicalPrewarmTeamLimit <= 0) {
+    return {
+      enabled: true,
+      skipped: true,
+      reason: "limits_zero"
+    };
+  }
+
+  const nowMs = Date.now();
+  const [liveRows, scheduleRows, resultRows] = await Promise.all([
+    listLiveMatches({
+      game: undefined,
+      region: undefined,
+      followedOnly: false,
+      userId: null,
+      dotaTiers: undefined,
+      lolTiers: undefined,
+      useCanonicalFallback: false
+    }),
+    listSchedule({
+      game: undefined,
+      region: undefined,
+      dateFrom: nowMs - 30 * oneMinute,
+      dateTo: nowMs + 6 * oneHour,
+      dotaTiers: undefined,
+      lolTiers: undefined,
+      useCanonicalFallback: false
+    }),
+    listResults({
+      game: undefined,
+      region: undefined,
+      dateFrom: nowMs - 12 * oneHour,
+      dateTo: nowMs + oneHour,
+      dotaTiers: undefined,
+      lolTiers: undefined,
+      useCanonicalFallback: false
+    })
+  ]);
+
+  const targets = buildCanonicalPrewarmTargets({
+    liveRows,
+    scheduleRows,
+    resultRows,
+    matchLimit: canonicalPrewarmMatchLimit,
+    teamLimit: canonicalPrewarmTeamLimit,
+    nowMs
+  });
+
+  const matchResults = [];
+  for (const target of targets.matchTargets) {
+    try {
+      const detail = await getMatchDetail(target.matchId);
+      matchResults.push({
+        matchId: target.matchId,
+        ok: Boolean(detail)
+      });
+    } catch (error) {
+      matchResults.push({
+        matchId: target.matchId,
+        ok: false,
+        error: error?.message || String(error)
+      });
+    }
+  }
+
+  const teamResults = [];
+  for (const target of targets.teamTargets) {
+    try {
+      const profile = await getTeamProfile(target.teamId, target.options);
+      teamResults.push({
+        teamId: target.teamId,
+        ok: Boolean(profile)
+      });
+    } catch (error) {
+      teamResults.push({
+        teamId: target.teamId,
+        ok: false,
+        error: error?.message || String(error)
+      });
+    }
+  }
+
+  return {
+    enabled: true,
+    skipped: false,
+    reason,
+    providerKeys: Array.isArray(providerKeys) ? providerKeys : [],
+    selectedMatches: targets.matchTargets.map((target) => target.matchId),
+    selectedTeams: targets.teamTargets.map((target) => target.teamId),
+    matchAttempts: matchResults.length,
+    matchHits: matchResults.filter((row) => row.ok).length,
+    teamAttempts: teamResults.length,
+    teamHits: teamResults.filter((row) => row.ok).length,
+    failures: matchResults
+      .filter((row) => !row.ok)
+      .map((row) => ({
+        type: "match",
+        id: row.matchId,
+        error: row.error || "unknown"
+      }))
+      .concat(
+        teamResults
+          .filter((row) => !row.ok)
+          .map((row) => ({
+            type: "team",
+            id: row.teamId,
+            error: row.error || "unknown"
+          }))
+      )
+      .slice(0, 8)
+  };
+}
+
 function findMatchSummary(matchId) {
   const normalizedId = String(matchId || "").trim();
   if (!normalizedId) {
@@ -4644,6 +4884,9 @@ export function getProviderDiagnostics() {
     providerEnabled: isProviderModeEnabled(),
     providerCacheMs,
     canonicalLiveFallbackMaxAgeMs,
+    canonicalPrewarmEnabled,
+    canonicalPrewarmMatchLimit,
+    canonicalPrewarmTeamLimit,
     providerTimeoutMs,
     providerSlowMs,
     diagnosticsHistoryLimit,

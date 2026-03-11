@@ -274,6 +274,9 @@ describe("provider diagnostics", () => {
     assert.equal(result.statusCode, 200);
     assert.equal(typeof result.payload.data.providerCacheMs, "number");
     assert.equal(typeof result.payload.data.canonicalLiveFallbackMaxAgeMs, "number");
+    assert.equal(typeof result.payload.data.canonicalPrewarmEnabled, "boolean");
+    assert.equal(typeof result.payload.data.canonicalPrewarmMatchLimit, "number");
+    assert.equal(typeof result.payload.data.canonicalPrewarmTeamLimit, "number");
     assert.equal(typeof result.payload.data.canonicalStore.enabled, "boolean");
     assert.equal(typeof result.payload.data.canonicalStore.backend, "string");
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedDetails), true);
