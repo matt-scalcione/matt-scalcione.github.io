@@ -3542,6 +3542,126 @@ button.ghost,
   gap: 0.58rem;
 }
 
+.game-nav-board {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(16, 48, 70, 0.16);
+  border-radius: 15px;
+  padding: 0.82rem 0.88rem;
+  background:
+    linear-gradient(135deg, rgba(18, 48, 74, 0.96), rgba(27, 78, 116, 0.92));
+  color: #f4f9fc;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: end;
+  box-shadow: 0 16px 34px rgba(15, 39, 61, 0.16);
+}
+
+.game-nav-board::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.game-nav-board.live {
+  background:
+    linear-gradient(135deg, rgba(107, 30, 26, 0.98), rgba(157, 56, 40, 0.94));
+}
+
+.game-nav-board.complete {
+  background:
+    linear-gradient(135deg, rgba(33, 53, 69, 0.96), rgba(55, 76, 93, 0.92));
+}
+
+.game-nav-board.upcoming {
+  background:
+    linear-gradient(135deg, rgba(20, 55, 81, 0.96), rgba(33, 87, 126, 0.92));
+}
+
+.game-nav-board-copy {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.game-nav-board-eyebrow {
+  margin: 0;
+  color: rgba(244, 249, 252, 0.72);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.game-nav-board-title {
+  margin: 0;
+  color: #fff;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 1.08rem;
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+}
+
+.game-nav-board-note {
+  margin: 0;
+  max-width: 72ch;
+  color: rgba(244, 249, 252, 0.84);
+  font-size: 0.76rem;
+  line-height: 1.38;
+}
+
+.game-nav-board-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.game-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.44rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.1rem 0.48rem;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.game-nav-board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.36rem;
+}
+
+.game-nav-board-actions .link-btn {
+  min-height: 2rem;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  box-shadow: none;
+}
+
+.game-nav-board-actions .link-btn.ghost {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.game-nav-note {
+  margin: 0;
+  color: #7a3c24;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .game-nav-head {
   display: flex;
   justify-content: space-between;
@@ -3575,16 +3695,19 @@ button.ghost,
 
 .game-pill-row {
   display: flex;
-  gap: 0.45rem;
+  gap: 0.34rem;
   flex-wrap: wrap;
 }
 
 .game-pill {
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 0.28rem 0.58rem;
+  min-height: 1.84rem;
+  padding: 0.26rem 0.62rem;
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   font-family: "Archivo Black", "Impact", sans-serif;
   background: rgba(255, 255, 255, 0.88);
   display: inline-flex;
@@ -7094,20 +7217,31 @@ button.ghost,
 }
 
 .series-games-overview {
-  border: 1px solid rgba(12, 110, 102, 0.2);
-  border-radius: 13px;
-  background: rgba(12, 110, 102, 0.08);
-  padding: 0.64rem 0.68rem;
+  border: 1px solid rgba(12, 110, 102, 0.16);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(12, 110, 102, 0.08), rgba(255, 255, 255, 0.96));
+  padding: 0.58rem 0.68rem;
   display: grid;
-  gap: 0.36rem;
+  gap: 0.3rem;
+}
+
+.series-games-kicker {
+  margin: 0;
+  color: var(--muted);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .series-games-scoreline {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.96rem;
+  font-size: 0.88rem;
   color: var(--accent-strong);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .series-games-summary-chips {
@@ -7121,25 +7255,27 @@ button.ghost,
   border: 1px solid rgba(12, 45, 66, 0.2);
   background: rgba(255, 255, 255, 0.82);
   color: var(--muted);
-  padding: 0.15rem 0.46rem;
+  padding: 0.14rem 0.44rem;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.64rem;
-  letter-spacing: 0.02em;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .series-games-grid {
   display: grid;
-  gap: 0.66rem;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.54rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }
 
 .series-game-card {
   border: 1px solid var(--line);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0.7rem;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92));
+  padding: 0.62rem 0.66rem;
   display: grid;
-  gap: 0.36rem;
+  gap: 0.32rem;
   box-shadow: none;
 }
 
@@ -7162,28 +7298,37 @@ button.ghost,
 
 .series-game-card.state-skip {
   border-color: rgba(84, 97, 113, 0.28);
+  background:
+    linear-gradient(180deg, rgba(246, 248, 251, 0.96), rgba(240, 244, 248, 0.94));
+}
+
+.series-game-topline {
+  display: grid;
+  gap: 0.24rem;
 }
 
 .series-game-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.48rem;
 }
 
 .series-game-title {
   margin: 0;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.96rem;
+  font-size: 0.86rem;
   color: var(--accent-strong);
   line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .series-game-status {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   color: var(--muted);
-  line-height: 1.24;
+  line-height: 1.36;
 }
 
 .series-game-winner {
@@ -7195,36 +7340,50 @@ button.ghost,
   color: var(--accent-strong);
   padding: 0.14rem 0.44rem;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.66rem;
-  letter-spacing: 0.02em;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.series-game-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.36rem;
-}
-
-.series-game-meta-cell {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.86);
-  padding: 0.34rem 0.38rem;
-  display: grid;
-  gap: 0.1rem;
-}
-
-.series-game-meta-value {
+.series-game-caption {
   margin: 0;
-  font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.34;
+}
+
+.series-game-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.series-game-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-height: 1.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 45, 66, 0.12);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--accent-strong);
+  padding: 0.08rem 0.46rem;
+  font-size: 0.63rem;
+  line-height: 1.2;
+}
+
+.series-game-fact strong {
+  color: var(--muted);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .series-game-sides {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.34rem;
+  gap: 0.28rem;
 }
 
 .series-side-chip {
@@ -7232,10 +7391,11 @@ button.ghost,
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.88);
   color: var(--muted);
-  padding: 0.14rem 0.44rem;
+  padding: 0.1rem 0.42rem;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.63rem;
-  letter-spacing: 0.02em;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .series-side-chip.blue {
@@ -7253,21 +7413,26 @@ button.ghost,
 .series-game-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.36rem;
+  gap: 0.3rem;
 }
 
 .series-game-open,
 .series-game-vod,
 .series-game-focused {
-  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.8rem;
+  border-radius: 999px;
   border: 1px solid rgba(12, 76, 72, 0.2);
   background: rgba(255, 255, 255, 0.95);
   color: var(--accent-strong);
   text-decoration: none;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.68rem;
-  letter-spacing: 0.01em;
-  padding: 0.24rem 0.5rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.52rem;
 }
 
 .series-game-open {
@@ -7291,7 +7456,7 @@ button.ghost,
 .series-game-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.32rem;
+  gap: 0.28rem;
 }
 
 .series-game-option {
@@ -7300,10 +7465,11 @@ button.ghost,
   background: rgba(12, 110, 102, 0.08);
   color: var(--accent-strong);
   text-decoration: none;
-  padding: 0.12rem 0.46rem;
+  padding: 0.1rem 0.44rem;
   font-family: "Archivo Black", "Impact", sans-serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.02em;
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .series-compare {
@@ -7319,9 +7485,10 @@ button.ghost,
 
 .series-compare-card {
   border: 1px solid var(--line);
-  border-radius: 11px;
-  background: #fff;
-  padding: 0.62rem;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 253, 0.94));
+  padding: 0.54rem 0.58rem;
   display: grid;
   gap: 0.15rem;
 }
@@ -7345,11 +7512,12 @@ button.ghost,
 
 .series-compare-item {
   border: 1px solid var(--line);
-  border-radius: 11px;
-  background: #fff;
-  padding: 0.58rem 0.62rem;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 253, 0.94));
+  padding: 0.54rem 0.58rem;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.18rem;
 }
 
 .series-compare-item.selected {
@@ -7374,7 +7542,7 @@ button.ghost,
 .series-compare-links {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.45rem;
 }
 
@@ -11127,6 +11295,38 @@ body.product-shell .match-quick-nav {
     margin-top: 0.42rem;
   }
 
+  body.product-shell.match-page .game-nav-board {
+    border-inline: 0;
+    border-radius: 0;
+    margin-inline: -0.72rem;
+    padding: 0.72rem;
+    grid-template-columns: 1fr;
+    gap: 0.58rem;
+    box-shadow: none;
+  }
+
+  body.product-shell.match-page .game-nav-board-note {
+    font-size: 0.72rem;
+  }
+
+  body.product-shell.match-page .game-nav-board-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    justify-content: initial;
+  }
+
+  body.product-shell.match-page .game-nav-board-actions .link-btn {
+    width: 100%;
+    min-height: 1.92rem;
+    padding-inline: 0.46rem;
+    font-size: 0.6rem;
+  }
+
+  body.product-shell.match-page .game-nav-chip {
+    min-height: 1.34rem;
+    font-size: 0.54rem;
+  }
+
   body.product-shell.match-page .mobile-mode-toolbar,
   body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
     margin-inline: -0.72rem;
@@ -11263,6 +11463,31 @@ body.product-shell .match-quick-nav {
   body.product-shell.match-page .series-final-center-score,
   body.product-shell.match-page .series-final-center-copy {
     display: none;
+  }
+
+  body.product-shell.match-page .series-games-overview,
+  body.product-shell.match-page .series-game-card,
+  body.product-shell.match-page .series-compare-card,
+  body.product-shell.match-page .series-compare-item {
+    padding: 0.58rem 0.62rem;
+  }
+
+  body.product-shell.match-page .series-games-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .series-game-facts,
+  body.product-shell.match-page .series-game-actions,
+  body.product-shell.match-page .series-game-options {
+    gap: 0.24rem;
+  }
+
+  body.product-shell.match-page .series-game-open,
+  body.product-shell.match-page .series-game-vod,
+  body.product-shell.match-page .series-game-focused {
+    min-height: 1.72rem;
+    font-size: 0.58rem;
+    padding-inline: 0.44rem;
   }
 }
 

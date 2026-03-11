@@ -3262,11 +3262,9 @@ function renderGameExplorer(match, apiBase) {
   }
 
   const availableGames = Array.isArray(nav.availableGames) ? nav.availableGames : [];
-  const playedOrLiveGames = availableGames.filter((game) => game?.state === "completed" || game?.state === "inProgress");
   const seriesHref = detailUrlForGame(match.id, apiBase, null);
   const focusItems = [{ key: "series", href: seriesHref, label: compact ? "S" : "Series" }];
   const liveGameNumber = firstInProgressGameNumber(match);
-  const currentLiveCallout = "";
   for (const game of availableGames) {
     if (game?.state === "unneeded") {
       continue;
@@ -3286,6 +3284,83 @@ function renderGameExplorer(match, apiBase) {
   );
   const previousFocus = currentFocusIndex > 0 ? focusItems[currentFocusIndex - 1] : null;
   const nextFocus = currentFocusIndex < focusItems.length - 1 ? focusItems[currentFocusIndex + 1] : null;
+  const completedMaps = availableGames.filter((game) => game?.state === "completed").length;
+  const skippedMaps = availableGames.filter((game) => game?.state === "unneeded").length;
+  const upcomingMaps = availableGames.filter((game) => game?.state === "unstarted").length;
+  const bestOf = Number(match?.bestOf || 1);
+  const seriesScoreLabel = `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`;
+  const kickoffLabel = match?.startAt ? (compact ? dateTimeCompact(match.startAt) : dateTimeLabel(match.startAt)) : "TBD";
+  const tournamentName = match.tournament || "Tournament TBD";
+  const selectedWinner = selected ? resolveSeriesGameWinnerName(selected, match) : null;
+  let navEyebrow = isGameMode ? "Map Focus" : "Series Navigator";
+  let navTitle = "Series View";
+  let navNote = "";
+  let navTone = isGameMode
+    ? selected?.state === "inProgress"
+      ? "live"
+      : selected?.state === "completed"
+        ? "complete"
+        : "upcoming"
+    : match.status === "live"
+      ? "live"
+      : match.status === "completed"
+        ? "complete"
+        : "upcoming";
+  const navTags = [];
+  const navActions = [];
+
+  if (isGameMode && Number.isInteger(activeGameNumber)) {
+    navTitle =
+      selected?.state === "inProgress"
+        ? `Game ${activeGameNumber} Live`
+        : selected?.state === "completed"
+          ? `Game ${activeGameNumber} Final`
+          : `Game ${activeGameNumber} Preview`;
+    navNote = `Series ${seriesScoreLabel} · ${completedMaps} complete${
+      selectedWinner ? ` · Winner ${scoreboardTeamName(selectedWinner)}` : ""
+    }`;
+    navTags.push(`Series ${seriesScoreLabel}`, `BO${bestOf}`);
+    if (selected?.telemetryStatus) {
+      navTags.push(`${String(selected.telemetryStatus).toUpperCase()} telemetry`);
+    }
+    if (selected?.startedAt) {
+      navTags.push(`Started ${compact ? dateTimeCompact(selected.startedAt) : dateTimeLabel(selected.startedAt)}`);
+    }
+    navActions.push(`<a class="link-btn ghost" href="${seriesHref}">Series View</a>`);
+    if (Number.isInteger(nav.previousGameNumber)) {
+      navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">Previous</a>`);
+    }
+    if (Number.isInteger(nav.nextGameNumber)) {
+      navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">Next</a>`);
+    }
+  } else if (match.status === "live") {
+    navTitle = Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} Live` : "Series Live";
+    navNote = `Series ${seriesScoreLabel} · ${completedMaps} map${completedMaps === 1 ? "" : "s"} complete${
+      upcomingMaps > 0 ? ` · ${upcomingMaps} still to play` : ""
+    }`;
+    navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
+    if (Number.isInteger(liveGameNumber)) {
+      navTags.push(`Live G${liveGameNumber}`);
+      navActions.push(
+        `<a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">Open Game ${liveGameNumber}</a>`
+      );
+    }
+  } else if (match.status === "completed") {
+    const winner = winnerTeamName(match);
+    navTitle = "Final Series";
+    navNote = `${winner ? `${displayTeamName(winner)} won` : "Series complete"} ${seriesScoreLabel} · ${completedMaps} maps played`;
+    navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
+  } else {
+    navTitle = "Series Setup";
+    navNote = `Starts ${kickoffLabel} · ${tournamentName}`;
+    navTags.push(`BO${bestOf}`, `Kickoff ${kickoffLabel}`);
+    if (upcomingMaps > 0) {
+      navTags.push(`${upcomingMaps} scheduled`);
+    }
+  }
+  if (skippedMaps > 0) {
+    navTags.push(`${skippedMaps} skipped`);
+  }
 
   const desktopNavPills = [
     buildGameNavPill({
@@ -3294,7 +3369,7 @@ function renderGameExplorer(match, apiBase) {
       state: seriesNavPillState(match),
       selected: !isGameMode
     }),
-    ...playedOrLiveGames.map((game) => {
+    ...availableGames.map((game) => {
       const isCurrentLiveGame =
         match.status === "live" &&
         Number.isInteger(liveGameNumber) &&
@@ -3304,7 +3379,8 @@ function renderGameExplorer(match, apiBase) {
         label: compact ? `G${game.number}` : `Game ${game.number}`,
         state: game?.state,
         selected: isGameMode && activeGameNumber === game.number,
-        currentLive: isCurrentLiveGame
+        currentLive: isCurrentLiveGame,
+        disabled: game?.state === "unneeded"
       });
     })
   ].join("");
@@ -3327,29 +3403,6 @@ function renderGameExplorer(match, apiBase) {
     })
     .join("");
 
-  const navActions = [];
-  if (!compact && isGameMode && Number.isInteger(nav.previousGameNumber)) {
-    navActions.push(
-      `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.previousGameNumber)}">${
-        compact ? `Previous Game ${nav.previousGameNumber}` : "Previous Game"
-      }</a>`
-    );
-  }
-  if (!compact && isGameMode && Number.isInteger(nav.nextGameNumber)) {
-    navActions.push(
-      `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">${
-        compact ? `Next Game ${nav.nextGameNumber}` : "Next Game"
-      }</a>`
-    );
-  }
-  if (!compact && !isGameMode && match.status === "live" && Number.isInteger(liveGameNumber)) {
-    navActions.push(
-      `<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${
-        compact ? `Open Game ${liveGameNumber}` : `Open Live Game ${liveGameNumber}`
-      }</a>`
-    );
-  }
-
   const compactStepper = compact
     ? `
       <div class="game-nav-stepper">
@@ -3361,10 +3414,27 @@ function renderGameExplorer(match, apiBase) {
     : "";
 
   elements.gameNavWrap.innerHTML = `
-    ${navActions.length ? `<div class="game-nav-head"><div class="game-nav-links">${navActions.join("")}</div></div>` : ""}
-    ${currentLiveCallout}
-    ${Number.isInteger(uiState.requestedGameFallback) ? `<p class="meta-text">Requested Game ${uiState.requestedGameFallback} could not be loaded.</p>` : ""}
-    ${nav.requestedMissing ? `<p class="meta-text">Requested Game ${nav.requestedGameNumber} not found.</p>` : ""}
+    <article class="game-nav-board ${navTone}">
+      <div class="game-nav-board-copy">
+        <p class="game-nav-board-eyebrow">${navEyebrow}</p>
+        <p class="game-nav-board-title">${navTitle}</p>
+        <p class="game-nav-board-note">${navNote}</p>
+        <div class="game-nav-board-tags">
+          ${navTags.map((tag) => `<span class="game-nav-chip">${escapeHtml(tag)}</span>`).join("")}
+        </div>
+      </div>
+      ${
+        navActions.length
+          ? `<div class="game-nav-board-actions">${navActions.join("")}</div>`
+          : ""
+      }
+    </article>
+    ${
+      Number.isInteger(uiState.requestedGameFallback)
+        ? `<p class="game-nav-note">Requested Game ${uiState.requestedGameFallback} could not be loaded.</p>`
+        : ""
+    }
+    ${nav.requestedMissing ? `<p class="game-nav-note">Requested Game ${nav.requestedGameNumber} not found.</p>` : ""}
     ${compact ? compactStepper : desktopNavPills ? `<div class="game-pill-row">${desktopNavPills}</div>` : ""}
   `;
 
@@ -3395,7 +3465,6 @@ function renderGameExplorer(match, apiBase) {
     const fallbackCountdown = Number.isFinite(startTs) ? Math.max(0, Math.round((startTs - Date.now()) / 1000)) : null;
     const countdown = Number.isFinite(projectionCountdown) ? projectionCountdown : fallbackCountdown;
     const liveSeriesGame = (Array.isArray(match.seriesGames) ? match.seriesGames : []).find((game) => game.state === "inProgress");
-    const completedMaps = playedOrLiveGames.filter((game) => game.state === "completed").length;
     const formatLabel = `Best of ${bestOf}`;
 
     if (match.status === "upcoming") {
@@ -8175,17 +8244,16 @@ function stateLabel(state) {
 
 function seriesGameStatusNote(game, match) {
   const state = String(game?.state || "unstarted");
-  const winner = resolveSeriesGameWinnerName(game, match);
   if (state === "inProgress") {
-    return "Map currently live.";
+    return "Live now.";
   }
   if (state === "completed") {
-    return winner ? `Winner: ${scoreboardTeamName(winner)}` : "Completed.";
+    return "Result confirmed.";
   }
   if (state === "unneeded") {
-    return "Not played.";
+    return "Not needed after clinch.";
   }
-  return "Waiting for kickoff.";
+  return "Scheduled.";
 }
 
 function renderSeriesGames(match, apiBase) {
@@ -8206,15 +8274,15 @@ function renderSeriesGames(match, apiBase) {
   const leftSeriesScore = Number(match?.seriesScore?.left || 0);
   const rightSeriesScore = Number(match?.seriesScore?.right || 0);
   const summaryChips = [
-    `Completed ${completedCount}/${games.length}`,
+    `${completedCount}/${games.length} played`,
     `Live ${liveGame ? `G${liveGame.number}` : "None"}`,
-    `Upcoming ${upcomingCount}`
+    `${upcomingCount} upcoming`
   ];
   if (skippedCount > 0) {
-    summaryChips.push(`Skipped ${skippedCount}`);
+    summaryChips.push(`${skippedCount} skipped`);
   }
   if (focusedGame) {
-    summaryChips.push(`Focused G${focusedGame.number}`);
+    summaryChips.push(`Viewing G${focusedGame.number}`);
   }
 
   const cards = games
@@ -8224,8 +8292,6 @@ function renderSeriesGames(match, apiBase) {
       const sideInfo = game?.sideInfo || {};
       const leftSide = String(sideInfo.leftSide || "").toLowerCase();
       const rightSide = String(sideInfo.rightSide || "").toLowerCase();
-      const leftSideLabel = leftSide ? leftSide.toUpperCase() : "TBD";
-      const rightSideLabel = rightSide ? rightSide.toUpperCase() : "TBD";
       const leftSideTone = leftSide === "blue" ? "blue" : leftSide === "red" ? "red" : "neutral";
       const rightSideTone = rightSide === "red" ? "red" : rightSide === "blue" ? "blue" : "neutral";
       const winnerName = resolveSeriesGameWinnerName(game, match);
@@ -8242,39 +8308,44 @@ function renderSeriesGames(match, apiBase) {
         labelNormalized !== "upcoming game" &&
         labelNormalized !== "live game." &&
         labelNormalized !== "live game";
+      const hasSideInfo = Boolean(leftSide && rightSide);
+      const facts = [
+        `<span class="series-game-fact"><strong>Start</strong>${escapeHtml(startedLabel)}</span>`,
+        `<span class="series-game-fact"><strong>Duration</strong>${escapeHtml(durationLabel)}</span>`
+      ];
+      if (hasSideInfo) {
+        facts.push(`<span class="series-game-fact"><strong>Sides</strong>${escapeHtml(sideSummaryFromSeriesGame(game, match))}</span>`);
+      }
       const openAction =
         game.state === "unneeded"
-          ? `<span class="series-game-vod disabled">${compact ? "Not played" : "Game not played"}</span>`
+          ? `<span class="series-game-vod disabled">${compact ? "Skipped" : "Not played"}</span>`
           : game.selected
-            ? `<span class="series-game-focused">${compact ? "Viewing" : "Viewing this game"}</span>`
-            : `<a class="series-game-open" href="${openGameHref}">${compact ? `Open G${game.number}` : `Open Game ${game.number}`}</a>`;
+            ? `<span class="series-game-focused">${compact ? "Viewing" : "Viewing Game"}</span>`
+            : `<a class="series-game-open" href="${openGameHref}">${compact ? "Open" : "Open Game"}</a>`;
       const vodAction = game.watchUrl
         ? `<a class="series-game-vod" href="${game.watchUrl}" target="_blank" rel="noreferrer">${compact ? "VOD" : "Watch VOD"}</a>`
         : `<span class="series-game-vod disabled">No VOD</span>`;
 
       return `
         <article class="series-game-card ${game.selected ? "selected" : ""} state-${stateClass(game.state)}">
-          <div class="series-game-head">
-            <p class="series-game-title">${compact ? `G${game.number}` : `Game ${game.number}`}</p>
-            <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
+          <div class="series-game-topline">
+            <div class="series-game-head">
+              <p class="series-game-title">${compact ? `G${game.number}` : `Game ${game.number}`}</p>
+              <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
+            </div>
+            ${winnerName ? `<p class="series-game-winner">Winner ${scoreboardTeamName(winnerName)}</p>` : ""}
           </div>
           <p class="series-game-status">${statusNote}</p>
-          ${showLabel ? `<p class="meta-text">${labelText}</p>` : ""}
-          ${winnerName ? `<p class="series-game-winner">Winner ${scoreboardTeamName(winnerName)}</p>` : ""}
-          <div class="series-game-meta-grid">
-            <article class="series-game-meta-cell">
-              <p class="meta-text">Start</p>
-              <p class="series-game-meta-value">${startedLabel}</p>
-            </article>
-            <article class="series-game-meta-cell">
-              <p class="meta-text">Duration</p>
-              <p class="series-game-meta-value">${durationLabel}</p>
-            </article>
-          </div>
-          <div class="series-game-sides">
-            <span class="series-side-chip ${leftSideTone}">${leftTag} ${leftSideLabel}</span>
-            <span class="series-side-chip ${rightSideTone}">${rightTag} ${rightSideLabel}</span>
-          </div>
+          ${showLabel ? `<p class="series-game-caption">${labelText}</p>` : ""}
+          <div class="series-game-facts">${facts.join("")}</div>
+          ${
+            hasSideInfo
+              ? `<div class="series-game-sides">
+                  <span class="series-side-chip ${leftSideTone}">${leftTag} ${leftSide.toUpperCase()}</span>
+                  <span class="series-side-chip ${rightSideTone}">${rightTag} ${rightSide.toUpperCase()}</span>
+                </div>`
+              : ""
+          }
           <div class="series-game-actions">
             ${openAction}
             ${vodAction}
@@ -8291,6 +8362,7 @@ function renderSeriesGames(match, apiBase) {
 
   elements.seriesGamesWrap.innerHTML = `
     <article class="series-games-overview">
+      <p class="series-games-kicker">Series Games</p>
       <p class="series-games-scoreline">${leftTag} ${leftSeriesScore} - ${rightSeriesScore} ${rightTag}</p>
       <div class="series-games-summary-chips">
         ${summaryChips.map((chip) => `<span class="series-summary-chip">${chip}</span>`).join("")}
