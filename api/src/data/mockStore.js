@@ -1243,6 +1243,10 @@ function shouldHideFallbackDotaRows() {
   return isProviderModeEnabled();
 }
 
+function shouldHideFallbackLolRows() {
+  return isProviderModeEnabled();
+}
+
 function normalizeDotaTierInput(dotaTiers) {
   if (!Array.isArray(dotaTiers) || dotaTiers.length === 0) {
     return defaultDotaTiers;
@@ -4070,7 +4074,9 @@ export async function listLiveMatches({
   );
 
   let rows = liveMatches.slice();
-  rows = replaceFallbackRowsForGame(rows, "lol", providerLolLiveState);
+  rows = replaceFallbackRowsForGame(rows, "lol", providerLolLiveState, {
+    strictNoFallback: shouldHideFallbackLolRows()
+  });
   if (
     providerStratzLiveState.status === "success" ||
     providerDotaLiveState.status === "success" ||
@@ -4099,6 +4105,14 @@ export async function listLiveMatches({
     (providerDotaLiveState.status !== "success" || providerDotaLiveState.rows.length === 0) &&
     (providerSteamLiveState.status !== "success" || providerSteamLiveState.rows.length === 0);
   if (useCanonicalFallback) {
+    rows = await mergeCanonicalFallbackRows(rows, {
+      surface: "live",
+      game: game === "dota2" ? null : "lol",
+      shouldUseFallback:
+        (!game || game === "lol") &&
+        !rows.some((row) => row?.game === "lol") &&
+        providerLolLiveState.status !== "success"
+    });
     rows = await mergeCanonicalFallbackRows(rows, {
       surface: "live",
       game: game || "dota2",
@@ -4157,7 +4171,9 @@ export async function listSchedule({
   });
 
   let rows = scheduleMatches.slice();
-  rows = replaceFallbackRowsForGame(rows, "lol", providerLolScheduleState);
+  rows = replaceFallbackRowsForGame(rows, "lol", providerLolScheduleState, {
+    strictNoFallback: shouldHideFallbackLolRows()
+  });
   if (
     providerStratzLiveState.status === "success" ||
     providerDotaLiveState.status === "success" ||
@@ -4171,14 +4187,22 @@ export async function listSchedule({
     rows = stripFallbackDotaRows(rows);
   }
 
-  rows = await mergeCanonicalFallbackRows(rows, {
-    surface: "schedule",
-    game: game || "dota2",
-    shouldUseFallback:
-      useCanonicalFallback &&
-      game !== "lol" &&
-      providerDotaScheduleState.status !== "success"
-  });
+  if (useCanonicalFallback) {
+    rows = await mergeCanonicalFallbackRows(rows, {
+      surface: "schedule",
+      game: game === "dota2" ? null : "lol",
+      shouldUseFallback:
+        (!game || game === "lol") &&
+        providerLolScheduleState.status !== "success"
+    });
+    rows = await mergeCanonicalFallbackRows(rows, {
+      surface: "schedule",
+      game: game || "dota2",
+      shouldUseFallback:
+        game !== "lol" &&
+        providerDotaScheduleState.status !== "success"
+    });
+  }
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
@@ -4206,19 +4230,29 @@ export async function listResults({
   ]);
 
   let rows = completedMatches.slice();
-  rows = replaceFallbackRowsForGame(rows, "lol", providerLolResultsState);
+  rows = replaceFallbackRowsForGame(rows, "lol", providerLolResultsState, {
+    strictNoFallback: shouldHideFallbackLolRows()
+  });
   rows = replaceFallbackRowsForGame(rows, "dota2", providerDotaResultsState, {
     strictNoFallback: shouldHideFallbackDotaRows()
   });
 
-  rows = await mergeCanonicalFallbackRows(rows, {
-    surface: "results",
-    game: game || "dota2",
-    shouldUseFallback:
-      useCanonicalFallback &&
-      game !== "lol" &&
-      providerDotaResultsState.status !== "success"
-  });
+  if (useCanonicalFallback) {
+    rows = await mergeCanonicalFallbackRows(rows, {
+      surface: "results",
+      game: game === "dota2" ? null : "lol",
+      shouldUseFallback:
+        (!game || game === "lol") &&
+        providerLolResultsState.status !== "success"
+    });
+    rows = await mergeCanonicalFallbackRows(rows, {
+      surface: "results",
+      game: game || "dota2",
+      shouldUseFallback:
+        game !== "lol" &&
+        providerDotaResultsState.status !== "success"
+    });
+  }
   rows = filterByDotaTiers(rows, dotaTiers);
   rows = filterByLolTiers(rows, lolTiers);
   rows = filterByGameRegion(rows, { game, region });
