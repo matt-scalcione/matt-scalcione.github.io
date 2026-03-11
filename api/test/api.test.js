@@ -275,6 +275,7 @@ describe("provider diagnostics", () => {
     assert.equal(typeof result.payload.data.providerCacheMs, "number");
     assert.equal(typeof result.payload.data.canonicalStore.enabled, "boolean");
     assert.equal(typeof result.payload.data.canonicalStore.backend, "string");
+    assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedDetails), true);
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedProfiles), true);
   });
 });

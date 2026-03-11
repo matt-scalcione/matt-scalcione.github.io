@@ -19,8 +19,10 @@ import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
 import { fetchJson } from "../providers/shared/http.js";
 import {
   getCanonicalStoreDiagnostics,
+  loadCanonicalMatchDetail,
   loadCanonicalMatchCollection,
   loadCanonicalTeamProfile,
+  persistCanonicalMatchDetail,
   persistCanonicalMatchCollection,
   persistCanonicalTeamProfile
 } from "../storage/canonicalStore.js";
@@ -555,6 +557,20 @@ function setDetailCacheEntry(targetMap, cacheKey, detail) {
   tryPersistProviderCacheSnapshot();
 }
 
+async function cacheAndPersistMatchDetail(targetMap, cacheKey, detail, { matchId = null, options = null } = {}) {
+  if (!detail) {
+    return detail;
+  }
+
+  setDetailCacheEntry(targetMap, cacheKey, detail);
+  await persistCanonicalMatchDetail({
+    matchId,
+    options,
+    detail
+  });
+  return detail;
+}
+
 function trimProfileCacheMap(targetMap) {
   if (targetMap.size <= providerTeamProfileCacheLimit) {
     return;
@@ -583,7 +599,14 @@ const detailRefreshState = {
 };
 const teamProfileRefreshState = new Map();
 
-function refreshProviderMatchDetail({ channel, cacheKey, fetchDetail, cacheMap }) {
+function refreshProviderMatchDetail({
+  channel,
+  cacheKey,
+  fetchDetail,
+  cacheMap,
+  matchId = null,
+  options = null
+}) {
   const refreshMap = detailRefreshState[channel];
   if (refreshMap.has(cacheKey)) {
     return refreshMap.get(cacheKey);
@@ -593,7 +616,10 @@ function refreshProviderMatchDetail({ channel, cacheKey, fetchDetail, cacheMap }
     try {
       const detail = await fetchDetail();
       if (detail) {
-        setDetailCacheEntry(cacheMap, cacheKey, detail);
+        await cacheAndPersistMatchDetail(cacheMap, cacheKey, detail, {
+          matchId,
+          options
+        });
       }
       return detail;
     } catch {
@@ -3639,6 +3665,8 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         channel: "dota",
         cacheKey,
         cacheMap: providerState.detailById,
+        matchId,
+        options,
         fetchDetail: async () => {
           if (String(matchId).startsWith("dota_stratz_")) {
             try {
@@ -3675,11 +3703,61 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       return materializeStaleDetail(staleCachedDetail);
     }
 
+    const canonicalDetail = await loadCanonicalMatchDetail({
+      matchId,
+      options
+    });
+    if (canonicalDetail) {
+      setDetailCacheEntry(providerState.detailById, cacheKey, canonicalDetail);
+      void refreshProviderMatchDetail({
+        channel: "dota",
+        cacheKey,
+        cacheMap: providerState.detailById,
+        matchId,
+        options,
+        fetchDetail: async () => {
+          if (String(matchId).startsWith("dota_stratz_")) {
+            try {
+              const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
+              if (stratzDetail) {
+                return stratzDetail;
+              }
+            } catch {
+              // Fall through to the OpenDota / fallback detail path.
+            }
+          }
+
+          if (String(matchId).startsWith("dota_od_")) {
+            try {
+              const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
+              return enrichDotaDetailWithStratz(
+                detail || (await fallbackProviderDotaDetail(matchId, options)),
+                options
+              );
+            } catch {
+              return enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
+            }
+          }
+
+          const aliasMatchId = await resolveDotaAliasMatchId(matchId, canonicalDetail);
+          if (aliasMatchId) {
+            return loadProviderMatchDetail(aliasMatchId, options);
+          }
+
+          return enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
+        }
+      });
+      return canonicalDetail;
+    }
+
     if (String(matchId).startsWith("dota_stratz_")) {
       try {
         const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
         if (stratzDetail) {
-          setDetailCacheEntry(providerState.detailById, cacheKey, stratzDetail);
+          await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, stratzDetail, {
+            matchId,
+            options
+          });
           return stratzDetail;
         }
       } catch {
@@ -3698,7 +3776,10 @@ async function loadProviderMatchDetail(matchId, options = {}) {
           return materializeStaleDetail(staleCachedDetail);
         }
 
-        setDetailCacheEntry(providerState.detailById, cacheKey, resolvedDetail);
+        await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, resolvedDetail, {
+          matchId,
+          options
+        });
         return resolvedDetail;
       } catch {
         const fallback = await enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
@@ -3706,7 +3787,10 @@ async function loadProviderMatchDetail(matchId, options = {}) {
           return materializeStaleDetail(staleCachedDetail);
         }
 
-        setDetailCacheEntry(providerState.detailById, cacheKey, fallback);
+        await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, fallback, {
+          matchId,
+          options
+        });
         return fallback;
       }
     }
@@ -3730,7 +3814,10 @@ async function loadProviderMatchDetail(matchId, options = {}) {
               }
             : preferredDetail;
 
-        setDetailCacheEntry(providerState.detailById, cacheKey, resolvedAliasDetail);
+        await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, resolvedAliasDetail, {
+          matchId,
+          options
+        });
         return resolvedAliasDetail;
       }
     }
@@ -3740,7 +3827,10 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       return materializeStaleDetail(staleCachedDetail);
     }
 
-    setDetailCacheEntry(providerState.detailById, cacheKey, fallback);
+    await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, fallback, {
+      matchId,
+      options
+    });
     return fallback;
   }
 
@@ -3755,9 +3845,28 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         channel: "lol",
         cacheKey,
         cacheMap: providerState.lolDetailById,
+        matchId,
+        options,
         fetchDetail: () => lolEsportsProvider.fetchMatchDetail(matchId, options)
       });
       return cached.detail;
+    }
+
+    const canonicalDetail = await loadCanonicalMatchDetail({
+      matchId,
+      options
+    });
+    if (canonicalDetail) {
+      setDetailCacheEntry(providerState.lolDetailById, cacheKey, canonicalDetail);
+      void refreshProviderMatchDetail({
+        channel: "lol",
+        cacheKey,
+        cacheMap: providerState.lolDetailById,
+        matchId,
+        options,
+        fetchDetail: () => lolEsportsProvider.fetchMatchDetail(matchId, options)
+      });
+      return canonicalDetail;
     }
 
     try {
@@ -3766,7 +3875,10 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         return null;
       }
 
-      setDetailCacheEntry(providerState.lolDetailById, cacheKey, detail);
+      await cacheAndPersistMatchDetail(providerState.lolDetailById, cacheKey, detail, {
+        matchId,
+        options
+      });
       return detail;
     } catch {
       return null;

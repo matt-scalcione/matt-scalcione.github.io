@@ -9,6 +9,7 @@ const storeState = {
   lastPersistError: null,
   lastPersistResults: [],
   collectionHashes: new Map(),
+  detailHashes: new Map(),
   profileHashes: new Map(),
   activeConnectionString: null,
   activeSchema: null
@@ -127,6 +128,24 @@ export function canonicalTeamProfileKey(teamId, options = {}) {
     .digest("hex");
 }
 
+export function canonicalMatchDetailKey(matchId, options = {}) {
+  const normalizedMatchId = String(matchId || "").trim();
+  if (!normalizedMatchId) {
+    return null;
+  }
+
+  const parsedGameNumber = Number.parseInt(String(options?.gameNumber || ""), 10);
+
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        matchId: normalizedMatchId,
+        gameNumber: Number.isInteger(parsedGameNumber) && parsedGameNumber > 0 ? parsedGameNumber : null
+      })
+    )
+    .digest("hex");
+}
+
 function collectionHash({ surface, rows, sourceSummary, metadata }) {
   return createHash("sha256")
     .update(
@@ -140,13 +159,13 @@ function collectionHash({ surface, rows, sourceSummary, metadata }) {
     .digest("hex");
 }
 
-function profileHash({ teamId, options, profile }) {
+function entityHash({ entityId, options, payload }) {
   return createHash("sha256")
     .update(
       JSON.stringify({
-        teamId: String(teamId || "").trim(),
+        entityId: String(entityId || "").trim(),
         options: safeJson(options),
-        profile: safeJson(profile)
+        payload: safeJson(payload)
       })
     )
     .digest("hex");
@@ -159,6 +178,8 @@ function canonicalTables(schema) {
     ingestRuns: `${namespace}.pulseboard_ingest_runs`,
     matchState: `${namespace}.pulseboard_match_state`,
     matchSnapshots: `${namespace}.pulseboard_match_snapshots`,
+    matchDetailState: `${namespace}.pulseboard_match_detail_state`,
+    matchDetailSnapshots: `${namespace}.pulseboard_match_detail_snapshots`,
     teamProfileState: `${namespace}.pulseboard_team_profile_state`,
     teamProfileSnapshots: `${namespace}.pulseboard_team_profile_snapshots`
   };
@@ -256,6 +277,31 @@ async function ensureInitialized() {
         )
       `);
       await pool.query(`
+        CREATE TABLE IF NOT EXISTS ${tables.matchDetailState} (
+          detail_key TEXT PRIMARY KEY,
+          match_id TEXT NOT NULL,
+          game TEXT,
+          game_number INTEGER,
+          row_updated_at TIMESTAMPTZ,
+          first_seen_at TIMESTAMPTZ NOT NULL,
+          last_seen_at TIMESTAMPTZ NOT NULL,
+          last_ingest_run_id UUID REFERENCES ${tables.ingestRuns}(ingest_run_id) ON DELETE SET NULL,
+          payload JSONB NOT NULL
+        )
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS ${tables.matchDetailSnapshots} (
+          snapshot_id UUID PRIMARY KEY,
+          ingest_run_id UUID NOT NULL REFERENCES ${tables.ingestRuns}(ingest_run_id) ON DELETE CASCADE,
+          detail_key TEXT NOT NULL,
+          match_id TEXT NOT NULL,
+          game TEXT,
+          game_number INTEGER,
+          observed_at TIMESTAMPTZ NOT NULL,
+          payload JSONB NOT NULL
+        )
+      `);
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS ${tables.teamProfileSnapshots} (
           snapshot_id UUID PRIMARY KEY,
           ingest_run_id UUID NOT NULL REFERENCES ${tables.ingestRuns}(ingest_run_id) ON DELETE CASCADE,
@@ -282,6 +328,14 @@ async function ensureInitialized() {
       await pool.query(`
         CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_team_idx
         ON ${tables.teamProfileState} (team_id, game, last_seen_at DESC)
+      `);
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS pulseboard_match_detail_state_match_idx
+        ON ${tables.matchDetailState} (match_id, game_number, last_seen_at DESC)
+      `);
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS pulseboard_match_detail_snapshots_detail_idx
+        ON ${tables.matchDetailSnapshots} (detail_key, observed_at DESC)
       `);
       await pool.query(`
         CREATE INDEX IF NOT EXISTS pulseboard_team_profile_snapshots_profile_idx
@@ -330,6 +384,11 @@ export function getCanonicalStoreDiagnostics() {
       hash: value.hash,
       persistedAt: value.persistedAt,
       rowCount: value.rowCount
+    })),
+    trackedDetails: Array.from(storeState.detailHashes.entries()).map(([key, value]) => ({
+      key,
+      hash: value.hash,
+      persistedAt: value.persistedAt
     })),
     trackedProfiles: Array.from(storeState.profileHashes.entries()).map(([key, value]) => ({
       key,
@@ -448,6 +507,66 @@ export async function loadCanonicalTeamProfile({
         canonicalFallback: true,
         canonicalObservedAt: toIsoTimestamp(row?.last_seen_at, null),
         canonicalSurface: "team_profile"
+      },
+      freshness: {
+        ...(payload?.freshness || {}),
+        source: payload?.freshness?.source || payload?.source?.provider || "canonical_store",
+        status: payload?.freshness?.status || "stale_cache",
+        updatedAt:
+          payload?.freshness?.updatedAt ||
+          toIsoTimestamp(row?.row_updated_at, null) ||
+          toIsoTimestamp(row?.last_seen_at, null)
+      }
+    };
+  } catch (error) {
+    storeState.lastPersistError = error?.message || String(error);
+    return null;
+  }
+}
+
+export async function loadCanonicalMatchDetail({
+  matchId,
+  options = {}
+} = {}) {
+  const config = canonicalStoreConfig();
+  const normalizedMatchId = String(matchId || "").trim();
+  const detailKey = canonicalMatchDetailKey(normalizedMatchId, options);
+
+  if (!config.enabled || !detailKey) {
+    return null;
+  }
+
+  const initialized = await ensureInitialized();
+  if (!initialized || !storeState.pool) {
+    return null;
+  }
+
+  const tables = canonicalTables(config.schema);
+
+  try {
+    const result = await storeState.pool.query(
+      `
+        SELECT payload, last_seen_at, row_updated_at
+        FROM ${tables.matchDetailState}
+        WHERE detail_key = $1
+        LIMIT 1
+      `,
+      [detailKey]
+    );
+    const row = result.rows[0];
+    const payload = safeJson(row?.payload);
+
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+
+    return {
+      ...payload,
+      source: {
+        ...(payload?.source || {}),
+        canonicalFallback: true,
+        canonicalObservedAt: toIsoTimestamp(row?.last_seen_at, null),
+        canonicalSurface: "match_detail"
       },
       freshness: {
         ...(payload?.freshness || {}),
@@ -735,10 +854,10 @@ export async function persistCanonicalTeamProfile({
     };
   }
 
-  const hash = profileHash({
-    teamId: normalizedTeamId,
+  const hash = entityHash({
+    entityId: normalizedTeamId,
     options,
-    profile: payload
+    payload
   });
   const previous = storeState.profileHashes.get(profileKey);
 
@@ -915,6 +1034,226 @@ export async function persistCanonicalTeamProfile({
       reason: "persist_failed",
       surface: "team_profile",
       scope: profileKey,
+      rowCount: 1,
+      error: storeState.lastPersistError
+    };
+  } finally {
+    client.release();
+  }
+}
+
+export async function persistCanonicalMatchDetail({
+  matchId,
+  options = {},
+  detail = null
+} = {}) {
+  const config = canonicalStoreConfig();
+  const normalizedMatchId = String(matchId || "").trim();
+  const payload = safeJson(detail);
+  const detailKey = canonicalMatchDetailKey(normalizedMatchId, options);
+
+  if (!config.enabled) {
+    return {
+      enabled: false,
+      persisted: false,
+      skipped: true,
+      reason: "disabled",
+      surface: "match_detail",
+      rowCount: payload ? 1 : 0
+    };
+  }
+
+  if (!normalizedMatchId || !detailKey || !payload || typeof payload !== "object") {
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "invalid_detail",
+      surface: "match_detail",
+      rowCount: 0
+    };
+  }
+
+  const hash = entityHash({
+    entityId: normalizedMatchId,
+    options,
+    payload
+  });
+  const previous = storeState.detailHashes.get(detailKey);
+
+  if (previous?.hash === hash) {
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "unchanged",
+      surface: "match_detail",
+      scope: detailKey,
+      rowCount: 1
+    };
+  }
+
+  const initialized = await ensureInitialized();
+  if (!initialized || !storeState.pool) {
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "init_failed",
+      surface: "match_detail",
+      rowCount: 1,
+      error: storeState.lastInitError
+    };
+  }
+
+  const tables = canonicalTables(config.schema);
+  const observedAt = new Date().toISOString();
+  const ingestRunId = randomUUID();
+  const client = await storeState.pool.connect();
+  const normalizedGame = normalizeToken(payload?.game) || null;
+  const parsedGameNumber = Number.parseInt(
+    String(options?.gameNumber || payload?.selectedGame?.number || ""),
+    10
+  );
+  const gameNumber = Number.isInteger(parsedGameNumber) && parsedGameNumber > 0 ? parsedGameNumber : null;
+  const rowUpdatedAt = toIsoTimestamp(payload?.updatedAt || payload?.freshness?.updatedAt, observedAt);
+
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `
+        INSERT INTO ${tables.ingestRuns} (
+          ingest_run_id,
+          surface,
+          scope,
+          row_count,
+          collection_hash,
+          source_summary,
+          metadata,
+          observed_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8)
+      `,
+      [
+        ingestRunId,
+        "match_detail",
+        detailKey,
+        1,
+        hash,
+        JSON.stringify(
+          safeJson({
+            game: normalizedGame,
+            provider: payload?.source?.provider || null
+          })
+        ),
+        JSON.stringify(
+          safeJson({
+            matchId: normalizedMatchId,
+            gameNumber
+          })
+        ),
+        observedAt
+      ]
+    );
+    await client.query(
+      `
+        INSERT INTO ${tables.matchDetailSnapshots} (
+          snapshot_id,
+          ingest_run_id,
+          detail_key,
+          match_id,
+          game,
+          game_number,
+          observed_at,
+          payload
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+      `,
+      [
+        randomUUID(),
+        ingestRunId,
+        detailKey,
+        normalizedMatchId,
+        normalizedGame,
+        gameNumber,
+        observedAt,
+        JSON.stringify(payload)
+      ]
+    );
+    await client.query(
+      `
+        INSERT INTO ${tables.matchDetailState} (
+          detail_key,
+          match_id,
+          game,
+          game_number,
+          row_updated_at,
+          first_seen_at,
+          last_seen_at,
+          last_ingest_run_id,
+          payload
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+        ON CONFLICT (detail_key)
+        DO UPDATE SET
+          match_id = EXCLUDED.match_id,
+          game = EXCLUDED.game,
+          game_number = EXCLUDED.game_number,
+          row_updated_at = EXCLUDED.row_updated_at,
+          last_seen_at = EXCLUDED.last_seen_at,
+          last_ingest_run_id = EXCLUDED.last_ingest_run_id,
+          payload = EXCLUDED.payload
+      `,
+      [
+        detailKey,
+        normalizedMatchId,
+        normalizedGame,
+        gameNumber,
+        rowUpdatedAt,
+        observedAt,
+        observedAt,
+        ingestRunId,
+        JSON.stringify(payload)
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    const result = {
+      enabled: true,
+      persisted: true,
+      skipped: false,
+      surface: "match_detail",
+      scope: detailKey,
+      rowCount: 1,
+      hash,
+      observedAt
+    };
+
+    storeState.detailHashes.set(detailKey, {
+      hash,
+      persistedAt: observedAt
+    });
+    storeState.lastPersistAt = observedAt;
+    storeState.lastPersistError = null;
+    storeState.lastPersistResults = [
+      result,
+      ...storeState.lastPersistResults.filter(
+        (entry) => entry.surface !== "match_detail" || entry.scope !== detailKey
+      )
+    ].slice(0, 12);
+
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    storeState.lastPersistError = error?.message || String(error);
+    return {
+      enabled: true,
+      persisted: false,
+      skipped: true,
+      reason: "persist_failed",
+      surface: "match_detail",
+      scope: detailKey,
       rowCount: 1,
       error: storeState.lastPersistError
     };

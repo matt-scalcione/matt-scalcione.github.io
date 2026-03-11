@@ -35,6 +35,16 @@ describe("canonicalStore", () => {
     assert.equal(key.length, 64);
   });
 
+  it("derives a stable canonical key for match detail queries", async () => {
+    const module = await import(`../src/storage/canonicalStore.js?test=detail-key-${Date.now()}`);
+    const key = module.canonicalMatchDetailKey("lol_riot_116130368700936056", {
+      gameNumber: 2
+    });
+
+    assert.equal(typeof key, "string");
+    assert.equal(key.length, 64);
+  });
+
   it("stays disabled cleanly when DATABASE_URL is not configured", async () => {
     const previousEnabled = process.env.CANONICAL_STORE_ENABLED;
     const previousDatabaseUrl = process.env.DATABASE_URL;
@@ -56,6 +66,12 @@ describe("canonicalStore", () => {
           limit: 5
         }
       });
+      const detail = await module.loadCanonicalMatchDetail({
+        matchId: "lol_riot_116130368700936056",
+        options: {
+          gameNumber: 1
+        }
+      });
       const result = await module.persistCanonicalMatchCollection({
         surface: "live",
         rows: []
@@ -72,17 +88,31 @@ describe("canonicalStore", () => {
           name: "T1"
         }
       });
+      const detailResult = await module.persistCanonicalMatchDetail({
+        matchId: "lol_riot_116130368700936056",
+        options: {
+          gameNumber: 1
+        },
+        detail: {
+          id: "lol_riot_116130368700936056",
+          game: "lol"
+        }
+      });
 
       assert.equal(diagnostics.enabled, false);
       assert.equal(diagnostics.backend, "disabled");
       assert.deepEqual(rows, []);
       assert.equal(profile, null);
+      assert.equal(detail, null);
       assert.equal(result.enabled, false);
       assert.equal(result.skipped, true);
       assert.equal(result.reason, "disabled");
       assert.equal(profileResult.enabled, false);
       assert.equal(profileResult.skipped, true);
       assert.equal(profileResult.reason, "disabled");
+      assert.equal(detailResult.enabled, false);
+      assert.equal(detailResult.skipped, true);
+      assert.equal(detailResult.reason, "disabled");
     } finally {
       if (previousEnabled === undefined) {
         delete process.env.CANONICAL_STORE_ENABLED;
