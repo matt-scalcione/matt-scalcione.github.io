@@ -2947,12 +2947,12 @@ function buildCompletedSeriesSummaryCards(match) {
       : null;
 
   const cards = [];
-  if (clinch) {
+  if (clincher) {
     cards.push(
       seriesInfoCard(
         "Clincher",
-        `G${clinch.number}`,
-        `${overallWinner ? scoreboardTeamName(overallWinner) : "Series winner"} · ${durationLabelFromMinutes(clinch.durationMinutes)}`
+        `G${clincher.number}`,
+        `${overallWinner ? scoreboardTeamName(overallWinner) : "Series winner"} · ${durationLabelFromMinutes(clincher.durationMinutes)}`
       )
     );
   }
