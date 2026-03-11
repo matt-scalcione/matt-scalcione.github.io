@@ -3042,15 +3042,20 @@ function seriesNavPillState(match) {
   return "unstarted";
 }
 
-function buildGameNavPill({ href, label, state = "complete", selected = false, currentLive = false }) {
+function buildGameNavPill({ href, label, state = "complete", selected = false, currentLive = false, disabled = false }) {
   const classes = ["game-pill", gameNavPillClass(state, selected)];
   if (currentLive) {
     classes.push("current-live");
   }
+  if (disabled) {
+    classes.push("disabled");
+  }
 
-  return `<a class="${classes.join(" ")}" href="${href}">${escapeHtml(label)}${
-    currentLive ? `<span class="game-pill-live-dot" aria-hidden="true"></span>` : ""
-  }</a>`;
+  const content = `${escapeHtml(label)}${currentLive ? `<span class="game-pill-live-dot" aria-hidden="true"></span>` : ""}`;
+  if (disabled || !href) {
+    return `<span class="${classes.join(" ")}" aria-disabled="true">${content}</span>`;
+  }
+  return `<a class="${classes.join(" ")}" href="${href}">${content}</a>`;
 }
 
 function buildGameStepControl({ href = "", direction = "prev", disabled = false }) {
@@ -3084,6 +3089,9 @@ function renderGameExplorer(match, apiBase) {
     ? `<article class="live-now-banner"><p class="meta-text strong">${compact ? `LIVE NOW · G${liveGameNumber}` : `Current game live now: Game ${liveGameNumber}`}</p><a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">${compact ? `Open G${liveGameNumber}` : `Open Live Game ${liveGameNumber}`}</a></article>`
     : "";
   for (const game of availableGames) {
+    if (game?.state === "unneeded") {
+      continue;
+    }
     focusItems.push({
       key: `game:${game.number}`,
       href: detailUrlForGame(match.id, apiBase, game.number),
@@ -3134,7 +3142,8 @@ function renderGameExplorer(match, apiBase) {
         label: `G${game.number}`,
         state: game?.state,
         selected: isGameMode && activeGameNumber === game.number,
-        currentLive: isCurrentLiveGame
+        currentLive: isCurrentLiveGame,
+        disabled: game?.state === "unneeded"
       });
     })
     .join("");

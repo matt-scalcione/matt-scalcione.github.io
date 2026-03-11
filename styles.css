@@ -3659,6 +3659,13 @@ button.ghost,
   box-shadow: none;
 }
 
+.game-pill.disabled {
+  color: var(--muted);
+  border-style: dashed;
+  border-color: rgba(122, 135, 149, 0.28);
+  background: rgba(84, 97, 113, 0.06);
+}
+
 .game-context {
   margin-top: 0.65rem;
 }
