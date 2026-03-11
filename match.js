@@ -8217,7 +8217,7 @@ function extractBurstScoreSummary(summary) {
 function buildCompletedGameKillRaceCard(match, threshold = 10) {
   const bursts = (Array.isArray(match?.combatBursts) ? match.combatBursts : [])
     .slice()
-    .sort((left, right) => parseTimestamp(left?.occurredAt) - parseTimestamp(right?.occurredAt));
+    .sort((left, right) => parseIsoTimestamp(left?.occurredAt) - parseIsoTimestamp(right?.occurredAt));
 
   for (const burst of bursts) {
     const score = extractBurstScoreSummary(burst?.summary);
@@ -8279,7 +8279,7 @@ function buildCompletedGameDetailCards(match) {
     if (nextKills !== bestKills) {
       return nextKills > bestKills ? row : best;
     }
-    return parseTimestamp(row?.occurredAt) > parseTimestamp(best?.occurredAt) ? row : best;
+    return parseIsoTimestamp(row?.occurredAt) > parseIsoTimestamp(best?.occurredAt) ? row : best;
   }, null);
   const completedStory = buildCompletedGameStory(match);
   const terms = objectiveTerminology(match);
