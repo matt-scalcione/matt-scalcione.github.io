@@ -72,6 +72,7 @@ describe("canonicalStore", () => {
           gameNumber: 1
         }
       });
+      const prune = await module.maybePruneCanonicalStore();
       const result = await module.persistCanonicalMatchCollection({
         surface: "live",
         rows: []
@@ -101,9 +102,15 @@ describe("canonicalStore", () => {
 
       assert.equal(diagnostics.enabled, false);
       assert.equal(diagnostics.backend, "disabled");
+      assert.equal(typeof diagnostics.pruneEnabled, "boolean");
+      assert.equal(typeof diagnostics.retentionDays, "number");
+      assert.equal(typeof diagnostics.pruneIntervalMs, "number");
       assert.deepEqual(rows, []);
       assert.equal(profile, null);
       assert.equal(detail, null);
+      assert.equal(prune.enabled, false);
+      assert.equal(prune.skipped, true);
+      assert.equal(prune.reason, "disabled");
       assert.equal(result.enabled, false);
       assert.equal(result.skipped, true);
       assert.equal(result.reason, "disabled");

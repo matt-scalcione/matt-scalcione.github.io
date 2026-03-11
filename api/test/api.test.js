@@ -279,6 +279,15 @@ describe("provider diagnostics", () => {
     assert.equal(typeof result.payload.data.canonicalPrewarmTeamLimit, "number");
     assert.equal(typeof result.payload.data.canonicalStore.enabled, "boolean");
     assert.equal(typeof result.payload.data.canonicalStore.backend, "string");
+    assert.equal(typeof result.payload.data.canonicalStore.pruneEnabled, "boolean");
+    assert.equal(typeof result.payload.data.canonicalStore.retentionDays, "number");
+    assert.equal(typeof result.payload.data.canonicalStore.pruneIntervalMs, "number");
+    assert.equal(
+      result.payload.data.canonicalStore.lastPruneAt === null ||
+        typeof result.payload.data.canonicalStore.lastPruneAt === "string",
+      true
+    );
+    assert.equal(Array.isArray(result.payload.data.canonicalStore.lastPruneResults), true);
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedDetails), true);
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedProfiles), true);
   });

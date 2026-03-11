@@ -2,12 +2,16 @@ import { createHash, randomUUID } from "node:crypto";
 
 const storeState = {
   initPromise: null,
+  prunePromise: null,
   pool: null,
   initializedAt: null,
   lastInitError: null,
   lastPersistAt: null,
   lastPersistError: null,
   lastPersistResults: [],
+  lastPruneAt: null,
+  lastPruneError: null,
+  lastPruneResults: [],
   collectionHashes: new Map(),
   detailHashes: new Map(),
   profileHashes: new Map(),
@@ -54,11 +58,25 @@ function canonicalStoreConfig() {
       : enabledFlag === "1"
         ? Boolean(connectionString)
         : Boolean(connectionString);
+  const pruneEnabled =
+    enabled && String(process.env.CANONICAL_STORE_PRUNE_ENABLED || "1").trim() !== "0";
+  const retentionDays = Math.max(
+    1,
+    Number.parseInt(process.env.CANONICAL_STORE_RETENTION_DAYS || "14", 10) || 14
+  );
+  const pruneIntervalMs = Math.max(
+    5 * 60 * 1000,
+    Number.parseInt(process.env.CANONICAL_STORE_PRUNE_INTERVAL_MS || String(6 * 60 * 60 * 1000), 10) ||
+      6 * 60 * 60 * 1000
+  );
 
   return {
     enabled,
     connectionString,
-    schema
+    schema,
+    pruneEnabled,
+    retentionDays,
+    pruneIntervalMs
   };
 }
 
@@ -374,11 +392,17 @@ export function getCanonicalStoreDiagnostics() {
     backend: config.enabled ? "postgres" : "disabled",
     schema: config.schema,
     databaseConfigured: Boolean(config.connectionString),
+    pruneEnabled: config.pruneEnabled,
+    retentionDays: config.retentionDays,
+    pruneIntervalMs: config.pruneIntervalMs,
     initializedAt: storeState.initializedAt,
     lastInitError: storeState.lastInitError,
     lastPersistAt: storeState.lastPersistAt,
     lastPersistError: storeState.lastPersistError,
     lastPersistResults: storeState.lastPersistResults.slice(),
+    lastPruneAt: storeState.lastPruneAt,
+    lastPruneError: storeState.lastPruneError,
+    lastPruneResults: storeState.lastPruneResults.slice(),
     trackedCollections: Array.from(storeState.collectionHashes.entries()).map(([key, value]) => ({
       key,
       hash: value.hash,
@@ -396,6 +420,138 @@ export function getCanonicalStoreDiagnostics() {
       persistedAt: value.persistedAt
     }))
   };
+}
+
+export async function maybePruneCanonicalStore() {
+  const config = canonicalStoreConfig();
+  if (!config.enabled) {
+    return {
+      enabled: false,
+      pruned: false,
+      skipped: true,
+      reason: "disabled"
+    };
+  }
+
+  if (!config.pruneEnabled) {
+    return {
+      enabled: true,
+      pruned: false,
+      skipped: true,
+      reason: "prune_disabled"
+    };
+  }
+
+  const lastPruneMs = Date.parse(String(storeState.lastPruneAt || ""));
+  if (Number.isFinite(lastPruneMs) && Date.now() - lastPruneMs < config.pruneIntervalMs) {
+    return {
+      enabled: true,
+      pruned: false,
+      skipped: true,
+      reason: "interval",
+      nextEligibleAt: new Date(lastPruneMs + config.pruneIntervalMs).toISOString()
+    };
+  }
+
+  if (storeState.prunePromise) {
+    return storeState.prunePromise;
+  }
+
+  const initialized = await ensureInitialized();
+  if (!initialized || !storeState.pool) {
+    return {
+      enabled: true,
+      pruned: false,
+      skipped: true,
+      reason: "init_failed",
+      error: storeState.lastInitError
+    };
+  }
+
+  const tables = canonicalTables(config.schema);
+  const cutoffAt = new Date(Date.now() - config.retentionDays * 24 * 60 * 60 * 1000).toISOString();
+
+  storeState.prunePromise = (async () => {
+    const client = await storeState.pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const matchSnapshots = await client.query(
+        `DELETE FROM ${tables.matchSnapshots} WHERE observed_at < $1`,
+        [cutoffAt]
+      );
+      const matchDetailSnapshots = await client.query(
+        `DELETE FROM ${tables.matchDetailSnapshots} WHERE observed_at < $1`,
+        [cutoffAt]
+      );
+      const teamProfileSnapshots = await client.query(
+        `DELETE FROM ${tables.teamProfileSnapshots} WHERE observed_at < $1`,
+        [cutoffAt]
+      );
+      const ingestRuns = await client.query(
+        `
+          DELETE FROM ${tables.ingestRuns} AS runs
+          WHERE runs.observed_at < $1
+            AND NOT EXISTS (
+              SELECT 1
+              FROM ${tables.matchState} AS match_state
+              WHERE match_state.last_ingest_run_id = runs.ingest_run_id
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM ${tables.matchDetailState} AS match_detail_state
+              WHERE match_detail_state.last_ingest_run_id = runs.ingest_run_id
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM ${tables.teamProfileState} AS team_profile_state
+              WHERE team_profile_state.last_ingest_run_id = runs.ingest_run_id
+            )
+        `,
+        [cutoffAt]
+      );
+
+      await client.query("COMMIT");
+
+      const observedAt = new Date().toISOString();
+      const result = {
+        enabled: true,
+        pruned: true,
+        skipped: false,
+        observedAt,
+        cutoffAt,
+        retentionDays: config.retentionDays,
+        deleted: {
+          matchSnapshots: matchSnapshots.rowCount || 0,
+          matchDetailSnapshots: matchDetailSnapshots.rowCount || 0,
+          teamProfileSnapshots: teamProfileSnapshots.rowCount || 0,
+          ingestRuns: ingestRuns.rowCount || 0
+        }
+      };
+
+      storeState.lastPruneAt = observedAt;
+      storeState.lastPruneError = null;
+      storeState.lastPruneResults = [result, ...storeState.lastPruneResults].slice(0, 12);
+
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
+      storeState.lastPruneError = error?.message || String(error);
+      return {
+        enabled: true,
+        pruned: false,
+        skipped: true,
+        reason: "prune_failed",
+        error: storeState.lastPruneError
+      };
+    } finally {
+      client.release();
+      storeState.prunePromise = null;
+    }
+  })();
+
+  return storeState.prunePromise;
 }
 
 export async function loadCanonicalMatchCollection({
@@ -616,6 +772,7 @@ export async function persistCanonicalMatchCollection({
   }
 
   if (previous?.hash === hash) {
+    await maybePruneCanonicalStore();
     return {
       enabled: true,
       persisted: false,
@@ -802,6 +959,7 @@ export async function persistCanonicalMatchCollection({
       result,
       ...storeState.lastPersistResults.filter((entry) => entry.surface !== normalizedSurface || entry.scope !== normalizedScope)
     ].slice(0, 12);
+    await maybePruneCanonicalStore();
 
     return result;
   } catch (error) {
@@ -862,6 +1020,7 @@ export async function persistCanonicalTeamProfile({
   const previous = storeState.profileHashes.get(profileKey);
 
   if (previous?.hash === hash) {
+    await maybePruneCanonicalStore();
     return {
       enabled: true,
       persisted: false,
@@ -1022,6 +1181,7 @@ export async function persistCanonicalTeamProfile({
         (entry) => entry.surface !== "team_profile" || entry.scope !== profileKey
       )
     ].slice(0, 12);
+    await maybePruneCanonicalStore();
 
     return result;
   } catch (error) {
@@ -1082,6 +1242,7 @@ export async function persistCanonicalMatchDetail({
   const previous = storeState.detailHashes.get(detailKey);
 
   if (previous?.hash === hash) {
+    await maybePruneCanonicalStore();
     return {
       enabled: true,
       persisted: false,
@@ -1242,6 +1403,7 @@ export async function persistCanonicalMatchDetail({
         (entry) => entry.surface !== "match_detail" || entry.scope !== detailKey
       )
     ].slice(0, 12);
+    await maybePruneCanonicalStore();
 
     return result;
   } catch (error) {
