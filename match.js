@@ -146,7 +146,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Upcoming Essentials": { icon: "UP", short: "Upcoming" },
   "Watch Guide": { icon: "TV", short: "Watch" },
   "Team Form": { icon: "FM", short: "Form" },
-  "Head-To-Head": { icon: "H2H", short: "H2H" },
+  "Head-to-Head": { icon: "H2H", short: "H2H" },
   "Prediction Model": { icon: "PR", short: "Prediction" },
   "Map Command": { icon: "CC", short: "Command" },
   "Game Command Center": { icon: "CC", short: "Command" },
@@ -182,7 +182,7 @@ const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
     "Watch Guide",
     "Prediction Model",
     "Team Form",
-    "Head-To-Head"
+    "Head-to-Head"
   ]),
   game: new Set(["Selected Game Recap", "Closing Stats", "Live Feed", "Player Board", "What Matters Now", "Risk Watch"])
 };
@@ -1698,20 +1698,13 @@ function selectedGameScoreContext(match) {
     }
   }
 
-  if (!leftSide) {
-    leftSide = "SIDE";
-  }
-  if (!rightSide) {
-    rightSide = "SIDE";
-  }
-
   return {
     number: selectedNumber > 0 ? selectedNumber : null,
     state: String(selected?.state || "unstarted"),
     leftKills,
     rightKills,
-    leftSide,
-    rightSide
+    leftSide: leftSide || null,
+    rightSide: rightSide || null
   };
 }
 
@@ -1821,7 +1814,11 @@ function renderScoreboard(match) {
     <article class="score-strip game-strip ${gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming"}">
       <a class="score-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
         ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
-        <span class="score-team-side ${gameContext.leftSide === "BLUE" ? "blue" : gameContext.leftSide === "RED" ? "red" : ""}">${gameContext.leftSide}</span>
+        ${
+          gameContext.leftSide
+            ? `<span class="score-team-side ${gameContext.leftSide === "BLUE" ? "blue" : gameContext.leftSide === "RED" ? "red" : ""}">${gameContext.leftSide}</span>`
+            : ""
+        }
         <span class="score-team-name">${leftDisplayName}</span>
       </a>
       <div class="score-center game-center">
@@ -1831,7 +1828,11 @@ function renderScoreboard(match) {
       </div>
       <a class="score-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
         ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
-        <span class="score-team-side ${gameContext.rightSide === "BLUE" ? "blue" : gameContext.rightSide === "RED" ? "red" : ""}">${gameContext.rightSide}</span>
+        ${
+          gameContext.rightSide
+            ? `<span class="score-team-side ${gameContext.rightSide === "BLUE" ? "blue" : gameContext.rightSide === "RED" ? "red" : ""}">${gameContext.rightSide}</span>`
+            : ""
+        }
         <span class="score-team-name">${rightDisplayName}</span>
       </a>
     </article>
@@ -8021,9 +8022,12 @@ function renderSeriesGames(match, apiBase) {
         labelNormalized !== "upcoming game" &&
         labelNormalized !== "live game." &&
         labelNormalized !== "live game";
-      const openAction = game.selected
-        ? `<span class="series-game-focused">${compact ? "Viewing" : "Viewing this game"}</span>`
-        : `<a class="series-game-open" href="${openGameHref}">${compact ? `Open G${game.number}` : `Open Game ${game.number}`}</a>`;
+      const openAction =
+        game.state === "unneeded"
+          ? `<span class="series-game-vod disabled">${compact ? "Not played" : "Game not played"}</span>`
+          : game.selected
+            ? `<span class="series-game-focused">${compact ? "Viewing" : "Viewing this game"}</span>`
+            : `<a class="series-game-open" href="${openGameHref}">${compact ? `Open G${game.number}` : `Open Game ${game.number}`}</a>`;
       const vodAction = game.watchUrl
         ? `<a class="series-game-vod" href="${game.watchUrl}" target="_blank" rel="noreferrer">${compact ? "VOD" : "Watch VOD"}</a>`
         : `<span class="series-game-vod disabled">No VOD</span>`;
@@ -8156,9 +8160,12 @@ function renderSeriesComparison(match, apiBase) {
       const watchLink = game.watchUrl
         ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>`
         : `<span class="meta-text">n/a</span>`;
-      const openText = game.selected
-        ? `<span class="meta-text strong">Focused</span>`
-        : `<a class="table-link" href="${openHref}">Open</a>`;
+      const openText =
+        game.state === "unneeded"
+          ? `<span class="meta-text">Not played</span>`
+          : game.selected
+            ? `<span class="meta-text strong">Focused</span>`
+            : `<a class="table-link" href="${openHref}">Open</a>`;
 
       if (compact) {
         return `
@@ -8172,7 +8179,13 @@ function renderSeriesComparison(match, apiBase) {
             <p class="meta-text"><strong>Sides:</strong> ${sideText}</p>
             <div class="series-compare-links">
               ${game.watchUrl ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>` : `<span class="meta-text">No VOD</span>`}
-              ${game.selected ? `<span class="meta-text strong">Focused</span>` : `<a class="table-link" href="${openHref}">Open</a>`}
+              ${
+                game.state === "unneeded"
+                  ? `<span class="meta-text">Not played</span>`
+                  : game.selected
+                    ? `<span class="meta-text strong">Focused</span>`
+                    : `<a class="table-link" href="${openHref}">Open</a>`
+              }
             </div>
           </article>
         `;
