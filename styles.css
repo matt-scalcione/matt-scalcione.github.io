@@ -4024,6 +4024,8 @@ button.ghost,
 
 .series-final-side.loser {
   opacity: 0.92;
+  border-color: rgba(84, 97, 113, 0.16);
+  background: linear-gradient(180deg, rgba(246, 248, 252, 0.98), rgba(236, 242, 248, 0.92));
 }
 
 .series-final-side.right {
@@ -4086,6 +4088,10 @@ button.ghost,
   border-color: rgba(22, 124, 78, 0.24);
   background: rgba(246, 255, 250, 0.96);
   color: #0f6d44;
+}
+
+.series-final-side.loser .series-final-side-label {
+  color: #5d6874;
 }
 
 .series-final-side.right .series-final-side-label {
@@ -8002,15 +8008,40 @@ button.ghost,
     gap: 0.5rem;
   }
 
+  .series-final-status-row {
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .series-final-stamp {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding-inline: 0.78rem;
+  }
+
   .series-final-scoreboard {
     grid-template-columns: 1fr;
-    gap: 0.54rem;
+    gap: 0.48rem;
   }
 
   .series-final-center {
-    order: -1;
+    order: 0;
     min-width: 0;
-    padding: 0 0 0.18rem;
+    padding: 0.08rem 0 0.04rem;
+    gap: 0.16rem;
+  }
+
+  .series-final-side.winner {
+    order: -1;
+    transform: none;
+  }
+
+  .series-final-side {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.34rem 0.62rem;
+    padding: 0.74rem 0.72rem;
   }
 
   .series-final-side,
@@ -8024,6 +8055,24 @@ button.ghost,
 
   .series-final-side.right .series-final-side-label {
     justify-self: start;
+  }
+
+  .series-final-side-head {
+    gap: 0.52rem;
+  }
+
+  .series-final-side-score {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 2.1rem;
+  }
+
+  .series-final-side-label {
+    grid-column: 1;
+    min-height: 1.32rem;
+    padding-inline: 0.42rem;
+    font-size: 0.56rem;
   }
 
   .series-context-team {
@@ -8045,21 +8094,29 @@ button.ghost,
   }
 
   .series-final-side .team-badge {
-    width: 2.18rem;
-    height: 2.18rem;
-    font-size: 0.72rem;
+    width: 2.26rem;
+    height: 2.26rem;
+    font-size: 0.74rem;
   }
 
   .series-final-side-name {
-    font-size: 0.82rem;
-  }
-
-  .series-final-side-score {
-    font-size: 1.7rem;
+    font-size: 0.88rem;
   }
 
   .series-final-center-score {
-    font-size: 2rem;
+    font-size: 1.72rem;
+  }
+
+  .series-final-center-copy {
+    font-size: 0.78rem;
+  }
+
+  .series-final-center-meta {
+    font-size: 0.65rem;
+  }
+
+  .series-final-center-mark {
+    font-size: 0.54rem;
   }
 
   .upcoming-grid,

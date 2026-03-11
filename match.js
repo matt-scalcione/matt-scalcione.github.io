@@ -3122,7 +3122,7 @@ function renderGameExplorer(match, apiBase) {
                   <span class="series-final-side-name">${scoreboardTeamName(match.teams.left.name)}</span>
                 </div>
                 <strong class="series-final-side-score">${match.seriesScore.left}</strong>
-                <span class="series-final-side-label">${leftWinner ? "Winner" : "Finalist"}</span>
+                <span class="series-final-side-label">${leftWinner ? "Winner" : "Defeated"}</span>
               </div>
               <div class="series-final-center">
                 <span class="series-final-center-mark">Series closed</span>
@@ -3136,7 +3136,7 @@ function renderGameExplorer(match, apiBase) {
                   <span class="series-final-side-name">${scoreboardTeamName(match.teams.right.name)}</span>
                 </div>
                 <strong class="series-final-side-score">${match.seriesScore.right}</strong>
-                <span class="series-final-side-label">${rightWinner ? "Winner" : "Finalist"}</span>
+                <span class="series-final-side-label">${rightWinner ? "Winner" : "Defeated"}</span>
               </div>
             </div>
           </article>
