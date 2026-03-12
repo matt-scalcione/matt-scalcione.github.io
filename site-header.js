@@ -5,7 +5,6 @@
   }
 
   const HIDE_SCROLL_Y = 72;
-  const SHOW_DELTA_Y = 10;
   const TOP_SHOW_Y = 8;
   let lastY = Math.max(window.scrollY || 0, 0);
   let ticking = false;
@@ -28,8 +27,6 @@
       applyHidden(false);
     } else if (currentY > lastY && currentY > HIDE_SCROLL_Y) {
       applyHidden(true);
-    } else if (lastY - currentY >= SHOW_DELTA_Y) {
-      applyHidden(false);
     }
 
     lastY = currentY;
