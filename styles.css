@@ -20816,6 +20816,34 @@ body.product-shell.match-page #gameSnapshotPanel .command-card .meta-text {
   color: #aab6c4;
 }
 
+body.product-shell.match-page #gameSnapshotPanel .command-grid.compact {
+  gap: 0.34rem;
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card.compact {
+  gap: 0.1rem;
+  padding: 0.54rem 0.58rem;
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card.compact .tempo-label {
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card.compact .tempo-value {
+  font-size: 0.82rem;
+  line-height: 1.14;
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card.compact .meta-text {
+  font-size: 0.68rem;
+  line-height: 1.24;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 @media (max-width: 980px) {
   body.product-shell.match-page .game-overview-hero {
     grid-template-columns: 1fr;
@@ -20934,6 +20962,11 @@ body.product-shell.match-page #gameSnapshotPanel .command-card .meta-text {
 
   body.product-shell.match-page #gameOverviewPanel .recap-grid.compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.product-shell.match-page #gameSnapshotPanel .command-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.28rem;
   }
 }
 
@@ -21100,16 +21133,62 @@ body.product-shell.match-page .game-feed-desk-note {
   line-height: 1.36;
 }
 
+body.product-shell.match-page .game-feed-desk-shell.compact .game-feed-desk-note,
+body.product-shell.match-page .timeline-desk-shell.compact .game-feed-desk-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 body.product-shell.match-page .game-feed-desk-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.54rem;
 }
 
+body.product-shell.match-page .game-feed-desk-shell.compact {
+  gap: 0.42rem;
+}
+
+body.product-shell.match-page .game-feed-desk-grid.compact {
+  gap: 0.32rem;
+}
+
 body.product-shell.match-page .game-feed-desk-card {
   display: grid;
   gap: 0.14rem;
   padding: 0.62rem 0.66rem;
+}
+
+body.product-shell.match-page .game-feed-desk-hero.compact {
+  gap: 0.28rem;
+  padding: 0.62rem 0.68rem;
+}
+
+body.product-shell.match-page .game-feed-desk-card.compact {
+  gap: 0.1rem;
+  padding: 0.5rem 0.54rem;
+}
+
+body.product-shell.match-page .game-feed-desk-card.compact .tempo-label,
+body.product-shell.match-page .match-desk-mini-card.compact .match-desk-mini-label {
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+}
+
+body.product-shell.match-page .game-feed-desk-card.compact .game-feed-desk-value,
+body.product-shell.match-page .match-desk-mini-card.compact .match-desk-mini-value {
+  font-size: 0.8rem;
+  line-height: 1.14;
+}
+
+body.product-shell.match-page .game-feed-desk-card.compact .meta-text,
+body.product-shell.match-page .match-desk-mini-card.compact .match-desk-mini-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 body.product-shell.match-page .game-feed-desk-card.live,
@@ -21145,6 +21224,11 @@ body.product-shell.match-page .match-desk-mini-grid {
   gap: 0.58rem;
 }
 
+body.product-shell.match-page .timeline-desk-shell.compact,
+body.product-shell.match-page .match-desk-mini-grid.compact {
+  gap: 0.38rem;
+}
+
 body.product-shell.match-page .match-desk-mini-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
@@ -21175,6 +21259,11 @@ body.product-shell.match-page .timeline-desk-hero {
   padding: 0.76rem 0.8rem;
 }
 
+body.product-shell.match-page .timeline-desk-hero.compact {
+  gap: 0.28rem;
+  padding: 0.62rem 0.68rem;
+}
+
 body.product-shell.match-page .game-alert-desk-copy,
 body.product-shell.match-page .timeline-desk-copy {
   display: grid;
@@ -21195,6 +21284,11 @@ body.product-shell.match-page .match-desk-mini-card {
   display: grid;
   gap: 0.14rem;
   padding: 0.62rem 0.66rem;
+}
+
+body.product-shell.match-page .match-desk-mini-card.compact {
+  gap: 0.1rem;
+  padding: 0.5rem 0.54rem;
 }
 
 body.product-shell.match-page .match-desk-mini-label {
@@ -21893,6 +21987,20 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
     gap: 0.34rem;
   }
 
+  body.product-shell.match-page .game-feed-desk-shell.compact {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page .game-feed-desk-hero.compact,
+  body.product-shell.match-page .timeline-desk-hero.compact {
+    padding: 0.56rem 0.6rem;
+  }
+
+  body.product-shell.match-page .game-feed-desk-grid.compact,
+  body.product-shell.match-page .match-desk-mini-grid.compact {
+    gap: 0.28rem;
+  }
+
   body.product-shell.match-page .game-feed-desk-note,
   body.product-shell.match-page .match-desk-mini-meta,
   body.product-shell.match-page .signal-log-item .meta-text,
@@ -21922,6 +22030,19 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   body.product-shell.match-page #gameMomentsPanel .signal-log-item,
   body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card {
     padding: 0.58rem 0.6rem;
+  }
+
+  body.product-shell.match-page #gameSnapshotPanel .command-card.compact,
+  body.product-shell.match-page .game-feed-desk-card.compact,
+  body.product-shell.match-page .match-desk-mini-card.compact {
+    padding: 0.46rem 0.5rem;
+  }
+
+  body.product-shell.match-page #gameSnapshotPanel .command-card.compact .meta-text,
+  body.product-shell.match-page .game-feed-desk-card.compact .meta-text,
+  body.product-shell.match-page .match-desk-mini-card.compact .match-desk-mini-meta {
+    font-size: 0.66rem;
+    line-height: 1.2;
   }
 
   body.product-shell.match-page .trend-card {
@@ -21962,5 +22083,24 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   body.product-shell.match-page .objective-timeline-time,
   body.product-shell.match-page #gameAlertsPanel .live-alert-index {
     font-size: 0.62rem;
+  }
+
+  body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item {
+    gap: 0.26rem;
+  }
+
+  body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-headline strong,
+  body.product-shell.match-page #gameTickerPanel .signal-log-headline strong,
+  body.product-shell.match-page #gameSignalsPanel .signal-log-headline strong,
+  body.product-shell.match-page #gameMomentsPanel .signal-log-headline strong {
+    font-size: 0.8rem;
+    line-height: 1.14;
+  }
+
+  body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-meta,
+  body.product-shell.match-page #gameTickerPanel .signal-log-meta,
+  body.product-shell.match-page #gameSignalsPanel .signal-log-meta,
+  body.product-shell.match-page #gameMomentsPanel .signal-log-meta {
+    gap: 0.24rem;
   }
 }

@@ -5640,8 +5640,9 @@ function applyUpcomingPanelVisibility(match) {
 function commandCard(label, value, hint, options = {}) {
   const tone = String(options.tone || "neutral").toLowerCase();
   const featuredClass = options.featured ? " featured" : "";
+  const compactClass = options.compact ? " compact" : "";
   return `
-    <article class="command-card ${tone}${featuredClass}">
+    <article class="command-card ${tone}${featuredClass}${compactClass}">
       <p class="tempo-label">${label}</p>
       <p class="tempo-value">${value}</p>
       ${hint ? `<p class="meta-text">${hint}</p>` : ""}
@@ -5945,10 +5946,13 @@ function renderLiveFollowSummary(match, rows, timelineAnchor, activeEventId) {
 function renderGameCommandCenter(match) {
   const selected = match.selectedGame;
   if (!selected) {
+    elements.gameCommandWrap?.classList.remove("compact");
     elements.gameCommandWrap.innerHTML = `<div class="empty">Game command metrics unavailable.</div>`;
     return;
   }
 
+  const compact = isCompactUI();
+  elements.gameCommandWrap?.classList.toggle("compact", compact);
   const gameKey = normalizeGameKey(match?.game);
   const isDota = gameKey === "dota2";
   const leftName = match.teams?.left?.name || "Left Team";
@@ -5997,6 +6001,9 @@ function renderGameCommandCenter(match) {
       ? `${formatFocusedEventClock(latestEvent, liveContext.timelineAnchor)} · ${latestEvent.phase.label} · ${latestEvent.leadDescriptor.label}`
       : "Waiting for timeline events.";
   const mapStateLabel = readableGameStateLabel(selected.state);
+  const shortHint = (value, limit = 62) => compact ? clampSummaryText(value, limit) : value;
+  const createCommandCard = (label, value, hint, options = {}) =>
+    commandCard(label, value, shortHint(hint), { ...options, compact });
 
   if (selected.state === "inProgress" && telemetryMode !== "rich") {
     const sideSummary = Array.isArray(selected?.sideSummary) && selected.sideSummary.length
@@ -6060,75 +6067,166 @@ function renderGameCommandCenter(match) {
         ? `${headToHead.total || headToHead.matches} recent meeting${Number(headToHead.total || headToHead.matches) === 1 ? "" : "s"}`
         : "Direct series history is limited.";
 
-    elements.gameCommandWrap.innerHTML = [
-      commandCard("Current State", liveConfirmedLabel, `Game ${selected.number} · ${mapStateLabel} · ${telemetryMode.toUpperCase()} telemetry`, {
-        tone: "live",
-        featured: true
-      }),
-      commandCard("Series", seriesLabel, seriesHint, {
-        tone: "neutral"
-      }),
-      commandCard("Watch", watchLabel, watchHint, {
-        tone: selected.watchUrl ? "live" : "neutral"
-      }),
-      commandCard("Form", formLabel, formHint, {
-        tone: leftForm || rightForm ? "neutral" : "warn"
-      }),
-      commandCard("Matchup Edge", modelLabel, modelHint, {
-        tone: !neutralPrediction ? "warn" : "neutral"
-      }),
-      commandCard(isDota ? "Objectives" : "Head-to-Head", isDota ? objectiveRaceLabel : h2hLabel, isDota ? objectiveRaceHint : h2hHint, {
-        tone:
-          isDota
-            ? leftTowers + rightTowers + leftBase + rightBase + leftEpic + rightEpic > 0
-              ? "neutral"
-              : "warn"
-            : headToHead && Number(headToHead.total || headToHead.matches || 0) > 0
-              ? "neutral"
-              : "warn"
-      }),
-      commandCard("Coverage", liveClock, `${clockHint} · ${coverageHint} · ${sideSummary}`, {
-        tone: telemetryMode === "pending" ? "warn" : "neutral"
-      })
-    ].join("");
+    const cards = [
+      {
+        key: "state",
+        markup: createCommandCard(
+          compact ? "State" : "Current State",
+          liveConfirmedLabel,
+          compact ? `G${selected.number} · ${mapStateLabel}` : `Game ${selected.number} · ${mapStateLabel} · ${telemetryMode.toUpperCase()} telemetry`,
+          {
+            tone: "live",
+            featured: true
+          }
+        )
+      },
+      {
+        key: "series",
+        markup: createCommandCard("Series", seriesLabel, compact ? `BO${match?.bestOf || 1} · ${match?.tournament || "Dota 2"}` : seriesHint, {
+          tone: "neutral"
+        })
+      },
+      {
+        key: "watch",
+        markup: createCommandCard(
+          "Watch",
+          watchLabel,
+          compact
+            ? selected.watchUrl
+              ? `${watchGuide.venue || "Stage"} · ${watchGuide.language || "Global"}`
+              : "Stream link pending"
+            : watchHint,
+          {
+            tone: selected.watchUrl ? "live" : "neutral"
+          }
+        )
+      },
+      {
+        key: "form",
+        markup: createCommandCard("Form", formLabel, formHint, {
+          tone: leftForm || rightForm ? "neutral" : "warn"
+        })
+      },
+      {
+        key: "edge",
+        markup: createCommandCard(compact ? "Edge" : "Matchup Edge", modelLabel, modelHint, {
+          tone: !neutralPrediction ? "warn" : "neutral"
+        })
+      },
+      {
+        key: "history",
+        markup: createCommandCard(isDota ? "Objectives" : "Head-to-Head", isDota ? objectiveRaceLabel : h2hLabel, isDota ? objectiveRaceHint : h2hHint, {
+          tone:
+            isDota
+              ? leftTowers + rightTowers + leftBase + rightBase + leftEpic + rightEpic > 0
+                ? "neutral"
+                : "warn"
+              : headToHead && Number(headToHead.total || headToHead.matches || 0) > 0
+                ? "neutral"
+                : "warn"
+        })
+      },
+      {
+        key: "coverage",
+        markup: createCommandCard(
+          "Coverage",
+          liveClock,
+          compact ? `${tickerEvents} signal${tickerEvents === 1 ? "" : "s"} · ${sideSummary}` : `${clockHint} · ${coverageHint} · ${sideSummary}`,
+          {
+            tone: telemetryMode === "pending" ? "warn" : "neutral"
+          }
+        )
+      }
+    ];
+    const compactKeys = selected.watchUrl ? ["state", "series", "watch", "coverage"] : ["state", "series", "edge", "coverage"];
+    elements.gameCommandWrap.innerHTML = cards
+      .filter((card) => !compact || compactKeys.includes(card.key))
+      .map((card) => card.markup)
+      .join("");
     return;
   }
 
-  elements.gameCommandWrap.innerHTML = [
-    commandCard(
-      "Live Focus",
-      latestEventLabel,
-      latestEventHint,
-      { tone: latestEvent?.leadDescriptor?.tone || "neutral", featured: true }
-    ),
-    commandCard("Map State", mapStateLabel, `Game ${selected.number} · ${selected.telemetryStatus || "none"} telemetry`, {
-      tone: selected.state === "inProgress" ? "live" : selected.state === "completed" ? "neutral" : "warn"
-    }),
-    commandCard("Clock", liveClock, `Refresh ${refreshSeconds}s · ${tickerEvents} feed signals`, { tone: "neutral" }),
-    commandCard("Kills", `${leftKills}-${rightKills}`, `${killPace} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`, {
-      tone: totalKills >= 18 ? "warn" : "neutral"
-    }),
-    commandCard(isDota ? "Objectives" : "Map Race", objectiveRaceLabel, objectiveRaceHint, {
-      tone: leftTowers + rightTowers + leftBase + rightBase + leftEpic + rightEpic > 0 ? "neutral" : "warn"
-    }),
-    commandCard("Next Objective", objectiveLabel, objectiveHint, {
-      tone: nextObjective?.state === "available" ? "live" : "warn"
-    }),
-    commandCard("Fight State", fightLabel, fightHint, {
-      tone: pulse ? "warn" : deaths.left + deaths.right > 0 ? "neutral" : "live"
-    }),
-    commandCard("Players Down", `${deaths.left}-${deaths.right}`, `${displayTeamName(leftName)} · ${displayTeamName(rightName)}`, {
-      tone: deaths.left + deaths.right >= 2 ? "warn" : "neutral"
-    }),
-    commandCard(
-      isDota ? "Telemetry" : "Throughput",
-      `${objectiveEvents} obj · ${bursts} bursts`,
-      `${milestones} milestones tracked this map`,
-      {
-        tone: bursts >= 2 ? "warn" : "neutral"
-      }
-    )
-  ].join("");
+  const richCards = [
+    {
+      key: "focus",
+      markup: createCommandCard(
+        compact ? "Focus" : "Live Focus",
+        latestEventLabel,
+        compact
+          ? latestEvent
+            ? `${formatFocusedEventClock(latestEvent, liveContext.timelineAnchor)} · ${latestEvent.phase.label}`
+            : `Map ${mapStateLabel.toLowerCase()}`
+          : latestEventHint,
+        { tone: latestEvent?.leadDescriptor?.tone || "neutral", featured: true }
+      )
+    },
+    {
+      key: "state",
+      markup: createCommandCard(compact ? "State" : "Map State", mapStateLabel, compact
+        ? `G${selected.number} · ${selected.telemetryStatus || "none"}`
+        : `Game ${selected.number} · ${selected.telemetryStatus || "none"} telemetry`, {
+        tone: selected.state === "inProgress" ? "live" : selected.state === "completed" ? "neutral" : "warn"
+      })
+    },
+    {
+      key: "clock",
+      markup: createCommandCard("Clock", liveClock, compact ? `${tickerEvents} signal${tickerEvents === 1 ? "" : "s"}` : `Refresh ${refreshSeconds}s · ${tickerEvents} feed signals`, {
+        tone: "neutral"
+      })
+    },
+    {
+      key: "kills",
+      markup: createCommandCard("Kills", `${leftKills}-${rightKills}`, compact
+        ? `${killPace} · ${scoreboardTeamName(leftName)} / ${scoreboardTeamName(rightName)}`
+        : `${killPace} · ${displayTeamName(leftName)} vs ${displayTeamName(rightName)}`, {
+        tone: totalKills >= 18 ? "warn" : "neutral"
+      })
+    },
+    {
+      key: "objectives",
+      markup: createCommandCard(isDota ? "Objectives" : "Map Race", objectiveRaceLabel, objectiveRaceHint, {
+        tone: leftTowers + rightTowers + leftBase + rightBase + leftEpic + rightEpic > 0 ? "neutral" : "warn"
+      })
+    },
+    {
+      key: "next",
+      markup: createCommandCard(compact ? "Next" : "Next Objective", objectiveLabel, objectiveHint, {
+        tone: nextObjective?.state === "available" ? "live" : "warn"
+      })
+    },
+    {
+      key: "fight",
+      markup: createCommandCard(compact ? "Pressure" : "Fight State", fightLabel, fightHint, {
+        tone: pulse ? "warn" : deaths.left + deaths.right > 0 ? "neutral" : "live"
+      })
+    },
+    {
+      key: "down",
+      markup: createCommandCard(compact ? "Down" : "Players Down", `${deaths.left}-${deaths.right}`, `${displayTeamName(leftName)} · ${displayTeamName(rightName)}`, {
+        tone: deaths.left + deaths.right >= 2 ? "warn" : "neutral"
+      })
+    },
+    {
+      key: "feed",
+      markup: createCommandCard(
+        compact ? (isDota ? "Feed" : "Throughput") : isDota ? "Telemetry" : "Throughput",
+        `${objectiveEvents} obj · ${bursts} bursts`,
+        `${milestones} milestones tracked this map`,
+        {
+          tone: bursts >= 2 ? "warn" : "neutral"
+        }
+      )
+    }
+  ];
+  const compactKeys = selected.state === "completed"
+    ? ["focus", "kills", "objectives", "state"]
+    : selected.state === "inProgress"
+      ? ["focus", "kills", "objectives", "next"]
+      : ["focus", "state", "clock", "objectives"];
+  elements.gameCommandWrap.innerHTML = richCards
+    .filter((card) => !compact || compactKeys.includes(card.key))
+    .map((card) => card.markup)
+    .join("");
 }
 
 function toMetricNumber(value) {
@@ -7493,9 +7591,10 @@ function setStoryFocusEvent(eventId, options = {}) {
   }
 }
 
-function gameFeedDeskCard(label, value, note = null, tone = "neutral") {
+function gameFeedDeskCard(label, value, note = null, tone = "neutral", options = {}) {
+  const compactClass = options.compact ? " compact" : "";
   return `
-    <article class="game-feed-desk-card ${tone}">
+    <article class="game-feed-desk-card ${tone}${compactClass}">
       <p class="tempo-label">${escapeHtml(label)}</p>
       <p class="game-feed-desk-value">${escapeHtml(value)}</p>
       ${note ? `<p class="meta-text">${escapeHtml(note)}</p>` : ""}
@@ -7516,6 +7615,7 @@ function renderGameFeedDesk(match) {
 
   const selectedState = String(selected?.state || "");
   const stateClass = selectedState === "inProgress" ? "live" : selectedState === "completed" ? "complete" : "upcoming";
+  const compact = isCompactUI();
   const feedRows = buildUnifiedFeed(match);
   const totalEvents = feedRows.length;
   const alerts = buildLiveAlerts(match);
@@ -7525,17 +7625,19 @@ function renderGameFeedDesk(match) {
   let title = `Game ${selected.number} live desk`;
   let note = "Waiting for the next tracked event.";
   let cards = [];
+  const createDeskCard = (label, value, copy = null, tone = "neutral") =>
+    gameFeedDeskCard(label, value, compact ? clampSummaryText(copy, 54) : copy, tone, { compact });
 
   if (selectedState === "completed") {
     const story = buildCompletedGameStory(match);
     title = story?.headline || `Game ${selected.number} final story`;
     note = story?.summary || "Completed map story built from the captured event log.";
     cards = [
-      gameFeedDeskCard("Turning Point", story?.turningPointLabel || "n/a", story?.turningPointNote || "No decisive event captured.", "neutral"),
-      gameFeedDeskCard("Peak Lead", story?.peakLeadLabel || "n/a", story?.peakLeadNote || "Lead data unavailable.", "neutral"),
-      gameFeedDeskCard("Events", String(totalEvents), latestEventTime ? `Latest at ${latestEventTime}` : "No event timestamps.", "neutral"),
-      gameFeedDeskCard(
-        "Alerts",
+      createDeskCard(compact ? "Turn" : "Turning Point", story?.turningPointLabel || "n/a", story?.turningPointNote || "No decisive event captured.", "neutral"),
+      createDeskCard(compact ? "Peak" : "Peak Lead", story?.peakLeadLabel || "n/a", story?.peakLeadNote || "Lead data unavailable.", "neutral"),
+      createDeskCard("Events", String(totalEvents), latestEventTime ? `Latest ${latestEventTime}` : "No event timestamps.", "neutral"),
+      createDeskCard(
+        compact ? "Alert" : "Alerts",
         priorityAlert?.title || "Stable",
         priorityAlert?.summary || "No major pressure alerts recorded.",
         priorityAlert && importanceRank(priorityAlert.importance) >= importanceRank("high") ? "warn" : "neutral"
@@ -7552,14 +7654,14 @@ function renderGameFeedDesk(match) {
       ? `${focusClock} · ${focusedRow.phase.label} · ${leadDescriptor.label}`
       : "Live desk watching for the first major event.";
     cards = [
-      gameFeedDeskCard(
-        "Focus",
+      createDeskCard(
+        compact ? "Now" : "Focus",
         focusedRow?.bucket ? feedBucketLabel(focusedRow.bucket) : "Watching",
         focusedRow?.summary && feedHasUsefulSummary(focusedRow) ? clampSummaryText(focusedRow.summary, 84) : note,
         focusedRow?.leadDescriptor?.tone || "neutral"
       ),
-      gameFeedDeskCard(
-        "Next Objective",
+      createDeskCard(
+        compact ? "Next" : "Next Objective",
         nextObjective ? displayObjectiveName(nextObjective.type, match) : "Forecast waiting",
         nextObjective
           ? `${nextObjective.state === "available" ? "Available now" : `ETA ${objectiveEtaLabel(nextObjective)}`}${
@@ -7568,13 +7670,13 @@ function renderGameFeedDesk(match) {
           : "Timer windows appear once cadence is established.",
         nextObjective?.state === "available" ? "live" : "neutral"
       ),
-      gameFeedDeskCard(
+      createDeskCard(
         "Alert",
         priorityAlert?.title || "Stable state",
         priorityAlert?.summary || "No major pressure alerts right now.",
         priorityAlert?.importance === "critical" ? "critical" : priorityAlert?.importance === "high" ? "warn" : "neutral"
       ),
-      gameFeedDeskCard("Events", String(totalEvents), latestEventTime ? `Latest at ${latestEventTime}` : "No event timestamps yet.", "neutral")
+      createDeskCard("Events", String(totalEvents), latestEventTime ? `Latest ${latestEventTime}` : "No event timestamps yet.", "neutral")
     ];
   } else {
     const draftPreview = inferDraftPreview(match);
@@ -7583,33 +7685,36 @@ function renderGameFeedDesk(match) {
     title = draftPreview?.headline || `Game ${selected.number} not live yet`;
     note = draftPreview?.summary || "Feed will open once the map starts and events begin to land.";
     cards = [
-      gameFeedDeskCard("State", draftPreview?.label || stateLabel(selectedState), draftPreview?.detail || "Waiting for map start.", "neutral"),
-      gameFeedDeskCard(
-        "Start",
+      createDeskCard("State", draftPreview?.label || stateLabel(selectedState), draftPreview?.detail || "Waiting for map start.", "neutral"),
+      createDeskCard(
+        compact ? "ETA" : "Start",
         estimatedStart ? (isCompactUI() ? dateTimeCompact(estimatedStart) : dateTimeLabel(estimatedStart)) : "TBD",
         estimatedStart ? "Projected map start." : "Start time not projected yet.",
         "neutral"
       ),
-      gameFeedDeskCard("Watch", watchLabel, selected.watchUrl ? "Primary stream or VOD link is available." : "Link appears once coverage is published.", selected.watchUrl ? "live" : "neutral"),
-      gameFeedDeskCard("Events", String(totalEvents), "Feed is still empty before first tracked events.", "neutral")
+      createDeskCard("Watch", watchLabel, selected.watchUrl ? "Primary stream or VOD link is available." : "Link appears once coverage is published.", selected.watchUrl ? "live" : "neutral"),
+      createDeskCard("Events", String(totalEvents), "Feed is still empty before first tracked events.", "neutral")
     ];
   }
 
+  const compactStateLabel = selectedState === "inProgress" ? "Live" : selectedState === "completed" ? "Final" : "Soon";
+  const summaryPills = compact
+    ? [`G${selected.number}`, compactStateLabel, `${totalEvents} ev`]
+    : [`Game ${selected.number}`, stateLabel(selectedState), `${totalEvents} event${totalEvents === 1 ? "" : "s"}`];
+
   elements.gameFeedDeskWrap.innerHTML = `
-    <div class="game-feed-desk-shell ${stateClass}">
-      <article class="game-feed-desk-hero">
+    <div class="game-feed-desk-shell ${stateClass}${compact ? " compact" : ""}">
+      <article class="game-feed-desk-hero${compact ? " compact" : ""}">
         <div class="game-feed-desk-copy">
           <p class="tempo-label">Feed desk</p>
-          <h3>${escapeHtml(title)}</h3>
-          <p class="game-feed-desk-note">${escapeHtml(note)}</p>
+          <h3>${escapeHtml(compact ? clampSummaryText(title, 58) : title)}</h3>
+          <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(note, 92) : note)}</p>
         </div>
-        <div class="form-summary-strip">
-          <span class="form-summary-pill">Game ${selected.number}</span>
-          <span class="form-summary-pill">${escapeHtml(stateLabel(selectedState))}</span>
-          <span class="form-summary-pill">${totalEvents} event${totalEvents === 1 ? "" : "s"}</span>
+        <div class="form-summary-strip${compact ? " compact" : ""}">
+          ${summaryPills.map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`).join("")}
         </div>
       </article>
-      <div class="game-feed-desk-grid">
+      <div class="game-feed-desk-grid${compact ? " compact" : ""}">
         ${cards.join("")}
       </div>
     </div>
@@ -11872,9 +11977,10 @@ function importanceToneClass(importance) {
   return "neutral";
 }
 
-function metricDeskCard(label, value, meta, tone = "neutral") {
+function metricDeskCard(label, value, meta, tone = "neutral", options = {}) {
+  const compactClass = options.compact ? " compact" : "";
   return `
-    <article class="match-desk-mini-card ${tone}">
+    <article class="match-desk-mini-card ${tone}${compactClass}">
       <p class="match-desk-mini-label">${escapeHtml(label)}</p>
       <p class="match-desk-mini-value">${escapeHtml(value)}</p>
       <p class="match-desk-mini-meta">${escapeHtml(meta)}</p>
@@ -12173,32 +12279,44 @@ function renderLiveAlerts(match) {
 function renderObjectiveTimeline(rows, status, match) {
   const nextObjective = nextObjectiveWindow(match);
   if (elements.objectiveTimelineDeskWrap) {
+    const compact = isCompactUI();
     const latest = rows[0] || null;
     const latestTone = latest ? objectiveTimelineTone(latest, match) : "neutral";
+    const latestLabel = latest?.label || (status === "live" ? "Waiting for the next objective change" : "Objective desk is idle");
+    const deskNote = latest
+      ? `${objectiveTimelineKindLabel(latest)} captured at ${eventClockLabel(match, latest.at)}.`
+      : status === "live"
+        ? "Major objective swings will appear here as soon as the map state changes."
+        : "Objective desk becomes active once the game begins.";
+    const pills = compact
+      ? [
+          `${rows.length} obj`,
+          nextObjective ? `Next ${objectiveEtaLabel(nextObjective)}` : latest ? objectiveTimelineKindLabel(latest) : "Waiting"
+        ]
+      : [
+          `${rows.length} event${rows.length === 1 ? "" : "s"}`,
+          latest ? objectiveTimelineKindLabel(latest) : "Waiting",
+          nextObjective ? `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}` : "No forecast"
+        ];
+    const deskCards = [
+      metricDeskCard("Latest", latest ? eventClockLabel(match, latest.at) : "--:--", latest ? "Most recent swing in this map." : "No objective swings yet.", latestTone, { compact }),
+      metricDeskCard(compact ? "Next" : "Next window", nextObjective ? objectiveEtaLabel(nextObjective) : "n/a", nextObjective ? displayObjectiveName(nextObjective.type, match) : "No forecast available yet.", nextObjective?.state === "available" ? "live" : "neutral", { compact }),
+      metricDeskCard("State", status === "live" ? "Tracking" : "Waiting", status === "live" ? "Objective cadence is being monitored now." : "Timeline updates appear during active games.", status === "live" ? "live" : "neutral", { compact })
+    ];
     elements.objectiveTimelineDeskWrap.innerHTML = `
-      <div class="timeline-desk-shell ${latestTone}">
-        <article class="timeline-desk-hero">
+      <div class="timeline-desk-shell ${latestTone}${compact ? " compact" : ""}">
+        <article class="timeline-desk-hero${compact ? " compact" : ""}">
           <div class="timeline-desk-copy">
             <p class="tempo-label">Objective desk</p>
-            <h3>${escapeHtml(latest?.label || (status === "live" ? "Waiting for the next objective change" : "Objective desk is idle"))}</h3>
-            <p class="game-feed-desk-note">${escapeHtml(
-              latest
-                ? `${objectiveTimelineKindLabel(latest)} captured at ${eventClockLabel(match, latest.at)}.`
-                : status === "live"
-                  ? "Major objective swings will appear here as soon as the map state changes."
-                  : "Objective desk becomes active once the game begins."
-            )}</p>
+            <h3>${escapeHtml(compact ? clampSummaryText(latestLabel, 56) : latestLabel)}</h3>
+            <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(deskNote, 82) : deskNote)}</p>
           </div>
-          <div class="form-summary-strip">
-            <span class="form-summary-pill">${rows.length} event${rows.length === 1 ? "" : "s"}</span>
-            <span class="form-summary-pill">${latest ? objectiveTimelineKindLabel(latest) : "Waiting"}</span>
-            <span class="form-summary-pill">${nextObjective ? `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}` : "No forecast"}</span>
+          <div class="form-summary-strip${compact ? " compact" : ""}">
+            ${pills.map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`).join("")}
           </div>
         </article>
-        <div class="match-desk-mini-grid">
-          ${metricDeskCard("Latest", latest ? eventClockLabel(match, latest.at) : "--:--", latest ? "Most recent swing in this map." : "No objective swings yet.", latestTone)}
-          ${metricDeskCard("Next window", nextObjective ? objectiveEtaLabel(nextObjective) : "n/a", nextObjective ? displayObjectiveName(nextObjective.type, match) : "No forecast available yet.", nextObjective?.state === "available" ? "live" : "neutral")}
-          ${metricDeskCard("State", status === "live" ? "Tracking" : "Waiting", status === "live" ? "Objective cadence is being monitored now." : "Timeline updates appear during active games.", status === "live" ? "live" : "neutral")}
+        <div class="match-desk-mini-grid${compact ? " compact" : ""}">
+          ${deskCards.filter((_, index) => !compact || index < 2).join("")}
         </div>
       </div>
     `;
