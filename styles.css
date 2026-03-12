@@ -16261,3 +16261,80 @@ body.product-shell.hub-page .table-link {
     line-height: 1.28;
   }
 }
+
+@media (max-width: 760px) {
+  body.product-shell .hero {
+    position: static;
+    box-shadow: none;
+    backdrop-filter: none;
+    border-bottom: 0;
+    padding-bottom: 0.06rem;
+  }
+
+  body.product-shell .hero-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell .hero-action-row .link-btn.ghost {
+    display: none;
+  }
+
+  body.product-shell.schedule-page .mobile-segment,
+  body.product-shell.schedule-page .mobile-page-jump,
+  body.product-shell.follows-page #followsQuickJump,
+  body.product-shell.hub-page #hubQuickJump,
+  body.product-shell.team-page #teamQuickJump,
+  body.product-shell.match-page .mobile-mode-toolbar,
+  body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
+    position: static;
+    top: auto;
+    z-index: auto;
+    margin: 0 0 0.38rem;
+    padding: 0.16rem;
+    border-radius: 10px;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  body.product-shell.schedule-page .mobile-page-jump,
+  body.product-shell.follows-page #followsQuickJump,
+  body.product-shell.hub-page #hubQuickJump,
+  body.product-shell.team-page #teamQuickJump {
+    padding-inline: 0.16rem;
+  }
+
+  body.product-shell.match-page .mobile-mode-toolbar,
+  body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
+    margin-top: 0;
+  }
+
+  .mobile-tabbar {
+    left: 0.44rem;
+    right: 0.44rem;
+    bottom: calc(0.44rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.18rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 14px rgba(9, 12, 17, 0.12);
+  }
+
+  .mobile-tab {
+    gap: 0.08rem;
+    padding: 0.28rem 0.14rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+  }
+
+  .mobile-tab-icon {
+    width: 1.16rem;
+    height: 1.16rem;
+  }
+
+  body.product-shell.live-page .live-desk,
+  body.product-shell.schedule-page .layout,
+  body.product-shell.follows-page .layout,
+  body.product-shell.hub-page .layout.detail,
+  body.product-shell.team-page .layout.detail,
+  body.product-shell.match-page .layout.detail {
+    gap: 0.38rem;
+  }
+}
