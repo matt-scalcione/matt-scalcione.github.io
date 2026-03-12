@@ -1332,10 +1332,24 @@ function feedWindowSummaryLabel(value) {
   return "All time";
 }
 
+function compactFeedControlsSummary(match = uiState.match) {
+  const parts = [
+    feedTypeSummaryLabel(uiState.feedType),
+    feedTeamSummaryLabel(match, uiState.feedTeam),
+    feedWindowSummaryLabel(uiState.feedWindowMinutes)
+  ];
+  if (uiState.feedImportance !== "all") {
+    parts.push(`${String(uiState.feedImportance || "").toUpperCase()}+`);
+  }
+  return parts.filter(Boolean).join(" · ");
+}
+
 function renderFeedControlsChrome(match = uiState.match) {
   if (!elements.feedControlsWrap) {
     return;
   }
+
+  const compact = isCompactUI();
 
   if (elements.feedTypeFilter) {
     elements.feedTypeFilter.value = uiState.feedType;
@@ -1365,6 +1379,18 @@ function renderFeedControlsChrome(match = uiState.match) {
   if (elements.feedResetFilter) {
     elements.feedResetFilter.hidden = !hasActiveFilters;
   }
+
+  if (elements.feedControlsToggle) {
+    elements.feedControlsToggle.hidden = !compact;
+    elements.feedControlsToggle.setAttribute("aria-expanded", compact && uiState.feedControlsExpanded ? "true" : "false");
+    elements.feedControlsToggle.innerHTML = `
+      <span class="toggle-label">Feed filters</span>
+      <span class="toggle-value">${escapeHtml(compactFeedControlsSummary(match))}</span>
+    `;
+  }
+
+  elements.feedControlsWrap.hidden = compact && !uiState.feedControlsExpanded;
+  elements.feedControlsWrap.dataset.compact = compact ? "1" : "0";
 }
 
 function trackerTeamTag(name) {
@@ -5853,9 +5879,10 @@ function clampSummaryText(value, limit = 68) {
   return `${raw.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
 }
 
-function liveSummaryCardMarkup(label, value, meta, tone = "neutral") {
+function liveSummaryCardMarkup(label, value, meta, tone = "neutral", options = {}) {
+  const compactClass = options.compact ? " compact" : "";
   return `
-    <article class="live-summary-card ${tone}">
+    <article class="live-summary-card ${tone}${compactClass}">
       <p class="live-summary-label">${label}</p>
       <p class="live-summary-value">${value}</p>
       <p class="live-summary-meta">${meta}</p>
@@ -5870,10 +5897,13 @@ function renderLiveFollowSummary(match, rows, timelineAnchor, activeEventId) {
 
   const selectedState = String(match?.selectedGame?.state || "");
   if (uiState.viewMode !== "game" || selectedState !== "inProgress") {
+    elements.liveSummaryWrap.classList.remove("compact");
     elements.liveSummaryWrap.innerHTML = "";
     return;
   }
 
+  const compact = isCompactUI();
+  elements.liveSummaryWrap.classList.toggle("compact", compact);
   const feedRows = Array.isArray(rows) ? rows : [];
   const focusedRow = feedRows.find((row) => row.eventId === activeEventId) || feedRows[0] || null;
   const leadRows = feedLeadSeriesRows(match);
@@ -5936,11 +5966,33 @@ function renderLiveFollowSummary(match, rows, timelineAnchor, activeEventId) {
     pressureMeta = clampSummaryText(priorityAlert.summary || "Watch for the next objective setup.", 76);
   }
 
-  elements.liveSummaryWrap.innerHTML = [
-    liveSummaryCardMarkup("Now", nowValue, nowMeta, focusedRow?.leadDescriptor?.tone || "neutral"),
-    liveSummaryCardMarkup("Next", nextValue, nextMeta, nextObjective?.state === "available" ? "live" : "warn"),
-    liveSummaryCardMarkup("Pressure", pressureValue, pressureMeta, pressureTone)
-  ].join("");
+  const cards = compact
+    ? [
+        liveSummaryCardMarkup(
+          "Now",
+          clampSummaryText(nowValue, 34),
+          clampSummaryText(
+            [focusedRow ? formatFocusedEventClock(focusedRow, timelineAnchor) : "Watching", leadDescriptor.label].filter(Boolean).join(" · "),
+            34
+          ),
+          focusedRow?.leadDescriptor?.tone || "neutral",
+          { compact: true }
+        ),
+        liveSummaryCardMarkup(
+          nextObjective ? "Next" : "Risk",
+          clampSummaryText(nextObjective ? nextValue : pressureValue, 30),
+          clampSummaryText(nextObjective ? nextMeta : pressureMeta, 42),
+          nextObjective ? (nextObjective?.state === "available" ? "live" : "warn") : pressureTone,
+          { compact: true }
+        )
+      ]
+    : [
+        liveSummaryCardMarkup("Now", nowValue, nowMeta, focusedRow?.leadDescriptor?.tone || "neutral"),
+        liveSummaryCardMarkup("Next", nextValue, nextMeta, nextObjective?.state === "available" ? "live" : "warn"),
+        liveSummaryCardMarkup("Pressure", pressureValue, pressureMeta, pressureTone)
+      ];
+
+  elements.liveSummaryWrap.innerHTML = cards.join("");
 }
 
 function renderGameCommandCenter(match) {
