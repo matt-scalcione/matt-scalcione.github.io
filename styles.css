@@ -17892,6 +17892,10 @@ body.product-shell.match-page .match-content-group[data-layout-group="timeline"]
   grid-template-columns: minmax(0, 1fr);
 }
 
+body.product-shell.match-page .match-content-group[data-layout-group="overview"] > #gameOverviewPanel {
+  grid-column: 1 / -1;
+}
+
 body.product-shell.match-page .match-content-group > .panel {
   margin: 0;
 }
@@ -18572,6 +18576,266 @@ body.product-shell.match-page .series-games-lead-grid .tempo-value {
 
   body.product-shell.match-page .series-games-lead-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Match tab rebuild: game overview desk */
+body.product-shell.match-page .game-overview-desk {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 0.72rem;
+}
+
+body.product-shell.match-page .game-overview-shell {
+  display: grid;
+  gap: 0.68rem;
+}
+
+body.product-shell.match-page .game-overview-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.92fr);
+  gap: 0.72rem;
+  padding: 0.82rem 0.86rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(51, 60, 71, 0.95), rgba(39, 47, 57, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .game-overview-hero.live {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .game-overview-hero.complete {
+  border-color: rgba(140, 151, 166, 0.16);
+}
+
+body.product-shell.match-page .game-overview-hero.upcoming {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .game-overview-copy {
+  display: grid;
+  gap: 0.34rem;
+  align-content: start;
+}
+
+body.product-shell.match-page .game-overview-topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+body.product-shell.match-page .game-overview-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.48rem;
+  padding: 0.08rem 0.46rem;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccd6e1;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .game-overview-pill.live {
+  border-color: rgba(86, 160, 117, 0.18);
+  background: rgba(31, 114, 79, 0.22);
+  color: #d9fff0;
+}
+
+body.product-shell.match-page .game-overview-pill.complete {
+  border-color: rgba(139, 151, 167, 0.18);
+  background: rgba(87, 99, 113, 0.22);
+  color: #eef3f7;
+}
+
+body.product-shell.match-page .game-overview-pill.upcoming {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.18);
+  color: #fde1bb;
+}
+
+body.product-shell.match-page .game-overview-title {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+body.product-shell.match-page .game-overview-note {
+  margin: 0;
+  color: #aab6c4;
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+body.product-shell.match-page .game-overview-scorecard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.56rem;
+  align-items: center;
+  padding: 0.68rem 0.72rem;
+  border-radius: 0.94rem;
+  border: 1px solid rgba(233, 239, 245, 0.05);
+  background: rgba(15, 20, 27, 0.3);
+}
+
+body.product-shell.match-page .game-overview-side {
+  display: grid;
+  justify-items: center;
+  gap: 0.22rem;
+  text-align: center;
+}
+
+body.product-shell.match-page .game-overview-team-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.product-shell.match-page .game-overview-team-mark .team-badge {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.98rem;
+  background: rgba(244, 247, 251, 0.96);
+  border-color: rgba(226, 233, 241, 0.14);
+}
+
+body.product-shell.match-page .game-overview-team-name {
+  color: #eef3f7;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.12;
+}
+
+body.product-shell.match-page .game-overview-team-score,
+body.product-shell.match-page .game-overview-score-value {
+  color: #f6f8fb;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 1.7rem;
+  line-height: 0.94;
+}
+
+body.product-shell.match-page .game-overview-score-meta {
+  display: grid;
+  justify-items: center;
+  gap: 0.12rem;
+  text-align: center;
+}
+
+body.product-shell.match-page .game-overview-score-label,
+body.product-shell.match-page .game-overview-score-note {
+  color: #aab6c4;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .game-overview-score-note {
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+body.product-shell.match-page .game-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  gap: 0.56rem;
+}
+
+body.product-shell.match-page .game-overview-fact {
+  display: grid;
+  gap: 0.16rem;
+  padding: 0.64rem 0.68rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .game-overview-fact.left,
+body.product-shell.match-page .game-overview-fact.live {
+  border-color: rgba(86, 160, 117, 0.16);
+}
+
+body.product-shell.match-page .game-overview-fact.right {
+  border-color: rgba(216, 138, 51, 0.16);
+}
+
+body.product-shell.match-page .game-overview-fact.warn {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .game-overview-fact-value {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.16;
+}
+
+body.product-shell.match-page #gameOverviewPanel .game-recap {
+  display: grid;
+  gap: 0.56rem;
+}
+
+@media (max-width: 980px) {
+  body.product-shell.match-page .game-overview-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.match-page .game-overview-desk {
+    margin-bottom: 0.58rem;
+    gap: 0.56rem;
+  }
+
+  body.product-shell.match-page .game-overview-hero {
+    gap: 0.58rem;
+    padding: 0.66rem 0.68rem;
+  }
+
+  body.product-shell.match-page .game-overview-title {
+    font-size: 0.92rem;
+  }
+
+  body.product-shell.match-page .game-overview-scorecard {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.28rem;
+    padding: 0.56rem 0.52rem;
+  }
+
+  body.product-shell.match-page .game-overview-team-mark .team-badge {
+    width: 2.62rem;
+    height: 2.62rem;
+    border-radius: 0.9rem;
+  }
+
+  body.product-shell.match-page .game-overview-team-name {
+    font-size: 0.6rem;
+  }
+
+  body.product-shell.match-page .game-overview-team-score,
+  body.product-shell.match-page .game-overview-score-value {
+    font-size: 1.36rem;
+  }
+
+  body.product-shell.match-page .game-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .game-overview-fact {
+    padding: 0.6rem 0.64rem;
   }
 }
 

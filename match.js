@@ -525,6 +525,7 @@ const elements = {
   matchQuickNav: document.querySelector("#matchQuickNav"),
   mobileModeToolbar: document.querySelector("#mobileModeToolbar"),
   mobileGameToolbar: document.querySelector("#mobileGameToolbar"),
+  gameOverviewDeskWrap: document.querySelector("#gameOverviewDeskWrap"),
   gameCommandWrap: document.querySelector("#gameCommandWrap"),
   gamePlayerSummaryWrap: document.querySelector("#gamePlayerSummaryWrap"),
   gameFeedDeskWrap: document.querySelector("#gameFeedDeskWrap"),
@@ -7120,6 +7121,7 @@ function setStoryFocusEvent(eventId, options = {}) {
   uiState.storyFocusUserSet = true;
   if (uiState.match) {
     renderLeadTrend(uiState.match);
+    renderGameOverviewDesk(uiState.match);
     renderGameFeedDesk(uiState.match);
     renderUnifiedLiveFeed(uiState.match);
     if (options.scrollFeed) {
@@ -9991,6 +9993,282 @@ function recapCard(label, value, note = null) {
   `;
 }
 
+function gameOverviewFactCard(label, value, note = null, tone = "neutral") {
+  return `
+    <article class="game-overview-fact ${tone}">
+      <p class="tempo-label">${escapeHtml(label)}</p>
+      <p class="game-overview-fact-value">${escapeHtml(value)}</p>
+      ${note ? `<p class="meta-text">${escapeHtml(note)}</p>` : ""}
+    </article>
+  `;
+}
+
+function gameOverviewObjectiveSummary(match, left = {}, right = {}) {
+  const terms = objectiveTerminology(match);
+  const leftTowers = Number(left?.towers || 0);
+  const rightTowers = Number(right?.towers || 0);
+  const leftBarons = Number(left?.barons || 0);
+  const rightBarons = Number(right?.barons || 0);
+  const leftBase = Number(left?.inhibitors || 0);
+  const rightBase = Number(right?.inhibitors || 0);
+
+  if (normalizeGameKey(match?.game) === "dota2") {
+    return {
+      value: `${terms.baronLabel} ${leftBarons}-${rightBarons}`,
+      note: `Towers ${leftTowers}-${rightTowers} · Barracks ${leftBase}-${rightBase}`
+    };
+  }
+
+  const leftDragons = Number(left?.dragons || 0);
+  const rightDragons = Number(right?.dragons || 0);
+  return {
+    value: `${terms.dragonLabel} ${leftDragons}-${rightDragons}`,
+    note: `Towers ${leftTowers}-${rightTowers} · ${terms.baronLabel} ${leftBarons}-${rightBarons}`
+  };
+}
+
+function renderGameOverviewDesk(match) {
+  if (!elements.gameOverviewDeskWrap) {
+    return;
+  }
+
+  const selectedGame = match?.selectedGame;
+  if (!selectedGame || !match?.teams?.left || !match?.teams?.right) {
+    elements.gameOverviewDeskWrap.innerHTML = `<div class="empty">Game desk appears once a map is selected.</div>`;
+    return;
+  }
+
+  const compact = isCompactUI();
+  const status = String(selectedGame.state || "").trim();
+  const statusLabelText = readableGameStateLabel(status);
+  const draftPreview = inferDraftPreview(match);
+  const selectedSeriesGame = (Array.isArray(match?.seriesGames) ? match.seriesGames : []).find((game) => game.selected) || null;
+  const winnerName = selectedGameWinnerName(match, selectedSeriesGame, selectedGame) || null;
+  const seriesScoreLabel = `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`;
+  const durationLabel = durationLabelFromMinutes(selectedSeriesGame?.durationMinutes);
+  const snapshot = selectedGame.snapshot || {};
+  const left = snapshot.left || {};
+  const right = snapshot.right || {};
+  const leftName = match.teams.left.name || "Left Team";
+  const rightName = match.teams.right.name || "Right Team";
+  const leftShort = scoreboardTeamName(leftName, match?.game);
+  const rightShort = scoreboardTeamName(rightName, match?.game);
+  const leftKills = Number(left?.kills || 0);
+  const rightKills = Number(right?.kills || 0);
+  const leftGold = Number(left?.gold);
+  const rightGold = Number(right?.gold);
+  const hasGold = Number.isFinite(leftGold) && Number.isFinite(rightGold);
+  const goldDiff = hasGold ? leftGold - rightGold : Number(match?.momentum?.goldLead || 0);
+  const leadDescriptor = feedLeadDescriptor(match, goldDiff);
+  const startedLabel = selectedGame?.startedAt
+    ? compact
+      ? dateTimeCompact(selectedGame.startedAt)
+      : dateTimeLabel(selectedGame.startedAt)
+    : "TBD";
+  const estimatedStart = selectedGameEstimatedStart(match, selectedGame.number);
+  const estimatedStartLabel = estimatedStart
+    ? compact
+      ? dateTimeCompact(estimatedStart)
+      : dateTimeLabel(estimatedStart)
+    : "TBD";
+  const sideSummary = Array.isArray(selectedGame.sideSummary) ? selectedGame.sideSummary.filter(Boolean) : [];
+  const sideSummaryLabel = sideSummary.length ? sideSummary.join(" · ") : "Sides pending";
+  const telemetryLabel = String(selectedGame.telemetryStatus || "none").toUpperCase();
+  const focusedContext = focusedLiveEventContext(match);
+  const focusedRow = focusedContext.row || focusedContext.latestRow;
+  const genericFocusedRow = focusedRow && isGenericLiveStateTitle(focusedRow.title, selectedGame.number);
+  const nextObjective = nextObjectiveWindow(match);
+  const pulseState = updateMapPulseState(match);
+  const completedStory = buildCompletedGameStory(match);
+  const topPlayer = Array.isArray(match?.topPerformers) && match.topPerformers.length ? match.topPerformers[0] : null;
+  const topPlayerTeam = topPlayer ? teamNameBySide(match, topPlayer.team) : null;
+  const objectiveSummary = gameOverviewObjectiveSummary(match, left, right);
+
+  let headline = `Game ${selectedGame.number}`;
+  let note = `${statusLabelText} · Series ${seriesScoreLabel}`;
+  let toneClass = "upcoming";
+  let centerLabel = "Map";
+  let centerValue = `${leftKills}-${rightKills}`;
+  let centerNote = sideSummaryLabel;
+
+  if (status === "completed") {
+    toneClass = "complete";
+    headline =
+      completedStory?.headline ||
+      (winnerName ? `${scoreboardTeamName(winnerName, match?.game)} won Game ${selectedGame.number}` : `Game ${selectedGame.number} final`);
+    note = [
+      completedStory?.summary || null,
+      durationLabel !== "n/a" ? durationLabel : null,
+      `Series ${seriesScoreLabel}`
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    centerLabel = "Final kills";
+    centerNote = durationLabel !== "n/a" ? durationLabel : "Result final";
+  } else if (status === "inProgress") {
+    toneClass = "live";
+    const liveClock = Number(match?.playerEconomy?.elapsedSeconds || 0) > 0 ? formatGameClock(Number(match.playerEconomy.elapsedSeconds)) : "Live";
+    headline = !genericFocusedRow && focusedRow ? focusedRow.title : match?.pulseCard?.title || `Game ${selectedGame.number} live`;
+    note = [
+      focusedRow ? `${formatFocusedEventClock(focusedRow, focusedContext.timelineAnchor)} ${focusedRow.phase.label}` : `Clock ${liveClock}`,
+      leadDescriptor.label,
+      nextObjective ? `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}` : `${leftKills}-${rightKills} kills`
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    centerLabel = "Live kills";
+    centerNote = leadDescriptor.label;
+  } else if (status === "unneeded") {
+    toneClass = "complete";
+    headline = `Game ${selectedGame.number} was skipped`;
+    note = `Series ended before this map was needed. Final series score ${seriesScoreLabel}.`;
+    centerLabel = "Skipped";
+    centerValue = "0-0";
+    centerNote = "Not played";
+  } else {
+    toneClass = draftPreview ? "live" : "upcoming";
+    headline = draftPreview?.headline || `Game ${selectedGame.number} is next`;
+    note =
+      draftPreview?.summary ||
+      [
+        estimatedStart ? `Projected ${estimatedStartLabel}` : null,
+        `Series ${seriesScoreLabel}`,
+        sideSummaryLabel !== "Sides pending" ? sideSummaryLabel : null
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    centerLabel = draftPreview ? draftPreview.badge : "Upcoming";
+    centerValue = "0-0";
+    centerNote = estimatedStart ? estimatedStartLabel : "Waiting for start";
+  }
+
+  const heroPills = [
+    `Game ${selectedGame.number}`,
+    statusLabelText,
+    `Series ${seriesScoreLabel}`,
+    telemetryLabel,
+    normalizeGameKey(match?.game) === "dota2" ? null : match?.patch ? `Patch ${match.patch}` : null
+  ]
+    .filter(Boolean)
+    .map((pill) => `<span class="game-overview-pill">${escapeHtml(pill)}</span>`)
+    .join("");
+
+  const facts = [];
+  facts.push(gameOverviewFactCard("State", statusLabelText, `Telemetry ${telemetryLabel}`, toneClass));
+
+  if (status === "completed") {
+    facts.push(
+      gameOverviewFactCard(
+        "Winner",
+        winnerName ? displayTeamName(winnerName, match?.game) : "TBD",
+        durationLabel !== "n/a" ? durationLabel : "Duration n/a",
+        winnerName === leftName ? "left" : winnerName === rightName ? "right" : "neutral"
+      )
+    );
+    if (completedStory?.turningPointLabel) {
+      facts.push(gameOverviewFactCard("Turning Point", completedStory.turningPointLabel, completedStory.turningPointNote || null, "neutral"));
+    }
+    if (completedStory?.peakLeadLabel) {
+      facts.push(gameOverviewFactCard("Peak Lead", completedStory.peakLeadLabel, completedStory.peakLeadNote || null, "neutral"));
+    }
+  } else if (status === "inProgress") {
+    const pressureLabel = pulseState
+      ? pulseState.team === "both"
+        ? "Fight live"
+        : `${pulseState.team === "left" ? leftShort : rightShort} pressure`
+      : "State stable";
+    facts.push(
+      gameOverviewFactCard(
+        "Gold",
+        hasGold ? `${formatNumber(leftGold)} - ${formatNumber(rightGold)}` : "n/a",
+        hasGold ? `Lead ${leadDescriptor.label}` : "Gold totals pending",
+        leadDescriptor.tone || "neutral"
+      )
+    );
+    facts.push(gameOverviewFactCard("Objectives", objectiveSummary.value, objectiveSummary.note || null, "neutral"));
+    facts.push(
+      gameOverviewFactCard(
+        "Next Objective",
+        nextObjective ? displayObjectiveName(nextObjective.type, match) : "Forecast waiting",
+        nextObjective
+          ? `${nextObjective.state === "available" ? "Available now" : `ETA ${objectiveEtaLabel(nextObjective)}`}${
+              nextObjective.nextAt ? ` · ${shortTimeLabel(nextObjective.nextAt)}` : ""
+            }`
+          : "Timer windows appear once cadence is established.",
+        nextObjective?.state === "available" ? "live" : "neutral"
+      )
+    );
+    facts.push(gameOverviewFactCard("Pressure", pressureLabel, focusedRow?.summary && !genericFocusedRow ? clampSummaryText(focusedRow.summary, 84) : sideSummaryLabel, pulseState ? "warn" : "neutral"));
+  } else {
+    facts.push(
+      gameOverviewFactCard(
+        "Start",
+        estimatedStartLabel,
+        estimatedStart ? "Projected map start" : "Time not published yet",
+        "neutral"
+      )
+    );
+    facts.push(gameOverviewFactCard("Sides", sideSummaryLabel, draftPreview?.detail || null, "neutral"));
+    facts.push(
+      gameOverviewFactCard(
+        "Watch",
+        selectedGame.watchUrl ? "Ready" : "Pending",
+        selectedGame.watchUrl ? "Primary stream or VOD link is available." : "Watch link appears when coverage is published.",
+        selectedGame.watchUrl ? "live" : "neutral"
+      )
+    );
+    if (draftPreview) {
+      facts.push(gameOverviewFactCard("Phase", draftPreview.label, draftPreview.summary, toneClass));
+    }
+  }
+
+  if (topPlayer) {
+    facts.push(
+      gameOverviewFactCard(
+        "Top Player",
+        displayPlayerHandle(topPlayer.name, topPlayerTeam),
+        `${scoreboardTeamName(topPlayerTeam, match?.game)} · ${trackerHeroName(topPlayer)} · KDA ${topPlayer.kills || 0}/${topPlayer.deaths || 0}/${topPlayer.assists || 0}`,
+        topPlayer.team || "neutral"
+      )
+    );
+  }
+
+  elements.gameOverviewDeskWrap.innerHTML = `
+    <div class="game-overview-shell ${toneClass}">
+      <article class="game-overview-hero ${toneClass}">
+        <div class="game-overview-copy">
+          <div class="game-overview-topline">
+            <span class="game-overview-pill ${toneClass}">${escapeHtml(statusLabelText)}</span>
+            ${heroPills}
+          </div>
+          <h3 class="game-overview-title">${escapeHtml(headline)}</h3>
+          <p class="game-overview-note">${escapeHtml(note)}</p>
+        </div>
+        <div class="game-overview-scorecard">
+          <div class="game-overview-side left">
+            <span class="game-overview-team-mark">${teamBadgeMarkup(match.teams.left, match?.game)}</span>
+            <span class="game-overview-team-name">${escapeHtml(displayTeamName(leftName, match?.game))}</span>
+            <strong class="game-overview-team-score">${Number.isFinite(leftKills) ? leftKills : 0}</strong>
+          </div>
+          <div class="game-overview-score-meta">
+            <span class="game-overview-score-label">${escapeHtml(centerLabel)}</span>
+            <strong class="game-overview-score-value">${escapeHtml(centerValue)}</strong>
+            <span class="game-overview-score-note">${escapeHtml(centerNote)}</span>
+          </div>
+          <div class="game-overview-side right">
+            <span class="game-overview-team-mark">${teamBadgeMarkup(match.teams.right, match?.game)}</span>
+            <span class="game-overview-team-name">${escapeHtml(displayTeamName(rightName, match?.game))}</span>
+            <strong class="game-overview-team-score">${Number.isFinite(rightKills) ? rightKills : 0}</strong>
+          </div>
+        </div>
+      </article>
+      <div class="game-overview-grid">
+        ${facts.join("")}
+      </div>
+    </div>
+  `;
+}
+
 function eventClockLabel(match, at, gameClockSeconds = null) {
   if (Number.isFinite(gameClockSeconds)) {
     return formatGameClock(gameClockSeconds);
@@ -11271,6 +11549,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   renderUpcomingForm(match);
   renderUpcomingHeadToHead(match);
   renderUpcomingPrediction(match);
+  renderGameOverviewDesk(match);
   renderGameCommandCenter(match);
   renderTeamComparison(match);
   renderGamePlayerSummary(match);
