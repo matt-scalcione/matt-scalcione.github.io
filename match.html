@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312z" />
+    <link rel="stylesheet" href="./styles.css?v=20260312aa" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -125,8 +125,9 @@
       <section class="panel" data-scope="series">
         <div class="section-head">
           <h2>Statistics</h2>
-          <p id="matchupMetaText" class="meta-text"></p>
+          <p id="matchupMetaText" class="meta-text">Series form, head-to-head, and edge read.</p>
         </div>
+        <div id="seriesStatsSummaryWrap" class="series-stats-summary"></div>
         <div class="feed-controls">
           <label>
             Sample
@@ -415,8 +416,9 @@
       <section class="panel" data-scope="series">
         <div class="section-head">
           <h2>Game Results</h2>
-          <p class="meta-text">Game-by-game state, winners, and VODs.</p>
+          <p class="meta-text">Series race, map path, and game-by-game outcomes.</p>
         </div>
+        <div id="seriesGamesSummaryWrap" class="series-games-summary"></div>
         <div id="seriesGamesWrap" class="series-games"></div>
       </section>
 
@@ -533,6 +535,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312g"></script>
+    <script type="module" src="./match.js?v=20260312h"></script>
   </body>
 </html>

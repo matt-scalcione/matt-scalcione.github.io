@@ -293,7 +293,7 @@ const MATCH_PANEL_GROUP_BY_TARGET_ID = {
   upcomingWatchWrap: "overview",
   upcomingPredictionWrap: "overview",
   preMatchPlanner: "overview",
-  seriesProgressWrap: "overview",
+  seriesProgressWrap: "games",
   selectedGameRecapWrap: "overview",
   gameCommandWrap: "overview",
   teamCompareWrap: "overview",
@@ -328,7 +328,7 @@ const MATCH_PANEL_GROUP_BY_TARGET_ID = {
   combatBurstsList: "timeline",
   goldMilestonesList: "timeline",
   momentsList: "timeline",
-  timelineList: "timeline",
+  timelineList: "history",
   upcomingFormWrap: "history",
   upcomingH2hWrap: "history",
   seriesPlayerTrendsWrap: "history"
@@ -517,6 +517,7 @@ const elements = {
   matchTopTabs: document.querySelector("#matchTopTabs"),
   matchContentGroups: document.querySelector("#matchContentGroups"),
   seriesOverviewWrap: document.querySelector("#seriesOverviewWrap"),
+  seriesStatsSummaryWrap: document.querySelector("#seriesStatsSummaryWrap"),
   seriesHeaderSubhead: document.querySelector("#seriesHeaderSubhead"),
   seriesHeaderWrap: document.querySelector("#seriesHeaderWrap"),
   gameNavWrap: document.querySelector("#gameNavWrap"),
@@ -567,6 +568,7 @@ const elements = {
   economyBoardWrap: document.querySelector("#economyBoardWrap"),
   laneMatchupsWrap: document.querySelector("#laneMatchupsWrap"),
   objectiveRunsWrap: document.querySelector("#objectiveRunsWrap"),
+  seriesGamesSummaryWrap: document.querySelector("#seriesGamesSummaryWrap"),
   seriesGamesWrap: document.querySelector("#seriesGamesWrap"),
   seriesCompareWrap: document.querySelector("#seriesCompareWrap"),
   seriesPlayerTrendsWrap: document.querySelector("#seriesPlayerTrendsWrap"),
@@ -3334,6 +3336,7 @@ async function ensureMatchupData(match, apiBase) {
     renderMatchHero(uiState.match || match);
     renderScoreboard(uiState.match || match);
     renderSeriesOverview(uiState.match || match);
+    renderSeriesStatsSummary(uiState.match || match);
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
@@ -3353,6 +3356,7 @@ async function ensureMatchupData(match, apiBase) {
     renderMatchHero(uiState.match || match);
     renderScoreboard(uiState.match || match);
     renderSeriesOverview(uiState.match || match);
+    renderSeriesStatsSummary(uiState.match || match);
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
@@ -3857,6 +3861,325 @@ function renderSeriesOverview(match) {
         ${completedSummaryMarkup}
       </div>
       ${predictionMarkup || watchMarkup ? `<div class="series-overview-lower">${predictionMarkup}${watchMarkup}</div>` : ""}
+    </div>
+  `;
+}
+
+function seriesStatsMetric(label, value, note = null) {
+  return `
+    <article class="series-stats-metric">
+      <p class="tempo-label">${label}</p>
+      <p class="series-stats-metric-value">${value}</p>
+      ${note ? `<p class="meta-text">${note}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderSeriesStatsTeamSummary(match, team, profile, toneClass = "left") {
+  const teamName = team?.name || "Team";
+  const shortName = scoreboardTeamName(teamName, match?.game);
+  const displayName = displayTeamName(teamName, match?.game);
+
+  if (!profile) {
+    return `
+      <article class="series-stats-team ${toneClass}">
+        <div class="series-stats-team-head">
+          <span class="series-stats-team-mark">${teamBadgeMarkup(team, match?.game)}</span>
+          <div class="series-stats-team-copy">
+            <h3>${escapeHtml(shortName)}</h3>
+            <p class="meta-text">${escapeHtml(displayName)}</p>
+          </div>
+        </div>
+        <div class="series-stats-team-empty">
+          <p class="meta-text">Profile data is still loading for this sample.</p>
+        </div>
+      </article>
+    `;
+  }
+
+  const formLabel = String(profile?.formLabel || "n/a").replace(/-/g, "") || "n/a";
+  const mapRecord = `${profile?.gameWins ?? 0}-${profile?.gameLosses ?? 0}`;
+  const metrics = [
+    seriesStatsMetric("Series WR", formatRatePct(profile?.seriesWinRatePct), `Record ${seriesRecordLabel(profile)}`),
+    seriesStatsMetric("Map WR", formatRatePct(profile?.gameWinRatePct), `Maps ${mapRecord}`),
+    seriesStatsMetric("Form", escapeHtml(formLabel), `Streak ${escapeHtml(profile?.streakLabel || "n/a")}`)
+  ].join("");
+
+  return `
+    <article class="series-stats-team ${toneClass}">
+      <div class="series-stats-team-head">
+        <span class="series-stats-team-mark">${teamBadgeMarkup(team, match?.game)}</span>
+        <div class="series-stats-team-copy">
+          <h3>${escapeHtml(shortName)}</h3>
+          <p class="meta-text">${escapeHtml(displayName)}</p>
+        </div>
+      </div>
+      <div class="series-stats-team-grid">
+        ${metrics}
+      </div>
+    </article>
+  `;
+}
+
+function renderSeriesStatsSummary(match) {
+  if (!elements.seriesStatsSummaryWrap) {
+    return;
+  }
+
+  if (!match?.teams?.left || !match?.teams?.right) {
+    elements.seriesStatsSummaryWrap.innerHTML = `<div class="empty">Series statistics appear once both teams are available.</div>`;
+    return;
+  }
+
+  const compact = isCompactUI();
+  const matchupState = currentMatchupState(match);
+  const leftProfile = resolvedUpcomingFormProfiles(match).left;
+  const rightProfile = resolvedUpcomingFormProfiles(match).right;
+  const headToHead = resolvedUpcomingHeadToHead(match);
+  const prediction = resolvedSeriesPrediction(match);
+  const leftName = match.teams.left.name || "Left Team";
+  const rightName = match.teams.right.name || "Right Team";
+  const h2hTotal = Number(headToHead?.total || headToHead?.matches || headToHead?.lastMeetings?.length || 0);
+  const h2hLeftWins = Number(headToHead?.leftWins || headToHead?.wins || 0);
+  const h2hRightWins = Number(headToHead?.rightWins || headToHead?.losses || 0);
+  const h2hDraws = Number(headToHead?.draws || 0);
+  const leftPct = prediction ? Math.max(0, Math.min(100, Number(prediction.leftWinPct || 0))) : 50;
+  const rightPct = prediction ? Math.max(0, Math.min(100, Number(prediction.rightWinPct || 0))) : 50;
+  const favoriteTone =
+    prediction?.favoriteTeamName === leftName ? "left" : prediction?.favoriteTeamName === rightName ? "right" : "neutral";
+  const drivers = Array.isArray(prediction?.drivers) ? prediction.drivers.slice(0, compact ? 2 : 3) : [];
+  const centerTitle = prediction?.favoriteTeamName
+    ? `${scoreboardTeamName(prediction.favoriteTeamName, match?.game)} have the edge`
+    : "Series looks level";
+  const centerNote = prediction
+    ? `Confidence ${String(prediction.confidence || "low").toUpperCase()}`
+    : matchupState?.loading
+      ? "Loading matchup model"
+      : matchupState?.error
+        ? "Matchup model unavailable"
+        : "Edge read builds once team profiles land";
+  const h2hLabel = h2hTotal
+    ? `${scoreboardTeamName(leftName, match?.game)} ${h2hLeftWins}-${h2hRightWins}${h2hDraws ? `-${h2hDraws}` : ""} ${scoreboardTeamName(rightName, match?.game)}`
+    : "No direct meetings in this sample";
+  const centerPills = [
+    h2hTotal ? `Sample ${h2hTotal}` : "Sample pending",
+    prediction?.modelVersion ? `Model ${prediction.modelVersion}` : null,
+    matchupState?.loading ? "Refreshing" : null
+  ]
+    .filter(Boolean)
+    .map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`)
+    .join("");
+
+  elements.seriesStatsSummaryWrap.innerHTML = `
+    <div class="series-stats-shell ${favoriteTone}">
+      ${renderSeriesStatsTeamSummary(match, match.teams.left, leftProfile, "left")}
+      <article class="series-stats-center ${favoriteTone}">
+        <div class="series-stats-center-head">
+          <p class="tempo-label">Matchup read</p>
+          <h3>${escapeHtml(centerTitle)}</h3>
+          <p class="series-stats-center-note">${escapeHtml(centerNote)}</p>
+        </div>
+        <div class="edge-head">
+          <p class="meta-text">${escapeHtml(scoreboardTeamName(leftName, match?.game))}</p>
+          <p class="meta-text">${escapeHtml(scoreboardTeamName(rightName, match?.game))}</p>
+        </div>
+        <div class="edge-bars">
+          <div class="edge-side left" style="width:${leftPct.toFixed(1)}%"></div>
+          <div class="edge-side right" style="width:${rightPct.toFixed(1)}%"></div>
+        </div>
+        <div class="edge-head">
+          <p class="edge-score">${leftPct.toFixed(1)}%</p>
+          <p class="edge-score">${rightPct.toFixed(1)}%</p>
+        </div>
+        <div class="series-stats-center-strip">
+          <span class="series-stats-h2h">${escapeHtml(h2hLabel)}</span>
+          ${centerPills}
+        </div>
+        ${
+          drivers.length
+            ? `<ul class="series-stats-driver-list">${drivers.map((driver) => `<li>${escapeHtml(driver)}</li>`).join("")}</ul>`
+            : `<p class="meta-text">Use the sample control below to widen or tighten the form window.</p>`
+        }
+      </article>
+      ${renderSeriesStatsTeamSummary(match, match.teams.right, rightProfile, "right")}
+    </div>
+  `;
+}
+
+function seriesGamesLeadCard(label, value, note = null) {
+  return seriesInfoCard(label, value, note);
+}
+
+function nextSeriesGameEstimateLabel(match, game) {
+  if (!game) {
+    return null;
+  }
+
+  const estimatedStartAt = selectedGameEstimatedStart(match, game.number) || game?.estimatedStartAt || game?.startedAt || null;
+  if (!estimatedStartAt) {
+    return null;
+  }
+
+  return isCompactUI() ? dateTimeCompact(estimatedStartAt) : dateTimeLabel(estimatedStartAt);
+}
+
+function renderSeriesGamePathTile(match, game, apiBase) {
+  const statusClass = stateClass(game?.state);
+  const winnerName = resolveSeriesGameWinnerName(game, match);
+  const durationText = durationLabelFromMinutes(game?.durationMinutes);
+  const winningSide = winningSideLabelForSeriesGame(match, game);
+  const etaLabel = nextSeriesGameEstimateLabel(match, game);
+  let title = "Waiting";
+  let note = seriesGameStatusNote(game, match);
+
+  if (game?.state === "completed") {
+    title = winnerName ? `${scoreboardTeamName(winnerName, match?.game)} won` : "Result confirmed";
+    note = [durationText !== "n/a" ? durationText : null, winningSide ? `${winningSide} side` : null].filter(Boolean).join(" · ") || "Result confirmed";
+  } else if (game?.state === "inProgress") {
+    title = "Live now";
+    note = game?.startedAt
+      ? `Started ${isCompactUI() ? dateTimeCompact(game.startedAt) : shortTimeLabel(game.startedAt)}`
+      : "Current map in progress";
+  } else if (game?.state === "unneeded") {
+    title = "Not needed";
+    note = "Series closed before this map.";
+  } else if (etaLabel) {
+    title = `ETA ${etaLabel}`;
+    note = "Projected next start.";
+  }
+
+  const openHref =
+    game?.state === "unneeded" ? null : detailUrlForGame(match?.id, apiBase, Number(game?.number || 0));
+  const tagName = openHref && !game?.selected ? "a" : "article";
+  const hrefAttr = openHref && !game?.selected ? ` href="${openHref}"` : "";
+
+  return `
+    <${tagName} class="series-games-path-card state-${statusClass}${game?.selected ? " selected" : ""}"${hrefAttr}>
+      <div class="series-games-path-head">
+        <p class="series-games-path-label">G${Number(game?.number || 0)}</p>
+        <span class="pill ${statusClass}">${stateLabel(game?.state)}</span>
+      </div>
+      <p class="series-games-path-title">${escapeHtml(title)}</p>
+      <p class="series-games-path-note">${escapeHtml(note)}</p>
+    </${tagName}>
+  `;
+}
+
+function renderSeriesGamesSummary(match, apiBase) {
+  if (!elements.seriesGamesSummaryWrap) {
+    return;
+  }
+
+  const games = Array.isArray(match?.seriesGames) ? match.seriesGames : [];
+  if (!games.length) {
+    elements.seriesGamesSummaryWrap.innerHTML = `<div class="empty">Series game path appears once map-level data is available.</div>`;
+    return;
+  }
+
+  const status = String(match?.status || "").toLowerCase();
+  const bestOf = Math.max(1, Number(match?.bestOf || match?.seriesProgress?.bestOf || games.length || 1));
+  const winsNeeded = Math.floor(bestOf / 2) + 1;
+  const completedGames = games.filter((game) => game?.state === "completed");
+  const completedCount = completedGames.length;
+  const liveGame = games.find((game) => game?.state === "inProgress") || null;
+  const upcomingGame = games.find((game) => game?.state === "unstarted") || null;
+  const upcomingCount = games.filter((game) => game?.state === "unstarted").length;
+  const skippedCount = games.filter((game) => game?.state === "unneeded").length;
+  const focusedGame = games.find((game) => game?.selected) || null;
+  const leftShort = scoreboardTeamName(match?.teams?.left?.name, match?.game);
+  const rightShort = scoreboardTeamName(match?.teams?.right?.name, match?.game);
+  const seriesScoreLabel = `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`;
+  const durationValues = completedGames
+    .map((game) => Number(game?.durationMinutes))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const averageDuration =
+    durationValues.length > 0
+      ? durationValues.reduce((sum, value) => sum + value, 0) / durationValues.length
+      : null;
+  const sideCounts = new Map();
+  for (const game of completedGames) {
+    const sideLabel = winningSideLabelForSeriesGame(match, game);
+    if (!sideLabel) {
+      continue;
+    }
+    sideCounts.set(sideLabel, Number(sideCounts.get(sideLabel) || 0) + 1);
+  }
+  const sideEntries = [...sideCounts.entries()].sort((left, right) => Number(right[1]) - Number(left[1]));
+  const sideEntryTotal = sideEntries.reduce((sum, [, count]) => sum + count, 0);
+  const sideWinsValue =
+    sideEntries.length > 0
+      ? sideEntries.map(([label, count]) => `${label} ${count}`).join(" · ")
+      : null;
+
+  let headline = `${completedCount}/${games.length} maps played`;
+  let note = `First to ${winsNeeded} wins · Series score ${seriesScoreLabel}`;
+  if (status === "live" && liveGame) {
+    headline = `Game ${liveGame.number} is live`;
+    note = `${completedCount} map${completedCount === 1 ? "" : "s"} complete · ${leftShort} ${match?.seriesScore?.left ?? 0} - ${match?.seriesScore?.right ?? 0} ${rightShort}`;
+  } else if (status === "completed") {
+    const winnerName = winnerTeamName(match);
+    headline = winnerName
+      ? `${scoreboardTeamName(winnerName, match?.game)} closed the series ${seriesScoreLabel}`
+      : `Series final ${seriesScoreLabel}`;
+    note = `${completedCount} completed map${completedCount === 1 ? "" : "s"} · BO${bestOf}`;
+  } else if (upcomingGame) {
+    const etaLabel = nextSeriesGameEstimateLabel(match, upcomingGame);
+    headline = `Waiting for Game ${upcomingGame.number}`;
+    note = etaLabel ? `Projected ${etaLabel} · BO${bestOf}` : `Next map pending · BO${bestOf}`;
+  }
+
+  const leadCards = [
+    seriesGamesLeadCard("Format", `BO${bestOf}`, `First to ${winsNeeded}`),
+    liveGame
+      ? seriesGamesLeadCard("Live Map", `G${liveGame.number}`, liveGame.startedAt ? `Started ${nextSeriesGameEstimateLabel(match, liveGame)}` : "Live now")
+      : upcomingGame
+        ? seriesGamesLeadCard("Next Map", `G${upcomingGame.number}`, nextSeriesGameEstimateLabel(match, upcomingGame) || "Waiting")
+        : seriesGamesLeadCard("Status", status === "completed" ? "Final" : "Pending"),
+    seriesGamesLeadCard(
+      "Maps",
+      `${completedCount}/${games.length}`,
+      `${upcomingCount} upcoming${skippedCount ? ` · ${skippedCount} skipped` : ""}`
+    ),
+    focusedGame
+      ? seriesGamesLeadCard(
+          "Viewing",
+          `G${focusedGame.number}`,
+          focusedGame.state === "completed" ? "Completed map detail" : focusedGame.state === "inProgress" ? "Live map detail" : "Queued map detail"
+        )
+      : null,
+    status !== "completed" && averageDuration !== null
+      ? seriesGamesLeadCard("Avg Map", durationLabelFromMinutes(averageDuration), `${durationValues.length} timed map${durationValues.length === 1 ? "" : "s"}`)
+      : null,
+    status !== "completed" && sideWinsValue
+      ? seriesGamesLeadCard("Side Wins", sideWinsValue, `${sideEntryTotal} map${sideEntryTotal === 1 ? "" : "s"} with side data`)
+      : null
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const completedCards = status === "completed" ? buildCompletedSeriesSummaryCards(match) : "";
+  const pathTiles = games
+    .slice()
+    .sort((left, right) => Number(left?.number || 0) - Number(right?.number || 0))
+    .map((game) => renderSeriesGamePathTile(match, game, apiBase))
+    .join("");
+
+  elements.seriesGamesSummaryWrap.innerHTML = `
+    <div class="series-games-lead status-${status}">
+      <article class="series-games-lead-hero">
+        <div class="series-games-lead-copy">
+          <p class="tempo-label">Series path</p>
+          <h3>${escapeHtml(headline)}</h3>
+          <p class="series-games-lead-note">${escapeHtml(note)}</p>
+        </div>
+        <div class="series-games-path">
+          ${pathTiles}
+        </div>
+      </article>
+      <div class="series-games-lead-grid">
+        ${leadCards}
+        ${completedCards}
+      </div>
     </div>
   `;
 }
@@ -9089,33 +9412,15 @@ function seriesGameStatusNote(game, match) {
 }
 
 function renderSeriesGames(match, apiBase) {
-  const compact = isCompactUI();
   const games = Array.isArray(match.seriesGames) ? match.seriesGames : [];
   if (!games.length) {
     elements.seriesGamesWrap.innerHTML = `<div class="empty">No game breakdown available.</div>`;
     return;
   }
 
-  const completedCount = games.filter((game) => game?.state === "completed").length;
-  const liveGame = games.find((game) => game?.state === "inProgress") || null;
-  const skippedCount = games.filter((game) => game?.state === "unneeded").length;
-  const upcomingCount = games.filter((game) => game?.state === "unstarted").length;
-  const focusedGame = games.find((game) => game?.selected) || null;
+  const compact = isCompactUI();
   const leftTag = scoreboardTeamName(match?.teams?.left?.name);
   const rightTag = scoreboardTeamName(match?.teams?.right?.name);
-  const leftSeriesScore = Number(match?.seriesScore?.left || 0);
-  const rightSeriesScore = Number(match?.seriesScore?.right || 0);
-  const summaryChips = [
-    `${completedCount}/${games.length} played`,
-    `Live ${liveGame ? `G${liveGame.number}` : "None"}`,
-    `${upcomingCount} upcoming`
-  ];
-  if (skippedCount > 0) {
-    summaryChips.push(`${skippedCount} skipped`);
-  }
-  if (focusedGame) {
-    summaryChips.push(`Viewing G${focusedGame.number}`);
-  }
 
   const cards = games
     .map((game) => {
@@ -9192,16 +9497,7 @@ function renderSeriesGames(match, apiBase) {
     })
     .join("");
 
-  elements.seriesGamesWrap.innerHTML = `
-    <article class="series-games-overview">
-      <p class="series-games-kicker">Series Games</p>
-      <p class="series-games-scoreline">${leftTag} ${leftSeriesScore} - ${rightSeriesScore} ${rightTag}</p>
-      <div class="series-games-summary-chips">
-        ${summaryChips.map((chip) => `<span class="series-summary-chip">${chip}</span>`).join("")}
-      </div>
-    </article>
-    <div class="series-games-grid">${cards}</div>
-  `;
+  elements.seriesGamesWrap.innerHTML = `<div class="series-games-grid">${cards}</div>`;
 }
 
 function durationLabelFromMinutes(minutes) {
@@ -10673,6 +10969,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   renderStreamStatus(match);
   renderSeriesHeader(match);
   renderSeriesOverview(match);
+  renderSeriesStatsSummary(match);
   renderGameExplorer(match, apiBase);
   renderStatusSummary(match);
   renderMatchupConsole(match);
@@ -10705,6 +11002,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   renderLaneMatchups(match);
   renderRoleMatchupDeltas(match);
   renderObjectiveRuns(match);
+  renderSeriesGamesSummary(match, apiBase);
   renderSeriesGames(match, apiBase);
   renderSeriesComparison(match, apiBase);
   renderSeriesPlayerTrends(match);
