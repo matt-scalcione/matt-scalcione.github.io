@@ -15972,3 +15972,147 @@ body.product-shell.hub-page .schedule-card-badge {
 body.product-shell.hub-page .table-link {
   color: #f7d8aa;
 }
+
+@media (max-width: 760px) {
+  body.product-shell.live-page .live-tools-shell,
+  body.product-shell.live-page .live-board-group,
+  body.product-shell.schedule-page .schedule-event-group {
+    background: rgba(52, 61, 71, 0.88);
+    border-color: rgba(233, 239, 245, 0.05);
+    box-shadow: none;
+  }
+
+  body.product-shell.live-page .live-tools-shell {
+    padding: 0.5rem 0.54rem;
+  }
+
+  body.product-shell.live-page .live-status-switch {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(233, 239, 245, 0.05);
+  }
+
+  body.product-shell.live-page .live-status-btn,
+  body.product-shell.live-page .live-search-field input,
+  body.product-shell.live-page .live-reset-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(233, 239, 245, 0.05);
+    color: #edf2f7;
+  }
+
+  body.product-shell.live-page .live-board-group-head,
+  body.product-shell.schedule-page .schedule-event-head {
+    background: rgba(255, 255, 255, 0.035);
+    border-bottom-color: rgba(233, 239, 245, 0.05);
+  }
+
+  body.product-shell.live-page .live-board-row,
+  body.product-shell.schedule-page .schedule-board-row {
+    background: transparent;
+  }
+
+  body.product-shell.live-page .live-board-row:hover,
+  body.product-shell.schedule-page .schedule-board-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  body.product-shell.live-page .live-board-group-title,
+  body.product-shell.schedule-page .schedule-event-title,
+  body.product-shell.live-page .live-board-row-team-name,
+  body.product-shell.schedule-page .schedule-board-team-name,
+  body.product-shell.schedule-page .schedule-board-time-main {
+    color: #f3f6fa;
+  }
+
+  body.product-shell.live-page .live-board-group-subtitle,
+  body.product-shell.schedule-page .schedule-event-subtitle,
+  body.product-shell.live-page .live-board-row-subnote,
+  body.product-shell.schedule-page .schedule-board-note {
+    color: #c8d1db;
+  }
+
+  body.product-shell.live-page .live-board-row-time,
+  body.product-shell.live-page .live-board-row-note,
+  body.product-shell.schedule-page .schedule-board-chip,
+  body.product-shell.schedule-page .schedule-board-meta,
+  body.product-shell.schedule-page .schedule-board-tag {
+    color: #d5dde6;
+  }
+
+  body.product-shell.match-page {
+    background:
+      linear-gradient(180deg, #33404d 0, #2a343f 9.5rem, #242d37 9.5rem, #242d37 100%);
+  }
+
+  body.product-shell.match-page .noise {
+    opacity: 0.04;
+  }
+
+  body.product-shell.match-page .match-shell::before {
+    background: rgba(53, 62, 73, 0.94);
+    border-color: rgba(233, 239, 245, 0.05);
+    box-shadow: 0 8px 16px rgba(9, 12, 17, 0.1);
+  }
+
+  body.product-shell.match-page .match-shell-nav,
+  body.product-shell.match-page .match-shell-side,
+  body.product-shell.match-page .score-hero-board,
+  body.product-shell.match-page .score-hero-game-band,
+  body.product-shell.match-page .game-nav-board,
+  body.product-shell.match-page .mobile-mode-toolbar,
+  body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(233, 239, 245, 0.05);
+    box-shadow: none;
+  }
+
+  body.product-shell.match-page .match-shell-nav a,
+  body.product-shell.match-page .match-shell-back.link-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(233, 239, 245, 0.05);
+    color: #edf2f7;
+  }
+
+  body.product-shell.match-page .match-shell-subtitle,
+  body.product-shell.match-page .match-shell-side-copy,
+  body.product-shell.match-page .score-hero-note,
+  body.product-shell.match-page .score-hero-game-note,
+  body.product-shell.match-page .section-head .meta-text {
+    color: #d0d8e1;
+  }
+
+  body.product-shell.match-page .match-shell-kicker,
+  body.product-shell.match-page .match-shell-side-label,
+  body.product-shell.match-page .score-hero-event,
+  body.product-shell.match-page .score-hero-game-label {
+    color: #bfc9d4;
+  }
+
+  body.product-shell.match-page .match-shell h1,
+  body.product-shell.match-page .match-shell-side-value,
+  body.product-shell.match-page .score-hero-team-name,
+  body.product-shell.match-page .score-hero-score,
+  body.product-shell.match-page .score-hero-game-main,
+  body.product-shell.match-page .section-head h2 {
+    color: #f4f7fb;
+  }
+
+  body.product-shell.match-page .panel,
+  body.product-shell.match-page .panel.secondary-panel,
+  body.product-shell.match-page .match-state-panel,
+  body.product-shell.match-page main > .panel.mobile-priority-panel,
+  body.product-shell.match-page main > .panel.mobile-secondary-panel.mobile-panel-collapsed {
+    background: rgba(53, 62, 73, 0.92);
+    border-color: rgba(233, 239, 245, 0.05);
+    box-shadow: none;
+  }
+
+  body.product-shell.match-page main > .panel.mobile-priority-panel .section-head h2 {
+    color: #f3f6fa;
+  }
+
+  body.product-shell.match-page main > .panel.mobile-priority-panel .section-mini-icon {
+    background: rgba(216, 138, 51, 0.12);
+    border-color: rgba(216, 138, 51, 0.18);
+    color: #f5d19f;
+  }
+}
