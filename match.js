@@ -2454,7 +2454,7 @@ function renderMatchHero(match) {
     chips.unshift({ label: "Series View", tone: "focus" });
   }
 
-  const visibleChips = compact ? chips.slice(0, 4) : chips;
+  const visibleChips = compact ? chips.slice(0, 2) : chips;
   if (match.patch) {
     visibleChips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
   }

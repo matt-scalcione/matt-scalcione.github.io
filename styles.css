@@ -17777,7 +17777,7 @@ body.product-shell .mobile-tabbar {
   }
 
   body.product-shell.match-page .match-shell {
-    padding-top: 0.18rem;
+    padding-top: 0.1rem;
   }
 }
 
@@ -18067,25 +18067,45 @@ body.product-shell.match-page .score-hero-open-link.link-btn {
 
 @media (max-width: 760px) {
   body.product-shell.match-page .match-shell-hero {
-    padding: 0 0.68rem;
-    gap: 0.22rem;
+    padding: 0 0.56rem;
+    gap: 0.12rem;
   }
 
   body.product-shell.match-page .match-shell-copy {
-    gap: 0.18rem;
+    gap: 0.1rem;
+    width: 100%;
+  }
+
+  body.product-shell.match-page .match-shell-kicker {
+    display: none;
   }
 
   body.product-shell.match-page .match-shell h1 {
-    max-width: 22ch;
-    font-size: clamp(0.9rem, 4.2vw, 1.04rem);
+    max-width: 24ch;
+    font-size: clamp(0.84rem, 3.9vw, 0.98rem);
+    line-height: 1.02;
   }
 
   body.product-shell.match-page .match-shell-subtitle {
     display: none;
   }
 
-  body.product-shell.match-page .match-shell-chip:nth-child(n + 4) {
+  body.product-shell.match-page .match-shell-chips {
+    gap: 0.14rem;
+  }
+
+  body.product-shell.match-page .match-shell-chip {
+    min-height: 1.08rem;
+    padding: 0.04rem 0.34rem;
+    font-size: 0.52rem;
+  }
+
+  body.product-shell.match-page .match-shell-chip:nth-child(n + 3) {
     display: none;
+  }
+
+  body.product-shell.match-page .match-shell-board {
+    gap: 0.3rem;
   }
 
   body.product-shell.match-page .score-hero-board {
