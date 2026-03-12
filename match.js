@@ -5270,17 +5270,23 @@ function renderGameExplorer(match, apiBase) {
     const objectiveSummary = objectiveSummaryLine(match, selected.snapshot);
     const objectives = objectiveSummary.primary.replace(/ · /g, " · ");
     const completedStory = buildCompletedGameStory(match);
-    const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, 3) : [];
+    const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, compact ? 2 : 3) : [];
+    const completedResultTitle = compact ? `${winnerShort} won G${selected.number}` : `${winnerShort} won Game ${selected.number}`;
+    const completedResultMeta = compact
+      ? [finalKills, duration !== "n/a" ? duration : null, `Series ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`]
+          .filter(Boolean)
+          .join(" · ")
+      : `${finalKills} kills · ${duration} · ${sideLabel}`;
     const spotlightMarkup = topRows.length
       ? `
-        <div class="completed-spotlights">
+        <div class="completed-spotlights${compact ? " compact" : ""}">
           ${topRows
             .map(
               (player) => `
-                <article class="completed-spotlight-card">
+                <article class="completed-spotlight-card${compact ? " compact" : ""}">
                   <p class="completed-spotlight-name">${heroIconMarkup(match, player)}<span>${player.name}</span></p>
                   <p class="meta-text">${player.champion || "Unknown"} · ${String(player.role || "flex").toUpperCase()}</p>
-                  <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · Gold ${formatNumber(player.goldEarned)}</p>
+                  <p class="meta-text">${compact ? `KDA ${player.kills}/${player.deaths}/${player.assists}` : `KDA ${player.kills}/${player.deaths}/${player.assists} · Gold ${formatNumber(player.goldEarned)}`}</p>
                 </article>
               `
             )
@@ -5290,38 +5296,49 @@ function renderGameExplorer(match, apiBase) {
       : "";
     const completedStoryMarkup = completedStory
       ? `
-        <div class="completed-result-story">
-          <p class="tempo-label">Game Story</p>
+        <div class="completed-result-story${compact ? " compact" : ""}">
+          <p class="tempo-label">${compact ? "Story" : "Game Story"}</p>
           <p class="completed-story-title">${completedStory.headline}</p>
-          <p class="meta-text">${completedStory.summary}</p>
+          <p class="meta-text">${escapeHtml(compact ? clampSummaryText(completedStory.summary, 82) : completedStory.summary)}</p>
           <div class="completed-story-pills">
-            <span class="completed-story-pill">${completedStory.peakLeadLabel}</span>
-            ${completedStory.peakLeadNote ? `<span class="completed-story-pill">${completedStory.peakLeadNote}</span>` : ""}
-            ${completedStory.turningPointLabel ? `<span class="completed-story-pill">${completedStory.turningPointLabel}</span>` : ""}
+            ${[
+              completedStory.peakLeadLabel,
+              ...(compact ? [] : completedStory.peakLeadNote ? [completedStory.peakLeadNote] : []),
+              completedStory.turningPointLabel
+            ]
+              .filter(Boolean)
+              .slice(0, compact ? 2 : 3)
+              .map((item) => `<span class="completed-story-pill">${escapeHtml(item)}</span>`)
+              .join("")}
           </div>
         </div>
       `
       : "";
+    const infoCards = [
+      gameContextInfoCard("Objectives", objectives, objectiveSummary.secondary),
+      gameContextInfoCard("Gold", hasGold ? `${formatNumber(leftGold)} - ${formatNumber(rightGold)}` : "n/a")
+    ];
+    if (!compact) {
+      infoCards.push(gameContextInfoCard("Started", startedLabel));
+      infoCards.push(gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine));
+    }
 
     elements.gameContextWrap.innerHTML = `
-      <article class="game-context-card ${selected.telemetryStatus || "none"} completed-context-card">
+      <article class="game-context-card ${selected.telemetryStatus || "none"} completed-context-card${compact ? " compact" : ""}">
         <div class="game-context-top">
           <p class="game-context-title">${selectedGameTitle}</p>
           <span class="pill complete">Complete</span>
         </div>
-        <article class="completed-result-banner ${winnerTone}">
+        <article class="completed-result-banner ${winnerTone}${compact ? " compact" : ""}">
           <div class="completed-result-copy">
             <p class="completed-result-kicker">Result</p>
-            <p class="completed-result-title">${winnerShort} won Game ${selected.number}</p>
-            <p class="meta-text">${finalKills} kills · ${duration} · ${sideLabel}</p>
+            <p class="completed-result-title">${completedResultTitle}</p>
+            <p class="meta-text">${escapeHtml(completedResultMeta)}</p>
           </div>
           ${completedStoryMarkup}
         </article>
-        <div class="game-context-grid">
-          ${gameContextInfoCard("Objectives", objectives, objectiveSummary.secondary)}
-          ${gameContextInfoCard("Gold", hasGold ? `${formatNumber(leftGold)} - ${formatNumber(rightGold)}` : "n/a")}
-          ${gameContextInfoCard("Started", startedLabel)}
-          ${gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine)}
+        <div class="game-context-grid${compact ? " compact" : ""}">
+          ${infoCards.join("")}
         </div>
         ${spotlightMarkup}
         ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">Open VOD / Stream</a>` : ""}
