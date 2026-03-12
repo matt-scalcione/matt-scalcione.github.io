@@ -86,6 +86,7 @@ const MOBILE_GAME_JUMP_TARGETS = [
   { id: "teamCompareWrap", label: "Stats" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
+  { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
   { id: "matchupConsoleWrap", label: "Stats" },
   { id: "seriesLineupsWrap", label: "Lineups" },
@@ -93,6 +94,7 @@ const MOBILE_SERIES_JUMP_TARGETS = [
   { id: "upcomingH2hWrap", label: "H2H" }
 ];
 const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
+  { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
   { id: "seriesGamesWrap", label: "Maps" },
   { id: "seriesProgressWrap", label: "Progress" },
@@ -101,6 +103,7 @@ const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
   { id: "upcomingH2hWrap", label: "H2H" }
 ];
 const MOBILE_COMPLETED_SERIES_JUMP_TARGETS = [
+  { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
   { id: "seriesGamesWrap", label: "Maps" },
   { id: "seriesCompareWrap", label: "Results" },
@@ -152,6 +155,8 @@ const MOBILE_SECTION_HEADINGS = {
   "Past Matches": { icon: "FM", short: "Past" },
   "Head-to-Head": { icon: "H2H", short: "H2H" },
   "Prediction": { icon: "PR", short: "Prediction" },
+  "Series Story": { icon: "SR", short: "Story" },
+  "Series Desk": { icon: "SD", short: "Desk" },
   "Game Overview": { icon: "RC", short: "Overview" },
   "Final Game": { icon: "RC", short: "Final" },
   "Live Snapshot": { icon: "CC", short: "Snapshot" },
@@ -199,14 +204,17 @@ const MOBILE_SECTION_HEADINGS = {
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
-  seriesLive: new Set(["Games", "Statistics", "Game Results"]),
-  seriesCompleted: new Set(["Games", "Game Results", "Results Table"]),
-  series: new Set(["Games", "Statistics"]),
-  upcoming: new Set(["Games", "Overview", "Watch", "Prediction"]),
+  seriesLive: new Set(["Overview", "Series Story", "Series Desk", "Games", "Statistics", "Game Results"]),
+  seriesCompleted: new Set(["Overview", "Series Story", "Series Desk", "Games", "Game Results", "Results Table"]),
+  series: new Set(["Overview", "Series Story", "Series Desk", "Games", "Statistics"]),
+  upcoming: new Set(["Overview", "Series Story", "Series Desk", "Games", "Watch", "Prediction"]),
   game: new Set(["Games", "Game Overview", "Final Game", "Map Overview", "Final Map", "Selected Game Recap", "Map Desk", "Live Snapshot", "Players", "Live Feed", "Map Feed"])
 };
 const MOBILE_PANEL_ORDER_BY_MODE = {
   seriesLive: [
+    "seriesOverviewWrap",
+    "seriesHeaderWrap",
+    "statusSummary",
     "gameExplorerPanel",
     "matchupConsoleWrap",
     "seriesGamesWrap",
@@ -219,6 +227,9 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesPlayerTrendsWrap"
   ],
   seriesCompleted: [
+    "seriesOverviewWrap",
+    "seriesHeaderWrap",
+    "statusSummary",
     "gameExplorerPanel",
     "seriesGamesWrap",
     "seriesCompareWrap",
@@ -230,6 +241,9 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesMomentsList"
   ],
   series: [
+    "seriesOverviewWrap",
+    "seriesHeaderWrap",
+    "statusSummary",
     "gameExplorerPanel",
     "matchupConsoleWrap",
     "seriesLineupsWrap",
@@ -239,6 +253,9 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesProgressWrap"
   ],
   upcoming: [
+    "seriesOverviewWrap",
+    "seriesHeaderWrap",
+    "statusSummary",
     "gameExplorerPanel",
     "upcomingEssentialsWrap",
     "upcomingWatchWrap",
@@ -3605,28 +3622,86 @@ function renderMatchupConsole(match) {
 
 function renderSeriesHeader(match) {
   const header = match.seriesHeader;
-  if (!header) {
-    elements.seriesHeaderSubhead.textContent = "";
-    elements.seriesHeaderWrap.innerHTML = `<div class="empty">Series read unavailable.</div>`;
-    return;
-  }
-
-  const liveGameNumber = firstInProgressGameNumber(match);
+  const leftName = match?.teams?.left?.name || "Left Team";
+  const rightName = match?.teams?.right?.name || "Right Team";
+  const leftShort = scoreboardTeamName(leftName, match?.game);
+  const rightShort = scoreboardTeamName(rightName, match?.game);
   const status = String(match?.status || "").toLowerCase();
-  elements.seriesHeaderSubhead.textContent =
-    header.subhead ||
-    (status === "live"
+  const liveGameNumber = firstInProgressGameNumber(match);
+  const winnerName = winnerTeamName(match);
+  const leaderName = currentSeriesLeader(match);
+  const bestOf = Math.max(1, Number(match?.bestOf || match?.seriesProgress?.bestOf || 1));
+  const seriesScoreLabel = `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`;
+  const countdownSeconds = Number(match?.seriesProjection?.countdownSeconds);
+  const countdownLabel = Number.isFinite(countdownSeconds)
+    ? countdownSeconds > 0
+      ? shortDuration(Math.max(0, countdownSeconds))
+      : "Soon"
+    : "TBD";
+  const startLabel = match?.startAt ? dateTimeLabel(match.startAt) : "TBD";
+  const fallbackSubhead =
+    status === "live"
       ? Number.isInteger(liveGameNumber)
         ? `Game ${liveGameNumber} is live. Stay here for the series read, then open the map when you want full game detail.`
         : "Series is live. Stay here for the broader read, then open the active map for game detail."
       : status === "completed"
         ? "Read the finished series here first, then open each map for the full game story."
-        : "Use this layer for kickoff timing, matchup context, and series expectation before the first map.");
+        : "Use this layer for kickoff timing, matchup context, and series expectation before the first map.";
+
+  if (!header && !match?.teams?.left && !match?.teams?.right) {
+    elements.seriesHeaderSubhead.textContent = "";
+    elements.seriesHeaderWrap.innerHTML = `<div class="empty">Series read unavailable.</div>`;
+    return;
+  }
+
+  const subhead = String(header?.subhead || "").trim() || fallbackSubhead;
+  let title = String(header?.headline || "").trim() || "Series in progress";
+  let tone = "neutral";
+  const chips = [];
+
+  if (status === "upcoming") {
+    title = title || `${leftShort} vs ${rightShort}`;
+    tone = "upcoming";
+    chips.push(
+      { label: "Upcoming", tone: "upcoming" },
+      { label: `Starts ${countdownLabel}`, tone: "upcoming" },
+      { label: `BO${bestOf}`, tone: "neutral" }
+    );
+  } else if (status === "completed") {
+    title = title || (winnerName ? `${scoreboardTeamName(winnerName, match?.game)} closed the series` : `Final ${seriesScoreLabel}`);
+    tone = "complete";
+    chips.push(
+      winnerName ? { label: `${scoreboardTeamName(winnerName, match?.game)} won`, tone: "complete" } : { label: "Final", tone: "complete" },
+      { label: `Series ${seriesScoreLabel}`, tone: "neutral" },
+      { label: `BO${bestOf}`, tone: "neutral" }
+    );
+  } else {
+    title = title || (leaderName ? `${scoreboardTeamName(leaderName, match?.game)} controls the series` : `${leftShort} and ${rightShort} are dead even`);
+    tone = "live";
+    chips.push(
+      { label: "Live", tone: "live" },
+      Number.isInteger(liveGameNumber) ? { label: `Game ${liveGameNumber}`, tone: "neutral" } : null,
+      { label: `Series ${seriesScoreLabel}`, tone: leaderName ? (leaderName === leftName ? "left" : "right") : "neutral" }
+    );
+  }
+
+  if (match?.tournament) {
+    chips.push({ label: clampSummaryText(match.tournament, 28), tone: "neutral" });
+  }
+
+  elements.seriesHeaderSubhead.textContent = subhead;
   elements.seriesHeaderWrap.innerHTML = `
-    <article class="series-header-card">
-      <p class="series-headline">${header.headline || "Series in progress"}</p>
-      ${header.winnerName ? `<p class="meta-text strong">Winner: ${header.winnerName}</p>` : ""}
-    </article>
+    ${recapFeatureCard({
+      kicker: status === "completed" ? "Final Read" : status === "live" ? "Live Read" : "Pre-Match Read",
+      title,
+      summary: subhead,
+      chips,
+      tone
+    })}
+    ${recapNoteMarkup([
+      match?.stage ? `${match.stage} · ${startLabel}` : startLabel !== "TBD" ? startLabel : null,
+      header?.winnerName ? `Winner: ${displayTeamName(header.winnerName, match?.game)}` : null
+    ])}
   `;
 }
 
@@ -5271,8 +5346,16 @@ function applyGamePanelVisibility(match) {
 
 function applySeriesPanelVisibility(match = uiState.match) {
   const showSeriesPanels = uiState.viewMode === "series";
+  const seriesSupportTargets = [elements.seriesHeaderWrap, elements.statusSummary];
   for (const panel of elements.seriesPanels) {
     setPanelVisibility(panel, showSeriesPanels);
+  }
+
+  for (const target of seriesSupportTargets) {
+    const panel = target?.closest("section.panel");
+    if (panel) {
+      setPanelVisibility(panel, showSeriesPanels);
+    }
   }
 
   if (!showSeriesPanels) {
@@ -5293,6 +5376,8 @@ function applySeriesPanelVisibility(match = uiState.match) {
   };
 
   setSeriesVisibility(elements.seriesOverviewWrap, true);
+  setSeriesVisibility(elements.seriesHeaderWrap, true);
+  setSeriesVisibility(elements.statusSummary, true);
   setSeriesVisibility(elements.matchupConsoleWrap, true);
   setSeriesVisibility(elements.seriesLineupsWrap, true);
   setSeriesVisibility(elements.upcomingFormWrap, true);

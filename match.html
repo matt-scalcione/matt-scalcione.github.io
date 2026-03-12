@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312ad" />
+    <link rel="stylesheet" href="./styles.css?v=20260312ae" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -89,11 +89,12 @@
         </div>
       </section>
 
-      <section class="panel hidden-panel">
+      <section class="panel hidden-panel overview-support-panel" id="seriesStoryPanel">
         <div class="section-head">
-          <h2>Series Read</h2>
-          <p id="seriesHeaderSubhead" class="meta-text"></p>
+          <h2>Series Story</h2>
+          <p class="meta-text">The main live, final, or pre-match read for the series as a whole.</p>
         </div>
+        <p id="seriesHeaderSubhead" class="meta-text" hidden></p>
         <div id="seriesHeaderWrap" class="series-header"></div>
       </section>
 
@@ -107,14 +108,15 @@
         <div id="mobileGameToolbar" class="mobile-game-toolbar" hidden></div>
       </section>
 
-      <section class="panel hidden-panel">
+      <section class="panel hidden-panel overview-support-panel" id="seriesDeskPanel">
         <div class="section-head">
-          <h2>Match Snapshot</h2>
+          <h2>Series Desk</h2>
+          <p class="meta-text">State, sync cadence, format, and live or final checkpoints.</p>
         </div>
         <div id="statusSummary" class="snapshot-grid"></div>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesOverviewPanel" data-scope="series">
         <div class="section-head">
           <h2>Overview</h2>
           <p class="meta-text">Series state, event facts, and model summary.</p>
@@ -542,6 +544,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312k"></script>
+    <script type="module" src="./match.js?v=20260312l"></script>
   </body>
 </html>
