@@ -4182,12 +4182,24 @@ function seriesGamesLeadCard(label, value, note = null) {
   return seriesInfoCard(label, value, note);
 }
 
+function sanitizedSeriesDateValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw || /^loading(?:\.\.\.)?$/i.test(raw)) {
+    return null;
+  }
+  return value;
+}
+
 function nextSeriesGameEstimateLabel(match, game) {
   if (!game) {
     return null;
   }
 
-  const estimatedStartAt = selectedGameEstimatedStart(match, game.number) || game?.estimatedStartAt || game?.startedAt || null;
+  const estimatedStartAt =
+    sanitizedSeriesDateValue(selectedGameEstimatedStart(match, game.number)) ||
+    sanitizedSeriesDateValue(game?.estimatedStartAt) ||
+    sanitizedSeriesDateValue(game?.startedAt) ||
+    null;
   if (!estimatedStartAt) {
     return null;
   }
@@ -4242,6 +4254,7 @@ function renderSeriesGamesSummary(match, apiBase) {
     return;
   }
 
+  const compact = isCompactUI();
   const games = Array.isArray(match?.seriesGames) ? match.seriesGames : [];
   if (!games.length) {
     elements.seriesGamesSummaryWrap.innerHTML = `<div class="empty">Series game path appears once map-level data is available.</div>`;
@@ -4300,36 +4313,56 @@ function renderSeriesGamesSummary(match, apiBase) {
     note = etaLabel ? `Projected ${etaLabel} · BO${bestOf}` : `Next map pending · BO${bestOf}`;
   }
 
-  const leadCards = [
-    seriesGamesLeadCard("Format", `BO${bestOf}`, `First to ${winsNeeded}`),
+  const leadCardItems = [
+    { label: "Format", value: `BO${bestOf}`, note: compact ? null : `First to ${winsNeeded}` },
     liveGame
-      ? seriesGamesLeadCard("Live Map", `G${liveGame.number}`, liveGame.startedAt ? `Started ${nextSeriesGameEstimateLabel(match, liveGame)}` : "Live now")
+      ? {
+          label: compact ? "Live" : "Live Map",
+          value: `G${liveGame.number}`,
+          note: nextSeriesGameEstimateLabel(match, liveGame) ? `Started ${nextSeriesGameEstimateLabel(match, liveGame)}` : "Live now"
+        }
       : upcomingGame
-        ? seriesGamesLeadCard("Next Map", `G${upcomingGame.number}`, nextSeriesGameEstimateLabel(match, upcomingGame) || "Waiting")
-        : seriesGamesLeadCard("Status", status === "completed" ? "Final" : "Pending"),
-    seriesGamesLeadCard(
-      "Maps",
-      `${completedCount}/${games.length}`,
-      `${upcomingCount} upcoming${skippedCount ? ` · ${skippedCount} skipped` : ""}`
-    ),
-    focusedGame
-      ? seriesGamesLeadCard(
-          "Viewing",
-          `G${focusedGame.number}`,
-          focusedGame.state === "completed" ? "Completed map detail" : focusedGame.state === "inProgress" ? "Live map detail" : "Queued map detail"
-        )
-      : null,
+        ? {
+            label: compact ? "Next" : "Next Map",
+            value: `G${upcomingGame.number}`,
+            note: nextSeriesGameEstimateLabel(match, upcomingGame) || "Waiting"
+          }
+        : { label: "Status", value: status === "completed" ? "Final" : "Pending", note: null },
+    {
+      label: "Maps",
+      value: `${completedCount}/${games.length}`,
+      note: compact ? `${upcomingCount} up${skippedCount ? ` · ${skippedCount} skip` : ""}` : `${upcomingCount} upcoming${skippedCount ? ` · ${skippedCount} skipped` : ""}`
+    },
     status !== "completed" && averageDuration !== null
-      ? seriesGamesLeadCard("Avg Map", durationLabelFromMinutes(averageDuration), `${durationValues.length} timed map${durationValues.length === 1 ? "" : "s"}`)
+      ? {
+          label: compact ? "Avg" : "Avg Map",
+          value: durationLabelFromMinutes(averageDuration),
+          note: compact ? null : `${durationValues.length} timed map${durationValues.length === 1 ? "" : "s"}`
+        }
       : null,
-    status !== "completed" && sideWinsValue
-      ? seriesGamesLeadCard("Side Wins", sideWinsValue, `${sideEntryTotal} map${sideEntryTotal === 1 ? "" : "s"} with side data`)
+    !compact && focusedGame
+      ? {
+          label: "Viewing",
+          value: `G${focusedGame.number}`,
+          note:
+            focusedGame.state === "completed"
+              ? "Completed map detail"
+              : focusedGame.state === "inProgress"
+                ? "Live map detail"
+                : "Queued map detail"
+        }
+      : null,
+    !compact && status !== "completed" && sideWinsValue
+      ? {
+          label: "Side Wins",
+          value: sideWinsValue,
+          note: `${sideEntryTotal} map${sideEntryTotal === 1 ? "" : "s"} with side data`
+        }
       : null
-  ]
-    .filter(Boolean)
-    .join("");
+  ];
+  const leadCards = renderSeriesInfoCards(leadCardItems, compact ? { limit: 4 } : {});
 
-  const completedCards = status === "completed" ? buildCompletedSeriesSummaryCards(match) : "";
+  const completedCards = status === "completed" && !compact ? buildCompletedSeriesSummaryCards(match) : "";
   const pathTiles = games
     .slice()
     .sort((left, right) => Number(left?.number || 0) - Number(right?.number || 0))
@@ -10160,7 +10193,8 @@ function renderSeriesGames(match, apiBase) {
       const rightSideTone = rightSide === "red" ? "red" : rightSide === "blue" ? "blue" : "neutral";
       const winnerMeta = resolvedSeriesGameWinner(match, game);
       const winnerName = winnerMeta?.name || null;
-      const startedLabel = game.startedAt ? (compact ? dateTimeCompact(game.startedAt) : dateTimeLabel(game.startedAt)) : "TBD";
+      const startedValue = sanitizedSeriesDateValue(game.startedAt);
+      const startedLabel = startedValue ? (compact ? dateTimeCompact(startedValue) : dateTimeLabel(startedValue)) : "TBD";
       const durationLabel = durationLabelFromMinutes(game.durationMinutes);
       const statusNote = seriesGameStatusNote(game, match);
       const labelText = String(game.label || "").trim();
@@ -10193,6 +10227,51 @@ function renderSeriesGames(match, apiBase) {
       const vodAction = game.watchUrl
         ? `<a class="series-game-vod" href="${game.watchUrl}" target="_blank" rel="noreferrer">${compact ? "VOD" : "Watch VOD"}</a>`
         : `<span class="series-game-vod disabled">No VOD</span>`;
+      const compactMeta = [
+        winnerName
+          ? `Winner ${scoreboardTeamName(winnerName, match?.game)}`
+          : game.state === "completed"
+            ? "Result confirmed"
+            : statusNote,
+        durationLabel !== "n/a" ? durationLabel : null,
+        hasSideInfo ? sideSummaryFromSeriesGame(game, match) : null
+      ].filter(Boolean);
+
+      if (compact) {
+        return `
+          <article class="series-game-card compact-card ${game.selected ? "selected" : ""} state-${stateClass(game.state)}">
+            <div class="series-game-topline compact">
+              <div class="series-game-head">
+                <p class="series-game-title">G${game.number}</p>
+                <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
+              </div>
+              ${
+                game.selected
+                  ? `<span class="series-game-focused compact">Viewing</span>`
+                  : ""
+              }
+            </div>
+            <p class="series-game-compact-note">${escapeHtml(compactMeta[0] || statusNote)}</p>
+            ${
+              compactMeta.length > 1
+                ? `<div class="series-game-compact-facts">${compactMeta
+                    .slice(1)
+                    .map((entry) => `<span class="series-game-compact-chip">${escapeHtml(entry)}</span>`)
+                    .join("")}</div>`
+                : ""
+            }
+            <div class="series-game-actions compact">
+              ${game.selected ? `<a class="series-game-open" href="${detailUrlForGame(match.id, apiBase, null)}">Series</a>` : openAction}
+              ${vodAction}
+            </div>
+            ${
+              game.state === "completed" && !winnerMeta
+                ? `<p class="series-game-provider-note compact">Winner label unavailable on the series payload.</p>`
+                : ""
+            }
+          </article>
+        `;
+      }
 
       return `
         <article class="series-game-card ${game.selected ? "selected" : ""} state-${stateClass(game.state)}">
@@ -10382,21 +10461,28 @@ function renderSeriesComparison(match, apiBase) {
         ? "Some map winners inferred from provider hints or the focused map."
         : "Provider exposed map completion and VODs, but not per-map winner labels.";
 
-  const summaryCards = [
-    { label: compact ? "Final" : "Final Score", value: `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`, note: null },
-    { label: compact ? "Maps" : "Completed Maps", value: String(completedGames.length), note: null },
-    { label: compact ? "Coverage" : "Winner Coverage", value: resultsCoverageLabel, note: resultsCoverageNote },
-    { label: compact ? "Avg Len" : "Avg Map Length", value: avgDuration, note: null },
-    { label: compact ? "Fastest" : "Fastest Map", value: fastest, note: null },
-    { label: compact ? "Slowest" : "Slowest Map", value: slowest, note: null }
-  ];
+  const summaryCards = compact
+    ? [
+        { label: "Final", value: `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`, note: null },
+        { label: "Maps", value: String(completedGames.length), note: null },
+        { label: "Coverage", value: resultsCoverageLabel, note: null },
+        { label: "Avg", value: avgDuration, note: null }
+      ]
+    : [
+        { label: "Final Score", value: `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`, note: null },
+        { label: "Completed Maps", value: String(completedGames.length), note: null },
+        { label: "Winner Coverage", value: resultsCoverageLabel, note: resultsCoverageNote },
+        { label: "Avg Map Length", value: avgDuration, note: null },
+        { label: "Fastest Map", value: fastest, note: null },
+        { label: "Slowest Map", value: slowest, note: null }
+      ];
 
-  if (resolvedWinnerCount > 0) {
+  if (!compact && resolvedWinnerCount > 0) {
     summaryCards.splice(
       2,
       0,
-      { label: compact ? `${displayTeamName(match.teams.left.name)} W` : `${displayTeamName(match.teams.left.name)} Wins`, value: String(leftWins), note: null },
-      { label: compact ? `${displayTeamName(match.teams.right.name)} W` : `${displayTeamName(match.teams.right.name)} Wins`, value: String(rightWins), note: null }
+      { label: `${displayTeamName(match.teams.left.name)} Wins`, value: String(leftWins), note: null },
+      { label: `${displayTeamName(match.teams.right.name)} Wins`, value: String(rightWins), note: null }
     );
   }
 
@@ -10426,15 +10512,15 @@ function renderSeriesComparison(match, apiBase) {
             : `<a class="table-link" href="${openHref}">Open</a>`;
 
       if (compact) {
+        const compactMeta = [durationText !== "n/a" ? durationText : null, sideText !== "n/a" ? sideText : null].filter(Boolean);
         return `
           <article class="series-compare-item ${game.selected ? "selected" : ""}">
             <div class="series-compare-item-top">
               <p class="series-compare-game">G${game.number}</p>
               <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
             </div>
-            <p class="meta-text"><strong>Outcome:</strong> ${winnerText}</p>
-            <p class="meta-text"><strong>Duration:</strong> ${durationText}</p>
-            <p class="meta-text"><strong>Sides:</strong> ${sideText}</p>
+            <p class="series-compare-outcome">${winnerText}</p>
+            ${compactMeta.length ? `<p class="series-compare-compact-meta">${escapeHtml(compactMeta.join(" · "))}</p>` : ""}
             ${game.state === "completed" && !winnerMeta ? `<p class="meta-text">Winner label unavailable on series payload.</p>` : ""}
             <div class="series-compare-links">
               ${game.watchUrl ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>` : `<span class="meta-text">No VOD</span>`}
@@ -10468,13 +10554,15 @@ function renderSeriesComparison(match, apiBase) {
     <div class="series-results-shell">
       <article class="series-results-hero ${resolvedWinnerCount === completedGames.length ? "complete" : "partial"}">
         <div class="series-results-copy">
-          <p class="tempo-label">Results Desk</p>
+          <p class="tempo-label">${compact ? "Results" : "Results Desk"}</p>
           <h3>${escapeHtml(
-            resolvedWinnerCount === completedGames.length
-              ? `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0} with map winners resolved`
-              : `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`
+            compact
+              ? `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`
+              : resolvedWinnerCount === completedGames.length
+                ? `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0} with map winners resolved`
+                : `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`
           )}</h3>
-          <p class="series-results-note">${escapeHtml(resultsCoverageNote)}</p>
+          <p class="series-results-note">${escapeHtml(compact ? `Coverage ${resultsCoverageLabel}` : resultsCoverageNote)}</p>
         </div>
         <div class="series-results-hero-score">
           <span class="series-results-team">${escapeHtml(scoreboardTeamName(match?.teams?.left?.name, match?.game))}</span>
