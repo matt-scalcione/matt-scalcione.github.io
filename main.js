@@ -333,6 +333,26 @@ function compactBoardGameLabel(game) {
   return gameLabel(game);
 }
 
+function liveBoardContextLabel(match = {}) {
+  const parts = [];
+  const game = compactBoardGameLabel(match?.game);
+  if (game) {
+    parts.push(game);
+  }
+
+  const bestOf = Number(match?.bestOf || 0);
+  if (bestOf > 1) {
+    parts.push(`BO${bestOf}`);
+  }
+
+  const region = String(match?.region || "").trim();
+  if (region) {
+    parts.push(region.toUpperCase());
+  }
+
+  return parts.join(" · ");
+}
+
 function renderMobileLiveBoard(rows = []) {
   const groups = new Map();
 
@@ -354,10 +374,19 @@ function renderMobileLiveBoard(rows = []) {
               const link = buildMatchUrl({ matchId: match.id });
               const status = String(match?.status || "upcoming").toLowerCase();
               const statusLabel = status === "live" ? "LIVE" : status === "upcoming" ? "NEXT" : "FINAL";
-              const signal = String(match?.keySignal || "").trim();
               const provenance = buildRowDataProvenance(match);
               const qualityNotice = buildRowQualityNotice(match);
-              const secondaryNote = qualityNotice.text || provenance.text || "";
+              const contextLabel = liveBoardContextLabel(match);
+              const secondaryNote = qualityNotice.text || (provenance.tone === "snapshot" ? provenance.text : "");
+              const metaMarkup =
+                contextLabel || secondaryNote
+                  ? `
+                    <div class="live-board-row-meta">
+                      ${contextLabel ? `<p class="live-board-row-context">${escapeHtml(contextLabel)}</p>` : ""}
+                      ${secondaryNote ? `<p class="live-board-row-subnote">${escapeHtml(secondaryNote)}</p>` : ""}
+                    </div>
+                  `
+                  : "";
 
               return `
                 <a class="live-board-row live-board-row-${status}" href="${link}">
@@ -381,16 +410,7 @@ function renderMobileLiveBoard(rows = []) {
                       <strong class="live-board-row-score">${Number(match?.seriesScore?.right || 0)}</strong>
                     </div>
                   </div>
-                  <div class="live-board-row-meta">
-                    <div class="live-board-row-chip-row">
-                      <span class="live-board-row-chip format">${escapeHtml(bestOfCompactLabel(match.bestOf))}</span>
-                      <span class="live-board-row-chip">${escapeHtml(compactBoardGameLabel(match.game))}</span>
-                      ${match.region ? `<span class="live-board-row-chip">${escapeHtml(String(match.region).toUpperCase())}</span>` : ""}
-                      ${signal ? `<span class="live-board-row-chip signal">${escapeHtml(signalLabel(signal))}</span>` : ""}
-                    </div>
-                    <p class="live-board-row-note">${escapeHtml(matchSummaryLead(match))}</p>
-                    ${secondaryNote ? `<p class="live-board-row-subnote">${escapeHtml(secondaryNote)}</p>` : ""}
-                  </div>
+                  ${metaMarkup}
                 </a>
               `;
             })
