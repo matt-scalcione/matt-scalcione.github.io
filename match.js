@@ -286,6 +286,7 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
 };
 const MATCH_PANEL_GROUP_BY_TARGET_ID = {
   gameExplorerPanel: "rail",
+  seriesOverviewWrap: "overview",
   seriesHeaderWrap: "overview",
   statusSummary: "overview",
   upcomingEssentialsWrap: "overview",
@@ -515,6 +516,7 @@ const elements = {
   matchDetailContent: document.querySelector("#matchDetailContent"),
   matchTopTabs: document.querySelector("#matchTopTabs"),
   matchContentGroups: document.querySelector("#matchContentGroups"),
+  seriesOverviewWrap: document.querySelector("#seriesOverviewWrap"),
   seriesHeaderSubhead: document.querySelector("#seriesHeaderSubhead"),
   seriesHeaderWrap: document.querySelector("#seriesHeaderWrap"),
   gameNavWrap: document.querySelector("#gameNavWrap"),
@@ -3331,6 +3333,7 @@ async function ensureMatchupData(match, apiBase) {
     };
     renderMatchHero(uiState.match || match);
     renderScoreboard(uiState.match || match);
+    renderSeriesOverview(uiState.match || match);
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
@@ -3349,6 +3352,7 @@ async function ensureMatchupData(match, apiBase) {
     };
     renderMatchHero(uiState.match || match);
     renderScoreboard(uiState.match || match);
+    renderSeriesOverview(uiState.match || match);
     renderMatchupConsole(uiState.match || match);
     renderUpcomingForm(uiState.match || match);
     renderUpcomingHeadToHead(uiState.match || match);
@@ -3629,6 +3633,231 @@ function seriesInfoCard(label, value, note = null) {
       <p class="tempo-value">${value}</p>
       ${note ? `<p class="meta-text">${note}</p>` : ""}
     </article>
+  `;
+}
+
+function resolvedSeriesPrediction(match) {
+  const matchupState = currentMatchupState(match);
+  if (matchupState?.leftProfile && matchupState?.rightProfile) {
+    const edge = matchupEdgeModel(
+      matchupState.leftProfile,
+      matchupState.rightProfile,
+      match?.teams?.left?.name || "Left Team",
+      match?.teams?.right?.name || "Right Team"
+    );
+
+    return {
+      leftWinPct: edge.leftEdgePct,
+      rightWinPct: edge.rightEdgePct,
+      favoriteTeamName: edge.favoriteName,
+      confidence: edge.confidence,
+      drivers: edge.drivers,
+      modelVersion: "matchup-edge-v1"
+    };
+  }
+
+  const prediction = upcomingIntel(match)?.prediction;
+  return prediction || null;
+}
+
+function renderSeriesOverview(match) {
+  if (!elements.seriesOverviewWrap) {
+    return;
+  }
+
+  if (!match?.teams?.left || !match?.teams?.right) {
+    elements.seriesOverviewWrap.innerHTML = `<div class="empty">Series overview appears once team and event context are available.</div>`;
+    return;
+  }
+
+  const compact = isCompactUI();
+  const status = String(match?.status || "live").toLowerCase();
+  const bestOf = Math.max(1, Number(match?.bestOf || match?.seriesProgress?.bestOf || 1));
+  const formatLabel = `BO${bestOf}`;
+  const leftName = match.teams.left.name || "Left Team";
+  const rightName = match.teams.right.name || "Right Team";
+  const leftShort = scoreboardTeamName(leftName, match?.game);
+  const rightShort = scoreboardTeamName(rightName, match?.game);
+  const tournamentName = match.tournament || "Tournament";
+  const stageLabel = matchStageLabel(match);
+  const regionLabel = String(match.region || "global").toUpperCase();
+  const startTs = Date.parse(String(match?.startAt || ""));
+  const startLabel = Number.isFinite(startTs)
+    ? compact
+      ? dateTimeCompact(match.startAt)
+      : dateTimeLabel(match.startAt)
+    : "TBD";
+  const countdownSeconds = Number(match?.seriesProjection?.countdownSeconds);
+  const countdownLabel = Number.isFinite(countdownSeconds)
+    ? countdownSeconds > 0
+      ? shortDuration(Math.max(0, countdownSeconds))
+      : "Soon"
+    : "TBD";
+  const seriesScoreLabel = `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`;
+  const completedMaps = Array.isArray(match?.seriesGames)
+    ? match.seriesGames.filter((game) => game?.state === "completed").length
+    : 0;
+  const liveGameNumber = firstInProgressGameNumber(match);
+  const leaderName = currentSeriesLeader(match);
+  const winnerName = winnerTeamName(match);
+  const prediction = resolvedSeriesPrediction(match);
+  const watchOptions = Array.isArray(upcomingIntel(match)?.watchOptions) ? upcomingIntel(match).watchOptions.slice(0, 4) : [];
+  const formProfiles = resolvedUpcomingFormProfiles(match);
+  const heroTags = [stageLabel, tournamentName, formatLabel, match.patch ? `Patch ${match.patch}` : null, regionLabel].filter(Boolean);
+
+  let title = "Series overview";
+  let note = `${startLabel} · ${formatLabel}`;
+  let statePill = "Series";
+  let stateTone = "neutral";
+
+  if (status === "upcoming") {
+    title = `${leftShort} vs ${rightShort}`;
+    note = `${stageLabel ? `${stageLabel} · ` : ""}Starts in ${countdownLabel}`;
+    statePill = "Upcoming";
+    stateTone = "upcoming";
+  } else if (status === "completed") {
+    title = winnerName ? `${scoreboardTeamName(winnerName)} won ${seriesScoreLabel}` : `Final ${seriesScoreLabel}`;
+    note = `${completedMaps} map${completedMaps === 1 ? "" : "s"} played · Started ${startLabel}`;
+    statePill = "Final";
+    stateTone = "complete";
+  } else {
+    title = leaderName ? `${scoreboardTeamName(leaderName)} leads ${seriesScoreLabel}` : `Series tied ${seriesScoreLabel}`;
+    note = Number.isInteger(liveGameNumber)
+      ? `Game ${liveGameNumber} live now · ${completedMaps} complete`
+      : `Series live · ${completedMaps} complete`;
+    statePill = "Live";
+    stateTone = "live";
+  }
+
+  const overviewCards = [
+    seriesInfoCard(status === "upcoming" ? "Kickoff" : "Started", startLabel),
+    seriesInfoCard("Format", formatLabel),
+    seriesInfoCard("Tournament", tournamentName, stageLabel || null),
+    seriesInfoCard("Patch", match.patch || "Unknown"),
+    seriesInfoCard("Region", regionLabel),
+    status === "upcoming"
+      ? seriesInfoCard("Countdown", countdownLabel)
+      : seriesInfoCard("Series Score", seriesScoreLabel),
+    status === "upcoming"
+      ? seriesInfoCard("Status", "Scheduled")
+      : status === "completed"
+        ? seriesInfoCard("Winner", winnerName ? scoreboardTeamName(winnerName) : "TBD")
+        : seriesInfoCard("Current Game", Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber}` : "Live"),
+    status === "completed"
+      ? seriesInfoCard("Maps Played", String(completedMaps))
+      : seriesInfoCard("Leader", leaderName ? scoreboardTeamName(leaderName) : "Even")
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const formCards = [
+    formProfiles.left
+      ? seriesInfoCard(`${leftShort} form`, seriesRecordLabel(formProfiles.left), `Win ${formatRatePct(formProfiles.left.seriesWinRatePct)}`)
+      : "",
+    formProfiles.right
+      ? seriesInfoCard(`${rightShort} form`, seriesRecordLabel(formProfiles.right), `Win ${formatRatePct(formProfiles.right.seriesWinRatePct)}`)
+      : ""
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const predictionMarkup = prediction
+    ? `
+      <article class="series-overview-panel series-overview-edge">
+        <div class="series-overview-panel-head">
+          <div>
+            <p class="tempo-label">Matchup edge</p>
+            <p class="series-overview-panel-title">${prediction.favoriteTeamName ? `${scoreboardTeamName(prediction.favoriteTeamName)} favored` : "Edge looks even"}</p>
+          </div>
+          <span class="form-summary-pill">Confidence ${String(prediction.confidence || "low").toUpperCase()}</span>
+        </div>
+        <div class="edge-head">
+          <p class="meta-text">${leftShort}</p>
+          <p class="meta-text">${rightShort}</p>
+        </div>
+        <div class="edge-bars">
+          <div class="edge-side left" style="width:${Math.max(0, Math.min(100, Number(prediction.leftWinPct || 0)))}%"></div>
+          <div class="edge-side right" style="width:${Math.max(0, Math.min(100, Number(prediction.rightWinPct || 0)))}%"></div>
+        </div>
+        <div class="edge-head">
+          <p class="edge-score">${Number(prediction.leftWinPct || 0).toFixed(1)}%</p>
+          <p class="edge-score">${Number(prediction.rightWinPct || 0).toFixed(1)}%</p>
+        </div>
+        <p class="meta-text">Model ${prediction.modelVersion || "heuristic-v1"} · Pre-series edge read</p>
+        ${
+          Array.isArray(prediction.drivers) && prediction.drivers.length
+            ? `<ul class="series-overview-driver-list">${prediction.drivers.slice(0, compact ? 2 : 3).map((driver) => `<li>${driver}</li>`).join("")}</ul>`
+            : ""
+        }
+      </article>
+    `
+    : "";
+
+  const watchMarkup =
+    status === "upcoming"
+      ? `
+        <article class="series-overview-panel series-overview-watch">
+          <div class="series-overview-panel-head">
+            <div>
+              <p class="tempo-label">Watch</p>
+              <p class="series-overview-panel-title">${watchOptions.length ? "Official streams and mirrors" : "Broadcast links pending"}</p>
+            </div>
+          </div>
+          ${
+            watchOptions.length
+              ? `<div class="series-overview-watch-list">${watchOptions
+                  .map(
+                    (option) => `
+                      <a class="series-overview-watch-link" href="${option.url}" target="_blank" rel="noreferrer">
+                        <span>${option.label || "Watch"}</span>
+                        ${option.note ? `<span class="meta-text">${option.note}</span>` : ""}
+                      </a>
+                    `
+                  )
+                  .join("")}</div>`
+              : `<p class="meta-text">Check official event channels closer to match start.</p>`
+          }
+        </article>
+      `
+      : "";
+
+  const completedSummaryMarkup = status === "completed" ? buildCompletedSeriesSummaryCards(match) : "";
+
+  elements.seriesOverviewWrap.innerHTML = `
+    <div class="series-overview-shell status-${status}">
+      <article class="series-overview-hero ${stateTone}">
+        <div class="series-overview-copy">
+          <div class="series-overview-topline">
+            <span class="series-overview-pill ${stateTone}">${statePill}</span>
+            ${heroTags.map((tag) => `<span class="series-overview-pill">${escapeHtml(tag)}</span>`).join("")}
+          </div>
+          <h3 class="series-overview-title">${escapeHtml(title)}</h3>
+          <p class="series-overview-note">${escapeHtml(note)}</p>
+        </div>
+        <div class="series-overview-scorecard">
+          <div class="series-overview-side left">
+            <span class="series-overview-team-mark">${teamBadgeMarkup(match.teams.left, match.game)}</span>
+            <span class="series-overview-team-name">${escapeHtml(displayTeamName(leftName, match.game))}</span>
+            <strong class="series-overview-team-score">${match?.seriesScore?.left ?? 0}</strong>
+          </div>
+          <div class="series-overview-score-meta">
+            <span class="series-overview-score-label">${statePill}</span>
+            <strong class="series-overview-score-value">${seriesScoreLabel}</strong>
+          </div>
+          <div class="series-overview-side right">
+            <span class="series-overview-team-mark">${teamBadgeMarkup(match.teams.right, match.game)}</span>
+            <span class="series-overview-team-name">${escapeHtml(displayTeamName(rightName, match.game))}</span>
+            <strong class="series-overview-team-score">${match?.seriesScore?.right ?? 0}</strong>
+          </div>
+        </div>
+      </article>
+      <div class="series-overview-grid">
+        ${overviewCards}
+        ${formCards}
+        ${completedSummaryMarkup}
+      </div>
+      ${predictionMarkup || watchMarkup ? `<div class="series-overview-lower">${predictionMarkup}${watchMarkup}</div>` : ""}
+    </div>
   `;
 }
 
@@ -4734,6 +4963,7 @@ function applySeriesPanelVisibility(match = uiState.match) {
     setPanelVisibility(panel, visible);
   };
 
+  setSeriesVisibility(elements.seriesOverviewWrap, true);
   setSeriesVisibility(elements.matchupConsoleWrap, true);
   setSeriesVisibility(elements.seriesLineupsWrap, true);
   setSeriesVisibility(elements.upcomingFormWrap, true);
@@ -10442,6 +10672,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   renderScoreboard(match);
   renderStreamStatus(match);
   renderSeriesHeader(match);
+  renderSeriesOverview(match);
   renderGameExplorer(match, apiBase);
   renderStatusSummary(match);
   renderMatchupConsole(match);

@@ -17956,3 +17956,289 @@ body.product-shell.match-page .match-content-group > .panel {
     color: #f7d8aa;
   }
 }
+
+/* Series overview rebuild */
+body.product-shell.match-page .series-overview-shell {
+  display: grid;
+  gap: 0.72rem;
+}
+
+body.product-shell.match-page .series-overview-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.88fr);
+  gap: 0.72rem;
+  padding: 0.84rem 0.88rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(53, 62, 73, 0.94), rgba(43, 51, 60, 0.96));
+}
+
+body.product-shell.match-page .series-overview-hero.live {
+  border-color: rgba(73, 175, 127, 0.14);
+}
+
+body.product-shell.match-page .series-overview-hero.complete {
+  border-color: rgba(139, 151, 167, 0.12);
+}
+
+body.product-shell.match-page .series-overview-hero.upcoming {
+  border-color: rgba(216, 138, 51, 0.16);
+}
+
+body.product-shell.match-page .series-overview-copy {
+  display: grid;
+  gap: 0.36rem;
+  align-content: start;
+}
+
+body.product-shell.match-page .series-overview-topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+body.product-shell.match-page .series-overview-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.48rem;
+  padding: 0.08rem 0.46rem;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccd6e1;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .series-overview-pill.live {
+  border-color: rgba(73, 175, 127, 0.2);
+  background: rgba(31, 114, 79, 0.22);
+  color: #d9fff0;
+}
+
+body.product-shell.match-page .series-overview-pill.complete {
+  border-color: rgba(139, 151, 167, 0.18);
+  background: rgba(87, 99, 113, 0.22);
+  color: #eef3f7;
+}
+
+body.product-shell.match-page .series-overview-pill.upcoming {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.18);
+  color: #fde1bb;
+}
+
+body.product-shell.match-page .series-overview-title {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+body.product-shell.match-page .series-overview-note {
+  margin: 0;
+  color: #aab6c4;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+body.product-shell.match-page .series-overview-scorecard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.56rem;
+  align-items: center;
+  padding: 0.68rem 0.72rem;
+  border-radius: 0.94rem;
+  border: 1px solid rgba(233, 239, 245, 0.05);
+  background: rgba(17, 22, 29, 0.3);
+}
+
+body.product-shell.match-page .series-overview-side {
+  display: grid;
+  justify-items: center;
+  gap: 0.22rem;
+  text-align: center;
+}
+
+body.product-shell.match-page .series-overview-team-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.product-shell.match-page .series-overview-side .team-badge {
+  width: 3.3rem;
+  height: 3.3rem;
+  border-radius: 1rem;
+  background: rgba(244, 247, 251, 0.96);
+  border-color: rgba(226, 233, 241, 0.14);
+}
+
+body.product-shell.match-page .series-overview-team-name {
+  color: #eef3f7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.12;
+}
+
+body.product-shell.match-page .series-overview-team-score,
+body.product-shell.match-page .series-overview-score-value {
+  color: #f6f8fb;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 1.84rem;
+  line-height: 0.94;
+}
+
+body.product-shell.match-page .series-overview-score-meta {
+  display: grid;
+  justify-items: center;
+  gap: 0.12rem;
+  text-align: center;
+}
+
+body.product-shell.match-page .series-overview-score-label {
+  color: #aab6c4;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .series-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.56rem;
+}
+
+body.product-shell.match-page .series-overview-lower {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.72rem;
+}
+
+body.product-shell.match-page .series-overview-panel {
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  border-radius: 0.98rem;
+  background: linear-gradient(180deg, rgba(53, 62, 73, 0.94), rgba(43, 51, 60, 0.96));
+  padding: 0.78rem 0.82rem;
+  display: grid;
+  gap: 0.48rem;
+}
+
+body.product-shell.match-page .series-overview-panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+body.product-shell.match-page .series-overview-panel-title {
+  margin: 0.08rem 0 0;
+  color: #f2f6fb;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.24;
+}
+
+body.product-shell.match-page .series-overview-driver-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.18rem;
+  color: #b4c0ce;
+  font-size: 0.74rem;
+}
+
+body.product-shell.match-page .series-overview-watch-list {
+  display: grid;
+  gap: 0.42rem;
+}
+
+body.product-shell.match-page .series-overview-watch-link {
+  display: grid;
+  gap: 0.08rem;
+  padding: 0.54rem 0.58rem;
+  border-radius: 0.86rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  color: #eff4f8;
+  text-decoration: none;
+}
+
+body.product-shell.match-page .series-overview-watch-link:hover {
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(216, 138, 51, 0.1);
+}
+
+body.product-shell.match-page .series-overview-grid .upcoming-card,
+body.product-shell.match-page .series-overview-grid .series-info-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(233, 239, 245, 0.06);
+}
+
+body.product-shell.match-page .series-overview-grid .tempo-value {
+  color: #f1f5f9;
+}
+
+body.product-shell.match-page .series-overview-grid .tempo-label,
+body.product-shell.match-page .series-overview-grid .meta-text,
+body.product-shell.match-page .series-overview-panel .meta-text {
+  color: #aab6c4;
+}
+
+@media (max-width: 980px) {
+  body.product-shell.match-page .series-overview-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.match-page .series-overview-hero {
+    gap: 0.58rem;
+    padding: 0.66rem 0.68rem;
+  }
+
+  body.product-shell.match-page .series-overview-title {
+    font-size: 0.94rem;
+  }
+
+  body.product-shell.match-page .series-overview-scorecard {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.3rem;
+    padding: 0.56rem 0.52rem;
+  }
+
+  body.product-shell.match-page .series-overview-side .team-badge {
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 0.9rem;
+  }
+
+  body.product-shell.match-page .series-overview-team-name {
+    font-size: 0.62rem;
+  }
+
+  body.product-shell.match-page .series-overview-team-score,
+  body.product-shell.match-page .series-overview-score-value {
+    font-size: 1.42rem;
+  }
+
+  body.product-shell.match-page .series-overview-grid,
+  body.product-shell.match-page .series-overview-lower {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .series-overview-panel,
+  body.product-shell.match-page .series-overview-grid .upcoming-card,
+  body.product-shell.match-page .series-overview-grid .series-info-card {
+    padding: 0.66rem 0.68rem;
+  }
+}
