@@ -296,7 +296,7 @@ const MATCH_PANEL_GROUP_BY_TARGET_ID = {
   seriesProgressWrap: "games",
   selectedGameRecapWrap: "overview",
   gameCommandWrap: "overview",
-  teamCompareWrap: "overview",
+  teamCompareWrap: "stats",
   pulseCard: "overview",
   seriesLineupsWrap: "lineups",
   draftBoardWrap: "lineups",
@@ -526,6 +526,8 @@ const elements = {
   mobileModeToolbar: document.querySelector("#mobileModeToolbar"),
   mobileGameToolbar: document.querySelector("#mobileGameToolbar"),
   gameCommandWrap: document.querySelector("#gameCommandWrap"),
+  gamePlayerSummaryWrap: document.querySelector("#gamePlayerSummaryWrap"),
+  gameFeedDeskWrap: document.querySelector("#gameFeedDeskWrap"),
   teamCompareWrap: document.querySelector("#teamCompareWrap"),
   playerTrackerWrap: document.querySelector("#playerTrackerWrap"),
   trackerSort: document.querySelector("#trackerSort"),
@@ -5934,6 +5936,171 @@ function renderTeamComparison(match) {
   `;
 }
 
+function buildGamePlayerRows(match) {
+  const economy = match?.playerEconomy;
+  if (!economy || (!Array.isArray(economy.left) && !Array.isArray(economy.right))) {
+    return [];
+  }
+
+  const teamKills = {
+    left: Number(match?.selectedGame?.snapshot?.left?.kills || match?.teams?.left?.kills || 0),
+    right: Number(match?.selectedGame?.snapshot?.right?.kills || match?.teams?.right?.kills || 0)
+  };
+  const teamGold = {
+    left: Number(match?.teamEconomyTotals?.left?.totalGold || 0),
+    right: Number(match?.teamEconomyTotals?.right?.totalGold || 0)
+  };
+  const impactByKey = new Map(
+    (match?.topPerformers || []).map((player) => [
+      `${player.team}::${String(player.name || "").toLowerCase()}`,
+      Number(player?.impactScore || 0)
+    ])
+  );
+
+  const leftRows = Array.isArray(economy.left) ? economy.left : [];
+  const rightRows = Array.isArray(economy.right) ? economy.right : [];
+  return [...leftRows.map((row) => ({ ...row, team: "left" })), ...rightRows.map((row) => ({ ...row, team: "right" }))]
+    .map((row) => {
+      const key = `${row.team}::${String(row.name || "").toLowerCase()}`;
+      const kp =
+        teamKills[row.team] > 0 ? ((Number(row.kills || 0) + Number(row.assists || 0)) / teamKills[row.team]) * 100 : null;
+      const goldShare = teamGold[row.team] > 0 ? (Number(row.goldEarned || 0) / teamGold[row.team]) * 100 : null;
+
+      return {
+        ...row,
+        kp,
+        goldShare,
+        impact: impactByKey.get(key)
+      };
+    });
+}
+
+function gamePlayerSpotlightScore(row) {
+  return (
+    Number(row?.impact || 0) * 10 +
+    Number(row?.goldEarned || 0) / 1000 +
+    Number(row?.kp || 0) / 6 +
+    Number(row?.kills || 0) * 0.8 +
+    Number(row?.assists || 0) * 0.25
+  );
+}
+
+function pickBestPlayerRow(rows, scorer) {
+  return rows.reduce((best, row) => {
+    if (!row) {
+      return best;
+    }
+    if (!best) {
+      return row;
+    }
+    const candidateScore = Number(scorer(row) || 0);
+    const bestScore = Number(scorer(best) || 0);
+    if (candidateScore !== bestScore) {
+      return candidateScore > bestScore ? row : best;
+    }
+    return Number(row?.goldEarned || 0) > Number(best?.goldEarned || 0) ? row : best;
+  }, null);
+}
+
+function gamePlayerMetricCard(label, value, note = null, tone = "neutral") {
+  return `
+    <article class="game-player-metric ${tone}">
+      <p class="tempo-label">${escapeHtml(label)}</p>
+      <p class="game-player-metric-value">${escapeHtml(value)}</p>
+      ${note ? `<p class="meta-text">${escapeHtml(note)}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderGamePlayerSpotlight(match, row, toneClass = "left") {
+  const teamName = row?.team === "right" ? match?.teams?.right?.name : match?.teams?.left?.name;
+  const teamShort = scoreboardTeamName(teamName, match?.game);
+  if (!row || !teamName) {
+    return `
+      <article class="game-player-spotlight ${toneClass}">
+        <p class="tempo-label">${toneClass === "right" ? "Right side" : "Left side"}</p>
+        <p class="meta-text">Waiting for player telemetry.</p>
+      </article>
+    `;
+  }
+
+  const role = roleMeta(row.role, normalizeGameKey(match?.game));
+  const playerName = displayPlayerHandle(row.name, teamName);
+  const heroName = trackerHeroName(row);
+  const kpLabel = Number.isFinite(row.kp) ? `${row.kp.toFixed(1)}% KP` : "KP n/a";
+  const impactLabel = Number.isFinite(row.impact) ? `Impact ${row.impact.toFixed(1)}` : "Impact n/a";
+
+  return `
+    <article class="game-player-spotlight ${toneClass}">
+      <div class="game-player-spotlight-head">
+        <span class="game-player-spotlight-tag">${escapeHtml(teamShort)}</span>
+        <span class="form-summary-pill">${escapeHtml(role.short)}</span>
+      </div>
+      <div class="game-player-spotlight-main">
+        <span class="game-player-spotlight-avatar">${heroIconMarkup(match, row)}</span>
+        <div class="game-player-spotlight-copy">
+          <h3>${escapeHtml(playerName)}</h3>
+          <p class="meta-text">${escapeHtml(heroName)} · ${escapeHtml(role.label)}</p>
+        </div>
+      </div>
+      <div class="form-summary-strip">
+        <span class="form-summary-pill">Gold ${formatNumber(row.goldEarned || 0)}</span>
+        <span class="form-summary-pill">${kpLabel}</span>
+        <span class="form-summary-pill">${impactLabel}</span>
+      </div>
+      <p class="meta-text">KDA ${row.kills || 0}/${row.deaths || 0}/${row.assists || 0} · Share ${toPercent(row.goldShare)}</p>
+    </article>
+  `;
+}
+
+function renderGamePlayerSummary(match) {
+  if (!elements.gamePlayerSummaryWrap) {
+    return;
+  }
+
+  const rows = buildGamePlayerRows(match);
+  if (!rows.length) {
+    elements.gamePlayerSummaryWrap.innerHTML = "";
+    return;
+  }
+
+  const leftRows = rows.filter((row) => row.team === "left");
+  const rightRows = rows.filter((row) => row.team === "right");
+  const leftStandout = pickBestPlayerRow(leftRows, gamePlayerSpotlightScore);
+  const rightStandout = pickBestPlayerRow(rightRows, gamePlayerSpotlightScore);
+  const richest = pickBestPlayerRow(rows, (row) => Number(row?.goldEarned || 0));
+  const kpLeader = pickBestPlayerRow(rows, (row) => Number.isFinite(row?.kp) ? row.kp : -1);
+  const impactLeader = pickBestPlayerRow(rows, (row) => Number.isFinite(row?.impact) ? row.impact : -1);
+  const selectedState = String(match?.selectedGame?.state || "");
+
+  elements.gamePlayerSummaryWrap.innerHTML = `
+    <div class="game-player-summary-shell">
+      ${renderGamePlayerSpotlight(match, leftStandout, "left")}
+      <div class="game-player-summary-center">
+        ${gamePlayerMetricCard(
+          "Richest",
+          richest ? displayPlayerHandle(richest.name, teamNameBySide(match, richest.team)) : "n/a",
+          richest ? `${scoreboardTeamName(teamNameBySide(match, richest.team), match?.game)} · ${formatNumber(richest.goldEarned || 0)} gold` : "Waiting for player totals.",
+          richest?.team || "neutral"
+        )}
+        ${gamePlayerMetricCard(
+          "Best KP",
+          kpLeader && Number.isFinite(kpLeader.kp) ? `${kpLeader.kp.toFixed(1)}%` : "n/a",
+          kpLeader ? `${displayPlayerHandle(kpLeader.name, teamNameBySide(match, kpLeader.team))} · ${scoreboardTeamName(teamNameBySide(match, kpLeader.team), match?.game)}` : "Kill participation appears once team kills land.",
+          kpLeader?.team || "neutral"
+        )}
+        ${gamePlayerMetricCard(
+          "Impact",
+          impactLeader && Number.isFinite(impactLeader.impact) ? impactLeader.impact.toFixed(1) : "n/a",
+          impactLeader ? `${displayPlayerHandle(impactLeader.name, teamNameBySide(match, impactLeader.team))} · ${trackerHeroName(impactLeader)}` : selectedState === "inProgress" ? "Impact score building from live events." : "Impact score unavailable.",
+          impactLeader?.team || "neutral"
+        )}
+      </div>
+      ${renderGamePlayerSpotlight(match, rightStandout, "right")}
+    </div>
+  `;
+}
+
 function trackerRoleOrder(role) {
   const value = normalizeLookupKey(role);
   if (value === "top") return 1;
@@ -6953,6 +7120,7 @@ function setStoryFocusEvent(eventId, options = {}) {
   uiState.storyFocusUserSet = true;
   if (uiState.match) {
     renderLeadTrend(uiState.match);
+    renderGameFeedDesk(uiState.match);
     renderUnifiedLiveFeed(uiState.match);
     if (options.scrollFeed) {
       requestAnimationFrame(() => {
@@ -6963,6 +7131,129 @@ function setStoryFocusEvent(eventId, options = {}) {
       });
     }
   }
+}
+
+function gameFeedDeskCard(label, value, note = null, tone = "neutral") {
+  return `
+    <article class="game-feed-desk-card ${tone}">
+      <p class="tempo-label">${escapeHtml(label)}</p>
+      <p class="game-feed-desk-value">${escapeHtml(value)}</p>
+      ${note ? `<p class="meta-text">${escapeHtml(note)}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderGameFeedDesk(match) {
+  if (!elements.gameFeedDeskWrap) {
+    return;
+  }
+
+  const selected = match?.selectedGame;
+  if (!selected) {
+    elements.gameFeedDeskWrap.innerHTML = "";
+    return;
+  }
+
+  const selectedState = String(selected?.state || "");
+  const stateClass = selectedState === "inProgress" ? "live" : selectedState === "completed" ? "complete" : "upcoming";
+  const feedRows = buildUnifiedFeed(match);
+  const totalEvents = feedRows.length;
+  const alerts = buildLiveAlerts(match);
+  const priorityAlert = alerts.find((alert) => importanceRank(alert?.importance) >= importanceRank("medium")) || alerts[0] || null;
+  const latestEventTime = feedRows[0]?.at ? shortTimeLabel(feedRows[0].at) : null;
+
+  let title = `Game ${selected.number} live desk`;
+  let note = "Waiting for the next tracked event.";
+  let cards = [];
+
+  if (selectedState === "completed") {
+    const story = buildCompletedGameStory(match);
+    title = story?.headline || `Game ${selected.number} final story`;
+    note = story?.summary || "Completed map story built from the captured event log.";
+    cards = [
+      gameFeedDeskCard("Turning Point", story?.turningPointLabel || "n/a", story?.turningPointNote || "No decisive event captured.", "neutral"),
+      gameFeedDeskCard("Peak Lead", story?.peakLeadLabel || "n/a", story?.peakLeadNote || "Lead data unavailable.", "neutral"),
+      gameFeedDeskCard("Events", String(totalEvents), latestEventTime ? `Latest at ${latestEventTime}` : "No event timestamps.", "neutral"),
+      gameFeedDeskCard(
+        "Alerts",
+        priorityAlert?.title || "Stable",
+        priorityAlert?.summary || "No major pressure alerts recorded.",
+        priorityAlert && importanceRank(priorityAlert.importance) >= importanceRank("high") ? "warn" : "neutral"
+      )
+    ];
+  } else if (selectedState === "inProgress") {
+    const context = focusedLiveEventContext(match);
+    const focusedRow = context.row || context.latestRow;
+    const nextObjective = nextObjectiveWindow(match);
+    const leadDescriptor = focusedRow?.leadDescriptor || feedLeadDescriptor(match, Number(match?.momentum?.goldLead || 0));
+    const focusClock = focusedRow ? formatFocusedEventClock(focusedRow, context.timelineAnchor) : "--:--";
+    title = focusedRow?.title || `Game ${selected.number} live desk`;
+    note = focusedRow
+      ? `${focusClock} · ${focusedRow.phase.label} · ${leadDescriptor.label}`
+      : "Live desk watching for the first major event.";
+    cards = [
+      gameFeedDeskCard(
+        "Focus",
+        focusedRow?.bucket ? feedBucketLabel(focusedRow.bucket) : "Watching",
+        focusedRow?.summary && feedHasUsefulSummary(focusedRow) ? clampSummaryText(focusedRow.summary, 84) : note,
+        focusedRow?.leadDescriptor?.tone || "neutral"
+      ),
+      gameFeedDeskCard(
+        "Next Objective",
+        nextObjective ? displayObjectiveName(nextObjective.type, match) : "Forecast waiting",
+        nextObjective
+          ? `${nextObjective.state === "available" ? "Available now" : `ETA ${objectiveEtaLabel(nextObjective)}`}${
+              nextObjective.nextAt ? ` · ${shortTimeLabel(nextObjective.nextAt)}` : ""
+            }`
+          : "Timer windows appear once cadence is established.",
+        nextObjective?.state === "available" ? "live" : "neutral"
+      ),
+      gameFeedDeskCard(
+        "Alert",
+        priorityAlert?.title || "Stable state",
+        priorityAlert?.summary || "No major pressure alerts right now.",
+        priorityAlert?.importance === "critical" ? "critical" : priorityAlert?.importance === "high" ? "warn" : "neutral"
+      ),
+      gameFeedDeskCard("Events", String(totalEvents), latestEventTime ? `Latest at ${latestEventTime}` : "No event timestamps yet.", "neutral")
+    ];
+  } else {
+    const draftPreview = inferDraftPreview(match);
+    const estimatedStart = selectedGameEstimatedStart(match, selected.number);
+    const watchLabel = selected.watchUrl ? "Watch link ready" : "Watch pending";
+    title = draftPreview?.headline || `Game ${selected.number} not live yet`;
+    note = draftPreview?.summary || "Feed will open once the map starts and events begin to land.";
+    cards = [
+      gameFeedDeskCard("State", draftPreview?.label || stateLabel(selectedState), draftPreview?.detail || "Waiting for map start.", "neutral"),
+      gameFeedDeskCard(
+        "Start",
+        estimatedStart ? (isCompactUI() ? dateTimeCompact(estimatedStart) : dateTimeLabel(estimatedStart)) : "TBD",
+        estimatedStart ? "Projected map start." : "Start time not projected yet.",
+        "neutral"
+      ),
+      gameFeedDeskCard("Watch", watchLabel, selected.watchUrl ? "Primary stream or VOD link is available." : "Link appears once coverage is published.", selected.watchUrl ? "live" : "neutral"),
+      gameFeedDeskCard("Events", String(totalEvents), "Feed is still empty before first tracked events.", "neutral")
+    ];
+  }
+
+  elements.gameFeedDeskWrap.innerHTML = `
+    <div class="game-feed-desk-shell ${stateClass}">
+      <article class="game-feed-desk-hero">
+        <div class="game-feed-desk-copy">
+          <p class="tempo-label">Feed desk</p>
+          <h3>${escapeHtml(title)}</h3>
+          <p class="game-feed-desk-note">${escapeHtml(note)}</p>
+        </div>
+        <div class="form-summary-strip">
+          <span class="form-summary-pill">Game ${selected.number}</span>
+          <span class="form-summary-pill">${escapeHtml(stateLabel(selectedState))}</span>
+          <span class="form-summary-pill">${totalEvents} event${totalEvents === 1 ? "" : "s"}</span>
+        </div>
+      </article>
+      <div class="game-feed-desk-grid">
+        ${cards.join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderUnifiedLiveFeed(match) {
@@ -10982,7 +11273,9 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   renderUpcomingPrediction(match);
   renderGameCommandCenter(match);
   renderTeamComparison(match);
+  renderGamePlayerSummary(match);
   renderPlayerTracker(match);
+  renderGameFeedDesk(match);
   renderUnifiedLiveFeed(match);
   renderLiveAlerts(match);
   renderDataConfidence(match);

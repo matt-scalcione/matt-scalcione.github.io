@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312aa" />
+    <link rel="stylesheet" href="./styles.css?v=20260312ab" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -208,7 +208,9 @@
       <section class="panel" id="playerTrackerPanel" data-scope="game">
         <div class="section-head">
           <h2>Players</h2>
+          <p class="meta-text">Standouts, player health, economy, and map impact.</p>
         </div>
+        <div id="gamePlayerSummaryWrap" class="game-player-summary"></div>
         <div class="tracker-sort-shell">
           <div id="trackerSortButtons" class="tracker-sort-row" role="group" aria-label="Sort players">
             <button type="button" class="tracker-sort-chip" data-sort="role">Role</button>
@@ -234,7 +236,9 @@
       <section class="panel" id="liveFeedPanel" data-scope="game">
         <div class="section-head">
           <h2>Live Feed</h2>
+          <p class="meta-text">Current focus, event stream, and pressure changes.</p>
         </div>
+        <div id="gameFeedDeskWrap" class="game-feed-desk"></div>
         <div id="leadTrendWrap" class="trend-wrap"></div>
         <div class="feed-controls-shell live-feed-toolbar-shell">
           <div id="feedControlsWrap" class="feed-controls live-feed-toolbar" role="group" aria-label="Live feed filters">
@@ -535,6 +539,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312h"></script>
+    <script type="module" src="./match.js?v=20260312i"></script>
   </body>
 </html>
