@@ -348,10 +348,10 @@ const MATCH_PANEL_GROUP_BY_TARGET_ID = {
   combatBurstsList: "timeline",
   goldMilestonesList: "timeline",
   momentsList: "timeline",
-  timelineList: "history",
+  timelineList: "games",
   upcomingFormWrap: "history",
   upcomingH2hWrap: "history",
-  seriesPlayerTrendsWrap: "history"
+  seriesPlayerTrendsWrap: "stats"
 };
 const MATCH_PAGE_LAYOUTS = {
   upcoming: {
@@ -3394,33 +3394,86 @@ function seriesRecordLabel(summary = {}) {
   return draws > 0 ? `${wins}-${losses}-${draws}` : `${wins}-${losses}`;
 }
 
+function seriesDeskMetricCard(label, value, note = null, tone = "neutral") {
+  return `
+    <article class="series-desk-metric ${escapeHtml(String(tone || "neutral").toLowerCase())}">
+      <p class="tempo-label">${escapeHtml(label)}</p>
+      <p class="series-desk-metric-value">${escapeHtml(value)}</p>
+      ${note ? `<p class="meta-text">${escapeHtml(note)}</p>` : ""}
+    </article>
+  `;
+}
+
+function summarizeRecentMatchRows(rows = []) {
+  const sample = Array.isArray(rows) ? rows.filter(Boolean).slice(0, 5) : [];
+  let wins = 0;
+  let losses = 0;
+  let draws = 0;
+  for (const row of sample) {
+    const result = String(row?.result || "").toLowerCase();
+    if (result === "win") wins += 1;
+    else if (result === "loss") losses += 1;
+    else if (result === "draw") draws += 1;
+  }
+  const tokens = sample.map((row) => h2hResultLabel(row?.result)).join("");
+  return {
+    total: sample.length,
+    wins,
+    losses,
+    draws,
+    recordLabel: draws > 0 ? `${wins}-${losses}-${draws}` : `${wins}-${losses}`,
+    formLabel: tokens || "n/a"
+  };
+}
+
+function matchupSampleWindowLabel(limit = uiState.matchupH2hLimit) {
+  const sample = normalizeMatchupLimit(limit);
+  return `Last ${sample}`;
+}
+
 function renderMatchupTeamCard({ teamName, teamId, opponentId, profile, match, toneClass }) {
   const selectedGameNumber = contextGameNumber() || 0;
-  const teamUrl = teamDetailUrl(teamId, match?.game, uiState.apiBase, {
-    matchId: match?.id || null,
-    gameNumber: Number.isInteger(selectedGameNumber) && selectedGameNumber > 0 ? selectedGameNumber : null,
-    opponentId,
-    teamName
-  });
-  const heading = teamUrl ? `<a class="team-link" href="${teamUrl}">${teamName}</a>` : teamName;
+  const teamUrl = teamId
+    ? teamDetailUrl(teamId, match?.game, uiState.apiBase, {
+        matchId: match?.id || null,
+        gameNumber: Number.isInteger(selectedGameNumber) && selectedGameNumber > 0 ? selectedGameNumber : null,
+        opponentId,
+        teamName
+      })
+    : null;
+  const heading = teamUrl ? `<a class="team-link" href="${teamUrl}">${escapeHtml(teamName)}</a>` : escapeHtml(teamName);
   const summary = profile?.summary || {};
-  const recentForm = String(summary.formLast5 || "n/a").replace(/-/g, "");
+  const recentForm = String(summary.formLast5 || profile?.formLabel || "n/a").replace(/-/g, "") || "n/a";
+  const teamRecord = {
+    wins: Number(summary.wins ?? profile?.wins ?? 0),
+    losses: Number(summary.losses ?? profile?.losses ?? 0),
+    draws: Number(summary.draws ?? profile?.draws ?? 0)
+  };
+  const mapWins = Number(summary.mapWins ?? profile?.gameWins ?? 0);
+  const mapLosses = Number(summary.mapLosses ?? profile?.gameLosses ?? 0);
+  const shortName = scoreboardTeamName(teamName, match?.game);
+  const displayName = displayTeamName(teamName, match?.game);
 
   return `
-    <article class="form-card ${toneClass} matchup-team-card">
-      <div class="matchup-team-head">
-        <h3>${heading}</h3>
+    <article class="series-matchup-team ${toneClass}">
+      <div class="series-matchup-team-head">
+        <div class="series-matchup-team-ident">
+          <span class="series-matchup-team-mark">${teamBadgeMarkup({ id: teamId, name: teamName }, match?.game)}</span>
+          <div class="series-matchup-team-copy">
+            <h3>${heading}</h3>
+            <p class="meta-text">${escapeHtml(displayName)}</p>
+          </div>
+        </div>
         ${teamUrl ? `<a class="table-link" href="${teamUrl}">Team page</a>` : ""}
       </div>
-      <div class="form-summary-strip">
-        <span class="form-summary-pill">Series ${seriesRecordLabel(summary)}</span>
-        <span class="form-summary-pill">Series WR ${formatRatePct(summary.seriesWinRatePct)}</span>
-        <span class="form-summary-pill">Maps ${summary.mapWins ?? 0}-${summary.mapLosses ?? 0}</span>
-        <span class="form-summary-pill">Map WR ${formatRatePct(summary.mapWinRatePct)}</span>
+      <div class="series-matchup-team-metrics">
+        ${seriesDeskMetricCard("Series", seriesRecordLabel(teamRecord), `${shortName} WR ${formatRatePct(summary.seriesWinRatePct ?? profile?.seriesWinRatePct)}`, toneClass)}
+        ${seriesDeskMetricCard("Maps", `${mapWins}-${mapLosses}`, `Map WR ${formatRatePct(summary.mapWinRatePct ?? profile?.gameWinRatePct)}`, toneClass)}
+        ${seriesDeskMetricCard("Form", recentForm, `Streak ${summary.streakLabel || profile?.streakLabel || "n/a"}`, toneClass)}
       </div>
-      <div class="matchup-team-notes">
-        <p class="meta-text">Form ${recentForm || "n/a"}</p>
-        <p class="meta-text">Streak ${summary.streakLabel || "n/a"}</p>
+      <div class="series-matchup-team-notes">
+        <p class="meta-text">${escapeHtml(shortName)} recent read</p>
+        <p class="meta-text">${escapeHtml(seriesRecordLabel(teamRecord))} series · ${mapWins + mapLosses} maps in sample</p>
       </div>
     </article>
   `;
@@ -3499,10 +3552,21 @@ function renderMatchupConsole(match) {
   const rightWins = Number(h2h?.losses || 0);
   const draws = Number(h2h?.draws || 0);
   const total = Number(h2h?.matches || h2hRows.length || 0);
+  const sampleLabel = matchupSampleWindowLabel(uiState.matchupH2hLimit);
+  const leftShort = scoreboardTeamName(leftName, match?.game);
+  const rightShort = scoreboardTeamName(rightName, match?.game);
+  const leftSeriesWin = Number(leftProfile?.summary?.seriesWinRatePct ?? leftProfile?.seriesWinRatePct ?? 0);
+  const rightSeriesWin = Number(rightProfile?.summary?.seriesWinRatePct ?? rightProfile?.seriesWinRatePct ?? 0);
+  const leftMapWin = Number(leftProfile?.summary?.mapWinRatePct ?? leftProfile?.gameWinRatePct ?? 0);
+  const rightMapWin = Number(rightProfile?.summary?.mapWinRatePct ?? rightProfile?.gameWinRatePct ?? 0);
+  const seriesGap = Math.abs(leftSeriesWin - rightSeriesWin);
+  const mapGap = Math.abs(leftMapWin - rightMapWin);
+  const seriesLeader = leftSeriesWin === rightSeriesWin ? null : leftSeriesWin > rightSeriesWin ? leftName : rightName;
+  const mapLeader = leftMapWin === rightMapWin ? null : leftMapWin > rightMapWin ? leftName : rightName;
   const favoriteTone =
     edge.favoriteName === leftName ? "left" : edge.favoriteName === rightName ? "right" : "neutral";
 
-  elements.matchupMetaText.textContent = `Edge ${scoreboardTeamName(edge.favoriteName)} · ${edge.confidence.toUpperCase()} confidence · H2H ${total}`;
+  elements.matchupMetaText.textContent = `${sampleLabel} sample · ${total ? `H2H ${leftWins}-${rightWins}${draws ? `-${draws}` : ""}` : "No direct H2H"} · ${edge.confidence.toUpperCase()} confidence`;
 
   const h2hTable = h2hRows.length
     ? compact
@@ -3556,18 +3620,23 @@ function renderMatchupConsole(match) {
     : `<div class="empty">No direct meetings found in the selected sample window.</div>`;
 
   elements.matchupConsoleWrap.innerHTML = `
-    <div class="matchup-console-shell">
-      <article class="prediction-card matchup-overview-card ${favoriteTone}">
-        <div class="matchup-overview-head">
+    <div class="series-matchup-desk">
+      <article class="series-matchup-lead ${favoriteTone}">
+        <div class="series-matchup-lead-head">
           <div>
-            <p class="tempo-label">Series edge</p>
-            <p class="matchup-overview-title">${scoreboardTeamName(edge.favoriteName)} favored</p>
+            <p class="tempo-label">Matchup desk</p>
+            <h3>${escapeHtml(scoreboardTeamName(edge.favoriteName, match?.game))} favored</h3>
+            <p class="series-matchup-lead-note">${escapeHtml(edge.drivers[0] || "Both teams are close on recent form and conversion rates.")}</p>
           </div>
-          <span class="form-summary-pill">Confidence ${edge.confidence.toUpperCase()}</span>
+          <div class="series-matchup-scoreboard">
+            <span>${escapeHtml(leftShort)} ${edge.leftEdgePct.toFixed(1)}%</span>
+            <strong>${escapeHtml(scoreboardTeamName(edge.favoriteName, match?.game))}</strong>
+            <span>${escapeHtml(rightShort)} ${edge.rightEdgePct.toFixed(1)}%</span>
+          </div>
         </div>
         <div class="edge-head">
-          <p class="meta-text">${scoreboardTeamName(leftName)}</p>
-          <p class="meta-text">${scoreboardTeamName(rightName)}</p>
+          <p class="meta-text">${escapeHtml(leftShort)}</p>
+          <p class="meta-text">${escapeHtml(rightShort)}</p>
         </div>
         <div class="edge-bars">
           <div class="edge-side left" style="width:${edge.leftEdgePct.toFixed(1)}%"></div>
@@ -3577,15 +3646,15 @@ function renderMatchupConsole(match) {
           <p class="edge-score">${edge.leftEdgePct.toFixed(1)}%</p>
           <p class="edge-score">${edge.rightEdgePct.toFixed(1)}%</p>
         </div>
-        <div class="form-summary-strip">
-          <span class="form-summary-pill">H2H ${leftWins}-${rightWins}${draws ? `-${draws}` : ""}</span>
-          <span class="form-summary-pill">Sample ${total}</span>
-          <span class="form-summary-pill">${scoreboardTeamName(leftName)} ${formatRatePct(leftProfile?.summary?.seriesWinRatePct)}</span>
-          <span class="form-summary-pill">${scoreboardTeamName(rightName)} ${formatRatePct(rightProfile?.summary?.seriesWinRatePct)}</span>
+        <div class="series-matchup-metrics">
+          ${seriesDeskMetricCard("H2H", total ? `${leftWins}-${rightWins}${draws ? `-${draws}` : ""}` : "No sample", total ? `${leftShort} vs ${rightShort}` : `${sampleLabel} profile read`, favoriteTone)}
+          ${seriesDeskMetricCard("Sample", total ? `${total} series` : sampleLabel, total ? "Direct meetings loaded" : "Profile-only edge", "neutral")}
+          ${seriesDeskMetricCard("Series WR gap", `${seriesGap.toFixed(1)} pts`, seriesLeader ? `${scoreboardTeamName(seriesLeader, match?.game)} ahead on recent series` : "Even recent series conversion", favoriteTone)}
+          ${seriesDeskMetricCard("Map WR gap", `${mapGap.toFixed(1)} pts`, mapLeader ? `${scoreboardTeamName(mapLeader, match?.game)} ahead on maps` : "Even recent map conversion", favoriteTone)}
         </div>
-        <ul class="confidence-notes matchup-driver-list">${edge.drivers.map((driver) => `<li>${driver}</li>`).join("")}</ul>
+        <ul class="series-matchup-driver-list">${edge.drivers.map((driver) => `<li>${escapeHtml(driver)}</li>`).join("")}</ul>
       </article>
-      <div class="matchup-grid matchup-team-grid">
+      <div class="series-matchup-team-grid">
       ${renderMatchupTeamCard({
         teamName: leftName,
         teamId: match?.teams?.left?.id,
@@ -3603,15 +3672,17 @@ function renderMatchupConsole(match) {
         toneClass: "right"
       })}
       </div>
-      <article class="upcoming-note matchup-h2h-shell">
-        <div class="matchup-h2h-head">
+      <article class="series-matchup-h2h-card">
+        <div class="series-matchup-h2h-head">
           <div>
             <p class="tempo-label">Recent meetings</p>
-            <p class="matchup-overview-title">Head-to-head</p>
+            <h3>Head-to-head sample</h3>
+            <p class="series-matchup-h2h-note">${total ? `${sampleLabel} loaded from direct meetings.` : "No direct meetings in this sample window."}</p>
           </div>
           <div class="form-summary-strip">
-            <span class="form-summary-pill">${scoreboardTeamName(leftName)} ${leftWins}</span>
-            <span class="form-summary-pill">${scoreboardTeamName(rightName)} ${rightWins}</span>
+            <span class="form-summary-pill">${escapeHtml(leftShort)} ${leftWins}</span>
+            <span class="form-summary-pill">${escapeHtml(rightShort)} ${rightWins}</span>
+            ${draws ? `<span class="form-summary-pill">Draws ${draws}</span>` : ""}
           </div>
         </div>
         ${h2hTable}
@@ -7878,28 +7949,49 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
         teamName
       })
     : null;
-  const headerText = teamLink ? `<a class="team-link" href="${teamLink}">${teamName}</a>` : teamName;
+  const headerText = teamLink ? `<a class="team-link" href="${teamLink}">${escapeHtml(teamName)}</a>` : escapeHtml(teamName);
+  const shortName = scoreboardTeamName(teamName, match?.game);
 
   if (!profile) {
     return `
-      <article class="form-card ${toneClass}">
-        <h3>${headerText}</h3>
-        <p class="meta-text">No recent form data available.</p>
+      <article class="series-history-team ${toneClass}">
+        <div class="series-history-team-head">
+          <div class="series-history-team-ident">
+            <span class="series-history-team-mark">${teamBadgeMarkup({ id: teamId, name: teamName }, match?.game)}</span>
+            <div class="series-history-team-copy">
+              <h3>${headerText}</h3>
+              <p class="meta-text">${escapeHtml(displayTeamName(teamName, match?.game))}</p>
+            </div>
+          </div>
+        </div>
+        <div class="series-history-team-empty">
+          <p class="meta-text">No recent form data available.</p>
+        </div>
       </article>
     `;
   }
 
   const recentRows = Array.isArray(profile.recentMatches) ? profile.recentMatches.slice(0, 5) : [];
+  const recentSummary = summarizeRecentMatchRows(recentRows);
   return `
-    <article class="form-card ${toneClass}">
-      <h3>${headerText}</h3>
-      <div class="form-summary-strip">
-        <span class="form-summary-pill">Series ${profile.wins ?? 0}-${profile.losses ?? 0}</span>
-        <span class="form-summary-pill">Maps ${profile.gameWins ?? 0}-${profile.gameLosses ?? 0}</span>
-        <span class="form-summary-pill">Win ${Number(profile.seriesWinRatePct || 0).toFixed(0)}%</span>
-        <span class="form-summary-pill">Streak ${profile.streakLabel || "n/a"}</span>
+    <article class="series-history-team ${toneClass}">
+      <div class="series-history-team-head">
+        <div class="series-history-team-ident">
+          <span class="series-history-team-mark">${teamBadgeMarkup({ id: teamId, name: teamName }, match?.game)}</span>
+          <div class="series-history-team-copy">
+            <h3>${headerText}</h3>
+            <p class="meta-text">${escapeHtml(displayTeamName(teamName, match?.game))}</p>
+          </div>
+        </div>
+        ${teamLink ? `<a class="table-link" href="${teamLink}">Team page</a>` : ""}
       </div>
-      <p class="meta-text">Last 5 matches</p>
+      <div class="series-history-team-summary">
+        ${seriesDeskMetricCard("Series", `${profile.wins ?? 0}-${profile.losses ?? 0}`, `${shortName} WR ${Number(profile.seriesWinRatePct || 0).toFixed(0)}%`, toneClass)}
+        ${seriesDeskMetricCard("Maps", `${profile.gameWins ?? 0}-${profile.gameLosses ?? 0}`, `Map WR ${Number(profile.gameWinRatePct || 0).toFixed(0)}%`, toneClass)}
+        ${seriesDeskMetricCard("Form", recentSummary.formLabel, `Last 5 ${recentSummary.recordLabel}`, toneClass)}
+        ${seriesDeskMetricCard("Streak", profile.streakLabel || "n/a", `${recentSummary.total || 0} recent result${recentSummary.total === 1 ? "" : "s"}`, toneClass)}
+      </div>
+      <p class="series-history-team-list-head">Recent results</p>
       <ul class="mini-list form-list">
         ${recentRows.length
           ? recentRows
@@ -7923,23 +8015,56 @@ function renderUpcomingForm(match) {
   }
 
   const teamForm = resolvedUpcomingFormProfiles(match);
+  const leftShort = scoreboardTeamName(match.teams.left.name, match?.game);
+  const rightShort = scoreboardTeamName(match.teams.right.name, match?.game);
+  const leftRecent = summarizeRecentMatchRows(teamForm.left?.recentMatches);
+  const rightRecent = summarizeRecentMatchRows(teamForm.right?.recentMatches);
+  const leftSeriesWin = Number(teamForm.left?.seriesWinRatePct || 0);
+  const rightSeriesWin = Number(teamForm.right?.seriesWinRatePct || 0);
+  const formLeader =
+    leftSeriesWin === rightSeriesWin ? null : leftSeriesWin > rightSeriesWin ? match.teams.left.name : match.teams.right.name;
+  const leadTone =
+    formLeader === match.teams.left.name ? "left" : formLeader === match.teams.right.name ? "right" : "neutral";
   elements.upcomingFormWrap.innerHTML = `
-    ${renderTeamFormCard({
-      teamName: match.teams.left.name,
-      teamId: match.teams.left.id,
-      opponentId: match.teams.right.id,
-      profile: teamForm.left,
-      toneClass: "left",
-      match
-    })}
-    ${renderTeamFormCard({
-      teamName: match.teams.right.name,
-      teamId: match.teams.right.id,
-      opponentId: match.teams.left.id,
-      profile: teamForm.right,
-      toneClass: "right",
-      match
-    })}
+    <div class="series-history-desk">
+      <article class="series-history-lead ${leadTone}">
+        <div class="series-history-head">
+          <div>
+            <p class="tempo-label">History desk</p>
+            <h3>Recent form and streak context</h3>
+            <p class="series-history-note">Read current momentum first, then scan the last five series for both sides.</p>
+          </div>
+          <div class="form-summary-strip">
+            <span class="form-summary-pill">${escapeHtml(leftShort)} ${leftRecent.recordLabel}</span>
+            <span class="form-summary-pill">${escapeHtml(rightShort)} ${rightRecent.recordLabel}</span>
+          </div>
+        </div>
+        <div class="series-history-metrics">
+          ${seriesDeskMetricCard(`${leftShort} last 5`, leftRecent.recordLabel, `Form ${leftRecent.formLabel}`, "left")}
+          ${seriesDeskMetricCard(`${rightShort} last 5`, rightRecent.recordLabel, `Form ${rightRecent.formLabel}`, "right")}
+          ${seriesDeskMetricCard("Form edge", formLeader ? scoreboardTeamName(formLeader, match?.game) : "Even", `${leftShort} ${leftSeriesWin.toFixed(0)}% · ${rightShort} ${rightSeriesWin.toFixed(0)}%`, leadTone)}
+          ${seriesDeskMetricCard("Streaks", `${teamForm.left?.streakLabel || "n/a"} / ${teamForm.right?.streakLabel || "n/a"}`, `${leftShort} vs ${rightShort}`, "neutral")}
+        </div>
+      </article>
+      <div class="series-history-grid">
+        ${renderTeamFormCard({
+          teamName: match.teams.left.name,
+          teamId: match.teams.left.id,
+          opponentId: match.teams.right.id,
+          profile: teamForm.left,
+          toneClass: "left",
+          match
+        })}
+        ${renderTeamFormCard({
+          teamName: match.teams.right.name,
+          teamId: match.teams.right.id,
+          opponentId: match.teams.left.id,
+          profile: teamForm.right,
+          toneClass: "right",
+          match
+        })}
+      </div>
+    </div>
   `;
 }
 
@@ -7985,15 +8110,41 @@ function renderUpcomingHeadToHead(match) {
     })
     .join("");
 
+  const leftShort = scoreboardTeamName(match.teams.left.name, match?.game);
+  const rightShort = scoreboardTeamName(match.teams.right.name, match?.game);
+  const totalMeetings = Number(h2h.total ?? h2h.matches ?? h2h.lastMeetings.length ?? 0);
+  const leftWins = Number(h2h.leftWins ?? h2h.wins ?? 0);
+  const rightWins = Number(h2h.rightWins ?? h2h.losses ?? 0);
+  const draws = Number(h2h.draws ?? 0);
+  const lastMeeting = h2h.lastMeetings[0] || null;
+  const lastWinnerName = lastMeeting?.winnerName || (lastMeeting ? winnerLabelForH2hRow(lastMeeting, match) : null);
+  const winnerTone =
+    lastWinnerName === match.teams.left.name ? "left" : lastWinnerName === match.teams.right.name ? "right" : "neutral";
+
   elements.upcomingH2hWrap.innerHTML = `
-    <article class="upcoming-note">
-      <div class="form-summary-strip">
-        <span class="form-summary-pill">Meetings ${h2h.total ?? h2h.matches ?? 0}</span>
-        <span class="form-summary-pill">${scoreboardTeamName(match.teams.left.name)} ${h2h.leftWins ?? h2h.wins ?? 0}</span>
-        <span class="form-summary-pill">${scoreboardTeamName(match.teams.right.name)} ${h2h.rightWins ?? h2h.losses ?? 0}</span>
-      </div>
-    </article>
-    <div class="series-h2h-list upcoming-h2h-list">${rows}</div>
+    <div class="series-h2h-desk">
+      <article class="series-h2h-lead ${winnerTone}">
+        <div class="series-history-head">
+          <div>
+            <p class="tempo-label">History desk</p>
+            <h3>Direct meetings and latest results</h3>
+            <p class="series-history-note">${lastMeeting ? `Latest meeting: ${dateTimeCompact(lastMeeting.startAt)} · ${lastMeeting.tournament || "Unknown tournament"}` : "Recent series history is available below."}</p>
+          </div>
+          <div class="form-summary-strip">
+            <span class="form-summary-pill">${escapeHtml(leftShort)} ${leftWins}</span>
+            <span class="form-summary-pill">${escapeHtml(rightShort)} ${rightWins}</span>
+            ${draws ? `<span class="form-summary-pill">Draws ${draws}</span>` : ""}
+          </div>
+        </div>
+        <div class="series-history-metrics">
+          ${seriesDeskMetricCard("Record", `${leftWins}-${rightWins}${draws ? `-${draws}` : ""}`, `${leftShort} vs ${rightShort}`, winnerTone)}
+          ${seriesDeskMetricCard("Meetings", String(totalMeetings), totalMeetings > h2h.lastMeetings.length ? `${h2h.lastMeetings.length} shown below` : "All sampled meetings shown", "neutral")}
+          ${seriesDeskMetricCard("Last winner", lastWinnerName ? scoreboardTeamName(lastWinnerName, match?.game) : "TBD", lastMeeting?.scoreLabel || "Result pending", winnerTone)}
+          ${seriesDeskMetricCard("Last score", lastMeeting?.scoreLabel || "n/a", lastMeeting?.tournament || "Unknown", "neutral")}
+        </div>
+      </article>
+      <div class="series-h2h-list upcoming-h2h-list">${rows}</div>
+    </div>
   `;
 }
 

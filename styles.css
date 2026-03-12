@@ -18483,6 +18483,372 @@ body.product-shell.match-page .series-stats-driver-list {
   font-size: 0.74rem;
 }
 
+body.product-shell.match-page .series-stats-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.72rem;
+  margin-bottom: 0.72rem;
+  padding: 0.72rem 0.78rem;
+  border-radius: 0.98rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(45, 53, 63, 0.94), rgba(36, 43, 52, 0.97));
+}
+
+body.product-shell.match-page .series-stats-toolbar-copy {
+  display: grid;
+  gap: 0.08rem;
+}
+
+body.product-shell.match-page .series-stats-toolbar-copy .meta-text {
+  margin: 0;
+  color: #aab6c4;
+}
+
+body.product-shell.match-page .series-stats-sample-control {
+  display: grid;
+  gap: 0.24rem;
+  min-width: 8.5rem;
+}
+
+body.product-shell.match-page .series-stats-sample-control span {
+  color: #8ea0b5;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .series-stats-sample-control select {
+  min-height: 2.1rem;
+  border-radius: 0.82rem;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #eff4fa;
+  padding: 0.34rem 0.72rem;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+body.product-shell.match-page .series-desk-metric {
+  display: grid;
+  gap: 0.14rem;
+  padding: 0.56rem 0.6rem;
+  border-radius: 0.84rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .series-desk-metric.left {
+  border-color: rgba(86, 160, 117, 0.16);
+}
+
+body.product-shell.match-page .series-desk-metric.right {
+  border-color: rgba(216, 138, 51, 0.16);
+}
+
+body.product-shell.match-page .series-desk-metric.warn {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .series-desk-metric-value {
+  margin: 0;
+  color: #f3f7fb;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+body.product-shell.match-page .series-matchup-desk,
+body.product-shell.match-page .series-history-desk,
+body.product-shell.match-page .series-h2h-desk {
+  display: grid;
+  gap: 0.68rem;
+}
+
+body.product-shell.match-page .series-matchup-lead,
+body.product-shell.match-page .series-matchup-team,
+body.product-shell.match-page .series-matchup-h2h-card,
+body.product-shell.match-page .series-history-lead,
+body.product-shell.match-page .series-history-team,
+body.product-shell.match-page .series-h2h-lead {
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  border-radius: 0.98rem;
+  background: linear-gradient(180deg, rgba(48, 56, 66, 0.95), rgba(37, 45, 54, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .series-matchup-lead.left,
+body.product-shell.match-page .series-history-lead.left,
+body.product-shell.match-page .series-h2h-lead.left,
+body.product-shell.match-page .series-matchup-team.left,
+body.product-shell.match-page .series-history-team.left {
+  border-color: rgba(86, 160, 117, 0.16);
+}
+
+body.product-shell.match-page .series-matchup-lead.right,
+body.product-shell.match-page .series-history-lead.right,
+body.product-shell.match-page .series-h2h-lead.right,
+body.product-shell.match-page .series-matchup-team.right,
+body.product-shell.match-page .series-history-team.right {
+  border-color: rgba(216, 138, 51, 0.16);
+}
+
+body.product-shell.match-page .series-matchup-lead,
+body.product-shell.match-page .series-history-lead,
+body.product-shell.match-page .series-h2h-lead,
+body.product-shell.match-page .series-matchup-team,
+body.product-shell.match-page .series-history-team,
+body.product-shell.match-page .series-matchup-h2h-card {
+  display: grid;
+  gap: 0.62rem;
+  padding: 0.78rem 0.82rem;
+}
+
+body.product-shell.match-page .series-matchup-lead-head,
+body.product-shell.match-page .series-history-head,
+body.product-shell.match-page .series-matchup-h2h-head,
+body.product-shell.match-page .series-matchup-team-head,
+body.product-shell.match-page .series-history-team-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.68rem;
+  align-items: flex-start;
+}
+
+body.product-shell.match-page .series-matchup-lead-head h3,
+body.product-shell.match-page .series-history-head h3,
+body.product-shell.match-page .series-matchup-h2h-head h3,
+body.product-shell.match-page .series-matchup-team-copy h3,
+body.product-shell.match-page .series-history-team-copy h3 {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.16;
+}
+
+body.product-shell.match-page .series-matchup-lead-note,
+body.product-shell.match-page .series-history-note,
+body.product-shell.match-page .series-matchup-h2h-note {
+  margin: 0.12rem 0 0 0;
+  color: #aab6c4;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+body.product-shell.match-page .series-matchup-scoreboard {
+  display: grid;
+  justify-items: center;
+  gap: 0.08rem;
+  min-width: 9rem;
+  padding: 0.56rem 0.72rem;
+  border-radius: 0.88rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f2f6fb;
+  text-align: center;
+}
+
+body.product-shell.match-page .series-matchup-scoreboard strong {
+  color: #f1b25f;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+body.product-shell.match-page .series-matchup-scoreboard span {
+  color: #b8c3cf;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+body.product-shell.match-page .series-matchup-metrics,
+body.product-shell.match-page .series-history-metrics,
+body.product-shell.match-page .series-matchup-team-metrics,
+body.product-shell.match-page .series-history-team-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+
+body.product-shell.match-page .series-matchup-driver-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.2rem;
+  color: #b4c0ce;
+  font-size: 0.74rem;
+}
+
+body.product-shell.match-page .series-matchup-team-grid,
+body.product-shell.match-page .series-history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.68rem;
+}
+
+body.product-shell.match-page .series-matchup-team-ident,
+body.product-shell.match-page .series-history-team-ident {
+  display: flex;
+  align-items: center;
+  gap: 0.68rem;
+  min-width: 0;
+}
+
+body.product-shell.match-page .series-matchup-team-mark,
+body.product-shell.match-page .series-history-team-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+body.product-shell.match-page .series-matchup-team-mark .team-badge,
+body.product-shell.match-page .series-history-team-mark .team-badge {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.94rem;
+  background: rgba(244, 247, 251, 0.96);
+  border-color: rgba(226, 233, 241, 0.14);
+}
+
+body.product-shell.match-page .series-matchup-team-copy,
+body.product-shell.match-page .series-history-team-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+body.product-shell.match-page .series-matchup-team-copy .team-link,
+body.product-shell.match-page .series-history-team-copy .team-link {
+  color: #f2f6fb;
+  text-decoration: none;
+}
+
+body.product-shell.match-page .series-matchup-team-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem 0.72rem;
+}
+
+body.product-shell.match-page .series-matchup-team-notes p {
+  margin: 0;
+}
+
+body.product-shell.match-page .series-history-team-list-head {
+  margin: 0;
+  color: #8ea0b5;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .series-history-team-empty {
+  padding: 0.6rem 0.64rem;
+  border-radius: 0.82rem;
+  border: 1px dashed rgba(233, 239, 245, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .form-summary-pill {
+  border-color: rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+}
+
+body.product-shell.match-page #upcomingFormWrap .form-list li.form-match-item,
+body.product-shell.match-page #upcomingH2hWrap .series-h2h-item,
+body.product-shell.match-page #matchupConsoleWrap .series-h2h-item {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(42, 49, 59, 0.95), rgba(34, 41, 49, 0.97));
+}
+
+body.product-shell.match-page #upcomingFormWrap .form-match-opponent,
+body.product-shell.match-page #upcomingH2hWrap .form-match-opponent,
+body.product-shell.match-page #upcomingH2hWrap .series-h2h-date,
+body.product-shell.match-page #matchupConsoleWrap .series-h2h-date {
+  color: #edf2f7;
+}
+
+body.product-shell.match-page #upcomingFormWrap .form-match-score,
+body.product-shell.match-page #upcomingH2hWrap .form-match-score {
+  border-color: rgba(233, 239, 245, 0.08);
+  background: rgba(216, 138, 51, 0.12);
+  color: #f4d8b3;
+}
+
+body.product-shell.match-page #upcomingFormWrap .form-match-meta,
+body.product-shell.match-page #upcomingH2hWrap .form-match-meta,
+body.product-shell.match-page #upcomingH2hWrap .series-h2h-item .meta-text,
+body.product-shell.match-page #matchupConsoleWrap .series-h2h-item .meta-text {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #seriesH2hPanel .upcoming-h2h-list,
+body.product-shell.match-page #matchupConsoleWrap .series-h2h-list {
+  gap: 0.56rem;
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-card {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-player {
+  color: #f2f6fb;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-role {
+  border-color: rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-weight: 700;
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-card .meta-text,
+body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-metrics span {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-spark {
+  border-radius: 0.76rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.28rem 0.34rem;
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .trend-mini-line {
+  stroke: #f1b25f;
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .trends-table {
+  min-width: 900px;
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .trends-table thead th {
+  color: #9aa8b7;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .trends-table tbody td {
+  color: #e6edf4;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(233, 239, 245, 0.05);
+}
+
+body.product-shell.match-page #seriesPlayerTrendsWrap .trends-table td:nth-child(3) {
+  color: #f1b25f;
+}
+
 body.product-shell.match-page .series-games-lead {
   display: grid;
   gap: 0.68rem;
@@ -18805,6 +19171,21 @@ body.product-shell.match-page #seriesComparePanel .series-compare-table tbody td
     grid-template-columns: 1fr;
   }
 
+  body.product-shell.match-page .series-stats-toolbar,
+  body.product-shell.match-page .series-matchup-lead-head,
+  body.product-shell.match-page .series-history-head,
+  body.product-shell.match-page .series-matchup-h2h-head,
+  body.product-shell.match-page .series-matchup-team-head,
+  body.product-shell.match-page .series-history-team-head {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  body.product-shell.match-page .series-matchup-team-grid,
+  body.product-shell.match-page .series-history-grid {
+    grid-template-columns: 1fr;
+  }
+
   body.product-shell.match-page .series-results-hero {
     grid-template-columns: 1fr;
   }
@@ -18820,6 +19201,16 @@ body.product-shell.match-page #seriesComparePanel .series-compare-table tbody td
   body.product-shell.match-page .series-stats-team,
   body.product-shell.match-page .series-stats-center,
   body.product-shell.match-page .series-games-lead-hero {
+    padding: 0.66rem 0.68rem;
+  }
+
+  body.product-shell.match-page .series-stats-toolbar,
+  body.product-shell.match-page .series-matchup-lead,
+  body.product-shell.match-page .series-history-lead,
+  body.product-shell.match-page .series-h2h-lead,
+  body.product-shell.match-page .series-matchup-team,
+  body.product-shell.match-page .series-history-team,
+  body.product-shell.match-page .series-matchup-h2h-card {
     padding: 0.66rem 0.68rem;
   }
 
@@ -18847,12 +19238,59 @@ body.product-shell.match-page #seriesComparePanel .series-compare-table tbody td
     scroll-snap-align: start;
   }
 
+  body.product-shell.match-page .series-stats-toolbar {
+    gap: 0.56rem;
+  }
+
+  body.product-shell.match-page .series-stats-sample-control {
+    min-width: 0;
+  }
+
+  body.product-shell.match-page .series-stats-sample-control select {
+    min-height: 1.96rem;
+    font-size: 0.74rem;
+  }
+
+  body.product-shell.match-page .series-matchup-scoreboard {
+    min-width: 0;
+    width: 100%;
+    padding: 0.5rem 0.56rem;
+  }
+
+  body.product-shell.match-page .series-matchup-scoreboard strong {
+    font-size: 0.9rem;
+  }
+
+  body.product-shell.match-page .series-matchup-metrics,
+  body.product-shell.match-page .series-history-metrics,
+  body.product-shell.match-page .series-matchup-team-metrics,
+  body.product-shell.match-page .series-history-team-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.44rem;
+  }
+
+  body.product-shell.match-page .series-matchup-team-mark .team-badge,
+  body.product-shell.match-page .series-history-team-mark .team-badge {
+    width: 2.7rem;
+    height: 2.7rem;
+  }
+
+  body.product-shell.match-page .series-matchup-team-copy h3,
+  body.product-shell.match-page .series-history-team-copy h3,
+  body.product-shell.match-page .series-matchup-lead-head h3,
+  body.product-shell.match-page .series-history-head h3,
+  body.product-shell.match-page .series-matchup-h2h-head h3 {
+    font-size: 0.88rem;
+  }
+
   body.product-shell.match-page .series-games-lead-grid {
     grid-template-columns: 1fr;
   }
 
   body.product-shell.match-page #seriesGamesPanel .series-games-grid,
-  body.product-shell.match-page #seriesComparePanel .series-compare-summary {
+  body.product-shell.match-page #seriesComparePanel .series-compare-summary,
+  body.product-shell.match-page #upcomingFormWrap .form-list,
+  body.product-shell.match-page #upcomingH2hWrap .upcoming-h2h-list {
     grid-template-columns: 1fr;
   }
 }
