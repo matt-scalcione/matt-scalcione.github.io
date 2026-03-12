@@ -9812,7 +9812,8 @@ function renderSeriesGames(match, apiBase) {
       const rightSide = String(sideInfo.rightSide || "").toLowerCase();
       const leftSideTone = leftSide === "blue" ? "blue" : leftSide === "red" ? "red" : "neutral";
       const rightSideTone = rightSide === "red" ? "red" : rightSide === "blue" ? "blue" : "neutral";
-      const winnerName = resolveSeriesGameWinnerName(game, match);
+      const winnerMeta = resolvedSeriesGameWinner(match, game);
+      const winnerName = winnerMeta?.name || null;
       const startedLabel = game.startedAt ? (compact ? dateTimeCompact(game.startedAt) : dateTimeLabel(game.startedAt)) : "TBD";
       const durationLabel = durationLabelFromMinutes(game.durationMinutes);
       const statusNote = seriesGameStatusNote(game, match);
@@ -9834,6 +9835,9 @@ function renderSeriesGames(match, apiBase) {
       if (hasSideInfo) {
         facts.push(`<span class="series-game-fact"><strong>Sides</strong>${escapeHtml(sideSummaryFromSeriesGame(game, match))}</span>`);
       }
+      if (game.state === "completed" && !winnerMeta) {
+        facts.push(`<span class="series-game-fact warn"><strong>Outcome</strong>Confirmed</span>`);
+      }
       const openAction =
         game.state === "unneeded"
           ? `<span class="series-game-vod disabled">${compact ? "Skipped" : "Not played"}</span>`
@@ -9851,7 +9855,13 @@ function renderSeriesGames(match, apiBase) {
               <p class="series-game-title">${compact ? `G${game.number}` : `Game ${game.number}`}</p>
               <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
             </div>
-            ${winnerName ? `<p class="series-game-winner">Winner ${scoreboardTeamName(winnerName)}</p>` : ""}
+            ${
+              winnerName
+                ? `<p class="series-game-winner">Winner ${scoreboardTeamName(winnerName, match?.game)}</p>`
+                : game.state === "completed"
+                  ? `<p class="series-game-winner unresolved">Result confirmed</p>`
+                  : ""
+            }
           </div>
           <p class="series-game-status">${statusNote}</p>
           ${showLabel ? `<p class="series-game-caption">${labelText}</p>` : ""}
@@ -9868,6 +9878,11 @@ function renderSeriesGames(match, apiBase) {
             ${openAction}
             ${vodAction}
           </div>
+          ${
+            game.state === "completed" && !winnerMeta
+              ? `<p class="series-game-provider-note">Winner label unavailable on the series payload.</p>`
+              : ""
+          }
           ${options.length
             ? `<div class="series-game-options">${options
                 .map((opt) => `<a class="series-game-option" href="${opt.watchUrl}" target="_blank" rel="noreferrer">${opt.shortLabel || opt.label}</a>`)
@@ -9891,20 +9906,88 @@ function durationLabelFromMinutes(minutes) {
   return shortDuration(totalSeconds);
 }
 
-function resolveSeriesGameWinnerName(game, match) {
-  if (!game || game.state !== "completed") {
+function teamSideFromWinnerCandidate(match, candidate) {
+  const normalizedCandidate = normalizeLookupKey(candidate);
+  if (!normalizedCandidate || !match?.teams?.left || !match?.teams?.right) {
     return null;
   }
 
-  if (game.winnerTeamId === match?.teams?.left?.id) {
-    return match.teams.left.name;
+  const leftCandidates = [
+    match.teams.left.name,
+    displayTeamName(match.teams.left.name, match?.game),
+    scoreboardTeamName(match.teams.left.name, match?.game)
+  ]
+    .map((value) => normalizeLookupKey(value))
+    .filter(Boolean);
+  const rightCandidates = [
+    match.teams.right.name,
+    displayTeamName(match.teams.right.name, match?.game),
+    scoreboardTeamName(match.teams.right.name, match?.game)
+  ]
+    .map((value) => normalizeLookupKey(value))
+    .filter(Boolean);
+
+  if (leftCandidates.includes(normalizedCandidate)) {
+    return "left";
   }
 
-  if (game.winnerTeamId === match?.teams?.right?.id) {
-    return match.teams.right.name;
+  if (rightCandidates.includes(normalizedCandidate)) {
+    return "right";
   }
 
   return null;
+}
+
+function resolvedSeriesGameWinner(match, game) {
+  if (!game || String(game?.state || "") !== "completed" || !match?.teams?.left || !match?.teams?.right) {
+    return null;
+  }
+
+  const leftId = String(match.teams.left.id || "");
+  const rightId = String(match.teams.right.id || "");
+  const winnerTeamId = String(game?.winnerTeamId || "");
+  if (winnerTeamId && leftId && winnerTeamId === leftId) {
+    return { side: "left", name: match.teams.left.name, source: "provider" };
+  }
+  if (winnerTeamId && rightId && winnerTeamId === rightId) {
+    return { side: "right", name: match.teams.right.name, source: "provider" };
+  }
+
+  for (const candidate of [game?.winnerTeamName, game?.winnerName, game?.result?.winnerTeamName, game?.result?.winnerName, game?.winnerLabel]) {
+    const side = teamSideFromWinnerCandidate(match, candidate);
+    if (side) {
+      return { side, name: match.teams[side].name, source: "provider" };
+    }
+  }
+
+  const leftScore = Number(game?.leftScore);
+  const rightScore = Number(game?.rightScore);
+  if (Number.isFinite(leftScore) && Number.isFinite(rightScore) && leftScore !== rightScore) {
+    return leftScore > rightScore
+      ? { side: "left", name: match.teams.left.name, source: "score" }
+      : { side: "right", name: match.teams.right.name, source: "score" };
+  }
+
+  const selected = match?.selectedGame;
+  if (
+    selected &&
+    String(selected?.state || "") === "completed" &&
+    Number(selected?.number || 0) === Number(game?.number || 0)
+  ) {
+    const selectedLeftKills = Number(selected?.snapshot?.left?.kills);
+    const selectedRightKills = Number(selected?.snapshot?.right?.kills);
+    if (Number.isFinite(selectedLeftKills) && Number.isFinite(selectedRightKills) && selectedLeftKills !== selectedRightKills) {
+      return selectedLeftKills > selectedRightKills
+        ? { side: "left", name: match.teams.left.name, source: "selected_snapshot" }
+        : { side: "right", name: match.teams.right.name, source: "selected_snapshot" };
+    }
+  }
+
+  return null;
+}
+
+function resolveSeriesGameWinnerName(game, match) {
+  return resolvedSeriesGameWinner(match, game)?.name || null;
 }
 
 function sideSummaryFromSeriesGame(game, match) {
@@ -9925,37 +10008,65 @@ function renderSeriesComparison(match, apiBase) {
   }
 
   const completedGames = games.filter((game) => game.state === "completed");
+  const resolvedWinners = completedGames.map((game) => ({
+    game,
+    winner: resolvedSeriesGameWinner(match, game)
+  }));
+  const resolvedWinnerCount = resolvedWinners.filter((entry) => entry.winner).length;
   const durations = completedGames
     .map((game) => Number(game.durationMinutes))
     .filter((value) => Number.isFinite(value) && value > 0);
-  const leftWins = completedGames.filter((game) => game.winnerTeamId === match.teams.left.id).length;
-  const rightWins = completedGames.filter((game) => game.winnerTeamId === match.teams.right.id).length;
+  const leftWins = resolvedWinners.filter((entry) => entry.winner?.side === "left").length;
+  const rightWins = resolvedWinners.filter((entry) => entry.winner?.side === "right").length;
   const avgDuration = durations.length
     ? durationLabelFromMinutes(durations.reduce((sum, value) => sum + value, 0) / durations.length)
     : "n/a";
   const fastest = durations.length ? durationLabelFromMinutes(Math.min(...durations)) : "n/a";
   const slowest = durations.length ? durationLabelFromMinutes(Math.max(...durations)) : "n/a";
+  const resultsCoverageLabel =
+    resolvedWinnerCount === completedGames.length
+      ? "Complete"
+      : resolvedWinnerCount > 0
+        ? `Partial ${resolvedWinnerCount}/${completedGames.length}`
+        : "Limited";
+  const resultsCoverageNote =
+    resolvedWinnerCount === completedGames.length
+      ? "All map winners resolved."
+      : resolvedWinnerCount > 0
+        ? "Some map winners inferred from provider hints or the focused map."
+        : "Provider exposed map completion and VODs, but not per-map winner labels.";
 
   const summaryCards = [
-    { label: compact ? "Maps" : "Completed Maps", value: String(completedGames.length) },
-    { label: compact ? `${displayTeamName(match.teams.left.name)} W` : `${displayTeamName(match.teams.left.name)} Wins`, value: String(leftWins) },
-    { label: compact ? `${displayTeamName(match.teams.right.name)} W` : `${displayTeamName(match.teams.right.name)} Wins`, value: String(rightWins) },
-    { label: compact ? "Avg Len" : "Avg Map Length", value: avgDuration },
-    { label: compact ? "Fastest" : "Fastest Map", value: fastest },
-    { label: compact ? "Slowest" : "Slowest Map", value: slowest }
+    { label: compact ? "Final" : "Final Score", value: `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`, note: null },
+    { label: compact ? "Maps" : "Completed Maps", value: String(completedGames.length), note: null },
+    { label: compact ? "Coverage" : "Winner Coverage", value: resultsCoverageLabel, note: resultsCoverageNote },
+    { label: compact ? "Avg Len" : "Avg Map Length", value: avgDuration, note: null },
+    { label: compact ? "Fastest" : "Fastest Map", value: fastest, note: null },
+    { label: compact ? "Slowest" : "Slowest Map", value: slowest, note: null }
   ];
+
+  if (resolvedWinnerCount > 0) {
+    summaryCards.splice(
+      2,
+      0,
+      { label: compact ? `${displayTeamName(match.teams.left.name)} W` : `${displayTeamName(match.teams.left.name)} Wins`, value: String(leftWins), note: null },
+      { label: compact ? `${displayTeamName(match.teams.right.name)} W` : `${displayTeamName(match.teams.right.name)} Wins`, value: String(rightWins), note: null }
+    );
+  }
 
   const rows = games
     .map((game) => {
       const openHref = detailUrlForGame(match.id, apiBase, game.number);
-      const winner = resolveSeriesGameWinnerName(game, match);
+      const winnerMeta = resolvedSeriesGameWinner(match, game);
       const winnerText =
-        (winner ? displayTeamName(winner) : null) ||
+        (winnerMeta ? displayTeamName(winnerMeta.name, match?.game) : null) ||
         (game.state === "inProgress"
           ? "Live"
           : game.state === "unneeded"
             ? "Not played"
-            : "TBD");
+            : game.state === "completed"
+              ? "Result confirmed"
+              : "TBD");
       const durationText = durationLabelFromMinutes(game.durationMinutes);
       const sideText = sideSummaryFromSeriesGame(game, match);
       const watchLink = game.watchUrl
@@ -9975,9 +10086,10 @@ function renderSeriesComparison(match, apiBase) {
               <p class="series-compare-game">G${game.number}</p>
               <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
             </div>
-            <p class="meta-text"><strong>Winner:</strong> ${winnerText}</p>
+            <p class="meta-text"><strong>Outcome:</strong> ${winnerText}</p>
             <p class="meta-text"><strong>Duration:</strong> ${durationText}</p>
             <p class="meta-text"><strong>Sides:</strong> ${sideText}</p>
+            ${game.state === "completed" && !winnerMeta ? `<p class="meta-text">Winner label unavailable on series payload.</p>` : ""}
             <div class="series-compare-links">
               ${game.watchUrl ? `<a class="table-link" href="${game.watchUrl}" target="_blank" rel="noreferrer">VOD</a>` : `<span class="meta-text">No VOD</span>`}
               ${
@@ -10007,6 +10119,23 @@ function renderSeriesComparison(match, apiBase) {
     .join("");
 
   elements.seriesCompareWrap.innerHTML = `
+    <div class="series-results-shell">
+      <article class="series-results-hero ${resolvedWinnerCount === completedGames.length ? "complete" : "partial"}">
+        <div class="series-results-copy">
+          <p class="tempo-label">Results Desk</p>
+          <h3>${escapeHtml(
+            resolvedWinnerCount === completedGames.length
+              ? `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0} with map winners resolved`
+              : `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`
+          )}</h3>
+          <p class="series-results-note">${escapeHtml(resultsCoverageNote)}</p>
+        </div>
+        <div class="series-results-hero-score">
+          <span class="series-results-team">${escapeHtml(scoreboardTeamName(match?.teams?.left?.name, match?.game))}</span>
+          <strong>${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}</strong>
+          <span class="series-results-team">${escapeHtml(scoreboardTeamName(match?.teams?.right?.name, match?.game))}</span>
+        </div>
+      </article>
     <div class="series-compare-summary">
       ${summaryCards
         .map(
@@ -10014,6 +10143,7 @@ function renderSeriesComparison(match, apiBase) {
             <article class="series-compare-card">
               <p class="tempo-label">${card.label}</p>
               <p class="tempo-value">${card.value}</p>
+              ${card.note ? `<p class="meta-text">${card.note}</p>` : ""}
             </article>
           `
         )
@@ -10028,7 +10158,7 @@ function renderSeriesComparison(match, apiBase) {
               <tr>
                 <th>Game</th>
                 <th>State</th>
-                <th>Winner</th>
+                <th>Outcome</th>
                 <th>Duration</th>
                 <th>Sides</th>
                 <th>VOD</th>
@@ -10039,6 +10169,7 @@ function renderSeriesComparison(match, apiBase) {
           </table>
         </div>
       `}
+    </div>
   `;
 }
 

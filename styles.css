@@ -17909,6 +17909,22 @@ body.product-shell.match-page .match-content-group[data-layout-group="overview"]
   order: 3;
 }
 
+body.product-shell.match-page .match-content-group[data-layout-group="games"] > #seriesGamesPanel {
+  order: 1;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="games"] > #seriesComparePanel {
+  order: 2;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="games"] > #seriesProgressPanel {
+  order: 3;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="games"] > #seriesHighlightsPanel {
+  order: 4;
+}
+
 body.product-shell.match-page .match-content-group > .panel {
   margin: 0;
 }
@@ -18589,9 +18605,207 @@ body.product-shell.match-page .series-games-lead-grid .tempo-value {
   color: #f1f5f9;
 }
 
+body.product-shell.match-page #seriesGamesPanel .series-games-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-card {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-card.selected {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: linear-gradient(180deg, rgba(64, 58, 47, 0.98), rgba(45, 41, 35, 0.99));
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-card.state-live {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-card.state-complete {
+  border-color: rgba(140, 151, 166, 0.16);
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-card.state-upcoming {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-card.state-skip {
+  border-color: rgba(140, 151, 166, 0.14);
+  background: linear-gradient(180deg, rgba(42, 49, 59, 0.94), rgba(33, 39, 47, 0.96));
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-title,
+body.product-shell.match-page #seriesGamesPanel .series-game-winner,
+body.product-shell.match-page #seriesGamesPanel .series-game-fact,
+body.product-shell.match-page #seriesGamesPanel .series-game-open,
+body.product-shell.match-page #seriesGamesPanel .series-game-vod,
+body.product-shell.match-page #seriesGamesPanel .series-game-focused,
+body.product-shell.match-page #seriesGamesPanel .series-game-option {
+  color: #f2f6fb;
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-status,
+body.product-shell.match-page #seriesGamesPanel .series-game-caption,
+body.product-shell.match-page #seriesGamesPanel .series-game-provider-note {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-winner {
+  border-color: rgba(86, 160, 117, 0.18);
+  background: rgba(86, 160, 117, 0.12);
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-winner.unresolved {
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(216, 138, 51, 0.12);
+  color: #f4d8b3;
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-fact,
+body.product-shell.match-page #seriesGamesPanel .series-side-chip,
+body.product-shell.match-page #seriesGamesPanel .series-game-open,
+body.product-shell.match-page #seriesGamesPanel .series-game-vod,
+body.product-shell.match-page #seriesGamesPanel .series-game-focused,
+body.product-shell.match-page #seriesGamesPanel .series-game-option {
+  border-color: rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-fact strong {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-fact.warn {
+  border-color: rgba(216, 138, 51, 0.2);
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-open {
+  background: linear-gradient(180deg, rgba(76, 92, 112, 0.3), rgba(58, 71, 88, 0.34));
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-focused {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.16);
+  color: #f4d8b3;
+}
+
+body.product-shell.match-page #seriesGamesPanel .series-game-vod.disabled {
+  color: #90a0b0;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .series-results-shell {
+  display: grid;
+  gap: 0.66rem;
+}
+
+body.product-shell.match-page .series-results-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) auto;
+  gap: 0.68rem;
+  align-items: center;
+  padding: 0.78rem 0.82rem;
+  border-radius: 0.98rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(48, 56, 66, 0.95), rgba(37, 45, 54, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .series-results-hero.complete {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .series-results-hero.partial {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .series-results-copy {
+  display: grid;
+  gap: 0.16rem;
+}
+
+body.product-shell.match-page .series-results-copy h3 {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+body.product-shell.match-page .series-results-note {
+  margin: 0;
+  color: #aab6c4;
+  font-size: 0.78rem;
+  line-height: 1.36;
+}
+
+body.product-shell.match-page .series-results-hero-score {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  min-width: 8rem;
+}
+
+body.product-shell.match-page .series-results-team {
+  color: #aab6c4;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .series-results-hero-score strong {
+  color: #f2f6fb;
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 1.48rem;
+  line-height: 1;
+}
+
+body.product-shell.match-page #seriesComparePanel .series-compare-card,
+body.product-shell.match-page #seriesComparePanel .series-compare-item {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #seriesComparePanel .series-compare-item.selected {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: linear-gradient(180deg, rgba(64, 58, 47, 0.98), rgba(45, 41, 35, 0.99));
+}
+
+body.product-shell.match-page #seriesComparePanel .series-compare-card .tempo-value,
+body.product-shell.match-page #seriesComparePanel .series-compare-game {
+  color: #f2f6fb;
+}
+
+body.product-shell.match-page #seriesComparePanel .series-compare-card .meta-text,
+body.product-shell.match-page #seriesComparePanel .series-compare-item .meta-text {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #seriesComparePanel .series-compare-table {
+  min-width: 860px;
+}
+
+body.product-shell.match-page #seriesComparePanel .series-compare-table thead th {
+  color: #9aa8b7;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.product-shell.match-page #seriesComparePanel .series-compare-table tbody td {
+  color: #e6edf4;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(233, 239, 245, 0.05);
+}
+
 @media (max-width: 980px) {
   body.product-shell.match-page .series-stats-shell,
   body.product-shell.match-page .series-games-lead-hero {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .series-results-hero {
     grid-template-columns: 1fr;
   }
 }
@@ -18634,6 +18848,11 @@ body.product-shell.match-page .series-games-lead-grid .tempo-value {
   }
 
   body.product-shell.match-page .series-games-lead-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page #seriesGamesPanel .series-games-grid,
+  body.product-shell.match-page #seriesComparePanel .series-compare-summary {
     grid-template-columns: 1fr;
   }
 }

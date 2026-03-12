@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312ae" />
+    <link rel="stylesheet" href="./styles.css?v=20260312af" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -342,7 +342,7 @@
         <div id="objectiveForecastWrap" class="objective-forecast"></div>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesProgressPanel" data-scope="series">
         <div class="section-head">
           <h2>Progress</h2>
           <p class="meta-text">Race-to-target view for this format.</p>
@@ -350,7 +350,7 @@
         <div id="seriesProgressWrap" class="series-progress"></div>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesHighlightsPanel" data-scope="series">
         <div class="section-head">
           <h2>Highlights</h2>
           <p class="meta-text">Cross-game moments from the full series.</p>
@@ -422,7 +422,7 @@
         <div id="objectiveRunsWrap" class="runs-wrap"></div>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesGamesPanel" data-scope="series">
         <div class="section-head">
           <h2>Game Results</h2>
           <p class="meta-text">Series race, map path, and game-by-game outcomes.</p>
@@ -431,10 +431,10 @@
         <div id="seriesGamesWrap" class="series-games"></div>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesComparePanel" data-scope="series">
         <div class="section-head">
           <h2>Results Table</h2>
-          <p class="meta-text">Winner, duration, side, and game outcomes in one view.</p>
+          <p class="meta-text">Map outcomes, duration, side, and coverage in one view.</p>
         </div>
         <div id="seriesCompareWrap" class="series-compare"></div>
       </section>
@@ -544,6 +544,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312l"></script>
+    <script type="module" src="./match.js?v=20260312m"></script>
   </body>
 </html>
