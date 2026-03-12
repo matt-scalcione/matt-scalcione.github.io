@@ -17388,15 +17388,31 @@ body.product-shell.match-page .score-hero-team {
   text-align: center;
 }
 
+body.product-shell.match-page .score-hero-team.left {
+  justify-self: start;
+  justify-items: start;
+  text-align: left;
+}
+
 body.product-shell.match-page .score-hero-team.right {
-  justify-items: center;
-  text-align: center;
+  justify-self: end;
+  justify-items: end;
+  text-align: right;
 }
 
 body.product-shell.match-page .score-hero-team-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+}
+
+body.product-shell.match-page .score-hero-team.left .score-hero-team-mark {
+  justify-content: flex-start;
+}
+
+body.product-shell.match-page .score-hero-team.right .score-hero-team-mark {
+  justify-content: flex-end;
 }
 
 body.product-shell.match-page .score-hero-team .team-badge {
@@ -17427,12 +17443,17 @@ body.product-shell.match-page .score-hero-team-name {
 }
 
 body.product-shell.match-page .score-hero-team-facts {
+  width: 100%;
   justify-content: center;
   gap: 0.26rem;
 }
 
+body.product-shell.match-page .score-hero-team.left .score-hero-team-facts {
+  justify-content: flex-start;
+}
+
 body.product-shell.match-page .score-hero-team.right .score-hero-team-facts {
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 body.product-shell.match-page .score-hero-team-fact {
