@@ -12030,21 +12030,23 @@ function objectiveTimelineTone(row, match) {
 }
 
 function renderSignalListItem({ kind, tone = "neutral", title, summary, importance, at, clock, teamLabel = "" }) {
+  const compact = isCompactUI();
   const importanceLabel = String(importance || "medium").toUpperCase();
-  const meta = [teamLabel, at ? shortTimeLabel(at) : ""].filter(Boolean).join(" · ");
+  const compactTeamLabel = compact ? String(teamLabel || "").replace(/^Winner:\s*/i, "") : teamLabel;
+  const meta = [compactTeamLabel, at ? shortTimeLabel(at) : ""].filter(Boolean).join(" · ");
   return `
-    <li class="signal-log-item ${tone}">
+    <li class="signal-log-item ${tone}${compact ? " compact" : ""}">
       <div class="signal-log-top">
         <div class="signal-log-headline">
           <span class="signal-log-kind ${tone}">${escapeHtml(kind)}</span>
-          <strong>${escapeHtml(title)}</strong>
+          <strong>${escapeHtml(compact ? clampSummaryText(title, 52) : title)}</strong>
         </div>
         <span class="signal-log-time">${escapeHtml(clock || "Time n/a")}</span>
       </div>
-      <p class="meta-text">${escapeHtml(summary)}</p>
+      <p class="meta-text">${escapeHtml(compact ? clampSummaryText(summary, 94) : summary)}</p>
       <div class="signal-log-meta">
         <span class="signal-log-pill ${importanceToneClass(importance)}">${escapeHtml(importanceLabel)}</span>
-        ${meta ? `<span class="signal-log-stamp">${escapeHtml(meta)}</span>` : ""}
+        ${meta ? `<span class="signal-log-stamp">${escapeHtml(compact ? clampSummaryText(meta, 36) : meta)}</span>` : ""}
       </div>
     </li>
   `;
@@ -12227,49 +12229,69 @@ function renderLiveAlerts(match) {
   const criticalCount = alerts.filter((alert) => String(alert?.importance || "").toLowerCase() === "critical").length;
   const highCount = alerts.filter((alert) => importanceRank(alert?.importance) >= importanceRank("high")).length;
   const nextObjective = nextObjectiveWindow(match);
+  const compact = isCompactUI();
   if (elements.liveAlertsDeskWrap) {
     const selectedState = String(match?.selectedGame?.state || "");
     const stateLabelText = selectedState === "inProgress" ? "Live" : stateLabel(selectedState);
-    elements.liveAlertsDeskWrap.innerHTML = `
-      <div class="game-alert-desk-shell ${importanceToneClass(primaryAlert?.importance)}">
-        <article class="game-alert-desk-hero">
-          <div class="game-alert-desk-copy">
-            <p class="tempo-label">Map risk</p>
-            <h3>${escapeHtml(primaryAlert?.title || "Stable state")}</h3>
-            <p class="game-feed-desk-note">${escapeHtml(primaryAlert?.summary || "No major pressure alerts right now.")}</p>
-          </div>
-          <div class="form-summary-strip">
-            <span class="form-summary-pill">${escapeHtml(stateLabelText)}</span>
-            <span class="form-summary-pill">${alerts.length} alert${alerts.length === 1 ? "" : "s"}</span>
-            <span class="form-summary-pill">${highCount ? `${highCount} high+` : "No escalations"}</span>
-          </div>
-        </article>
-        <div class="match-desk-mini-grid">
-          ${metricDeskCard("Critical", String(criticalCount), criticalCount ? "Immediate swing risk detected." : "No critical map states flagged.", criticalCount ? "critical" : "neutral")}
-          ${metricDeskCard("High+", String(highCount), highCount ? "Pressure is building in tracked lanes and objectives." : "Map pressure remains controlled.", highCount ? "warn" : "neutral")}
-          ${metricDeskCard(
+    const summaryPills = compact
+      ? [stateLabelText, highCount ? `${highCount} high+` : "Stable"]
+      : [
+          stateLabelText,
+          `${alerts.length} alert${alerts.length === 1 ? "" : "s"}`,
+          highCount ? `${highCount} high+` : "No escalations"
+        ];
+    const deskCards = compact
+      ? [
+          metricDeskCard("Risk", String(highCount), criticalCount ? `${criticalCount} critical` : "Stable map state.", highCount ? "warn" : "neutral", { compact }),
+          metricDeskCard(
+            "Next",
+            nextObjective ? objectiveEtaLabel(nextObjective) : "n/a",
+            nextObjective ? displayObjectiveName(nextObjective.type, match) : "Forecast waiting",
+            nextObjective?.state === "available" ? "live" : "neutral",
+            { compact }
+          )
+        ]
+      : [
+          metricDeskCard("Critical", String(criticalCount), criticalCount ? "Immediate swing risk detected." : "No critical map states flagged.", criticalCount ? "critical" : "neutral"),
+          metricDeskCard("High+", String(highCount), highCount ? "Pressure is building in tracked lanes and objectives." : "Map pressure remains controlled.", highCount ? "warn" : "neutral"),
+          metricDeskCard(
             "Next objective",
             nextObjective ? displayObjectiveName(nextObjective.type, match) : "Forecast waiting",
             nextObjective ? (nextObjective.state === "available" ? "Available now." : `ETA ${objectiveEtaLabel(nextObjective)}.`) : "Window appears once cadence is established.",
             nextObjective?.state === "available" ? "live" : "neutral"
-          )}
+          )
+        ];
+    elements.liveAlertsDeskWrap.innerHTML = `
+      <div class="game-alert-desk-shell ${importanceToneClass(primaryAlert?.importance)}${compact ? " compact" : ""}">
+        <article class="game-alert-desk-hero${compact ? " compact" : ""}">
+          <div class="game-alert-desk-copy">
+            <p class="tempo-label">Map risk</p>
+            <h3>${escapeHtml(compact ? clampSummaryText(primaryAlert?.title || "Stable state", 50) : primaryAlert?.title || "Stable state")}</h3>
+            <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(primaryAlert?.summary || "No major pressure alerts right now.", 88) : primaryAlert?.summary || "No major pressure alerts right now.")}</p>
+          </div>
+          <div class="form-summary-strip${compact ? " compact" : ""}">
+            ${summaryPills.map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`).join("")}
+          </div>
+        </article>
+        <div class="match-desk-mini-grid${compact ? " compact" : ""}">
+          ${deskCards.join("")}
         </div>
       </div>
     `;
   }
   elements.liveAlertsList.innerHTML = alerts
-    .slice(0, 4)
+    .slice(0, compact ? 3 : 4)
     .map(
       (alert, index) => `
-      <li class="live-alert-item importance-${String(alert.importance || "low").toLowerCase()}">
+      <li class="live-alert-item importance-${String(alert.importance || "low").toLowerCase()}${compact ? " compact" : ""}">
         <div class="live-alert-top">
           <div class="live-alert-headline">
             <span class="live-alert-severity ${String(alert.importance || "low").toLowerCase()}">${String(alert.importance || "low").toUpperCase()}</span>
-            <strong>${escapeHtml(alert.title)}</strong>
+            <strong>${escapeHtml(compact ? clampSummaryText(alert.title, 44) : alert.title)}</strong>
           </div>
-          <span class="live-alert-index">Alert ${index + 1}</span>
+          ${compact ? "" : `<span class="live-alert-index">Alert ${index + 1}</span>`}
         </div>
-        <p class="meta-text">${escapeHtml(alert.summary)}</p>
+        <p class="meta-text">${escapeHtml(compact ? clampSummaryText(alert.summary, 92) : alert.summary)}</p>
       </li>
     `
     )
@@ -12371,6 +12393,7 @@ function etaLabel(seconds) {
 function renderObjectiveForecast(match) {
   const rows = Array.isArray(match.objectiveForecast) ? match.objectiveForecast : [];
   const selectedState = match?.selectedGame?.state;
+  const compact = isCompactUI();
   if (!rows.length) {
     if (match.status === "live" && selectedState === "inProgress") {
       elements.objectiveForecastWrap.innerHTML = `<div class="empty">Forecast appears once objective cadence is detected.</div>`;
@@ -12383,17 +12406,22 @@ function renderObjectiveForecast(match) {
   }
 
   elements.objectiveForecastWrap.innerHTML = rows
+    .slice(0, compact ? 3 : rows.length)
     .map(
       (row) => `
-      <article class="forecast-card ${row.state === "available" ? "available" : "countdown"}">
+      <article class="forecast-card ${row.state === "available" ? "available" : "countdown"}${compact ? " compact" : ""}">
         <div class="forecast-top">
-          <p class="forecast-title">${escapeHtml(row.label || "Objective Window")}</p>
+          <p class="forecast-title">${escapeHtml(compact ? clampSummaryText(row.label || "Objective Window", 34) : row.label || "Objective Window")}</p>
           <span class="forecast-pill ${row.state === "available" ? "available" : "countdown"}">${escapeHtml(row.state === "available" ? "Ready" : "Forecast")}</span>
         </div>
         <p class="forecast-eta">${escapeHtml(etaLabel(row.etaSeconds))}</p>
-        <p class="meta-text">Expected ${escapeHtml(dateTimeLabel(row.nextAt))}</p>
-        ${row.note ? `<p class="meta-text">${row.note}</p>` : ""}
-        <p class="meta-text">Confidence: ${escapeHtml(String(row.confidence || "estimated").toUpperCase())}</p>
+        <p class="meta-text">${
+          compact
+            ? `Expected ${escapeHtml(dateTimeCompact(row.nextAt))} · ${escapeHtml(String(row.confidence || "estimated").toUpperCase())}`
+            : `Expected ${escapeHtml(dateTimeLabel(row.nextAt))}`
+        }</p>
+        ${row.note ? `<p class="meta-text">${escapeHtml(compact ? clampSummaryText(row.note, 88) : row.note)}</p>` : ""}
+        ${compact ? "" : `<p class="meta-text">Confidence: ${escapeHtml(String(row.confidence || "estimated").toUpperCase())}</p>`}
       </article>
     `
     )
