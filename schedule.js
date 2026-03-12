@@ -84,6 +84,9 @@ const elements = {
   scheduleFilterBody: document.querySelector("#scheduleFilterBody"),
   scheduleFilterToggle: document.querySelector("#scheduleFilterToggle"),
   scheduleFilterSummary: document.querySelector("#scheduleFilterSummary"),
+  scheduleGameChips: Array.from(document.querySelectorAll("[data-game]")),
+  scheduleCustomDates: document.querySelector("#scheduleCustomDates"),
+  scheduleCustomDatesToggle: document.querySelector("#scheduleCustomDatesToggle"),
   apiBaseInput: document.querySelector("#apiBaseInput"),
   slateSearchInput: document.querySelector("#slateSearchInput"),
   gameSelect: document.querySelector("#gameSelect"),
@@ -116,11 +119,13 @@ const scheduleDiscoveryState = {
   searchTerm: ""
 };
 const scheduleUiState = {
-  filtersCollapsed: true
+  filtersCollapsed: true,
+  customDatesExpanded: false
 };
 let activeLoadRequestId = 0;
 let resultsRetryHandle = null;
 const SCHEDULE_FILTER_COLLAPSE_KEY = "pulseboard.schedule.filtersCollapsed";
+const SCHEDULE_CUSTOM_DATES_KEY = "pulseboard.schedule.customDatesExpanded";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -634,6 +639,19 @@ function scheduleFilterGameSummary() {
   return "All games";
 }
 
+function syncScheduleGameChipState() {
+  if (!Array.isArray(elements.scheduleGameChips)) {
+    return;
+  }
+  const selectedGame = selectedTitleKey();
+  for (const button of elements.scheduleGameChips) {
+    const buttonGame = normalizeGameKey(button.getAttribute("data-game") || "");
+    const active = buttonGame === selectedGame;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
 function syncScheduleFilterSummary() {
   if (!elements.scheduleFilterSummary) {
     return;
@@ -641,9 +659,49 @@ function syncScheduleFilterSummary() {
   elements.scheduleFilterSummary.textContent = `${scheduleFilterGameSummary()} · ${scheduleFilterRangeSummary()}`;
 }
 
+function shouldShowCustomDates() {
+  if (!isCompactViewport()) {
+    return true;
+  }
+  return scheduleUiState.customDatesExpanded;
+}
+
+function readStoredScheduleCustomDates() {
+  try {
+    const stored = localStorage.getItem(SCHEDULE_CUSTOM_DATES_KEY);
+    if (stored === "1" || stored === "0") {
+      return stored === "1";
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+  return null;
+}
+
+function syncScheduleCustomDatesState({ persist = true } = {}) {
+  const showCustomDates = shouldShowCustomDates();
+  const customActive = !activeScheduleRangeKey();
+  if (elements.scheduleCustomDates) {
+    elements.scheduleCustomDates.hidden = !showCustomDates;
+  }
+  if (elements.scheduleCustomDatesToggle) {
+    elements.scheduleCustomDatesToggle.classList.toggle("active", showCustomDates || customActive);
+    elements.scheduleCustomDatesToggle.setAttribute("aria-expanded", String(showCustomDates));
+    elements.scheduleCustomDatesToggle.setAttribute("aria-pressed", String(showCustomDates || customActive));
+  }
+  if (persist && isCompactViewport()) {
+    try {
+      localStorage.setItem(SCHEDULE_CUSTOM_DATES_KEY, scheduleUiState.customDatesExpanded ? "1" : "0");
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+}
+
 function syncScheduleRangePresetState() {
   if (!Array.isArray(elements.scheduleRangePresets)) {
     syncScheduleFilterSummary();
+    syncScheduleCustomDatesState();
     return;
   }
 
@@ -653,6 +711,7 @@ function syncScheduleRangePresetState() {
     button.setAttribute("aria-pressed", String(active));
   }
   syncScheduleFilterSummary();
+  syncScheduleCustomDatesState();
 }
 
 function applyScheduleRangePreset(rangeKey, options = {}) {
@@ -715,7 +774,9 @@ function applyScheduleFilterCollapsed(collapsed, { persist = true } = {}) {
 }
 
 function syncScheduleFilterChrome({ persist = false } = {}) {
+  syncScheduleGameChipState();
   syncScheduleFilterSummary();
+  syncScheduleCustomDatesState({ persist });
   if (!isCompactViewport()) {
     applyScheduleFilterCollapsed(false, { persist: false });
     return;
@@ -1212,14 +1273,34 @@ function installEvents() {
   }
 
   elements.gameSelect?.addEventListener("change", () => {
+    syncScheduleGameChipState();
     syncScheduleFilterSummary();
     loadCollections();
   });
+  if (Array.isArray(elements.scheduleGameChips)) {
+    for (const button of elements.scheduleGameChips) {
+      button.addEventListener("click", () => {
+        const nextGame = normalizeGameKey(button.getAttribute("data-game") || "");
+        if (elements.gameSelect) {
+          elements.gameSelect.value = nextGame;
+        }
+        syncScheduleGameChipState();
+        syncScheduleFilterSummary();
+        loadCollections();
+      });
+    }
+  }
   elements.dateFromInput?.addEventListener("change", () => {
+    if (!activeScheduleRangeKey()) {
+      scheduleUiState.customDatesExpanded = true;
+    }
     syncScheduleRangePresetState();
     loadCollections();
   });
   elements.dateToInput?.addEventListener("change", () => {
+    if (!activeScheduleRangeKey()) {
+      scheduleUiState.customDatesExpanded = true;
+    }
     syncScheduleRangePresetState();
     loadCollections();
   });
@@ -1228,9 +1309,17 @@ function installEvents() {
     for (const button of elements.scheduleRangePresets) {
       button.addEventListener("click", () => {
         const rangeKey = button.getAttribute("data-range") || "";
+        scheduleUiState.customDatesExpanded = false;
         applyScheduleRangePreset(rangeKey);
       });
     }
+  }
+
+  if (elements.scheduleCustomDatesToggle) {
+    elements.scheduleCustomDatesToggle.addEventListener("click", () => {
+      scheduleUiState.customDatesExpanded = !scheduleUiState.customDatesExpanded;
+      syncScheduleCustomDatesState();
+    });
   }
 
   if (elements.slateSearchInput) {
@@ -1267,6 +1356,10 @@ function boot() {
   scheduleUiState.filtersCollapsed = readStoredScheduleFilterCollapse();
   if (scheduleUiState.filtersCollapsed == null) {
     scheduleUiState.filtersCollapsed = isCompactViewport();
+  }
+  scheduleUiState.customDatesExpanded = readStoredScheduleCustomDates();
+  if (scheduleUiState.customDatesExpanded == null) {
+    scheduleUiState.customDatesExpanded = false;
   }
   try {
     scheduleDiscoveryState.searchTerm = String(localStorage.getItem("pulseboard.schedule.search") || "").trim();

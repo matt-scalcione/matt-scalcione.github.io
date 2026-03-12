@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312q" />
+    <link rel="stylesheet" href="./styles.css?v=20260312r" />
   </head>
   <body class="product-shell schedule-page">
     <div class="noise"></div>
@@ -76,7 +76,15 @@
         </div>
         <div id="scheduleFilterBody" class="schedule-filter-body">
           <div class="schedule-filter-grid">
-            <label class="schedule-filter-field schedule-filter-field-game">
+            <section class="schedule-filter-segment schedule-filter-segment-game" aria-label="Game filter">
+              <span class="schedule-filter-label">Game</span>
+              <div class="schedule-filter-chip-row schedule-filter-game-row" role="group" aria-label="Game">
+                <button type="button" class="schedule-filter-chip active" data-game="">All</button>
+                <button type="button" class="schedule-filter-chip" data-game="lol">LoL</button>
+                <button type="button" class="schedule-filter-chip" data-game="dota2">Dota 2</button>
+              </div>
+            </section>
+            <label class="schedule-filter-field schedule-filter-field-game schedule-filter-field-select">
               <span class="schedule-filter-label">Game</span>
               <select id="gameSelect">
                 <option value="">All games</option>
@@ -92,9 +100,18 @@
                   <button type="button" class="schedule-range-chip" data-range="24h">24h</button>
                   <button type="button" class="schedule-range-chip" data-range="3d">3d</button>
                   <button type="button" class="schedule-range-chip" data-range="7d">7d</button>
+                  <button
+                    id="scheduleCustomDatesToggle"
+                    type="button"
+                    class="schedule-range-chip schedule-custom-range-chip"
+                    aria-expanded="false"
+                    aria-controls="scheduleCustomDates"
+                  >
+                    Custom
+                  </button>
                 </div>
               </div>
-              <div class="schedule-filter-date-grid">
+              <div id="scheduleCustomDates" class="schedule-filter-date-grid">
                 <label class="schedule-filter-field">
                   <span class="schedule-filter-label">From</span>
                   <input id="dateFromInput" type="datetime-local" />
@@ -148,6 +165,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./schedule.js?v=20260312o"></script>
+    <script type="module" src="./schedule.js?v=20260312p"></script>
   </body>
 </html>
