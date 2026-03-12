@@ -1850,9 +1850,9 @@ function teamBadgeMarkup(teamOrName, game = null) {
   return `<span class="${classes.join(" ")}" title="${escapeHtml(title)}">${teamBadgeText(teamOrName, game)}</span>`;
 }
 
-function selectedGameScoreContext(match) {
+function selectedGameScoreContext(match, options = {}) {
   const selected = match?.selectedGame;
-  if (!selected || uiState.viewMode !== "game") {
+  if (!selected || (!options.includeSeriesView && uiState.viewMode !== "game")) {
     return null;
   }
 
@@ -1928,6 +1928,54 @@ function headerFormFacts(profile, compact = false) {
   return facts.slice(0, compact ? 2 : 4);
 }
 
+function matchStageLabel(match) {
+  const candidates = [match?.stage, match?.phase, match?.round, match?.bracketRound];
+  for (const value of candidates) {
+    const label = String(value || "").trim();
+    if (label) {
+      return label;
+    }
+  }
+  return null;
+}
+
+function selectedGameHeaderFacts(match, side, compact = false) {
+  const selected = match?.selectedGame;
+  const snapshot = selected?.snapshot?.[side];
+  if (!snapshot) {
+    return [];
+  }
+
+  const gameContext = selectedGameScoreContext(match, { includeSeriesView: true });
+  const facts = [];
+  const sideLabel = side === "left" ? gameContext?.leftSide : gameContext?.rightSide;
+  if (sideLabel) {
+    facts.push(sideLabel);
+  }
+
+  const gold = Number(snapshot?.gold);
+  if (Number.isFinite(gold) && gold > 0) {
+    facts.push(`${compactGold(gold)} gold`);
+  }
+
+  const towers = Number(snapshot?.towers);
+  if (Number.isFinite(towers) && towers > 0) {
+    facts.push(`${towers} towers`);
+  }
+
+  const primaryEpic = Number(snapshot?.barons);
+  if (Number.isFinite(primaryEpic) && primaryEpic > 0) {
+    facts.push(`${primaryEpic} barons`);
+  } else {
+    const dragons = Number(snapshot?.dragons);
+    if (Number.isFinite(dragons) && dragons > 0) {
+      facts.push(`${dragons} dragons`);
+    }
+  }
+
+  return facts.slice(0, compact ? 2 : 3);
+}
+
 function matchHeroChipMarkup(label, tone = "neutral") {
   return `<span class="match-shell-chip ${tone}">${escapeHtml(label)}</span>`;
 }
@@ -1966,10 +2014,8 @@ function renderMatchHero(match) {
   if (!match) {
     setMatchHeroState({
       title: "Match Center",
-      kicker: "Series Center",
+      kicker: "Esports Match Center",
       meta: "Live series and map-level context.",
-      focus: "Series",
-      copy: "Keep the series read visible, then drill into individual games when you need map detail.",
       chips: []
     });
     return;
@@ -1979,51 +2025,37 @@ function renderMatchHero(match) {
   const isGameMode = uiState.viewMode === "game" && Number.isInteger(uiState.activeGameNumber);
   const liveGameNumber = firstInProgressGameNumber(match);
   const bestOf = Number(match?.bestOf || match?.seriesProgress?.bestOf || 1);
+  const leftRawName = String(match?.teams?.left?.name || "Left");
+  const rightRawName = String(match?.teams?.right?.name || "Right");
+  const matchupLabel = compact
+    ? `${scoreboardTeamName(leftRawName, match?.game)} vs ${scoreboardTeamName(rightRawName, match?.game)}`
+    : `${displayTeamName(leftRawName, match?.game)} vs ${displayTeamName(rightRawName, match?.game)}`;
   const startTs = Date.parse(String(match?.startAt || ""));
   const startLabel = Number.isFinite(startTs)
     ? compact
       ? dateTimeCompact(match.startAt)
       : dateTimeLabel(match.startAt)
     : "TBD";
-  const seriesScore = `${Number(match?.seriesScore?.left || 0)}-${Number(match?.seriesScore?.right || 0)}`;
-  const focusLabel = isGameMode ? `Game ${uiState.activeGameNumber}` : match.status === "completed" ? "Final Series" : "Series";
+  const stageLabel = matchStageLabel(match);
   const gameLabel = match.game === "dota2" ? "DOTA 2" : match.game === "lol" ? "LEAGUE OF LEGENDS" : "ESPORTS";
-  const heroKicker = [gameLabel, match.tournament || "Tournament", match.region ? String(match.region).toUpperCase() : null]
+  const heroKicker = [gameLabel, "Match Center"]
     .filter(Boolean)
     .join(" · ");
 
-  let meta = `BO${bestOf} · ${match.tournament || "Tournament"}`;
-  let copy = "Stay on the series layer for the broad read, then move into games when you want the full map story.";
+  const metaParts = [stageLabel, matchupLabel, Number.isFinite(startTs) ? startLabel : null, `BO${bestOf}`];
+  let title = String(match?.tournament || "").trim() || matchupLabel;
+  let meta = metaParts.filter(Boolean).join(" · ");
   const chips = [];
 
   if (match.status === "upcoming") {
-    meta = `${startLabel} · BO${bestOf}${match.patch ? ` · Patch ${match.patch}` : ""}`;
-    copy = "Use the series layer for kickoff timing, lineup context, and matchup strength before the first game starts.";
     chips.push({ label: "Upcoming", tone: "upcoming" });
-    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
-    if (Number.isFinite(startTs)) chips.push({ label: `Starts ${dateTimeCompact(match.startAt)}`, tone: "neutral" });
-    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
   } else if (match.status === "live") {
-    meta = `${seriesScore} series${Number.isInteger(liveGameNumber) ? ` · Game ${liveGameNumber} live` : " · Live now"}${match.patch ? ` · Patch ${match.patch}` : ""}`;
-    copy = Number.isInteger(liveGameNumber)
-      ? isGameMode
-        ? `You are on Game ${uiState.activeGameNumber}. Keep the series score in view, then use the navigator to move one game at a time.`
-        : `Game ${liveGameNumber} is live. Stay on the series read for context, or open the active map when you want live game detail.`
-      : "The series is live. Use the header for score and status, then drop into the active game for the detailed read.";
     chips.push({ label: "Live", tone: "live" });
-    if (Number.isInteger(liveGameNumber)) chips.push({ label: `G${liveGameNumber} Live`, tone: "live" });
-    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
-    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
+    if (Number.isInteger(liveGameNumber)) {
+      chips.push({ label: `G${liveGameNumber} Live`, tone: "live" });
+    }
   } else {
-    const winner = winnerTeamName(match);
-    meta = `${seriesScore} final${winner ? ` · ${scoreboardTeamName(winner)} won` : ""}${match.patch ? ` · Patch ${match.patch}` : ""}`;
-    copy = isGameMode
-      ? `This game is final. Use the series score up top and the recap sections below to move between the match result and map-level detail.`
-      : "The series is complete. Read the result first, then move through the games below for the full match story.";
     chips.push({ label: "Final", tone: "complete" });
-    if (winner) chips.push({ label: `${scoreboardTeamName(winner)} won`, tone: "complete" });
-    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
-    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
   }
 
   if (isGameMode) {
@@ -2033,13 +2065,21 @@ function renderMatchHero(match) {
   }
 
   const visibleChips = compact ? chips.slice(0, 4) : chips;
+  if (match.patch) {
+    visibleChips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
+  }
+  if (match.region && !compact) {
+    visibleChips.push({ label: String(match.region).toUpperCase(), tone: "neutral" });
+  }
+
+  if (isGameMode && Number.isInteger(uiState.activeGameNumber) && title === matchupLabel) {
+    title = `${matchupLabel} · Game ${uiState.activeGameNumber}`;
+  }
 
   setMatchHeroState({
-    title: `${displayTeamName(match.teams.left.name, match.game)} vs ${displayTeamName(match.teams.right.name, match.game)}`,
+    title,
     kicker: heroKicker,
     meta,
-    focus: focusLabel,
-    copy,
     chips: visibleChips
   });
 }
@@ -2086,66 +2126,104 @@ function renderScoreboard(match) {
     opponentId: match.teams.left.id,
     teamName: rightRawName
   });
-  const gameContext = selectedGameScoreContext(match);
+  const gameContext = selectedGameScoreContext(match, { includeSeriesView: true });
+  const isGameMode = !isSeriesView && Boolean(gameContext);
   const gameStatus = gameContext?.state ? stateLabel(gameContext.state) : "";
-  const statusTone = match.status === "live" ? "live" : match.status === "completed" ? "complete" : "upcoming";
+  const statusTone = isGameMode
+    ? stateClass(gameContext?.state || "unstarted")
+    : match.status === "live"
+      ? "live"
+      : match.status === "completed"
+        ? "complete"
+        : "upcoming";
+  const stageLabel = matchStageLabel(match);
   const matchupProfiles = resolvedUpcomingFormProfiles(match);
-  const leftFacts = headerFormFacts(matchupProfiles.left, compact);
-  const rightFacts = headerFormFacts(matchupProfiles.right, compact);
+  const leftFacts = isGameMode
+    ? selectedGameHeaderFacts(match, "left", compact)
+    : headerFormFacts(matchupProfiles.left, compact);
+  const rightFacts = isGameMode
+    ? selectedGameHeaderFacts(match, "right", compact)
+    : headerFormFacts(matchupProfiles.right, compact);
+  const seriesScoreLabel = `${match.seriesScore.left}-${match.seriesScore.right}`;
+  const sideSummary = [gameContext?.leftSide, gameContext?.rightSide].filter(Boolean).join(" / ");
 
-  let centerNote = `${tournamentName} · ${formatLabel}`;
+  let scoreEyebrow = stageLabel || (Number.isFinite(startTs) ? startLabel : tournamentName);
+  let mainLeftScore = Number(match?.seriesScore?.left || 0);
+  let mainRightScore = Number(match?.seriesScore?.right || 0);
+  let scoreCaption = formatLabel;
+  let centerNote = Number.isFinite(startTs) ? startLabel : tournamentName;
+
   if (match.status === "upcoming") {
-    centerNote = `${startLabel}${countdown !== null ? ` · Starts in ${countdownLabel}` : ""}`;
+    centerNote = countdown !== null ? `Starts in ${countdownLabel}` : startLabel;
   } else if (match.status === "live") {
-    centerNote = `Series ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} complete` : ""}`;
+    centerNote = Number.isInteger(liveGameNumber)
+      ? `Game ${liveGameNumber} live now${completedMaps ? ` · ${completedMaps} completed` : ""}`
+      : `Live series${completedMaps ? ` · ${completedMaps} completed` : ""}`;
   } else if (match.status === "completed") {
     centerNote = winnerLabel
-      ? `${winnerLabel} closed ${match.seriesScore.left}-${match.seriesScore.right}${completedMaps ? ` · ${completedMaps} maps played` : ""}`
-      : `Final ${match.seriesScore.left}-${match.seriesScore.right}`;
+      ? `${winnerLabel} won the series${completedMaps ? ` · ${completedMaps} maps played` : ""}`
+      : `Final series score`;
   }
 
-  const centerStatuses = [
-    { label: match.status === "live" ? "Live" : match.status === "completed" ? "Final" : "Upcoming", tone: statusTone },
-    { label: formatLabel, tone: "neutral" },
-    match.patch ? { label: `Patch ${match.patch}`, tone: "neutral" } : null,
-    Number.isInteger(liveGameNumber) && match.status === "live" ? { label: `G${liveGameNumber} Live`, tone: "live" } : null
-  ].filter(Boolean);
+  if (isGameMode && gameContext) {
+    scoreEyebrow = gameContext.number ? `Game ${gameContext.number}` : "Selected Game";
+    mainLeftScore = Number.isFinite(gameContext.leftKills) ? gameContext.leftKills : "—";
+    mainRightScore = Number.isFinite(gameContext.rightKills) ? gameContext.rightKills : "—";
+    scoreCaption = gameContext.state === "completed" ? "Final kills" : "Kills";
+    centerNote = [gameStatus || null, sideSummary || null, `Series ${seriesScoreLabel}`].filter(Boolean).join(" · ");
+  }
+
+  const centerStatuses = isGameMode
+    ? [
+        {
+          label: gameContext?.state === "inProgress" ? "Live" : gameContext?.state === "completed" ? "Final" : "Upcoming",
+          tone: statusTone
+        },
+        { label: `Series ${seriesScoreLabel}`, tone: "neutral" }
+      ].filter(Boolean)
+    : [
+        { label: match.status === "live" ? "Live" : match.status === "completed" ? "Final" : "Upcoming", tone: statusTone },
+        { label: formatLabel, tone: "neutral" },
+        Number.isInteger(liveGameNumber) && match.status === "live" ? { label: `G${liveGameNumber} Live`, tone: "live" } : null
+      ].filter(Boolean);
 
   let gameStripMarkup = "";
-  if (gameContext && !isSeriesView) {
-    const tone =
-      gameContext.state === "inProgress" ? "live" : gameContext.state === "completed" ? "complete" : "upcoming";
-    const sideSummary = [gameContext.leftSide, gameContext.rightSide].filter(Boolean).join(" · ");
+  if (isGameMode && gameContext) {
     gameStripMarkup = `
-      <article class="score-hero-game-band ${tone}">
-        <div class="score-hero-game-copy">
-          <p class="score-hero-game-label">${gameContext.number ? `Game ${gameContext.number}` : "Selected Game"}</p>
-          <p class="score-hero-game-main">${Number.isFinite(gameContext.leftKills) ? gameContext.leftKills : "—"}<span>-</span>${Number.isFinite(gameContext.rightKills) ? gameContext.rightKills : "—"}</p>
-          <p class="score-hero-game-note">${gameStatus || "Awaiting map state"}${sideSummary ? ` · ${sideSummary}` : ""}</p>
+      <article class="score-hero-context-band ${statusTone}">
+        <div class="score-hero-context-item">
+          <span class="score-hero-context-label">Series</span>
+          <strong class="score-hero-context-value">${seriesScoreLabel}</strong>
         </div>
-        <div class="score-hero-game-links">
-          <a class="score-hero-mini-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
-            ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
-            <span>${leftCode}</span>
-          </a>
-          <a class="score-hero-mini-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
-            ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
-            <span>${rightCode}</span>
-          </a>
+        <div class="score-hero-context-item">
+          <span class="score-hero-context-label">Map</span>
+          <strong class="score-hero-context-value">${gameContext.number ? `Game ${gameContext.number}` : "Selected"}</strong>
+          <span class="score-hero-context-note">${escapeHtml(gameStatus || "Awaiting map state")}</span>
+        </div>
+        <div class="score-hero-context-actions">
+          <a class="link-btn ghost score-hero-open-link" href="${seriesHref}">Series View</a>
         </div>
       </article>
     `;
   } else if (match.status === "live" && Number.isInteger(liveGameNumber)) {
+    const liveGameHref = detailUrlForGame(match.id, uiState.apiBase, liveGameNumber);
+    const liveGameValue =
+      gameContext && gameContext.number === liveGameNumber && Number.isFinite(gameContext.leftKills) && Number.isFinite(gameContext.rightKills)
+        ? `${gameContext.leftKills}-${gameContext.rightKills} kills`
+        : "Open live map";
     gameStripMarkup = `
-      <article class="score-hero-game-band live">
-        <div class="score-hero-game-copy">
-          <p class="score-hero-game-label">Current Game</p>
-          <p class="score-hero-game-main">Game ${liveGameNumber} Live</p>
-          <p class="score-hero-game-note">Use the navigator below to open the live map view.</p>
+      <article class="score-hero-context-band live">
+        <div class="score-hero-context-item">
+          <span class="score-hero-context-label">Current Game</span>
+          <strong class="score-hero-context-value">Game ${liveGameNumber}</strong>
         </div>
-        <div class="score-hero-game-links">
-          <a class="link-btn score-hero-open-link" href="${detailUrlForGame(match.id, uiState.apiBase, liveGameNumber)}">Open Game ${liveGameNumber}</a>
-          <a class="link-btn ghost score-hero-open-link" href="${seriesHref}">Series View</a>
+        <div class="score-hero-context-item">
+          <span class="score-hero-context-label">Map State</span>
+          <strong class="score-hero-context-value">${escapeHtml(liveGameValue)}</strong>
+          <span class="score-hero-context-note">${escapeHtml(sideSummary || "Live now")}</span>
+        </div>
+        <div class="score-hero-context-actions">
+          <a class="link-btn score-hero-open-link" href="${liveGameHref}">Open Game ${liveGameNumber}</a>
         </div>
       </article>
     `;
@@ -2156,13 +2234,11 @@ function renderScoreboard(match) {
   elements.scoreboard.innerHTML = `
     <article class="score-hero-board ${statusTone}">
       <a class="score-hero-team left" href="${leftTeamUrl}" aria-label="Open ${leftRawName} team page">
-        <span class="score-hero-team-brand">
+        <span class="score-hero-team-mark">
           ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
-          <span class="score-hero-team-copy">
-            <span class="score-hero-team-code">${leftCode}</span>
-            <span class="score-hero-team-name">${escapeHtml(leftDisplayName)}</span>
-          </span>
         </span>
+        <span class="score-hero-team-code">${leftCode}</span>
+        <span class="score-hero-team-name">${escapeHtml(leftDisplayName)}</span>
         ${
           leftFacts.length
             ? `<span class="score-hero-team-facts">${leftFacts.map((fact) => `<span class="score-hero-team-fact">${escapeHtml(fact)}</span>`).join("")}</span>`
@@ -2170,21 +2246,20 @@ function renderScoreboard(match) {
         }
       </a>
       <div class="score-hero-center">
-        <p class="score-hero-event">${escapeHtml(tournamentName)}</p>
-        <p class="score-hero-score">${match.seriesScore.left}<span>-</span>${match.seriesScore.right}</p>
+        <p class="score-hero-event">${escapeHtml(scoreEyebrow)}</p>
+        <p class="score-hero-score">${mainLeftScore}<span>-</span>${mainRightScore}</p>
+        <p class="score-hero-score-caption">${escapeHtml(scoreCaption)}</p>
         <div class="score-hero-statuses">
           ${centerStatuses.map((item) => `<span class="score-hero-status ${item.tone}">${escapeHtml(item.label)}</span>`).join("")}
         </div>
         <p class="score-hero-note">${escapeHtml(centerNote)}</p>
       </div>
       <a class="score-hero-team right" href="${rightTeamUrl}" aria-label="Open ${rightRawName} team page">
-        <span class="score-hero-team-brand">
+        <span class="score-hero-team-mark">
           ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
-          <span class="score-hero-team-copy">
-            <span class="score-hero-team-code">${rightCode}</span>
-            <span class="score-hero-team-name">${escapeHtml(rightDisplayName)}</span>
-          </span>
         </span>
+        <span class="score-hero-team-code">${rightCode}</span>
+        <span class="score-hero-team-name">${escapeHtml(rightDisplayName)}</span>
         ${
           rightFacts.length
             ? `<span class="score-hero-team-facts">${rightFacts.map((fact) => `<span class="score-hero-team-fact">${escapeHtml(fact)}</span>`).join("")}</span>`
