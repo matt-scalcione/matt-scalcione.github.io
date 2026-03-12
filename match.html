@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312x" />
+    <link rel="stylesheet" href="./styles.css?v=20260312y" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -72,6 +72,23 @@
     </header>
 
     <main class="layout detail">
+      <aside id="matchDetailRail" class="match-detail-rail"></aside>
+
+      <section id="matchDetailContent" class="match-detail-content">
+        <nav id="matchTopTabs" class="match-top-tabs" aria-label="Detail views" hidden></nav>
+        <nav id="matchQuickNav" class="team-quick-nav match-quick-nav" aria-label="Match sections" hidden></nav>
+        <div id="matchContentGroups" class="match-content-groups">
+          <section id="matchGroupOverview" class="match-content-group" data-layout-group="overview"></section>
+          <section id="matchGroupLineups" class="match-content-group" data-layout-group="lineups"></section>
+          <section id="matchGroupPlayers" class="match-content-group" data-layout-group="players"></section>
+          <section id="matchGroupStats" class="match-content-group" data-layout-group="stats"></section>
+          <section id="matchGroupGames" class="match-content-group" data-layout-group="games"></section>
+          <section id="matchGroupFeed" class="match-content-group" data-layout-group="feed"></section>
+          <section id="matchGroupTimeline" class="match-content-group" data-layout-group="timeline"></section>
+          <section id="matchGroupHistory" class="match-content-group" data-layout-group="history"></section>
+        </div>
+      </section>
+
       <section class="panel hidden-panel">
         <div class="section-head">
           <h2>Series Read</h2>
@@ -89,8 +106,6 @@
         <div id="mobileModeToolbar" class="mobile-mode-toolbar" hidden></div>
         <div id="mobileGameToolbar" class="mobile-game-toolbar" hidden></div>
       </section>
-
-      <nav id="matchQuickNav" class="team-quick-nav match-quick-nav" aria-label="Match sections" hidden></nav>
 
       <section class="panel hidden-panel">
         <div class="section-head">
@@ -510,6 +525,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312e"></script>
+    <script type="module" src="./match.js?v=20260312f"></script>
   </body>
 </html>

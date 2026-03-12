@@ -284,6 +284,124 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "upcomingH2hWrap"
   ]
 };
+const MATCH_PANEL_GROUP_BY_TARGET_ID = {
+  gameExplorerPanel: "rail",
+  seriesHeaderWrap: "overview",
+  statusSummary: "overview",
+  upcomingEssentialsWrap: "overview",
+  upcomingWatchWrap: "overview",
+  upcomingPredictionWrap: "overview",
+  preMatchPlanner: "overview",
+  seriesProgressWrap: "overview",
+  selectedGameRecapWrap: "overview",
+  gameCommandWrap: "overview",
+  teamCompareWrap: "overview",
+  pulseCard: "overview",
+  seriesLineupsWrap: "lineups",
+  draftBoardWrap: "lineups",
+  playerTrackerPanel: "players",
+  playerTrackerWrap: "players",
+  performersWrap: "players",
+  playerDeltaWrap: "players",
+  matchupConsoleWrap: "stats",
+  dataConfidenceWrap: "stats",
+  edgeMeterWrap: "stats",
+  tempoSnapshotWrap: "stats",
+  tacticalChecklistWrap: "stats",
+  objectiveControlWrap: "stats",
+  objectiveBreakdownWrap: "stats",
+  draftDeltaWrap: "stats",
+  economyBoardWrap: "stats",
+  laneMatchupsWrap: "stats",
+  roleDeltaWrap: "stats",
+  objectiveRunsWrap: "stats",
+  seriesGamesWrap: "games",
+  seriesCompareWrap: "games",
+  seriesMomentsList: "games",
+  liveFeedPanel: "feed",
+  liveAlertsList: "feed",
+  storylinesList: "feed",
+  liveTickerList: "feed",
+  objectiveTimelineList: "timeline",
+  objectiveForecastWrap: "timeline",
+  combatBurstsList: "timeline",
+  goldMilestonesList: "timeline",
+  momentsList: "timeline",
+  timelineList: "timeline",
+  upcomingFormWrap: "history",
+  upcomingH2hWrap: "history",
+  seriesPlayerTrendsWrap: "history"
+};
+const MATCH_PAGE_LAYOUTS = {
+  upcoming: {
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Overview", groups: ["overview"] },
+      { id: "lineups", label: "Lineups", groups: ["lineups"] },
+      { id: "stats", label: "Statistics", groups: ["stats"] },
+      { id: "history", label: "History", groups: ["history"] }
+    ]
+  },
+  series: {
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Overview", groups: ["overview"] },
+      { id: "lineups", label: "Lineups", groups: ["lineups"] },
+      { id: "stats", label: "Statistics", groups: ["stats"] },
+      { id: "games", label: "Games", groups: ["games"] },
+      { id: "history", label: "History", groups: ["history"] }
+    ]
+  },
+  seriesLive: {
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Overview", groups: ["overview"] },
+      { id: "lineups", label: "Lineups", groups: ["lineups"] },
+      { id: "stats", label: "Statistics", groups: ["stats"] },
+      { id: "games", label: "Games", groups: ["games"] },
+      { id: "history", label: "History", groups: ["history"] }
+    ]
+  },
+  seriesCompleted: {
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Overview", groups: ["overview"] },
+      { id: "lineups", label: "Lineups", groups: ["lineups"] },
+      { id: "stats", label: "Statistics", groups: ["stats"] },
+      { id: "games", label: "Games", groups: ["games"] },
+      { id: "history", label: "History", groups: ["history"] }
+    ]
+  },
+  gameLive: {
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Overview", groups: ["overview"] },
+      { id: "players", label: "Players", groups: ["players"] },
+      { id: "feed", label: "Feed", groups: ["feed"] },
+      { id: "stats", label: "Stats", groups: ["stats"] },
+      { id: "timeline", label: "Timeline", groups: ["timeline"] }
+    ]
+  },
+  gameCompleted: {
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Overview", groups: ["overview"] },
+      { id: "players", label: "Players", groups: ["players"] },
+      { id: "feed", label: "Feed", groups: ["feed"] },
+      { id: "stats", label: "Stats", groups: ["stats"] },
+      { id: "timeline", label: "Timeline", groups: ["timeline"] }
+    ]
+  },
+  gameUpcoming: {
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Overview", groups: ["overview"] },
+      { id: "lineups", label: "Lineups", groups: ["lineups"] },
+      { id: "stats", label: "Stats", groups: ["stats"] },
+      { id: "history", label: "History", groups: ["history"] }
+    ]
+  }
+};
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
 const LOL_CDN_CHAMPION_ICON = "https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{id}.png";
@@ -393,6 +511,10 @@ const elements = {
   freshnessText: document.querySelector("#freshnessText"),
   scoreboard: document.querySelector("#scoreboard"),
   streamStatusWrap: document.querySelector("#streamStatusWrap"),
+  matchDetailRail: document.querySelector("#matchDetailRail"),
+  matchDetailContent: document.querySelector("#matchDetailContent"),
+  matchTopTabs: document.querySelector("#matchTopTabs"),
+  matchContentGroups: document.querySelector("#matchContentGroups"),
   seriesHeaderSubhead: document.querySelector("#seriesHeaderSubhead"),
   seriesHeaderWrap: document.querySelector("#seriesHeaderWrap"),
   gameNavWrap: document.querySelector("#gameNavWrap"),
@@ -457,6 +579,7 @@ const elements = {
   roleDeltaWrap: document.querySelector("#roleDeltaWrap"),
   momentsList: document.querySelector("#momentsList"),
   timelineList: document.querySelector("#timelineList"),
+  matchContentGroupWrappers: Array.from(document.querySelectorAll(".match-content-group")),
   gamePanels: Array.from(document.querySelectorAll("section[data-scope=\"game\"]")),
   upcomingPanels: Array.from(document.querySelectorAll("section[data-scope=\"upcoming\"]")),
   seriesPanels: Array.from(document.querySelectorAll("section[data-scope=\"series\"]"))
@@ -479,6 +602,7 @@ const uiState = {
   feedWindowMinutes: null,
   trackerSort: "role",
   matchupH2hLimit: 5,
+  activeLayoutTabByMode: {},
   matchup: {
     key: null,
     loading: false,
@@ -659,7 +783,7 @@ function mobilePanelPriorityMode(match) {
 }
 
 function applyMobilePanelPriorities(match = uiState.match) {
-  const panels = Array.from(document.querySelectorAll(".match-page main > section.panel"));
+  const panels = Array.from(document.querySelectorAll(".match-page main section.panel"));
 
   if (!isCompactUI() || !match) {
     panels.forEach((panel) => {
@@ -1382,6 +1506,232 @@ function panelForTargetId(targetId) {
   return target.closest("section.panel");
 }
 
+function panelVisibleInCurrentLayout(panelElement) {
+  if (!panelElement || panelElement.hidden || panelElement.classList.contains("hidden-panel")) {
+    return false;
+  }
+
+  const groupWrapper = panelElement.closest(".match-content-group");
+  if (groupWrapper?.hidden) {
+    return false;
+  }
+
+  return true;
+}
+
+function matchLayoutMode(match = uiState.match) {
+  if (uiState.viewMode === "game") {
+    const selectedState = String(match?.selectedGame?.state || "inProgress");
+    if (selectedState === "completed") return "gameCompleted";
+    if (selectedState === "unstarted" || selectedState === "unneeded") return "gameUpcoming";
+    return "gameLive";
+  }
+
+  if (match?.status === "upcoming") return "upcoming";
+  if (match?.status === "completed") return "seriesCompleted";
+  if (match?.status === "live") return "seriesLive";
+  return "series";
+}
+
+function matchContentGroupMap() {
+  const wrappers = Array.isArray(elements.matchContentGroupWrappers) ? elements.matchContentGroupWrappers : [];
+  return new Map(
+    wrappers
+      .map((wrapper) => [String(wrapper?.dataset?.layoutGroup || "").trim(), wrapper])
+      .filter(([groupId, wrapper]) => groupId && wrapper)
+  );
+}
+
+function identifyPanelLayoutGroup(panelElement) {
+  if (!panelElement) {
+    return "overview";
+  }
+
+  const candidateIds = [];
+  if (panelElement.id) {
+    candidateIds.push(panelElement.id);
+  }
+
+  for (const node of panelElement.querySelectorAll("[id]")) {
+    if (node.id) {
+      candidateIds.push(node.id);
+    }
+  }
+
+  for (const candidateId of candidateIds) {
+    const mappedGroup = MATCH_PANEL_GROUP_BY_TARGET_ID[candidateId];
+    if (mappedGroup) {
+      return mappedGroup;
+    }
+  }
+
+  const scope = String(panelElement.getAttribute("data-scope") || "").trim();
+  if (scope === "game") {
+    return "stats";
+  }
+  if (scope === "series") {
+    return "history";
+  }
+  return "overview";
+}
+
+function initializeMatchLayoutShell() {
+  if (!elements.matchDetailRail || !elements.matchContentGroups || elements.matchContentGroups.dataset.initialized === "1") {
+    return;
+  }
+
+  const groupMap = matchContentGroupMap();
+  const panels = Array.from(document.querySelectorAll(".match-page main > section.panel"));
+
+  for (const panel of panels) {
+    const groupId = identifyPanelLayoutGroup(panel);
+    panel.dataset.layoutGroup = groupId;
+    const destination =
+      groupId === "rail"
+        ? elements.matchDetailRail
+        : groupMap.get(groupId) || groupMap.get("overview") || elements.matchDetailContent;
+    destination?.appendChild(panel);
+  }
+
+  elements.matchContentGroups.dataset.initialized = "1";
+}
+
+function visiblePanelsInGroup(groupId) {
+  const wrapper = matchContentGroupMap().get(groupId);
+  if (!wrapper) {
+    return [];
+  }
+
+  return Array.from(wrapper.querySelectorAll("section.panel")).filter(
+    (panel) => !panel.classList.contains("hidden-panel")
+  );
+}
+
+function visibleMatchLayoutTabs(match = uiState.match) {
+  const mode = matchLayoutMode(match);
+  const layout = MATCH_PAGE_LAYOUTS[mode] || MATCH_PAGE_LAYOUTS.series;
+  const tabs = Array.isArray(layout.tabs) ? layout.tabs : [];
+  const visibleTabs = tabs.filter((tab) => tab.groups.some((groupId) => visiblePanelsInGroup(groupId).length > 0));
+  return { mode, layout, tabs: visibleTabs };
+}
+
+function activeMatchLayoutTab(match = uiState.match) {
+  const { mode, layout, tabs } = visibleMatchLayoutTabs(match);
+  const defaultTabId = layout?.defaultTab || tabs[0]?.id || "";
+  const savedTabId = uiState.activeLayoutTabByMode[mode];
+  const activeTab = tabs.find((tab) => tab.id === savedTabId) || tabs.find((tab) => tab.id === defaultTabId) || tabs[0] || null;
+  return { mode, layout, tabs, activeTab };
+}
+
+function renderMatchTopTabs(match) {
+  if (!elements.matchTopTabs) {
+    return;
+  }
+
+  if (!match || isCompactUI()) {
+    elements.matchTopTabs.hidden = true;
+    elements.matchTopTabs.innerHTML = "";
+    return;
+  }
+
+  const { mode, tabs, activeTab } = activeMatchLayoutTab(match);
+  if (!tabs.length || !activeTab) {
+    elements.matchTopTabs.hidden = true;
+    elements.matchTopTabs.innerHTML = "";
+    return;
+  }
+
+  uiState.activeLayoutTabByMode[mode] = activeTab.id;
+  elements.matchTopTabs.hidden = false;
+  elements.matchTopTabs.innerHTML = tabs
+    .map(
+      (tab) => `
+        <button
+          type="button"
+          class="match-top-tab${tab.id === activeTab.id ? " active" : ""}"
+          data-layout-mode="${mode}"
+          data-layout-tab="${tab.id}"
+          aria-pressed="${tab.id === activeTab.id ? "true" : "false"}"
+        >${tab.label}</button>
+      `
+    )
+    .join("");
+}
+
+function applyMatchLayoutGroups(match = uiState.match) {
+  const groupMap = matchContentGroupMap();
+  if (!elements.matchDetailContent || !groupMap.size) {
+    return;
+  }
+
+  if (!match) {
+    elements.matchDetailContent.dataset.layoutMode = "";
+    elements.matchDetailContent.dataset.activeTab = "";
+    elements.matchDetailContent.hidden = false;
+    if (elements.matchTopTabs) {
+      elements.matchTopTabs.hidden = true;
+      elements.matchTopTabs.innerHTML = "";
+    }
+    for (const wrapper of groupMap.values()) {
+      wrapper.hidden = false;
+    }
+    if (elements.matchDetailRail) {
+      elements.matchDetailRail.hidden = false;
+    }
+    return;
+  }
+
+  renderMatchTopTabs(match);
+  const { mode, activeTab } = activeMatchLayoutTab(match);
+  const activeGroups = new Set(activeTab?.groups || []);
+  const compact = isCompactUI();
+
+  elements.matchDetailContent.dataset.layoutMode = mode;
+  elements.matchDetailContent.dataset.activeTab = compact ? "" : activeTab?.id || "";
+  elements.matchDetailContent.dataset.layoutCompact = compact ? "true" : "false";
+
+  for (const [groupId, wrapper] of groupMap.entries()) {
+    const hasVisiblePanels = visiblePanelsInGroup(groupId).length > 0;
+    wrapper.hidden = compact ? !hasVisiblePanels : !activeGroups.has(groupId) || !hasVisiblePanels;
+  }
+
+  if (elements.matchDetailRail) {
+    const hasRailPanels = Array.from(elements.matchDetailRail.querySelectorAll("section.panel")).some(
+      (panel) => !panel.classList.contains("hidden-panel")
+    );
+    elements.matchDetailRail.hidden = !hasRailPanels;
+  }
+}
+
+function bindMatchTopTabs() {
+  if (!elements.matchTopTabs || elements.matchTopTabs.dataset.bound === "1") {
+    return;
+  }
+
+  elements.matchTopTabs.dataset.bound = "1";
+  elements.matchTopTabs.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const button = target.closest("[data-layout-tab]");
+    if (!button) {
+      return;
+    }
+
+    const mode = String(button.getAttribute("data-layout-mode") || "");
+    const tabId = String(button.getAttribute("data-layout-tab") || "");
+    if (!mode || !tabId) {
+      return;
+    }
+
+    uiState.activeLayoutTabByMode[mode] = tabId;
+    applyMatchLayoutGroups(uiState.match);
+    renderMatchQuickNav(uiState.match);
+  });
+}
+
 function scrollToTargetId(targetId) {
   const target = document.getElementById(targetId);
   if (!target) {
@@ -1497,10 +1847,10 @@ function renderMatchQuickNav(match) {
 
   const visibleTargets = mobileJumpTargetsForCurrentMode(match).filter((item) => {
     const panel = panelForTargetId(item.id);
-    return panel && !panel.hidden && !panel.classList.contains("hidden-panel");
+    return panelVisibleInCurrentLayout(panel);
   });
 
-  if (!visibleTargets.length) {
+  if (visibleTargets.length < 2) {
     elements.matchQuickNav.hidden = true;
     elements.matchQuickNav.innerHTML = "";
     return;
@@ -1535,7 +1885,7 @@ function renderMobileModeToolbar(match) {
   const jumpButtons = mobileJumpTargetsForCurrentMode(match)
     .filter((item) => {
       const panel = panelForTargetId(item.id);
-      return panel && !panel.classList.contains("hidden-panel");
+      return panelVisibleInCurrentLayout(panel);
     })
     .map((item) => `<button type="button" class="mobile-mode-chip" data-jump-target="${item.id}">${item.label}</button>`)
     .join("");
@@ -1564,10 +1914,7 @@ function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
   const jumpButtons = MOBILE_GAME_JUMP_TARGETS
     .filter((item) => {
       const panel = panelForTargetId(item.id);
-      if (!panel) {
-        return false;
-      }
-      return !panel.classList.contains("hidden-panel");
+      return panelVisibleInCurrentLayout(panel);
     })
     .map((item) => `<button type="button" class="mobile-jump-chip" data-jump-target="${item.id}">${item.label}</button>`)
     .join("");
@@ -4403,6 +4750,7 @@ function applyUpcomingPanelVisibility(match) {
   setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.upcomingWatchWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), isUpcoming);
+  setPanelVisibility(elements.preMatchPlanner?.closest("section.panel"), isUpcoming);
 }
 
 function commandCard(label, value, hint, options = {}) {
@@ -10143,6 +10491,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   applyGamePanelVisibility(match);
   applySeriesPanelVisibility(match);
   applyUpcomingPanelVisibility(match);
+  applyMatchLayoutGroups(match);
   applyGameStateSectionTitles(match);
   applyMobileGameEnhancements(match);
   applyMobilePanelPriorities(match);
@@ -10308,6 +10657,7 @@ async function loadMatch() {
     clearMatchShellBoard();
     refreshMatchSeo(null);
     renderMatchupConsole(null);
+    applyMatchLayoutGroups(null);
     renderMatchQuickNav(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);
     return;
@@ -10397,6 +10747,7 @@ async function loadMatch() {
     }
     refreshMatchSeo(null);
     renderMatchupConsole(null);
+    applyMatchLayoutGroups(null);
     renderMatchQuickNav(null);
     scheduleRefresh(DEFAULT_REFRESH_SECONDS);
   }
@@ -10410,19 +10761,24 @@ window.addEventListener("beforeunload", () => {
 window.addEventListener("resize", () => {
   applyMobileSectionHeadings();
   if (uiState.match) {
+    applyMatchLayoutGroups(uiState.match);
     applyMobileGameEnhancements(uiState.match);
     applyMobilePanelPriorities(uiState.match);
     applyMatchMobilePanelCollapseState(uiState.match);
   } else {
+    applyMatchLayoutGroups(null);
     renderMatchQuickNav(null);
     applyMobilePanelPriorities(null);
     applyMatchMobilePanelCollapseState(null);
   }
 });
 
+initializeMatchLayoutShell();
 applyMobileSectionHeadings();
 bindMatchMobilePanelControls();
 bindMatchQuickNav();
+bindMatchTopTabs();
+applyMatchLayoutGroups(null);
 applyMobilePanelPriorities(null);
 applyMatchMobilePanelCollapseState(null);
 loadMatch();

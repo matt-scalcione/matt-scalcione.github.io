@@ -17798,3 +17798,161 @@ body.product-shell.match-page .mobile-tabbar {
     display: none;
   }
 }
+
+/* Match grouped layout skeleton */
+body.product-shell.match-page .layout.detail {
+  align-items: start;
+  grid-template-columns: minmax(274px, 306px) minmax(0, 1fr);
+  column-gap: 0.9rem;
+}
+
+body.product-shell.match-page .match-detail-rail,
+body.product-shell.match-page .match-detail-content {
+  min-width: 0;
+}
+
+body.product-shell.match-page .match-detail-rail {
+  display: grid;
+  gap: 0.72rem;
+  align-self: start;
+}
+
+body.product-shell.match-page .match-detail-rail[hidden],
+body.product-shell.match-page .match-detail-content[hidden],
+body.product-shell.match-page .match-content-group[hidden] {
+  display: none !important;
+}
+
+body.product-shell.match-page .match-detail-rail > #gameExplorerPanel {
+  position: sticky;
+  top: calc(4.85rem + env(safe-area-inset-top, 0px));
+  margin: 0;
+}
+
+body.product-shell.match-page .match-detail-content {
+  display: grid;
+  gap: 0.58rem;
+  align-content: start;
+}
+
+body.product-shell.match-page .match-top-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+  align-items: center;
+  padding: 0.04rem 0 0.02rem;
+}
+
+body.product-shell.match-page .match-top-tab {
+  min-height: 2rem;
+  padding: 0.18rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 139, 158, 0.18);
+  background: rgba(255, 255, 255, 0.94);
+  color: #6f645f;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  box-shadow: 0 6px 14px rgba(48, 33, 29, 0.04);
+}
+
+body.product-shell.match-page .match-top-tab.active,
+body.product-shell.match-page .match-top-tab[aria-pressed="true"] {
+  border-color: rgba(216, 138, 51, 0.24);
+  background: linear-gradient(180deg, rgba(255, 244, 231, 0.98), rgba(248, 235, 217, 0.96));
+  color: #6d4a24;
+  box-shadow: inset 0 0 0 1px rgba(216, 138, 51, 0.08);
+}
+
+body.product-shell.match-page .match-content-groups {
+  display: grid;
+  gap: 0.72rem;
+}
+
+body.product-shell.match-page .match-content-group {
+  display: grid;
+  gap: 0.72rem;
+  align-content: start;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="overview"],
+body.product-shell.match-page .match-content-group[data-layout-group="stats"],
+body.product-shell.match-page .match-content-group[data-layout-group="history"] {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="lineups"],
+body.product-shell.match-page .match-content-group[data-layout-group="players"],
+body.product-shell.match-page .match-content-group[data-layout-group="games"],
+body.product-shell.match-page .match-content-group[data-layout-group="feed"],
+body.product-shell.match-page .match-content-group[data-layout-group="timeline"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.product-shell.match-page .match-content-group > .panel {
+  margin: 0;
+}
+
+@media (max-width: 980px) {
+  body.product-shell.match-page .layout.detail {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .match-detail-rail > #gameExplorerPanel {
+    position: static;
+    top: auto;
+  }
+
+  body.product-shell.match-page .match-top-tabs {
+    display: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.match-page .layout.detail {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.product-shell.match-page .match-detail-rail,
+  body.product-shell.match-page .match-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.56rem;
+  }
+
+  body.product-shell.match-page .match-content-groups,
+  body.product-shell.match-page .match-content-group {
+    display: contents;
+  }
+
+  body.product-shell.match-page main section.panel {
+    transition: border-color 140ms ease, background 140ms ease, opacity 140ms ease;
+  }
+
+  body.product-shell.match-page main section.panel.mobile-priority-panel {
+    border-color: rgba(216, 138, 51, 0.18);
+    background: linear-gradient(180deg, rgba(19, 24, 31, 0.99), rgba(11, 14, 20, 0.99));
+  }
+
+  body.product-shell.match-page main section.panel.mobile-secondary-panel {
+    border-color: rgba(217, 225, 235, 0.06);
+  }
+
+  body.product-shell.match-page main section.panel.mobile-secondary-panel.mobile-panel-collapsed {
+    background: linear-gradient(180deg, rgba(15, 18, 24, 0.98), rgba(10, 13, 18, 0.99));
+  }
+
+  body.product-shell.match-page main section.panel.mobile-priority-panel .section-head h2 {
+    color: #f7d8aa;
+  }
+
+  body.product-shell.match-page main section.panel.mobile-priority-panel .section-mini-icon {
+    border-color: rgba(216, 138, 51, 0.24);
+    background: rgba(216, 138, 51, 0.14);
+    color: #f7d8aa;
+  }
+}
