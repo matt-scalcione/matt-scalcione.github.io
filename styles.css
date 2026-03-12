@@ -13796,22 +13796,128 @@ body.product-shell.schedule-page .top-space {
   margin-top: 0.82rem;
 }
 
+body.product-shell.schedule-page .hero.schedule-filter-hero {
+  padding-top: 0.72rem;
+  padding-bottom: 0.12rem;
+}
+
+body.product-shell.schedule-page .hero.schedule-filter-hero::after {
+  display: none;
+}
+
+body.product-shell.schedule-page .schedule-filter-shell {
+  display: grid;
+  gap: 0.68rem;
+  padding: 0.82rem 0.88rem;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 233, 241, 0.06);
+  background:
+    linear-gradient(180deg, rgba(58, 68, 79, 0.96), rgba(48, 58, 69, 0.98)),
+    radial-gradient(circle at top left, rgba(216, 138, 51, 0.08), transparent 52%);
+  box-shadow: none;
+}
+
+body.product-shell.schedule-page .schedule-filter-head {
+  display: grid;
+  gap: 0.48rem;
+}
+
+body.product-shell.schedule-page .schedule-filter-title-block {
+  display: grid;
+  min-width: 0;
+}
+
+body.product-shell.schedule-page .schedule-filter-kicker {
+  margin: 0;
+  color: #f0f4f8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+body.product-shell.schedule-page .schedule-filter-status {
+  margin: 0;
+  justify-self: start;
+  min-height: 1.72rem;
+  padding: 0.34rem 0.56rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cad4df;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+body.product-shell.schedule-page .schedule-filter-grid {
+  display: grid;
+  gap: 0.58rem;
+}
+
+body.product-shell.schedule-page .schedule-filter-field,
+body.product-shell.schedule-page .schedule-filter-window {
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.62rem;
+  border-radius: 10px;
+  border: 1px solid rgba(226, 233, 241, 0.06);
+  background: rgba(255, 255, 255, 0.035);
+  min-width: 0;
+}
+
+body.product-shell.schedule-page .schedule-filter-window {
+  gap: 0.48rem;
+}
+
+body.product-shell.schedule-page .schedule-filter-label {
+  color: #c9d3de;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.product-shell.schedule-page .schedule-filter-field input,
+body.product-shell.schedule-page .schedule-filter-field select {
+  min-height: 2.52rem;
+  padding: 0.72rem 0.8rem;
+  border-radius: 10px;
+  border-color: rgba(226, 233, 241, 0.07);
+  background: rgba(30, 36, 43, 0.9);
+  color: #eef2f6;
+}
+
+body.product-shell.schedule-page .schedule-filter-field input::placeholder {
+  color: #8f9cac;
+}
+
+body.product-shell.schedule-page .schedule-filter-window-head {
+  display: grid;
+  gap: 0.36rem;
+}
+
+body.product-shell.schedule-page .schedule-filter-date-grid {
+  display: grid;
+  gap: 0.44rem;
+}
+
 body.product-shell.schedule-page .schedule-range-row {
   gap: 0.28rem;
-  margin-bottom: 0.44rem;
+  margin-bottom: 0;
+  flex-wrap: wrap;
 }
 
 body.product-shell.schedule-page .schedule-range-chip {
-  min-height: 1.74rem;
-  padding: 0.14rem 0.5rem;
-  border-radius: 8px;
-  border: 1px solid rgba(217, 225, 235, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  min-height: 1.9rem;
+  padding: 0.16rem 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 225, 235, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   color: #cad4df;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -13820,6 +13926,35 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
   border-color: rgba(216, 138, 51, 0.24);
   background: rgba(216, 138, 51, 0.14);
   color: #f7d8aa;
+}
+
+@media (min-width: 761px) {
+  body.product-shell.schedule-page .schedule-filter-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-grid {
+    grid-template-columns: minmax(0, 1.45fr) minmax(180px, 0.72fr);
+  }
+
+  body.product-shell.schedule-page .schedule-filter-window {
+    grid-column: 1 / -1;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-window-head {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.68rem;
+  }
+
+  body.product-shell.schedule-page .schedule-range-row {
+    justify-content: flex-end;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-date-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 body.product-shell.schedule-page .schedule-board-groups {

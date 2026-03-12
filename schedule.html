@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312o" />
+    <link rel="stylesheet" href="./styles.css?v=20260312p" />
   </head>
   <body class="product-shell schedule-page">
     <div class="noise"></div>
@@ -55,118 +55,54 @@
         <a id="dotaHubNav" href="./dota2.html">Dota 2</a>
       </nav>
     </header>
-    <header class="hero">
-      <div class="hero-grid">
-        <div class="hero-main">
-          <div class="hero-kicker-row">
-            <p class="kicker">Pulseboard</p>
-            <span class="hero-badge">Slate board</span>
+    <header class="hero schedule-filter-hero">
+      <div class="schedule-filter-shell">
+        <div class="schedule-filter-head">
+          <div class="schedule-filter-title-block">
+            <p class="schedule-filter-kicker">Filters</p>
           </div>
-          <h1>Schedule</h1>
-          <p class="subtitle">
-            Upcoming and completed pro matches across League of Legends and Dota 2.
-          </p>
-          <div class="hero-metrics" aria-label="Schedule highlights">
-            <div class="hero-metric">
-              <span>View</span>
-              <strong>Slate</strong>
-            </div>
-            <div class="hero-metric">
-              <span>Window</span>
-              <strong>Next + final</strong>
-            </div>
-            <div class="hero-metric">
-              <span>Use</span>
-              <strong>Find series</strong>
-            </div>
-          </div>
-          <div class="hero-chips">
-            <span class="hero-chip">Today</span>
-            <span class="hero-chip">Upcoming</span>
-            <span class="hero-chip">Results</span>
-          </div>
+          <p id="statusText" class="status-text schedule-filter-status" aria-live="polite">Ready.</p>
         </div>
-        <aside class="hero-side">
-          <p id="heroContextLabel" class="hero-side-label">Focus</p>
-          <p id="heroContextValue" class="hero-side-value">Slate</p>
-          <p id="heroContextCopy" class="hero-side-copy">
-            Set the time window, narrow the board, open the series you need.
-          </p>
-          <div id="heroContextChips" class="hero-side-chips"></div>
-        </aside>
+        <div class="schedule-filter-grid">
+          <label class="schedule-filter-field schedule-filter-field-search">
+            <span class="schedule-filter-label">Search</span>
+            <input id="slateSearchInput" type="text" placeholder="Team or event" />
+          </label>
+          <label class="schedule-filter-field schedule-filter-field-game">
+            <span class="schedule-filter-label">Game</span>
+            <select id="gameSelect">
+              <option value="">All games</option>
+              <option value="lol">League of Legends</option>
+              <option value="dota2">Dota 2</option>
+            </select>
+          </label>
+          <section class="schedule-filter-window" aria-label="Date range">
+            <div class="schedule-filter-window-head">
+              <span class="schedule-filter-label">Date range</span>
+              <div id="scheduleRangePresets" class="schedule-range-row" role="group" aria-label="Quick date ranges">
+                <button type="button" class="schedule-range-chip" data-range="live">Live</button>
+                <button type="button" class="schedule-range-chip" data-range="24h">24h</button>
+                <button type="button" class="schedule-range-chip" data-range="3d">3d</button>
+                <button type="button" class="schedule-range-chip" data-range="7d">7d</button>
+              </div>
+            </div>
+            <div class="schedule-filter-date-grid">
+              <label class="schedule-filter-field">
+                <span class="schedule-filter-label">From</span>
+                <input id="dateFromInput" type="datetime-local" />
+              </label>
+              <label class="schedule-filter-field">
+                <span class="schedule-filter-label">To</span>
+                <input id="dateToInput" type="datetime-local" />
+              </label>
+            </div>
+          </section>
+        </div>
+        <input id="apiBaseInput" type="hidden" />
       </div>
     </header>
 
     <main class="layout">
-      <section class="panel controls" id="controlsPanel">
-        <div class="controls-head">
-          <h2>Filters</h2>
-          <button
-            id="controlsToggle"
-            type="button"
-            class="ghost controls-toggle"
-            aria-expanded="true"
-            aria-controls="controlsBody"
-          >
-            Hide Filters
-          </button>
-        </div>
-        <div class="controls-body" id="controlsBody">
-          <div id="scheduleRangePresets" class="schedule-range-row" role="group" aria-label="Quick date ranges">
-            <button type="button" class="schedule-range-chip" data-range="live">Live</button>
-            <button type="button" class="schedule-range-chip" data-range="24h">24h</button>
-            <button type="button" class="schedule-range-chip" data-range="3d">3d</button>
-            <button type="button" class="schedule-range-chip" data-range="7d">7d</button>
-          </div>
-          <div class="controls-grid">
-            <label class="api-base-field">
-              API Base
-              <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
-            </label>
-            <label>
-              Search
-              <input id="slateSearchInput" type="text" placeholder="team, event, region..." />
-            </label>
-            <label>
-              Game
-              <select id="gameSelect">
-                <option value="">All</option>
-                <option value="lol">League of Legends</option>
-                <option value="dota2">Dota 2</option>
-              </select>
-            </label>
-            <label class="region-field">
-              Region
-              <input id="regionInput" type="text" placeholder="na, eu, kr..." />
-            </label>
-            <label class="schedule-dota-only">
-              Competition Tiers
-              <input id="dotaTiersInput" type="text" placeholder="1,2,3" value="1,2,3" />
-            </label>
-            <label>
-              From
-              <input id="dateFromInput" type="datetime-local" />
-            </label>
-            <label>
-              To
-              <input id="dateToInput" type="datetime-local" />
-            </label>
-          </div>
-          <div id="slateModeBar" class="control-preset-bar" aria-label="Slate view">
-            <button type="button" class="preset-chip active" data-mode="all">All</button>
-            <button type="button" class="preset-chip" data-mode="live">Live</button>
-            <button type="button" class="preset-chip" data-mode="upcoming">Up Next</button>
-            <button type="button" class="preset-chip" data-mode="completed">Finals</button>
-          </div>
-
-          <div class="actions">
-            <button id="refreshButton" type="button">Refresh</button>
-            <button id="saveButton" type="button" class="ghost api-base-save">Save API Base</button>
-            <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
-          </div>
-        </div>
-      </section>
-
       <section class="panel">
         <div id="scheduleSection">
           <div class="section-head">
@@ -203,6 +139,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./schedule.js?v=20260312m"></script>
+    <script type="module" src="./schedule.js?v=20260312n"></script>
   </body>
 </html>

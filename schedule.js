@@ -83,15 +83,9 @@ const elements = {
   apiBaseInput: document.querySelector("#apiBaseInput"),
   slateSearchInput: document.querySelector("#slateSearchInput"),
   gameSelect: document.querySelector("#gameSelect"),
-  regionInput: document.querySelector("#regionInput"),
-  dotaTiersInput: document.querySelector("#dotaTiersInput"),
   dateFromInput: document.querySelector("#dateFromInput"),
   dateToInput: document.querySelector("#dateToInput"),
   scheduleRangePresets: Array.from(document.querySelectorAll("#scheduleRangePresets [data-range]")),
-  slateModeBar: document.querySelector("#slateModeBar"),
-  scheduleDotaOnlyFields: Array.from(document.querySelectorAll(".schedule-dota-only")),
-  controlsPanel: document.querySelector("#controlsPanel"),
-  controlsToggle: document.querySelector("#controlsToggle"),
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
@@ -100,14 +94,7 @@ const elements = {
   mobileLiveNav: document.querySelector("#mobileLiveNav"),
   mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
   mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
-  refreshButton: document.querySelector("#refreshButton"),
-  saveButton: document.querySelector("#saveButton"),
   statusText: document.querySelector("#statusText"),
-  heroContextLabel: document.querySelector("#heroContextLabel"),
-  heroContextValue: document.querySelector("#heroContextValue"),
-  heroContextCopy: document.querySelector("#heroContextCopy"),
-  heroContextChips: document.querySelector("#heroContextChips"),
-  heroActionRow: document.querySelector("#heroActionRow"),
   scheduleMeta: document.querySelector("#scheduleMeta"),
   resultsMeta: document.querySelector("#resultsMeta"),
   scheduleSection: document.querySelector("#scheduleSection"),
@@ -122,12 +109,10 @@ const scheduleCollectionState = {
   resultRows: []
 };
 const scheduleDiscoveryState = {
-  mode: "all",
   searchTerm: ""
 };
 let activeLoadRequestId = 0;
 let resultsRetryHandle = null;
-let restoredScheduleModeFromStorage = false;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -184,10 +169,6 @@ function readApiBase() {
   return resolveInitialApiBase();
 }
 
-function saveApiBase(value) {
-  localStorage.setItem("pulseboard.apiBase", value);
-}
-
 function dateTimeLabel(iso) {
   try {
     return new Date(iso).toLocaleString(undefined, {
@@ -235,13 +216,6 @@ function seriesScoreLabel(row, type) {
   }
 
   return `${left}-${right}`;
-}
-
-function slateModeLabel(mode) {
-  if (mode === "live") return "Live";
-  if (mode === "upcoming") return "Up Next";
-  if (mode === "completed") return "Finals";
-  return "All";
 }
 
 function normalizeTeamKey(name) {
@@ -559,23 +533,11 @@ function parseLocalInputToIso(value) {
 
 function buildQuery() {
   const params = new URLSearchParams();
-  const game = elements.gameSelect.value;
-  const region = elements.regionInput.value.trim().toLowerCase();
-  const competitionTiers = elements.dotaTiersInput.value.trim();
+  const game = elements.gameSelect?.value || "";
   const dateFromIso = parseLocalInputToIso(elements.dateFromInput.value);
   const dateToIso = parseLocalInputToIso(elements.dateToInput.value);
 
   if (game) params.set("game", game);
-  if (region) params.set("region", region);
-  if (competitionTiers) {
-    const normalizedGame = normalizeGameKey(game);
-    if (!normalizedGame || normalizedGame === "dota2") {
-      params.set("dota_tiers", competitionTiers);
-    }
-    if (!normalizedGame || normalizedGame === "lol") {
-      params.set("lol_tiers", competitionTiers);
-    }
-  }
   if (dateFromIso) params.set("date_from", dateFromIso);
   if (dateToIso) params.set("date_to", dateToIso);
 
@@ -641,58 +603,12 @@ function applyScheduleRangePreset(rangeKey, options = {}) {
   }
 }
 
-function syncScheduleFilterVisibility() {
-  for (const field of elements.scheduleDotaOnlyFields || []) {
-    field.hidden = false;
-  }
-}
-
 function rowLink(id) {
   return buildMatchUrl({ matchId: id });
 }
 
 function isCompactViewport() {
   return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
-}
-
-function applyControlsCollapsed(collapsed) {
-  if (!elements.controlsPanel || !elements.controlsToggle) {
-    return;
-  }
-
-  elements.controlsPanel.classList.toggle("collapsed", collapsed);
-  const compact = isCompactViewport();
-  elements.controlsToggle.textContent = compact
-    ? (collapsed ? "Filters" : "Close")
-    : (collapsed ? "Show Filters" : "Hide Filters");
-  elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
-}
-
-function setupControlsPanel() {
-  if (!elements.controlsPanel || !elements.controlsToggle) {
-    return;
-  }
-
-  let collapsed = isCompactViewport();
-  try {
-    const saved = localStorage.getItem("pulseboard.schedule.controlsCollapsed");
-    if (saved === "1" || saved === "0") {
-      collapsed = saved === "1";
-    }
-  } catch {
-    collapsed = isCompactViewport();
-  }
-
-  applyControlsCollapsed(collapsed);
-  elements.controlsToggle.addEventListener("click", () => {
-    const next = !elements.controlsPanel.classList.contains("collapsed");
-    applyControlsCollapsed(next);
-    try {
-      localStorage.setItem("pulseboard.schedule.controlsCollapsed", next ? "1" : "0");
-    } catch {
-      // Ignore storage failures in private mode.
-    }
-  });
 }
 
 function updateNav() {
@@ -714,6 +630,9 @@ function updateNav() {
 }
 
 function setStatus(message, tone = "neutral") {
+  if (!elements.statusText) {
+    return;
+  }
   elements.statusText.textContent = message;
   elements.statusText.classList.remove("success", "error", "loading");
   if (tone !== "neutral") {
@@ -775,68 +694,8 @@ function matchesSlateSearch(row, query) {
   return haystack.includes(normalized);
 }
 
-function scheduleModeMatches(row, type) {
-  const status = String(row?.status || "").toLowerCase();
-  if (scheduleDiscoveryState.mode === "live") {
-    return type === "scheduled" && status === "live";
-  }
-  if (scheduleDiscoveryState.mode === "upcoming") {
-    return type === "scheduled" && status !== "live";
-  }
-  if (scheduleDiscoveryState.mode === "completed") {
-    return type === "result";
-  }
-  return true;
-}
-
-function applySlateFilters(rows = [], type) {
-  return rows.filter((row) => scheduleModeMatches(row, type) && matchesSlateSearch(row, scheduleDiscoveryState.searchTerm));
-}
-
-function renderScheduleHeroContext(scheduleRows = [], resultRows = []) {
-  if (!elements.heroContextLabel || !elements.heroContextValue || !elements.heroContextCopy) {
-    return;
-  }
-
-  const query = String(scheduleDiscoveryState.searchTerm || "").trim();
-  const liveCount = scheduleRows.filter((row) => String(row?.status || "").toLowerCase() === "live").length;
-  const fallbackSummary = buildCollectionFallbackSummary([...scheduleRows, ...resultRows], {
-    game: "dota2",
-    label: "Dota"
-  });
-  elements.heroContextLabel.textContent = "Window";
-  elements.heroContextValue.textContent = scheduleRows.length || resultRows.length ? `${slateModeLabel(scheduleDiscoveryState.mode)} slate` : "Slate clear";
-  elements.heroContextCopy.textContent = scheduleRows.length || resultRows.length
-    ? `${scheduleRows.length} schedule rows and ${resultRows.length} finals in view${query ? ` for "${query}"` : ""}.${liveCount ? ` ${liveCount} live right now.` : ""}${fallbackSummary.text ? ` ${fallbackSummary.text}.` : ""}`
-    : "Shape the window first, then narrow by title, region, or search to isolate the exact slate.";
-
-  if (elements.heroContextChips) {
-    elements.heroContextChips.innerHTML = `
-      <span class="hero-chip">${scheduleRows.length} schedule</span>
-      <span class="hero-chip">${resultRows.length} finals</span>
-      <span class="hero-chip">${liveCount} live</span>
-      ${fallbackSummary.text ? `<span class="hero-chip warn">${escapeHtml(fallbackSummary.text)}</span>` : ""}
-    `;
-  }
-}
-
-function renderScheduleHeroActions(scheduleRows = [], resultRows = []) {
-  if (!elements.heroActionRow) {
-    return;
-  }
-
-  const apiBase = elements.apiBaseInput?.value.trim() || DEFAULT_API_BASE;
-  const primaryHref = applyRouteContext(new URL("./index.html", window.location.href), { apiBase }).toString();
-  const followsHref = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase }).toString();
-  elements.heroActionRow.innerHTML = `
-    <a class="link-btn" href="${primaryHref}">Open live desk</a>
-    <a class="link-btn ghost" href="${followsHref}">Open watchlist</a>
-  `;
-}
-
-function renderScheduleSummary(scheduleRows = [], resultRows = []) {
-  renderScheduleHeroContext(scheduleRows, resultRows);
-  renderScheduleHeroActions(scheduleRows, resultRows);
+function applySlateFilters(rows = []) {
+  return rows.filter((row) => matchesSlateSearch(row, scheduleDiscoveryState.searchTerm));
 }
 
 function renderLoadingTable(container) {
@@ -1004,22 +863,13 @@ function renderGroupedScheduleMarkup(rows, type) {
 
 function renderTable(container, rows, type) {
   if (!rows.length) {
-    let message = `No ${type} matches for current filters.`;
-    if (!scheduleDiscoveryState.searchTerm && scheduleDiscoveryState.mode === "live") {
-      message =
-        type === "scheduled"
-          ? "No live matches are active in this window. Switch to All or Up Next."
-          : "Live slate is active. Switch to All or Finals to review completed matches.";
-    } else if (!scheduleDiscoveryState.searchTerm && scheduleDiscoveryState.mode === "completed") {
-      message =
-        type === "scheduled"
-          ? "Finals mode hides the schedule. Switch to All or Up Next."
-          : "No completed matches landed in this window.";
-    } else if (!scheduleDiscoveryState.searchTerm && scheduleDiscoveryState.mode === "upcoming") {
-      message =
-        type === "scheduled"
-          ? "No upcoming matches are in this window. Try All or widen the date range."
-          : "Up Next mode hides the finals list. Switch to All or Finals.";
+    let message = type === "scheduled"
+      ? "No scheduled matches in this window."
+      : "No completed matches in this window.";
+    if (scheduleDiscoveryState.searchTerm) {
+      message = type === "scheduled"
+        ? `No scheduled matches match "${scheduleDiscoveryState.searchTerm}".`
+        : `No results match "${scheduleDiscoveryState.searchTerm}".`;
     }
     container.innerHTML = `<div class="empty">${message}</div>`;
     return;
@@ -1030,15 +880,14 @@ function renderTable(container, rows, type) {
 
 function renderCollectionsFromState() {
   const filteredSchedule = sortRowsForDisplay(
-    applySlateFilters(scheduleCollectionState.scheduleRows, "scheduled"),
+    applySlateFilters(scheduleCollectionState.scheduleRows),
     "scheduled"
   );
   const filteredResults = sortRowsForDisplay(
-    applySlateFilters(scheduleCollectionState.resultRows, "result"),
+    applySlateFilters(scheduleCollectionState.resultRows),
     "result"
   );
 
-  renderScheduleSummary(filteredSchedule, filteredResults);
   renderTable(elements.scheduleTableWrap, filteredSchedule, "scheduled");
   renderTable(elements.resultsTableWrap, filteredResults, "result");
 
@@ -1049,22 +898,12 @@ function renderCollectionsFromState() {
     elements.resultsTableWrap.dataset.loaded = "1";
   }
 
-  const showSchedule =
-    scheduleDiscoveryState.mode === "completed"
-      ? false
-      : true;
-  const showResults =
-    scheduleDiscoveryState.mode === "completed"
-      ? true
-      : scheduleDiscoveryState.mode === "live" || scheduleDiscoveryState.mode === "upcoming"
-        ? false
-        : true;
   if (elements.scheduleSection) {
-    elements.scheduleSection.hidden = !showSchedule;
+    elements.scheduleSection.hidden = false;
   }
   if (elements.resultsSection) {
-    elements.resultsSection.hidden = !showResults;
-    elements.resultsSection.classList.toggle("top-space", showSchedule && showResults);
+    elements.resultsSection.hidden = false;
+    elements.resultsSection.classList.add("top-space");
   }
 }
 
@@ -1128,55 +967,6 @@ function clearResultsRetry() {
     window.clearTimeout(resultsRetryHandle);
     resultsRetryHandle = null;
   }
-}
-
-function syncSlateModeButtons() {
-  if (!elements.slateModeBar) {
-    return;
-  }
-
-  for (const chip of elements.slateModeBar.querySelectorAll(".preset-chip")) {
-    chip.classList.toggle("active", chip.getAttribute("data-mode") === scheduleDiscoveryState.mode);
-  }
-}
-
-function setScheduleDiscoveryMode(mode, { persist = true } = {}) {
-  scheduleDiscoveryState.mode =
-    mode === "live" || mode === "upcoming" || mode === "completed" || mode === "all" ? mode : "all";
-  syncSlateModeButtons();
-  if (!persist) {
-    return;
-  }
-  try {
-    localStorage.setItem("pulseboard.schedule.mode", scheduleDiscoveryState.mode);
-  } catch {
-    // Ignore storage failures.
-  }
-}
-
-function maybeRecoverSavedSlateMode() {
-  if (!restoredScheduleModeFromStorage || scheduleDiscoveryState.mode === "all") {
-    return false;
-  }
-  if (scheduleDiscoveryState.searchTerm) {
-    return false;
-  }
-
-  const filteredSchedule = applySlateFilters(scheduleCollectionState.scheduleRows, "scheduled");
-  const filteredResults = applySlateFilters(scheduleCollectionState.resultRows, "result");
-
-  if (filteredSchedule.length || filteredResults.length) {
-    restoredScheduleModeFromStorage = false;
-    return false;
-  }
-
-  if (!scheduleCollectionState.scheduleRows.length && !scheduleCollectionState.resultRows.length) {
-    return false;
-  }
-
-  setScheduleDiscoveryMode("all");
-  restoredScheduleModeFromStorage = false;
-  return true;
 }
 
 function scheduleResultsRetry(requestId, apiBase, query) {
@@ -1275,7 +1065,6 @@ async function loadCollections() {
       scheduleCollectionState.scheduleRows,
       scheduleCollectionState.resultRows
     );
-    maybeRecoverSavedSlateMode();
     renderScheduleCollectionMeta();
     renderCollectionsFromState();
     refreshScheduleSeo();
@@ -1301,24 +1090,12 @@ async function loadCollections() {
 }
 
 function installEvents() {
-  elements.refreshButton.addEventListener("click", loadCollections);
-  elements.saveButton.addEventListener("click", () => {
-    const value = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
-    saveApiBase(value);
-    setStatus("API base saved locally.", "success");
-  });
-
-  elements.gameSelect.addEventListener("change", () => {
-    syncScheduleFilterVisibility();
-    loadCollections();
-  });
-  elements.regionInput.addEventListener("change", loadCollections);
-  elements.dotaTiersInput.addEventListener("change", loadCollections);
-  elements.dateFromInput.addEventListener("change", () => {
+  elements.gameSelect?.addEventListener("change", loadCollections);
+  elements.dateFromInput?.addEventListener("change", () => {
     syncScheduleRangePresetState();
     loadCollections();
   });
-  elements.dateToInput.addEventListener("change", () => {
+  elements.dateToInput?.addEventListener("change", () => {
     syncScheduleRangePresetState();
     loadCollections();
   });
@@ -1343,23 +1120,6 @@ function installEvents() {
       renderCollectionsFromState();
     });
   }
-
-  if (elements.slateModeBar) {
-    elements.slateModeBar.addEventListener("click", (event) => {
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        return;
-      }
-      const button = target.closest("[data-mode]");
-      if (!button) {
-        return;
-      }
-      restoredScheduleModeFromStorage = false;
-      setScheduleDiscoveryMode(String(button.getAttribute("data-mode") || "all"));
-      renderCollectionsFromState();
-    });
-  }
-
 }
 
 function applyInitialUrlFilters() {
@@ -1373,22 +1133,13 @@ function applyInitialUrlFilters() {
 function boot() {
   const apiBase = readApiBase();
   elements.apiBaseInput.value = apiBase;
-  elements.dotaTiersInput.value = "1,2,3";
   applyInitialUrlFilters();
   updateNav();
-  setupControlsPanel();
 
   const now = new Date();
   const initialWindow = presetWindow("live", now);
   elements.dateFromInput.value = toLocalInputValue(initialWindow.start);
   elements.dateToInput.value = toLocalInputValue(initialWindow.end);
-  try {
-    scheduleDiscoveryState.mode = String(localStorage.getItem("pulseboard.schedule.mode") || "all");
-    restoredScheduleModeFromStorage = scheduleDiscoveryState.mode !== "all";
-  } catch {
-    scheduleDiscoveryState.mode = "all";
-    restoredScheduleModeFromStorage = false;
-  }
   try {
     scheduleDiscoveryState.searchTerm = String(localStorage.getItem("pulseboard.schedule.search") || "").trim();
   } catch {
@@ -1397,8 +1148,6 @@ function boot() {
   if (elements.slateSearchInput) {
     elements.slateSearchInput.value = scheduleDiscoveryState.searchTerm;
   }
-  syncSlateModeButtons();
-  syncScheduleFilterVisibility();
   syncScheduleRangePresetState();
 
   installEvents();
@@ -1409,9 +1158,6 @@ function boot() {
 window.addEventListener("resize", () => {
   renderScheduleCollectionMeta();
   renderCollectionsFromState();
-  if (elements.controlsPanel) {
-    applyControlsCollapsed(elements.controlsPanel.classList.contains("collapsed"));
-  }
 });
 
 boot();
