@@ -2579,33 +2579,35 @@ function renderScoreboard(match) {
 
   let gameStripMarkup = "";
   if (isGameMode && gameContext) {
+    const compact = isCompactUI();
     gameStripMarkup = `
-      <article class="score-hero-context-band ${statusTone}">
+      <article class="score-hero-context-band ${statusTone}${compact ? " compact" : ""}">
         <div class="score-hero-context-item">
           <span class="score-hero-context-label">Series</span>
           <strong class="score-hero-context-value">${seriesScoreLabel}</strong>
         </div>
         <div class="score-hero-context-item">
           <span class="score-hero-context-label">Map</span>
-          <strong class="score-hero-context-value">${gameContext.number ? `Game ${gameContext.number}` : "Selected"}</strong>
+          <strong class="score-hero-context-value">${gameContext.number ? (compact ? `G${gameContext.number}` : `Game ${gameContext.number}`) : compact ? "Map" : "Selected"}</strong>
           <span class="score-hero-context-note">${escapeHtml(gameStatus || "Awaiting map state")}</span>
         </div>
         <div class="score-hero-context-actions">
-          <a class="link-btn ghost score-hero-open-link" href="${seriesHref}">Series View</a>
+          <a class="link-btn ghost score-hero-open-link" href="${seriesHref}">${compact ? "Series" : "Series View"}</a>
         </div>
       </article>
     `;
   } else if (match.status === "live" && Number.isInteger(liveGameNumber)) {
+    const compact = isCompactUI();
     const liveGameHref = detailUrlForGame(match.id, uiState.apiBase, liveGameNumber);
     const liveGameValue =
       gameContext && gameContext.number === liveGameNumber && Number.isFinite(gameContext.leftKills) && Number.isFinite(gameContext.rightKills)
-        ? `${gameContext.leftKills}-${gameContext.rightKills} kills`
+        ? `${gameContext.leftKills}-${gameContext.rightKills}${compact ? "" : " kills"}`
         : "Open live map";
     gameStripMarkup = `
-      <article class="score-hero-context-band live">
+      <article class="score-hero-context-band live${compact ? " compact" : ""}">
         <div class="score-hero-context-item">
           <span class="score-hero-context-label">Current Game</span>
-          <strong class="score-hero-context-value">Game ${liveGameNumber}</strong>
+          <strong class="score-hero-context-value">${compact ? `G${liveGameNumber}` : `Game ${liveGameNumber}`}</strong>
         </div>
         <div class="score-hero-context-item">
           <span class="score-hero-context-label">Map State</span>
@@ -2613,7 +2615,7 @@ function renderScoreboard(match) {
           <span class="score-hero-context-note">${escapeHtml(sideSummary || "Live now")}</span>
         </div>
         <div class="score-hero-context-actions">
-          <a class="link-btn score-hero-open-link" href="${liveGameHref}">Open Game ${liveGameNumber}</a>
+          <a class="link-btn score-hero-open-link" href="${liveGameHref}">${compact ? `Open G${liveGameNumber}` : `Open Game ${liveGameNumber}`}</a>
         </div>
       </article>
     `;
@@ -2744,6 +2746,18 @@ function compactFreshnessToken(value) {
   return readableMetaToken(value).split(" ")[0] || "Sync";
 }
 
+function compactProvenanceLabel(provenance) {
+  const rawLabel = String(provenance?.label || provenance?.text || "").trim();
+  if (!rawLabel) {
+    return "";
+  }
+
+  return rawLabel
+    .replace(/\b(live\s+stats|stats|telemetry|snapshot)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function matchTrustChips(match, { compact = false } = {}) {
   const provenance = buildRowDataProvenance(match, {
     fallbackTimestamp: match?.updatedAt || match?.startAt || null
@@ -2792,6 +2806,10 @@ function renderStreamStatus(match) {
     : null;
   const trustChips = matchTrustChips(match, { compact });
   if (compact) {
+    const provenance = buildRowDataProvenance(match, {
+      fallbackTimestamp: match?.updatedAt || match?.startAt || null
+    });
+    const qualityNotice = buildRowQualityNotice(match);
     const primaryCompact = uiState.stream.source === "sse"
       ? uiState.stream.connected
         ? "LIVE"
@@ -2799,12 +2817,17 @@ function renderStreamStatus(match) {
           ? `RETRY ${uiState.stream.reconnectAttempt}`
           : "SYNC"
       : `${Number(match?.refreshAfterSeconds || DEFAULT_REFRESH_SECONDS)}s`;
+    const provenanceCompact = compactProvenanceLabel(provenance);
+    const sourceCompact = qualityNotice.text
+      ? { label: qualityNotice.text, tone: `quality ${qualityNotice.tone}` }
+      : provenanceCompact
+        ? { label: provenanceCompact, tone: "provenance" }
+        : { label: compactFreshnessToken(match?.freshness?.status), tone: "freshness" };
     elements.streamStatusWrap.innerHTML = `
       <article class="stream-card ${badge} stream-inline-card compact">
         <span class="stream-chip primary ${badge}">${primaryCompact}</span>
         <span class="stream-chip">${streamStatusDetail()}</span>
-        <span class="stream-chip freshness">${compactFreshnessToken(match?.freshness?.status)}</span>
-        ${trustChips}
+        <span class="stream-chip ${sourceCompact.tone}">${escapeHtml(sourceCompact.label)}</span>
         ${errorText ? `<span class="stream-chip error">${errorText}</span>` : ""}
       </article>
     `;

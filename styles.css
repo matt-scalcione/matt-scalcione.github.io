@@ -13145,6 +13145,26 @@ body.product-shell.match-page .match-quick-nav .team-jump-chip {
     border-radius: 0.92rem;
   }
 
+  .stream-status-hero .stream-card.compact {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.22rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .stream-status-hero .stream-card.compact::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stream-status-hero .stream-card.compact .stream-chip {
+    min-height: 1.28rem;
+    padding: 0.08rem 0.38rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+  }
+
   body.product-shell.match-page .layout.detail {
     padding: 0.16rem 0.52rem calc(1rem + env(safe-area-inset-bottom, 0px));
     gap: 0.56rem;
@@ -18123,12 +18143,27 @@ body.product-shell.match-page .score-hero-open-link.link-btn {
     padding: 0.5rem 0.56rem;
   }
 
+  body.product-shell.match-page .score-hero-context-band.compact {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.42rem 0.48rem;
+  }
+
   body.product-shell.match-page .score-hero-context-actions {
     grid-column: 1 / -1;
   }
 
+  body.product-shell.match-page .score-hero-context-band.compact .score-hero-context-actions {
+    grid-column: auto;
+  }
+
   body.product-shell.match-page .score-hero-context-value {
     font-size: 0.72rem;
+  }
+
+  body.product-shell.match-page .score-hero-context-band.compact .score-hero-context-value {
+    font-size: 0.68rem;
   }
 
   body.product-shell.match-page .score-hero-context-note {
@@ -18138,6 +18173,13 @@ body.product-shell.match-page .score-hero-open-link.link-btn {
   body.product-shell.match-page .score-hero-open-link.link-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  body.product-shell.match-page .score-hero-context-band.compact .score-hero-open-link.link-btn {
+    width: auto;
+    min-height: 1.56rem;
+    padding: 0.18rem 0.5rem;
+    font-size: 0.52rem;
   }
 }
 
