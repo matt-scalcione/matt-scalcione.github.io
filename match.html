@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312ah" />
+    <link rel="stylesheet" href="./styles.css?v=20260312ai" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -285,9 +285,10 @@
         <ul id="liveFeedList" class="moments live-feed-list"></ul>
       </section>
 
-      <section class="panel" data-scope="game">
+      <section class="panel" id="gameTeamComparePanel" data-scope="game">
         <div class="section-head">
           <h2>Team Stats</h2>
+          <p class="meta-text">Map-wide team comparison across the most important tracked metrics.</p>
         </div>
         <div id="teamCompareWrap" class="compare-wrap"></div>
       </section>
@@ -307,7 +308,7 @@
         <ul id="liveAlertsList" class="moments"></ul>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gamePerformersPanel" data-scope="game">
         <div class="section-head">
           <h2>Performance Leaders</h2>
           <p class="meta-text">Top players from the latest tracked game state.</p>
@@ -363,7 +364,7 @@
         <ul id="seriesMomentsList" class="moments"></ul>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameObjectiveControlPanel" data-scope="game">
         <div class="section-head">
           <h2>Objective Control</h2>
           <p class="meta-text">Weighted objective ownership split.</p>
@@ -371,7 +372,7 @@
         <div id="objectiveControlWrap" class="control-grid"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameObjectiveBreakdownPanel" data-scope="game">
         <div class="section-head">
           <h2>Objective Breakdown</h2>
           <p class="meta-text">Captured objective types by side.</p>
@@ -387,7 +388,7 @@
         <div id="draftBoardWrap" class="draft-grid"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameDraftDeltaPanel" data-scope="game">
         <div class="section-head">
           <h2>Draft Delta</h2>
           <p class="meta-text">How this map changed versus the previous completed map.</p>
@@ -395,7 +396,7 @@
         <div id="draftDeltaWrap" class="draft-delta"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameEconomyPanel" data-scope="game">
         <div class="section-head">
           <h2>Economy</h2>
           <p class="meta-text">Per-player gold, GPM, and combat line.</p>
@@ -403,7 +404,7 @@
         <div id="economyBoardWrap" class="economy-grid"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameLaneMatchupsPanel" data-scope="game">
         <div class="section-head">
           <h2>Lane Matchups</h2>
           <p class="meta-text">Role-by-role head-to-head economy comparison.</p>
@@ -411,7 +412,7 @@
         <div id="laneMatchupsWrap" class="lane-matchups"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameRoleDeltaPanel" data-scope="game">
         <div class="section-head">
           <h2>Role Matchup Deltas</h2>
           <p class="meta-text">Cross-map role lead conversion and selected-map deltas.</p>
@@ -419,7 +420,7 @@
         <div id="roleDeltaWrap" class="role-delta"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameObjectiveRunsPanel" data-scope="game">
         <div class="section-head">
           <h2>Objective Runs</h2>
           <p class="meta-text">Recent objective control streaks.</p>
@@ -460,7 +461,7 @@
         <div id="preMatchPlanner" class="planner-list"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameDataConfidencePanel" data-scope="game">
         <div class="section-head">
           <h2>Coverage</h2>
           <p class="meta-text">Coverage quality of live vs schedule data.</p>
@@ -468,7 +469,7 @@
         <div id="dataConfidenceWrap" class="confidence-wrap"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameAnalysisPanel" data-scope="game">
         <div class="section-head">
           <h2>Analysis</h2>
           <p class="meta-text">Composite read on edge, confidence, tempo, and tactical priority.</p>
@@ -476,7 +477,7 @@
         <div id="edgeMeterWrap" class="edge-meter"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameTempoPanel" data-scope="game">
         <div class="section-head">
           <h2>Pace</h2>
           <p class="meta-text">Series pace and game-length profile.</p>
@@ -484,7 +485,7 @@
         <div id="tempoSnapshotWrap" class="tempo-grid"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameKeysPanel" data-scope="game">
         <div class="section-head">
           <h2>Keys to Win</h2>
           <p class="meta-text">What matters most right now.</p>
@@ -508,7 +509,7 @@
         <ul id="liveTickerList" class="moments"></ul>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gamePlayerDeltaPanel" data-scope="game">
         <div class="section-head">
           <h2>Player Delta</h2>
           <p id="deltaWindowText" class="meta-text"></p>
@@ -550,6 +551,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312p"></script>
+    <script type="module" src="./match.js?v=20260312q"></script>
   </body>
 </html>

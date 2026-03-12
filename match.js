@@ -6064,8 +6064,37 @@ function renderTeamComparison(match) {
     return;
   }
 
+  const leftShort = scoreboardTeamName(match.teams.left.name, match?.game);
+  const rightShort = scoreboardTeamName(match.teams.right.name, match?.game);
+  const raceChips = rows
+    .map((row) => comparisonRaceChip(match, row))
+    .filter(Boolean)
+    .slice(0, 6);
+  const topSummary = raceChips[0] || null;
+
   elements.teamCompareWrap.innerHTML = `
-    <div class="lane-table-wrap">
+    <div class="game-team-compare-desk">
+      <article class="game-team-compare-hero">
+        <div class="game-team-compare-head">
+          <div>
+            <p class="tempo-label">Team desk</p>
+            <h3>${escapeHtml(topSummary?.label || "Map-wide team comparison")}</h3>
+            <p class="game-team-compare-note">${escapeHtml(`${leftShort} vs ${rightShort} across the latest tracked map totals.`)}</p>
+          </div>
+          <div class="form-summary-strip">
+            <span class="form-summary-pill">${escapeHtml(leftShort)}</span>
+            <span class="form-summary-pill">${escapeHtml(rightShort)}</span>
+          </div>
+        </div>
+        ${
+          raceChips.length
+            ? `<div class="game-team-compare-chiprow">${raceChips
+                .map((chip) => `<span class="game-team-compare-chip ${escapeHtml(chip.tone || "neutral")}">${escapeHtml(chip.label)}</span>`)
+                .join("")}</div>`
+            : ""
+        }
+      </article>
+      <div class="lane-table-wrap">
       <table class="lane-table compare-table">
         <thead>
           <tr>
@@ -6092,6 +6121,7 @@ function renderTeamComparison(match) {
             .join("")}
         </tbody>
       </table>
+      </div>
     </div>
   `;
 }
@@ -11511,18 +11541,44 @@ function renderTopPerformers(match) {
     return;
   }
 
-  elements.performersWrap.innerHTML = rows
-    .map(
-      (player) => `
-      <article class="performer-row">
-        <p class="performer-name">${heroIconMarkup(match, player)}<span>${player.name} · ${player.champion || "Unknown"}</span></p>
-        <p class="meta-text">${teamNameBySide(match, player.team)} · ${String(player.role || "flex").toUpperCase()}</p>
-        <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · CS ${player.cs} · Gold ${formatNumber(player.goldEarned)}</p>
-        <p class="meta-text">KP ${typeof player.killParticipationPct === "number" ? `${player.killParticipationPct.toFixed(1)}%` : "n/a"} · Score ${typeof player.impactScore === "number" ? player.impactScore.toFixed(1) : "n/a"}</p>
-      </article>
-    `
-    )
-    .join("");
+  const compact = isCompactUI();
+  const topRows = rows.slice(0, compact ? 4 : 6);
+  elements.performersWrap.innerHTML = `
+    <div class="performer-grid">
+      ${topRows
+        .map((player) => {
+          const teamName = teamNameBySide(match, player.team);
+          const teamShort = scoreboardTeamName(teamName, match?.game);
+          const role = roleMeta(player.role, normalizeGameKey(match?.game));
+          const kpLabel =
+            typeof player.killParticipationPct === "number" ? `${player.killParticipationPct.toFixed(1)}% KP` : "KP n/a";
+          const impactLabel =
+            typeof player.impactScore === "number" ? `Impact ${player.impactScore.toFixed(1)}` : "Impact n/a";
+          return `
+            <article class="performer-card ${escapeHtml(player.team || "neutral")}">
+              <div class="performer-card-head">
+                <span class="game-player-spotlight-tag">${escapeHtml(teamShort)}</span>
+                <span class="form-summary-pill">${escapeHtml(role.short)}</span>
+              </div>
+              <div class="performer-card-main">
+                <span class="performer-card-avatar">${heroIconMarkup(match, player)}</span>
+                <div class="performer-card-copy">
+                  <h3>${escapeHtml(displayPlayerHandle(player.name, teamName))}</h3>
+                  <p class="meta-text">${escapeHtml(player.champion || "Unknown")} · ${escapeHtml(role.label)}</p>
+                </div>
+              </div>
+              <div class="form-summary-strip">
+                <span class="form-summary-pill">Gold ${formatNumber(player.goldEarned)}</span>
+                <span class="form-summary-pill">${kpLabel}</span>
+                <span class="form-summary-pill">${impactLabel}</span>
+              </div>
+              <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · CS ${player.cs} · ${escapeHtml(teamName)}</p>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
 }
 
 function renderLiveTicker(rows, status) {
@@ -11889,22 +11945,35 @@ function renderPlayerDeltaPanel(panel, match) {
   const leftPlayers = panel.players.filter((player) => player.team === "left");
   const rightPlayers = panel.players.filter((player) => player.team === "right");
 
-  const renderTeam = (title, rows) => `
-    <section class="delta-team">
-      <h3>${title}</h3>
+  const renderTeam = (title, rows, toneClass) => `
+    <section class="delta-team ${toneClass}">
+      <div class="delta-team-head">
+        <div>
+          <p class="tempo-label">Player deltas</p>
+          <h3>${escapeHtml(title)}</h3>
+        </div>
+        <span class="form-summary-pill">${rows.length} tracked</span>
+      </div>
       ${rows.length
         ? rows
             .map(
               (player) => `
-                <article class="delta-player">
-                  <p class="delta-name">${player.name}</p>
-                  <p class="delta-sub">${String(player.role || "flex").toUpperCase()} · ${player.champion || "Unknown"}</p>
-                  <p class="delta-now">Now: KDA ${kdaLabel(player.now)} · L${player.now.level} · CS ${player.now.cs}</p>
-                  <p class="delta-now">Gold ${formatNumber(player.now.goldEarned)} · Items ${player.now.itemCount}</p>
-                  <p class="delta-shift">
-                    Δ K ${signed(player.delta.kills)} · D ${signed(player.delta.deaths)} · A ${signed(player.delta.assists)} ·
-                    CS ${signed(player.delta.cs)} · Gold ${signed(player.delta.goldEarned)} · Lvl ${signed(player.delta.level)} · Items ${signed(player.delta.itemCount)}
-                  </p>
+                <article class="delta-player ${toneClass}">
+                  <div class="delta-player-head">
+                    <span class="performer-card-avatar">${heroIconMarkup(match, player)}</span>
+                    <div class="delta-player-copy">
+                      <p class="delta-name">${escapeHtml(displayPlayerHandle(player.name, title))}</p>
+                      <p class="delta-sub">${escapeHtml(roleMeta(player.role, normalizeGameKey(match?.game)).short)} · ${escapeHtml(player.champion || "Unknown")}</p>
+                    </div>
+                  </div>
+                  <div class="form-summary-strip">
+                    <span class="form-summary-pill">Gold ${signed(player.delta.goldEarned)}</span>
+                    <span class="form-summary-pill">CS ${signed(player.delta.cs)}</span>
+                    <span class="form-summary-pill">Lvl ${signed(player.delta.level)}</span>
+                    <span class="form-summary-pill">Items ${signed(player.delta.itemCount)}</span>
+                  </div>
+                  <p class="delta-now">Now: KDA ${kdaLabel(player.now)} · L${player.now.level} · CS ${player.now.cs} · Gold ${formatNumber(player.now.goldEarned)}</p>
+                  <p class="delta-shift">Combat Δ K ${signed(player.delta.kills)} · D ${signed(player.delta.deaths)} · A ${signed(player.delta.assists)}</p>
                 </article>
               `
             )
@@ -11914,8 +11983,8 @@ function renderPlayerDeltaPanel(panel, match) {
   `;
 
   elements.playerDeltaWrap.innerHTML = `
-    ${renderTeam(match.teams.left.name, leftPlayers)}
-    ${renderTeam(match.teams.right.name, rightPlayers)}
+    ${renderTeam(match.teams.left.name, leftPlayers, "left")}
+    ${renderTeam(match.teams.right.name, rightPlayers, "right")}
   `;
 }
 

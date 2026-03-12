@@ -17937,6 +17937,66 @@ body.product-shell.match-page .match-content-group[data-layout-group="lineups"] 
   order: 1;
 }
 
+body.product-shell.match-page .match-content-group[data-layout-group="players"] > #playerTrackerPanel {
+  order: 1;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="players"] > #gamePerformersPanel {
+  order: 2;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="players"] > #gamePlayerDeltaPanel {
+  order: 3;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameAnalysisPanel {
+  order: 1;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameTeamComparePanel {
+  order: 2;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameDataConfidencePanel {
+  order: 3;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameTempoPanel {
+  order: 4;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameKeysPanel {
+  order: 5;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameObjectiveControlPanel {
+  order: 6;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameObjectiveBreakdownPanel {
+  order: 7;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameEconomyPanel {
+  order: 8;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameLaneMatchupsPanel {
+  order: 9;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameRoleDeltaPanel {
+  order: 10;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameDraftDeltaPanel {
+  order: 11;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="stats"] > #gameObjectiveRunsPanel {
+  order: 12;
+}
+
 body.product-shell.match-page .match-content-group > .panel {
   margin: 0;
 }
@@ -20296,6 +20356,319 @@ body.product-shell.match-page .game-feed-desk-card.critical {
   border-color: rgba(199, 90, 90, 0.24);
 }
 
+body.product-shell.match-page #playerTrackerPanel .tracker-sort-chip,
+body.product-shell.match-page #playerTrackerPanel .tracker-sort-select select {
+  border-color: rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+}
+
+body.product-shell.match-page #playerTrackerPanel .tracker-sort-chip.active,
+body.product-shell.match-page #playerTrackerPanel .tracker-sort-chip[aria-pressed="true"] {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.14);
+  color: #f4d8b3;
+}
+
+body.product-shell.match-page #playerTrackerPanel .tracker-table,
+body.product-shell.match-page #playerTrackerPanel .tracker-table-mobile {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #playerTrackerPanel .tracker-table thead th,
+body.product-shell.match-page #playerTrackerPanel .tracker-table-mobile thead th {
+  color: #9aa8b7;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.product-shell.match-page #playerTrackerPanel .tracker-table tbody td,
+body.product-shell.match-page #playerTrackerPanel .tracker-table-mobile tbody td {
+  color: #e6edf4;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(233, 239, 245, 0.05);
+}
+
+body.product-shell.match-page #playerTrackerPanel .tracker-player-inline-name {
+  color: #f2f6fb;
+}
+
+body.product-shell.match-page #playerTrackerPanel .tracker-player-inline-sub,
+body.product-shell.match-page #playerTrackerPanel .tracker-player-inline-hero,
+body.product-shell.match-page #playerTrackerPanel .tracker-hp-label {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #playerTrackerPanel .tracker-status-badge.neutral {
+  border-color: rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+}
+
+body.product-shell.match-page .game-team-compare-desk,
+body.product-shell.match-page .performer-grid {
+  display: grid;
+  gap: 0.62rem;
+}
+
+body.product-shell.match-page .game-team-compare-hero,
+body.product-shell.match-page .performer-card,
+body.product-shell.match-page #matchGroupPlayers .delta-team,
+body.product-shell.match-page #matchGroupPlayers .delta-player,
+body.product-shell.match-page #matchGroupStats .confidence-card,
+body.product-shell.match-page #matchGroupStats .tempo-card,
+body.product-shell.match-page #matchGroupStats .check-item,
+body.product-shell.match-page #matchGroupStats .control-card,
+body.product-shell.match-page #matchGroupStats .objective-side,
+body.product-shell.match-page #matchGroupStats .draft-delta-summary,
+body.product-shell.match-page #matchGroupStats .economy-team,
+body.product-shell.match-page #matchGroupStats .economy-row,
+body.product-shell.match-page #matchGroupStats .forecast-card,
+body.product-shell.match-page #matchGroupStats .totals-strip {
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  border-radius: 0.94rem;
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .game-team-compare-hero {
+  display: grid;
+  gap: 0.52rem;
+  padding: 0.74rem 0.78rem;
+}
+
+body.product-shell.match-page .game-team-compare-head,
+body.product-shell.match-page .performer-card-head,
+body.product-shell.match-page .delta-team-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.58rem;
+  align-items: flex-start;
+}
+
+body.product-shell.match-page .game-team-compare-head h3,
+body.product-shell.match-page .performer-card-copy h3,
+body.product-shell.match-page .delta-team h3 {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.16;
+}
+
+body.product-shell.match-page .game-team-compare-note {
+  margin: 0.12rem 0 0;
+  color: #aab6c4;
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+body.product-shell.match-page .game-team-compare-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+body.product-shell.match-page .game-team-compare-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.58rem;
+  padding: 0.14rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .game-team-compare-chip.left {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .game-team-compare-chip.right,
+body.product-shell.match-page .game-team-compare-chip.warn {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page #gameTeamComparePanel .compare-table,
+body.product-shell.match-page #matchGroupStats .lane-table,
+body.product-shell.match-page #matchGroupStats .draft-delta-table,
+body.product-shell.match-page #matchGroupStats .role-delta-table {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #gameTeamComparePanel .compare-table thead th,
+body.product-shell.match-page #matchGroupStats .lane-table thead th,
+body.product-shell.match-page #matchGroupStats .draft-delta-table thead th,
+body.product-shell.match-page #matchGroupStats .role-delta-table thead th {
+  color: #9aa8b7;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.product-shell.match-page #gameTeamComparePanel .compare-table tbody td,
+body.product-shell.match-page #matchGroupStats .lane-table tbody td,
+body.product-shell.match-page #matchGroupStats .draft-delta-table tbody td,
+body.product-shell.match-page #matchGroupStats .role-delta-table tbody td {
+  color: #e6edf4;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(233, 239, 245, 0.05);
+}
+
+body.product-shell.match-page #gameTeamComparePanel .compare-table td.win-left,
+body.product-shell.match-page #matchGroupStats .lane-table td.win-left {
+  color: #7bd2a0;
+}
+
+body.product-shell.match-page #gameTeamComparePanel .compare-table td.win-right,
+body.product-shell.match-page #matchGroupStats .lane-table td.win-right {
+  color: #f2bf77;
+}
+
+body.product-shell.match-page #matchGroupStats .lane-table td:nth-child(3),
+body.product-shell.match-page #matchGroupStats .draft-delta-table td:nth-child(3),
+body.product-shell.match-page #matchGroupStats .role-delta-table td:nth-child(3) {
+  color: #f1b25f;
+}
+
+body.product-shell.match-page #matchGroupStats .confidence-title,
+body.product-shell.match-page #matchGroupStats .forecast-title,
+body.product-shell.match-page #matchGroupStats .check-title,
+body.product-shell.match-page #matchGroupStats .objective-side h3,
+body.product-shell.match-page #matchGroupStats .economy-team h3 {
+  color: #f2f6fb;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-weight: 700;
+}
+
+body.product-shell.match-page #matchGroupStats .confidence-score,
+body.product-shell.match-page #matchGroupStats .forecast-eta {
+  color: #f1b25f;
+}
+
+body.product-shell.match-page #matchGroupStats .confidence-notes,
+body.product-shell.match-page #matchGroupStats .objective-stats p,
+body.product-shell.match-page #matchGroupStats .economy-row p,
+body.product-shell.match-page #matchGroupStats .totals-strip p,
+body.product-shell.match-page #matchGroupStats .check-item .meta-text,
+body.product-shell.match-page #matchGroupStats .draft-delta-summary p {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #matchGroupStats .control-bar {
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page #matchGroupStats .control-bar .left {
+  background: linear-gradient(90deg, rgba(86, 160, 117, 0.98), rgba(64, 132, 93, 0.98));
+}
+
+body.product-shell.match-page #matchGroupStats .control-bar .right {
+  background: linear-gradient(90deg, rgba(216, 138, 51, 0.98), rgba(185, 112, 34, 0.98));
+}
+
+body.product-shell.match-page .performer-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+body.product-shell.match-page .performer-card {
+  display: grid;
+  gap: 0.52rem;
+  padding: 0.74rem 0.78rem;
+}
+
+body.product-shell.match-page .performer-card.left {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .performer-card.right {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .performer-card-main,
+body.product-shell.match-page .delta-player-head {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  min-width: 0;
+}
+
+body.product-shell.match-page .performer-card-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+body.product-shell.match-page .performer-card-avatar .tracker-hero-icon {
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 0.88rem;
+}
+
+body.product-shell.match-page .performer-card-copy,
+body.product-shell.match-page .delta-player-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.08rem;
+}
+
+body.product-shell.match-page .performer-card-copy h3,
+body.product-shell.match-page .delta-name {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.16;
+}
+
+body.product-shell.match-page #matchGroupPlayers .performer-row p,
+body.product-shell.match-page .delta-player p {
+  margin: 0;
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-grid {
+  gap: 0.68rem;
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-team {
+  display: grid;
+  gap: 0.56rem;
+  padding: 0.72rem 0.76rem;
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-team.left {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-team.right {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-player {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.58rem 0.62rem;
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-player.left {
+  border-color: rgba(86, 160, 117, 0.1);
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-player.right {
+  border-color: rgba(216, 138, 51, 0.1);
+}
+
+body.product-shell.match-page #matchGroupPlayers .delta-sub,
+body.product-shell.match-page #matchGroupPlayers .delta-now,
+body.product-shell.match-page #matchGroupPlayers .delta-shift {
+  color: #aab6c4;
+}
+
 @media (max-width: 980px) {
   body.product-shell.match-page .game-player-summary-shell {
     grid-template-columns: 1fr;
@@ -20318,6 +20691,17 @@ body.product-shell.match-page .game-feed-desk-card.critical {
   body.product-shell.match-page .game-player-spotlight-copy h3,
   body.product-shell.match-page .game-feed-desk-copy h3 {
     font-size: 0.88rem;
+  }
+
+  body.product-shell.match-page .game-team-compare-head,
+  body.product-shell.match-page .performer-card-head,
+  body.product-shell.match-page .delta-team-head {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .performer-grid {
+    grid-template-columns: 1fr;
   }
 
   body.product-shell.match-page .game-feed-desk-grid {
