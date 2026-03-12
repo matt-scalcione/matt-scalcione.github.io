@@ -13991,6 +13991,10 @@ body.product-shell.schedule-page .schedule-filter-date-grid {
   gap: 0.44rem;
 }
 
+body.product-shell.schedule-page .schedule-filter-date-grid[hidden] {
+  display: none !important;
+}
+
 body.product-shell.schedule-page .schedule-range-row {
   gap: 0.28rem;
   margin-bottom: 0;
@@ -14109,8 +14113,13 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
   }
 
   body.product-shell.schedule-page .schedule-filter-date-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 0.34rem;
+  }
+
+  body.product-shell.schedule-page input[type="datetime-local"] {
+    font-size: 0.8rem;
+    letter-spacing: 0;
   }
 
   body.product-shell.schedule-page .schedule-filter-chip-row {
@@ -14150,10 +14159,6 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
 @media (max-width: 380px) {
   body.product-shell.schedule-page .schedule-range-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  body.product-shell.schedule-page .schedule-filter-date-grid {
-    grid-template-columns: 1fr;
   }
 
   body.product-shell.schedule-page .schedule-filter-toggle {

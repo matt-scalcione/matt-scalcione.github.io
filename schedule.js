@@ -125,7 +125,6 @@ const scheduleUiState = {
 let activeLoadRequestId = 0;
 let resultsRetryHandle = null;
 const SCHEDULE_FILTER_COLLAPSE_KEY = "pulseboard.schedule.filtersCollapsed";
-const SCHEDULE_CUSTOM_DATES_KEY = "pulseboard.schedule.customDatesExpanded";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -666,19 +665,7 @@ function shouldShowCustomDates() {
   return scheduleUiState.customDatesExpanded;
 }
 
-function readStoredScheduleCustomDates() {
-  try {
-    const stored = localStorage.getItem(SCHEDULE_CUSTOM_DATES_KEY);
-    if (stored === "1" || stored === "0") {
-      return stored === "1";
-    }
-  } catch {
-    // Ignore storage failures.
-  }
-  return null;
-}
-
-function syncScheduleCustomDatesState({ persist = true } = {}) {
+function syncScheduleCustomDatesState() {
   const showCustomDates = shouldShowCustomDates();
   const customActive = !activeScheduleRangeKey();
   if (elements.scheduleCustomDates) {
@@ -688,13 +675,6 @@ function syncScheduleCustomDatesState({ persist = true } = {}) {
     elements.scheduleCustomDatesToggle.classList.toggle("active", showCustomDates || customActive);
     elements.scheduleCustomDatesToggle.setAttribute("aria-expanded", String(showCustomDates));
     elements.scheduleCustomDatesToggle.setAttribute("aria-pressed", String(showCustomDates || customActive));
-  }
-  if (persist && isCompactViewport()) {
-    try {
-      localStorage.setItem(SCHEDULE_CUSTOM_DATES_KEY, scheduleUiState.customDatesExpanded ? "1" : "0");
-    } catch {
-      // Ignore storage failures.
-    }
   }
 }
 
@@ -776,7 +756,7 @@ function applyScheduleFilterCollapsed(collapsed, { persist = true } = {}) {
 function syncScheduleFilterChrome({ persist = false } = {}) {
   syncScheduleGameChipState();
   syncScheduleFilterSummary();
-  syncScheduleCustomDatesState({ persist });
+  syncScheduleCustomDatesState();
   if (!isCompactViewport()) {
     applyScheduleFilterCollapsed(false, { persist: false });
     return;
@@ -1357,10 +1337,7 @@ function boot() {
   if (scheduleUiState.filtersCollapsed == null) {
     scheduleUiState.filtersCollapsed = isCompactViewport();
   }
-  scheduleUiState.customDatesExpanded = readStoredScheduleCustomDates();
-  if (scheduleUiState.customDatesExpanded == null) {
-    scheduleUiState.customDatesExpanded = false;
-  }
+  scheduleUiState.customDatesExpanded = false;
   try {
     scheduleDiscoveryState.searchTerm = String(localStorage.getItem("pulseboard.schedule.search") || "").trim();
   } catch {
