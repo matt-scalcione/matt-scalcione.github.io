@@ -7725,6 +7725,7 @@ function renderUnifiedLiveFeed(match) {
   renderFeedControlsChrome(match);
 
   const selectedState = String(match?.selectedGame?.state || "");
+  const compact = isCompactUI();
   if (elements.liveSummaryWrap && selectedState !== "inProgress") {
     elements.liveSummaryWrap.innerHTML = "";
   }
@@ -7781,45 +7782,56 @@ function renderUnifiedLiveFeed(match) {
         const storyTargetId = active ? activeEventId : row.eventId;
         const majorClass = row.majorEvent ? ` major-event major-${row.majorEvent.kind}` : "";
         const clusterChip =
-          row.clusterCount > 1 ? `<span class="feed-cluster-chip">+${row.clusterCount - 1} linked</span>` : "";
+          row.clusterCount > 1 && !compact ? `<span class="feed-cluster-chip">+${row.clusterCount - 1} linked</span>` : "";
         const majorPill = row.majorEvent ? `<span class="feed-major-pill ${row.majorEvent.kind}">${row.majorEvent.label}</span>` : "";
         const majorSummary =
           row.majorEvent && row.hasUsefulSummary
-            ? `<p class="feed-major-summary">${clampSummaryText(row.summary, 108)}</p>`
+            ? `<p class="feed-major-summary${compact ? " compact" : ""}">${clampSummaryText(row.summary, compact ? 78 : 108)}</p>`
             : "";
+        const teamTag =
+          row.team
+            ? `<span class="feed-team-tag ${row.team}">${
+                compact
+                  ? scoreboardTeamName(row.team === "left" ? match.teams.left.name : match.teams.right.name)
+                  : displayTeamName(row.team === "left" ? match.teams.left.name : match.teams.right.name)
+              }</span>`
+            : "";
+        const compactMomentumTag =
+          row.bucket === "swing" || row.majorEvent?.kind === "swing"
+            ? `<span class="feed-swing-tag ${row.swingDescriptor.tone}">${row.swingDescriptor.short}</span>`
+            : `<span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span>`;
+        const metaTags = compact
+          ? [teamTag, compactMomentumTag]
+          : [
+              `<span class="feed-phase-tag ${row.phase.key}">${row.phase.label}</span>`,
+              `<span class="feed-bucket-tag ${row.bucket}">${feedBucketTagLabel(row.bucket)}</span>`,
+              teamTag,
+              `<span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span>`,
+              `<span class="feed-swing-tag ${row.swingDescriptor.tone}">${row.swingDescriptor.short}</span>`,
+              clusterChip
+            ];
         return `
       <li class="live-feed-item ${row.team === "left" ? "team-left" : row.team === "right" ? "team-right" : "team-neutral"}${
           active ? " active" : ""
-        } importance-${row.importance}${majorClass}" data-story-event-id="${encodeStoryEventId(
+        } importance-${row.importance}${majorClass}${compact ? " compact" : ""}" data-story-event-id="${encodeStoryEventId(
           storyTargetId
         )}" tabindex="0" role="button" aria-label="Jump to event in trend">
-        <div class="live-feed-row">
+        <div class="live-feed-row${compact ? " compact" : ""}">
           <span class="feed-game-time">${row.gameClockSeconds === null ? "--:--" : `${timelineAnchor.estimated ? "~" : ""}${formatGameClock(row.gameClockSeconds)}`}</span>
-          <div class="live-feed-main">
-            <div class="live-feed-top">
+          <div class="live-feed-main${compact ? " compact" : ""}">
+            <div class="live-feed-top${compact ? " compact" : ""}">
               <p class="live-feed-title">
                 <span class="feed-priority-dot ${row.importance}" aria-hidden="true"></span>
-                <span>${row.title}</span>
+                <span>${escapeHtml(compact ? clampSummaryText(row.title, 54) : row.title)}</span>
               </p>
-              <div class="feed-top-side">
+              <div class="feed-top-side${compact ? " compact" : ""}">
                 ${majorPill}
                 <span class="feed-absolute-time">${shortTimeLabel(row.at)}</span>
               </div>
             </div>
             ${majorSummary}
-            <div class="live-feed-meta-row">
-              <span class="feed-phase-tag ${row.phase.key}">${row.phase.label}</span>
-              <span class="feed-bucket-tag ${row.bucket}">${feedBucketTagLabel(row.bucket)}</span>
-              ${
-                row.team
-                  ? `<span class="feed-team-tag ${row.team}">${
-                      row.team === "left" ? displayTeamName(match.teams.left.name) : displayTeamName(match.teams.right.name)
-                    }</span>`
-                  : ""
-              }
-              <span class="feed-lead-tag ${row.leadDescriptor.tone}">${row.leadDescriptor.label}</span>
-              <span class="feed-swing-tag ${row.swingDescriptor.tone}">${row.swingDescriptor.short}</span>
-              ${clusterChip}
+            <div class="live-feed-meta-row${compact ? " compact" : ""}">
+              ${metaTags.filter(Boolean).join("")}
             </div>
           </div>
         </div>

@@ -21368,6 +21368,11 @@ body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item {
   padding: 0.56rem 0.62rem;
 }
 
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.compact {
+  gap: 0.06rem;
+  padding: 0.48rem 0.54rem;
+}
+
 body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.active {
   background: linear-gradient(180deg, rgba(53, 66, 80, 0.98), rgba(41, 51, 64, 0.98));
   border-color: rgba(123, 210, 160, 0.18);
@@ -21396,6 +21401,49 @@ body.product-shell.match-page #matchGroupFeed .live-feed-meta-row,
 body.product-shell.match-page #matchGroupFeed .feed-major-summary,
 body.product-shell.match-page #matchGroupFeed .feed-game-time {
   color: #dfe7ef;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-main.compact {
+  gap: 0.12rem;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-top.compact {
+  gap: 0.26rem;
+}
+
+body.product-shell.match-page #matchGroupFeed .feed-top-side.compact {
+  gap: 0.18rem;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .live-feed-title {
+  font-size: 0.78rem;
+  line-height: 1.16;
+}
+
+body.product-shell.match-page #matchGroupFeed .feed-major-summary.compact {
+  font-size: 0.66rem;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-meta-row.compact {
+  gap: 0.18rem;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .feed-team-tag,
+body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .feed-lead-tag,
+body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .feed-swing-tag,
+body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .feed-major-pill {
+  font-size: 0.52rem;
+  padding: 0.03rem 0.22rem;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .feed-game-time {
+  min-width: 2.34rem;
+  font-size: 0.72rem;
 }
 
 body.product-shell.match-page #gameAlertsPanel .live-alert-item {
@@ -22038,6 +22086,34 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
     gap: 0.34rem;
   }
 
+  body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head,
+  body.product-shell.match-page.mobile-game-mode #gameAlertsPanel .section-head,
+  body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head,
+  body.product-shell.match-page.mobile-game-mode #gameSignalsPanel .section-head,
+  body.product-shell.match-page.mobile-game-mode #gameMilestonesPanel .section-head,
+  body.product-shell.match-page.mobile-game-mode #gameObjectiveForecastPanel .section-head {
+    margin-bottom: 0.28rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-game-mode #gameAlertsPanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-game-mode #gameSignalsPanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-game-mode #gameMilestonesPanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-game-mode #gameObjectiveForecastPanel .section-head .meta-text {
+    display: none;
+  }
+
+  body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head h2,
+  body.product-shell.match-page.mobile-game-mode #gameAlertsPanel .section-head h2,
+  body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head h2,
+  body.product-shell.match-page.mobile-game-mode #gameSignalsPanel .section-head h2,
+  body.product-shell.match-page.mobile-game-mode #gameMilestonesPanel .section-head h2,
+  body.product-shell.match-page.mobile-game-mode #gameObjectiveForecastPanel .section-head h2 {
+    font-size: 0.8rem;
+    line-height: 1.08;
+  }
+
   body.product-shell.match-page .game-feed-desk-shell.compact {
     gap: 0.34rem;
   }
@@ -22062,6 +22138,43 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   body.product-shell.match-page .signal-log-item .meta-text,
   body.product-shell.match-page #gameAlertsPanel .live-alert-item .meta-text {
     font-size: 0.7rem;
+  }
+
+  body.product-shell.match-page .live-feed-toolbar-shell {
+    margin: 0.08rem 0 0.3rem;
+  }
+
+  body.product-shell.match-page .live-feed-toolbar {
+    gap: 0.24rem;
+  }
+
+  body.product-shell.match-page .live-feed-toolbar select,
+  body.product-shell.match-page .live-feed-reset {
+    min-height: 1.78rem;
+    min-width: 4.6rem;
+    font-size: 0.62rem;
+  }
+
+  body.product-shell.match-page #matchGroupFeed .live-summary-strip {
+    margin-bottom: 0.32rem;
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page #matchGroupFeed .live-feed-list {
+    gap: 0.26rem;
+  }
+
+  body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.compact {
+    padding: 0.42rem 0.46rem;
+    border-radius: 0.82rem;
+  }
+
+  body.product-shell.match-page #matchGroupFeed .live-feed-row.compact {
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .feed-major-summary {
+    font-size: 0.62rem;
   }
 
   body.product-shell.match-page .match-desk-mini-grid {
