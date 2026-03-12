@@ -1084,6 +1084,34 @@ function teamTrustSignalsMarkup(row) {
   `;
 }
 
+function teamCompactTrustMarkup(row) {
+  const provenance = buildRowDataProvenance(row, {
+    fallbackTimestamp: row?.endAt || row?.startAt || null
+  });
+  const qualityNotice = buildRowQualityNotice(row);
+
+  if (qualityNotice.text) {
+    return `<p class="data-quality-line ${qualityNotice.tone} team-match-note" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`;
+  }
+
+  if (provenance.tone === "snapshot" && provenance.text) {
+    return `<p class="data-provenance-line ${provenance.tone} team-match-note" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`;
+  }
+
+  return "";
+}
+
+function teamMatchMetaLabel(row) {
+  const parts = [];
+  if (row?.tournament) {
+    parts.push(String(row.tournament));
+  }
+  if (row?.startAt) {
+    parts.push(dateTimeLabel(row.startAt));
+  }
+  return parts.join(" · ") || "Unknown";
+}
+
 function teamTableMetaMarkup(row) {
   const trustMarkup = teamTrustSignalsMarkup(row);
   return `
@@ -1108,6 +1136,8 @@ function teamMatchCard(row, profile, apiBase, options = {}) {
   const score = seriesScoreLabel(row);
   const relativeLabel = relativeStartLabel(row.startAt);
   const bestOf = Number(row?.bestOf || 0);
+  const metaLabel = teamMatchMetaLabel(row);
+  const trustNotice = teamCompactTrustMarkup(row);
   const topChips = [];
 
   if (mode === "upcoming") {
@@ -1132,10 +1162,9 @@ function teamMatchCard(row, profile, apiBase, options = {}) {
         <p class="team-match-opponent-line">${opponentLabel}</p>
       </div>
       <div class="team-match-meta">
-        <span>${dateTimeLabel(row.startAt)}</span>
-        <span>${escapeHtml(row.tournament || "Unknown")}</span>
+        <span>${escapeHtml(metaLabel)}</span>
       </div>
-      ${teamTrustSignalsMarkup(row)}
+      ${trustNotice}
     </article>
   `;
 }

@@ -16577,3 +16577,129 @@ body.product-shell.hub-page .table-link {
     display: none;
   }
 }
+
+@media (max-width: 760px) {
+  body.product-shell.team-page .team-summary-kicker-row .team-summary-context-pill,
+  body.product-shell.team-page .team-summary-tags,
+  body.product-shell.team-page .team-summary-actions {
+    display: none;
+  }
+
+  body.product-shell.team-page .team-summary-hero {
+    gap: 0.38rem;
+    padding: 0.56rem;
+  }
+
+  body.product-shell.team-page .team-summary-main,
+  body.product-shell.team-page .team-summary-identity {
+    gap: 0.4rem;
+  }
+
+  body.product-shell.team-page .team-summary-subline {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  body.product-shell.team-page .team-summary-primary,
+  body.product-shell.team-page .team-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.team-page .team-match-list {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.team-page .team-match-card {
+    gap: 0.24rem;
+    padding: 0.52rem 0.56rem;
+  }
+
+  body.product-shell.team-page .team-match-card-top {
+    align-items: center;
+  }
+
+  body.product-shell.team-page .team-match-chip-row > :nth-child(n + 3) {
+    display: none;
+  }
+
+  body.product-shell.team-page .team-match-opponent-row {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.team-page .team-match-opponent-badge {
+    width: 1.34rem;
+    height: 1.34rem;
+  }
+
+  body.product-shell.team-page .team-match-opponent-line {
+    font-size: 0.78rem;
+  }
+
+  body.product-shell.team-page .team-match-meta {
+    display: block;
+    font-size: 0.64rem;
+    line-height: 1.3;
+  }
+
+  body.product-shell.team-page .team-match-note {
+    margin: 0;
+    font-size: 0.62rem;
+    line-height: 1.3;
+  }
+
+  body.product-shell.hub-page .hub-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.34rem;
+  }
+
+  body.product-shell.hub-page .hub-kpi-card,
+  body.product-shell.hub-page .hub-radar-card,
+  body.product-shell.hub-page .hub-match-card {
+    padding: 0.56rem;
+  }
+
+  body.product-shell.hub-page .hub-match-card {
+    gap: 0.3rem;
+  }
+
+  body.product-shell.hub-page .hub-match-card .schedule-card-top {
+    align-items: center;
+  }
+
+  body.product-shell.hub-page .hub-match-card .schedule-card-game {
+    font-size: 0.62rem;
+  }
+
+  body.product-shell.hub-page .hub-match-card .schedule-card-badge {
+    min-width: 1.72rem;
+    min-height: 1.72rem;
+  }
+
+  body.product-shell.hub-page .hub-match-card .schedule-card-center {
+    min-width: 3.6rem;
+  }
+
+  body.product-shell.hub-page .hub-match-card-context {
+    margin: 0;
+    color: #d4dde6;
+    font-size: 0.66rem;
+    line-height: 1.3;
+  }
+
+  body.product-shell.hub-page .hub-match-card-foot {
+    padding-top: 0;
+    align-items: center;
+  }
+
+  body.product-shell.hub-page .hub-match-card-foot .table-link {
+    white-space: nowrap;
+  }
+
+  body.product-shell.hub-page .hub-match-note {
+    margin: 0;
+    font-size: 0.62rem;
+    line-height: 1.3;
+  }
+}

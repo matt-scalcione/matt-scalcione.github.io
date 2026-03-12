@@ -414,6 +414,32 @@ function statusLabel(status) {
   return "FINAL";
 }
 
+function hubCardContextLabel(row, type) {
+  const normalizedType = String(type || "").toLowerCase();
+  if (normalizedType === "results") {
+    return `Winner · ${shortTeamName(winnerName(row))}`;
+  }
+  if (normalizedType === "live") {
+    return `${formatLabel(row?.bestOf)} · Live`;
+  }
+  return formatLabel(row?.bestOf);
+}
+
+function hubCardTrustMarkup(row) {
+  const provenance = buildRowDataProvenance(row);
+  const qualityNotice = buildRowQualityNotice(row);
+
+  if (qualityNotice.text) {
+    return `<p class="data-quality-line ${qualityNotice.tone} hub-match-note" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`;
+  }
+
+  if (provenance.tone === "snapshot" && provenance.text) {
+    return `<p class="data-provenance-line ${provenance.tone} hub-match-note" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`;
+  }
+
+  return "";
+}
+
 function matchCard(row, type) {
   const left = row?.teams?.left || {};
   const right = row?.teams?.right || {};
@@ -438,14 +464,8 @@ function matchCard(row, type) {
     opponentId: left.id
   });
   const footPrimary = row?.tournament || "Event";
-  const footSecondary =
-    normalizedType === "live"
-      ? `${formatLabel(row?.bestOf)} · Live now`
-      : normalizedType === "upcoming"
-        ? `${formatLabel(row?.bestOf)} · Starts ${dateTimeLabel(row?.startAt)}`
-        : `Winner · ${shortTeamName(winnerName(row))}`;
-  const provenance = buildRowDataProvenance(row);
-  const qualityNotice = buildRowQualityNotice(row);
+  const contextLabel = hubCardContextLabel(row, type);
+  const trustMarkup = hubCardTrustMarkup(row);
 
   return `
     <article class="schedule-row-card hub-match-card schedule-${status}">
@@ -467,18 +487,12 @@ function matchCard(row, type) {
           <a class="schedule-card-name team-link" href="${rightTeamUrl}">${escapeHtml(shortTeamName(right.name))}</a>
         </div>
       </div>
-      <p class="schedule-card-meta hub-match-card-recap">${escapeHtml(recapTemplate(row, type))}</p>
+      <p class="schedule-card-meta hub-match-card-context">${escapeHtml(contextLabel)}</p>
       <div class="schedule-card-foot hub-match-card-foot">
         <p class="schedule-card-meta primary">${escapeHtml(footPrimary)}</p>
-        <p class="schedule-card-meta secondary">${escapeHtml(footSecondary)}</p>
+        <a class="table-link" href="${detailUrl}">Open match</a>
       </div>
-      ${provenance.text
-        ? `<p class="data-provenance-line ${provenance.tone} schedule-card-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
-        : ""}
-      ${qualityNotice.text
-        ? `<p class="data-quality-line ${qualityNotice.tone} schedule-card-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`
-        : ""}
-      <p class="meta-text"><a class="table-link" href="${detailUrl}">Open match</a></p>
+      ${trustMarkup}
     </article>
   `;
 }
