@@ -30,10 +30,31 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312l" />
+    <link rel="stylesheet" href="./styles.css?v=20260312n" />
   </head>
   <body class="product-shell schedule-page">
     <div class="noise"></div>
+    <header class="site-header">
+      <div class="site-header-row">
+        <a href="./index.html" class="site-brand" aria-label="Pulseboard home">
+          <span class="site-brand-mark" aria-hidden="true">PB</span>
+          <span class="site-brand-copy">
+            <span class="site-brand-name">Pulseboard</span>
+            <span class="site-brand-tag">Pro scores</span>
+          </span>
+        </a>
+        <div class="site-header-utility" aria-hidden="true">
+          <span class="site-header-utility-pill">Live esports board</span>
+        </div>
+      </div>
+      <nav class="site-header-nav" aria-label="Primary">
+        <a id="liveDeskNav" href="./index.html">Live</a>
+        <a id="scheduleNav" href="./schedule.html" aria-current="page">Schedule</a>
+        <a id="followsNav" href="./follows.html">Follows</a>
+        <a id="lolHubNav" href="./lol.html">LoL</a>
+        <a id="dotaHubNav" href="./dota2.html">Dota 2</a>
+      </nav>
+    </header>
     <header class="hero">
       <div class="hero-grid">
         <div class="hero-main">
@@ -64,13 +85,6 @@
             <span class="hero-chip">Upcoming</span>
             <span class="hero-chip">Results</span>
           </div>
-          <nav class="page-nav">
-            <a id="liveDeskNav" href="./index.html">Live Desk</a>
-            <a id="scheduleNav" href="./schedule.html" aria-current="page">Schedule & Results</a>
-            <a id="followsNav" href="./follows.html">Follows & Alerts</a>
-            <a id="lolHubNav" href="./lol.html">LoL Hub</a>
-            <a id="dotaHubNav" href="./dota2.html">Dota Hub</a>
-          </nav>
         </div>
         <aside class="hero-side">
           <p id="heroContextLabel" class="hero-side-label">Focus</p>

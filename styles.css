@@ -16703,3 +16703,242 @@ body.product-shell.hub-page .table-link {
     line-height: 1.3;
   }
 }
+
+body.product-shell .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 48;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.56rem 0.9rem 0;
+}
+
+body.product-shell .site-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.84rem;
+  padding: 0.56rem 0.72rem;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  border-radius: 14px 14px 0 0;
+  background: rgba(36, 43, 51, 0.94);
+  box-shadow: 0 10px 24px rgba(8, 10, 14, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+body.product-shell .site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.68rem;
+  min-width: 0;
+  color: #edf2f8;
+  text-decoration: none;
+}
+
+body.product-shell .site-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.26rem;
+  height: 2.26rem;
+  border-radius: 0.74rem;
+  border: 1px solid rgba(255, 220, 189, 0.12);
+  background: linear-gradient(180deg, rgba(216, 138, 51, 0.98), rgba(177, 111, 38, 0.98));
+  color: #121820;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+body.product-shell .site-brand-copy {
+  display: grid;
+  gap: 0.04rem;
+  min-width: 0;
+}
+
+body.product-shell .site-brand-name,
+body.product-shell .site-brand-tag {
+  display: block;
+  white-space: nowrap;
+}
+
+body.product-shell .site-brand-name {
+  color: #f0f4f8;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.product-shell .site-brand-tag {
+  color: #8693a5;
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell .site-header-utility {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+body.product-shell .site-header-utility-pill,
+body.product-shell .site-header-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.84rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #d5dde6;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+body.product-shell .site-header-back {
+  color: #f5d19f;
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.12);
+}
+
+body.product-shell .site-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.18rem;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  background: rgba(30, 36, 43, 0.96);
+  box-shadow: 0 12px 24px rgba(8, 10, 14, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+body.product-shell .site-header-nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.9rem;
+  padding: 0.24rem 0.66rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5df;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+body.product-shell .site-header-nav a:hover {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.1);
+  color: #f5d19f;
+}
+
+body.product-shell .site-header-nav a[aria-current="page"] {
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.14);
+  color: #f8ddbb;
+  box-shadow: inset 0 0 0 1px rgba(216, 138, 51, 0.08);
+}
+
+body.product-shell .hero {
+  padding-top: 0.42rem;
+}
+
+body.product-shell.match-page .match-shell {
+  padding-top: 0.34rem;
+}
+
+body.product-shell.match-page .site-header {
+  max-width: 1280px;
+}
+
+body.product-shell .mobile-tabbar {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  body.product-shell .site-header-row {
+    padding: 0.52rem 0.64rem;
+  }
+
+  body.product-shell .site-header-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body.product-shell .site-header-nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell .site-header {
+    padding: 0.44rem 0.56rem 0;
+  }
+
+  body.product-shell .site-header-row {
+    padding: 0.48rem 0.56rem;
+    border-radius: 12px 12px 0 0;
+  }
+
+  body.product-shell .site-brand {
+    gap: 0.56rem;
+  }
+
+  body.product-shell .site-brand-mark {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.68rem;
+    font-size: 0.68rem;
+  }
+
+  body.product-shell .site-brand-name {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+
+  body.product-shell .site-brand-tag,
+  body.product-shell .site-header-utility {
+    display: none;
+  }
+
+  body.product-shell.match-page .site-header-utility {
+    display: inline-flex;
+  }
+
+  body.product-shell .site-header-nav {
+    gap: 0.16rem;
+    padding: 0.16rem;
+    border-radius: 0 0 12px 12px;
+  }
+
+  body.product-shell .site-header-nav a {
+    min-height: 1.7rem;
+    padding: 0.2rem 0.54rem;
+    font-size: 0.56rem;
+    letter-spacing: 0.06em;
+  }
+
+  body.product-shell .hero {
+    padding-top: 0.34rem;
+  }
+
+  body.product-shell.match-page .match-shell {
+    padding-top: 0.22rem;
+  }
+}
