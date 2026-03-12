@@ -90,26 +90,21 @@ const MOBILE_SERIES_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Games" },
   { id: "matchupConsoleWrap", label: "Stats" },
   { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "upcomingFormWrap", label: "Past" },
-  { id: "upcomingH2hWrap", label: "H2H" }
+  { id: "upcomingFormWrap", label: "Past" }
 ];
 const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
   { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
   { id: "seriesGamesWrap", label: "Maps" },
-  { id: "seriesProgressWrap", label: "Progress" },
   { id: "matchupConsoleWrap", label: "Stats" },
-  { id: "upcomingFormWrap", label: "Past" },
-  { id: "upcomingH2hWrap", label: "H2H" }
+  { id: "upcomingFormWrap", label: "Past" }
 ];
 const MOBILE_COMPLETED_SERIES_JUMP_TARGETS = [
   { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
-  { id: "seriesGamesWrap", label: "Maps" },
   { id: "seriesCompareWrap", label: "Results" },
   { id: "matchupConsoleWrap", label: "Stats" },
-  { id: "upcomingFormWrap", label: "Past" },
-  { id: "upcomingH2hWrap", label: "H2H" }
+  { id: "upcomingFormWrap", label: "Past" }
 ];
 const MOBILE_UPCOMING_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Overview" },
@@ -204,21 +199,21 @@ const MOBILE_SECTION_HEADINGS = {
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
-  seriesLive: new Set(["Overview", "Series Story", "Series Desk", "Games", "Statistics", "Game Results"]),
-  seriesCompleted: new Set(["Overview", "Series Story", "Series Desk", "Games", "Game Results", "Results Table"]),
-  series: new Set(["Overview", "Series Story", "Series Desk", "Games", "Statistics"]),
+  seriesLive: new Set(["Overview", "Games", "Game Results", "Statistics"]),
+  seriesCompleted: new Set(["Overview", "Games", "Game Results", "Results Table"]),
+  series: new Set(["Overview", "Games", "Statistics"]),
   upcoming: new Set(["Overview", "Series Story", "Series Desk", "Games", "Watch", "Prediction"]),
   game: new Set(["Games", "Game Overview", "Final Game", "Map Overview", "Final Map", "Selected Game Recap", "Map Desk", "Live Snapshot", "Players", "Live Feed", "Map Feed"])
 };
 const MOBILE_PANEL_ORDER_BY_MODE = {
   seriesLive: [
     "seriesOverviewWrap",
-    "seriesHeaderWrap",
-    "statusSummary",
     "gameExplorerPanel",
-    "matchupConsoleWrap",
     "seriesGamesWrap",
     "seriesProgressWrap",
+    "matchupConsoleWrap",
+    "seriesHeaderWrap",
+    "statusSummary",
     "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",
@@ -228,12 +223,12 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
   ],
   seriesCompleted: [
     "seriesOverviewWrap",
-    "seriesHeaderWrap",
-    "statusSummary",
     "gameExplorerPanel",
     "seriesGamesWrap",
     "seriesCompareWrap",
     "matchupConsoleWrap",
+    "seriesHeaderWrap",
+    "statusSummary",
     "seriesPlayerTrendsWrap",
     "seriesLineupsWrap",
     "upcomingFormWrap",
@@ -242,10 +237,10 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
   ],
   series: [
     "seriesOverviewWrap",
-    "seriesHeaderWrap",
-    "statusSummary",
     "gameExplorerPanel",
     "matchupConsoleWrap",
+    "seriesHeaderWrap",
+    "statusSummary",
     "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",

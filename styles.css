@@ -15745,9 +15745,38 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     margin-bottom: 0.12rem;
   }
 
+  body.product-shell.match-page.mobile-series-mode #seriesOverviewPanel .section-head,
+  body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .section-head,
+  body.product-shell.match-page.mobile-series-mode #seriesComparePanel .section-head,
+  body.product-shell.match-page.mobile-series-mode #seriesStatsPanel .section-head,
+  body.product-shell.match-page.mobile-series-mode #seriesHistoryPanel .section-head {
+    margin-bottom: 0.14rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesOverviewPanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-series-mode #seriesComparePanel .section-head .meta-text {
+    display: none;
+  }
+
   body.product-shell.match-page.mobile-series-mode .game-nav,
   body.product-shell.match-page.mobile-series-mode .game-context {
     margin-top: 0.18rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .mobile-mode-toolbar {
+    margin-top: 0.22rem;
+    gap: 0.12rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .mobile-mode-row {
+    gap: 0.16rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .mobile-mode-chip {
+    min-height: 1.56rem;
+    padding: 0.12rem 0.3rem;
+    font-size: 0.5rem;
   }
 
   body.product-shell.match-page.mobile-series-mode .game-nav-board {
