@@ -8619,19 +8619,57 @@ function renderSeriesProgress(match) {
     return;
   }
 
+  const status = String(match?.status || "").toLowerCase();
+  const leftName = match?.teams?.left?.name || "Left Team";
+  const rightName = match?.teams?.right?.name || "Right Team";
+  const leftShort = scoreboardTeamName(leftName, match?.game);
+  const rightShort = scoreboardTeamName(rightName, match?.game);
+  const leaderName = currentSeriesLeader(match);
+  const winnerName = winnerTeamName(match);
+  const liveGameNumber = firstInProgressGameNumber(match);
+  const accountedGames = Number(progress.completedGames || 0) + Number(progress.inProgressGames || 0) + Number(progress.skippedGames || 0);
   const leftPct = Math.min(100, (progress.leftWins / Math.max(1, progress.winsNeeded)) * 100);
   const rightPct = Math.min(100, (progress.rightWins / Math.max(1, progress.winsNeeded)) * 100);
+  const tone = status === "completed" ? "complete" : status === "live" ? "live" : "neutral";
+  const title =
+    status === "completed"
+      ? winnerName
+        ? `${scoreboardTeamName(winnerName, match?.game)} closed the series`
+        : `Final ${progress.leftWins}-${progress.rightWins}`
+      : leaderName
+        ? `${scoreboardTeamName(leaderName, match?.game)} controls the race`
+        : "Series race is still even";
+  const note =
+    status === "completed"
+      ? `${progress.completedGames} map${progress.completedGames === 1 ? "" : "s"} completed${progress.skippedGames ? ` · ${progress.skippedGames} skipped` : ""}.`
+      : Number.isInteger(liveGameNumber)
+        ? `Game ${liveGameNumber} is live. First to ${progress.winsNeeded} wins takes the series.`
+        : `First to ${progress.winsNeeded} wins takes the series.`;
 
   elements.seriesProgressWrap.innerHTML = `
-    <article class="progress-card">
-      <p class="meta-text">First to ${progress.winsNeeded} wins</p>
-      <p class="progress-score">${match.teams.left.name} ${progress.leftWins} - ${progress.rightWins} ${match.teams.right.name}</p>
+    <article class="series-progress-card ${tone}">
+      <div class="series-progress-head">
+        <div>
+          <p class="tempo-label">Series race</p>
+          <h3>${escapeHtml(title)}</h3>
+          <p class="series-progress-note">${escapeHtml(note)}</p>
+        </div>
+        <div class="series-progress-scoreboard">
+          <span>${escapeHtml(leftShort)}</span>
+          <strong>${progress.leftWins}-${progress.rightWins}</strong>
+          <span>${escapeHtml(rightShort)}</span>
+        </div>
+      </div>
       <div class="progress-split">
         <div class="bar left" style="width:${leftPct}%"></div>
         <div class="bar right" style="width:${rightPct}%"></div>
       </div>
-      <p class="meta-text">Completed ${progress.completedGames} · Live ${progress.inProgressGames} · Skipped ${progress.skippedGames}</p>
-      <p class="meta-text">${match.teams.left.name} needs ${progress.leftToWin} · ${match.teams.right.name} needs ${progress.rightToWin}</p>
+      <div class="series-progress-metrics">
+        ${seriesDeskMetricCard(leftShort, `${progress.leftWins} win${progress.leftWins === 1 ? "" : "s"}`, `${progress.leftToWin} to clinch`, "left")}
+        ${seriesDeskMetricCard(rightShort, `${progress.rightWins} win${progress.rightWins === 1 ? "" : "s"}`, `${progress.rightToWin} to clinch`, "right")}
+        ${seriesDeskMetricCard("State", status === "completed" ? "Final" : Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} live` : "Waiting", `${progress.completedGames} complete · ${progress.inProgressGames} live`, status === "live" ? "live" : "neutral")}
+        ${seriesDeskMetricCard("Format", `First to ${progress.winsNeeded}`, `${accountedGames} maps tracked${progress.skippedGames ? ` · ${progress.skippedGames} skipped` : ""}`, progress.skippedGames ? "warn" : "neutral")}
+      </div>
     </article>
   `;
 }
@@ -9735,28 +9773,37 @@ function compactLineupSourceLabel(source) {
 function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass = "left" }) {
   const gameKey = normalizeGameKey(match?.game);
   const normalizedRows = normalizeLineupRows(rows);
+  const shortName = scoreboardTeamName(teamName, match?.game);
   return `
-    <section class="draft-team series-lineup-card ${toneClass}">
+    <section class="series-lineup-card ${toneClass}">
       <div class="series-lineup-head">
-        <div>
-          <h3>${displayTeamName(teamName)}</h3>
-          <p class="meta-text">${normalizedRows.length} projected starters</p>
+        <div class="series-lineup-ident">
+          <span class="series-lineup-mark">${teamBadgeMarkup({ name: teamName }, match?.game)}</span>
+          <div class="series-lineup-copyhead">
+            <h3>${escapeHtml(displayTeamName(teamName, match?.game))}</h3>
+            <p class="meta-text">${normalizedRows.length} projected starter${normalizedRows.length === 1 ? "" : "s"}</p>
+          </div>
         </div>
         <span class="form-summary-pill">${compactLineupSourceLabel(source)}</span>
+      </div>
+      <div class="series-lineup-summary">
+        ${seriesDeskMetricCard("Team", shortName, `Series roster view`, toneClass)}
+        ${seriesDeskMetricCard("Roles", String(normalizedRows.length), normalizedRows.length ? "Projected positions mapped" : "Waiting on roster feed", toneClass)}
       </div>
       ${normalizedRows.length
         ? normalizedRows
             .map(
               (row) => `
-                <article class="draft-row series-lineup-row">
+                <article class="series-lineup-row">
                   <div class="series-lineup-icons">
                     ${heroIconMarkup(match, row)}
                     ${roleIconMarkup(row.role, gameKey, false)}
                   </div>
                   <div class="series-lineup-copy">
-                    <p class="series-lineup-player">${displayPlayerHandle(row.name, teamName)}</p>
-                    <p class="meta-text">${row.champion || "Unknown"} · ${roleMeta(row.role, gameKey).label}</p>
+                    <p class="series-lineup-player">${escapeHtml(displayPlayerHandle(row.name, teamName))}</p>
+                    <p class="meta-text">${escapeHtml(row.champion || "Unknown")} · ${escapeHtml(roleMeta(row.role, gameKey).label)}</p>
                   </div>
+                  <span class="series-lineup-role-tag">${escapeHtml(roleMeta(row.role, gameKey).short)}</span>
                 </article>
               `
             )
@@ -9785,23 +9832,41 @@ function renderSeriesLineups(match) {
   const sourcePills = sources.length
     ? sources.map((value) => `<span class="form-summary-pill">${compactLineupSourceLabel(value)}</span>`).join("")
     : `<span class="form-summary-pill">Unavailable</span>`;
+  const leftShort = scoreboardTeamName(match?.teams?.left?.name || "Left Team", match?.game);
+  const rightShort = scoreboardTeamName(match?.teams?.right?.name || "Right Team", match?.game);
   elements.seriesLineupsWrap.innerHTML = `
-    ${renderSeriesLineupTeamCard(match, {
-      teamName: match.teams.left.name,
-      rows: left.rows,
-      source: left.source,
-      toneClass: "left"
-    })}
-    ${renderSeriesLineupTeamCard(match, {
-      teamName: match.teams.right.name,
-      rows: right.rows,
-      source: right.source,
-      toneClass: "right"
-    })}
-    <article class="recap-note lineup-source-note">
-      <div class="form-summary-strip">${sourcePills}</div>
-      <p class="meta-text">Series view for likely starters. Open a game tab for live map stats.</p>
-    </article>
+    <div class="series-lineups-desk">
+      <article class="series-lineups-lead">
+        <div class="series-lineups-head">
+          <div>
+            <p class="tempo-label">Lineup desk</p>
+            <h3>Projected starters and likely roles</h3>
+            <p class="series-lineups-note">Use the series roster view for likely starters. Open a game tab for live per-map player stats and champion confirmation.</p>
+          </div>
+          <div class="form-summary-strip">${sourcePills}</div>
+        </div>
+        <div class="series-lineups-metrics">
+          ${seriesDeskMetricCard(`${leftShort} starters`, String(left.rows.length), compactLineupSourceLabel(left.source), "left")}
+          ${seriesDeskMetricCard(`${rightShort} starters`, String(right.rows.length), compactLineupSourceLabel(right.source), "right")}
+          ${seriesDeskMetricCard("Coverage", String(left.rows.length + right.rows.length), "Projected players on this series view", "neutral")}
+          ${seriesDeskMetricCard("Source blend", sources.length ? sources.map((value) => compactLineupSourceLabel(value)).join(" · ") : "Unavailable", "Draft, live, or trend-derived roster seed", "neutral")}
+        </div>
+      </article>
+      <div class="series-lineup-grid">
+        ${renderSeriesLineupTeamCard(match, {
+          teamName: match.teams.left.name,
+          rows: left.rows,
+          source: left.source,
+          toneClass: "left"
+        })}
+        ${renderSeriesLineupTeamCard(match, {
+          teamName: match.teams.right.name,
+          rows: right.rows,
+          source: right.source,
+          toneClass: "right"
+        })}
+      </div>
+    </div>
   `;
 }
 
@@ -11878,20 +11943,23 @@ function renderMoments(rows) {
 
 function renderSeriesMoments(rows) {
   if (!rows.length) {
-    elements.seriesMomentsList.innerHTML = "<li>No series-wide moments yet.</li>";
+    elements.seriesMomentsList.innerHTML = '<li class="series-moment-item empty">No series-wide moments yet.</li>';
     return;
   }
 
   elements.seriesMomentsList.innerHTML = rows
     .map(
       (moment) => `
-      <li>
-        <div class="moment-head">
-          <strong>${moment.gameNumber ? `Game ${moment.gameNumber} · ` : ""}${moment.title}</strong>
-          <span class="importance">${moment.importance || "info"}</span>
+      <li class="series-moment-item importance-${normalizedImportance(moment.importance)}">
+        <div class="series-moment-head">
+          <div>
+            <p class="tempo-label">${moment.gameNumber ? `Game ${moment.gameNumber}` : "Series"}</p>
+            <strong>${escapeHtml(moment.title || "Series moment")}</strong>
+          </div>
+          <span class="importance">${escapeHtml(String(moment.importance || "info").toUpperCase())}</span>
         </div>
-        <p class="meta-text">${moment.summary || "Series moment."}</p>
-        <p class="meta-text">${dateTimeLabel(moment.occurredAt)}</p>
+        <p class="meta-text">${escapeHtml(moment.summary || "Series moment.")}</p>
+        <p class="meta-text">${escapeHtml(dateTimeLabel(moment.occurredAt))}</p>
       </li>
     `
     )
@@ -11900,16 +11968,21 @@ function renderSeriesMoments(rows) {
 
 function renderTimeline(rows) {
   if (!rows.length) {
-    elements.timelineList.innerHTML = "<li>No timeline events yet.</li>";
+    elements.timelineList.innerHTML = '<li class="series-timeline-item empty">No timeline events yet.</li>';
     return;
   }
 
   elements.timelineList.innerHTML = rows
     .map((row) => {
       const label = row.watchUrl
-        ? `<a class="table-link" href="${row.watchUrl}" target="_blank" rel="noreferrer">${row.label}</a>`
-        : row.label;
-      return `<li><span>${dateTimeLabel(row.at)}</span><span>${label}</span></li>`;
+        ? `<a class="table-link" href="${row.watchUrl}" target="_blank" rel="noreferrer">${escapeHtml(row.label)}</a>`
+        : `<span class="series-timeline-label">${escapeHtml(row.label)}</span>`;
+      return `
+        <li class="series-timeline-item">
+          <div class="series-timeline-at">${escapeHtml(dateTimeLabel(row.at))}</div>
+          <div class="series-timeline-event">${label}</div>
+        </li>
+      `;
     })
     .join("");
 }

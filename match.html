@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312ag" />
+    <link rel="stylesheet" href="./styles.css?v=20260312ah" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -149,9 +149,10 @@
         <div id="matchupConsoleWrap"></div>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesLineupsPanel" data-scope="series">
         <div class="section-head">
           <h2>Lineups</h2>
+          <p class="meta-text">Projected starters, likely roles, and roster source confidence.</p>
         </div>
         <div id="seriesLineupsWrap" class="draft-grid"></div>
       </section>
@@ -443,7 +444,7 @@
         <div id="seriesCompareWrap" class="series-compare"></div>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesPlayerTrendsPanel" data-scope="series">
         <div class="section-head">
           <h2>Player Trends</h2>
           <p class="meta-text">Cross-map consistency with per-game trend lines.</p>
@@ -523,9 +524,10 @@
         <ul id="momentsList" class="moments"></ul>
       </section>
 
-      <section class="panel" data-scope="series">
+      <section class="panel" id="seriesTimelinePanel" data-scope="series">
         <div class="section-head">
           <h2>Timeline</h2>
+          <p class="meta-text">Series-state and broadcast checkpoints across the full match.</p>
         </div>
         <ul id="timelineList" class="timeline"></ul>
       </section>
@@ -548,6 +550,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312o"></script>
+    <script type="module" src="./match.js?v=20260312p"></script>
   </body>
 </html>
