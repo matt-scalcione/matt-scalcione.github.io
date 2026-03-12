@@ -34,6 +34,7 @@ const publicFiles = [
   "schedule.js",
   "seo.js",
   "site-config.js",
+  "site-header.js",
   "sitemap.xml",
   "styles.css",
   "team-logos.generated.js",
