@@ -13807,7 +13807,7 @@ body.product-shell.schedule-page .hero.schedule-filter-hero::after {
 
 body.product-shell.schedule-page .schedule-filter-shell {
   display: grid;
-  gap: 0.68rem;
+  gap: 0.52rem;
   padding: 0.82rem 0.88rem;
   border-radius: 12px;
   border: 1px solid rgba(226, 233, 241, 0.06);
@@ -13817,28 +13817,81 @@ body.product-shell.schedule-page .schedule-filter-shell {
   box-shadow: none;
 }
 
-body.product-shell.schedule-page .schedule-filter-head {
+body.product-shell.schedule-page .schedule-filter-toolbar {
   display: grid;
-  gap: 0.48rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.46rem;
 }
 
-body.product-shell.schedule-page .schedule-filter-title-block {
-  display: grid;
+body.product-shell.schedule-page .schedule-filter-inline-search {
   min-width: 0;
 }
 
-body.product-shell.schedule-page .schedule-filter-kicker {
-  margin: 0;
-  color: #f0f4f8;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+body.product-shell.schedule-page .schedule-filter-inline-search input {
+  min-height: 2.42rem;
+  padding: 0.62rem 0.78rem;
+  border-radius: 10px;
+  border-color: rgba(226, 233, 241, 0.07);
+  background: rgba(30, 36, 43, 0.92);
+  color: #eef2f6;
+  width: 100%;
+}
+
+body.product-shell.schedule-page .schedule-filter-inline-search input::placeholder {
+  color: #8f9cac;
+}
+
+body.product-shell.schedule-page .schedule-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.52rem;
+  min-height: 2.42rem;
+  min-width: 0;
+  max-width: 10.75rem;
+  padding: 0.34rem 0.72rem;
+  border-radius: 10px;
+  border: 1px solid rgba(217, 225, 235, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6ecf3;
+  box-shadow: none;
+}
+
+body.product-shell.schedule-page .schedule-filter-toggle-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+body.product-shell.schedule-page .schedule-filter-toggle-icon {
+  position: relative;
+  width: 0.56rem;
+  height: 0.56rem;
+  flex: 0 0 auto;
+}
+
+body.product-shell.schedule-page .schedule-filter-toggle-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0.04rem 0.1rem 0.1rem 0.04rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transform-origin: center;
+  transition: transform 140ms ease;
+}
+
+body.product-shell.schedule-page .schedule-filter-toggle.is-open .schedule-filter-toggle-icon::before {
+  transform: rotate(225deg);
 }
 
 body.product-shell.schedule-page .schedule-filter-status {
   margin: 0;
-  justify-self: start;
+  justify-self: end;
   min-height: 1.72rem;
   padding: 0.34rem 0.56rem;
   border-radius: 999px;
@@ -13847,6 +13900,10 @@ body.product-shell.schedule-page .schedule-filter-status {
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.04em;
+}
+
+body.product-shell.schedule-page .schedule-filter-body {
+  display: grid;
 }
 
 body.product-shell.schedule-page .schedule-filter-grid {
@@ -13929,17 +13986,20 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
 }
 
 @media (min-width: 761px) {
-  body.product-shell.schedule-page .schedule-filter-head {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
+  body.product-shell.schedule-page .schedule-filter-toolbar {
+    grid-template-columns: minmax(280px, 0.9fr) auto;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-toggle {
+    display: none;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-body {
+    display: grid !important;
   }
 
   body.product-shell.schedule-page .schedule-filter-grid {
-    grid-template-columns: minmax(0, 1.45fr) minmax(180px, 0.72fr);
-  }
-
-  body.product-shell.schedule-page .schedule-filter-window {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
   }
 
   body.product-shell.schedule-page .schedule-filter-window-head {
@@ -13954,6 +14014,77 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
 
   body.product-shell.schedule-page .schedule-filter-date-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.schedule-page .hero.schedule-filter-hero {
+    padding-top: 0.5rem;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-shell {
+    gap: 0.44rem;
+    padding: 0.56rem 0.6rem;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-status {
+    display: none;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-shell.is-collapsed .schedule-filter-body,
+  body.product-shell.schedule-page .schedule-filter-body[hidden] {
+    display: none !important;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-grid {
+    gap: 0.44rem;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-field,
+  body.product-shell.schedule-page .schedule-filter-window {
+    gap: 0.28rem;
+    padding: 0.5rem;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-label {
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-field input,
+  body.product-shell.schedule-page .schedule-filter-field select,
+  body.product-shell.schedule-page .schedule-filter-inline-search input {
+    min-height: 2.28rem;
+    padding: 0.58rem 0.68rem;
+    font-size: 0.92rem;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-date-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.34rem;
+  }
+
+  body.product-shell.schedule-page .schedule-range-row {
+    flex-wrap: nowrap;
+  }
+
+  body.product-shell.schedule-page .schedule-range-chip {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 1.68rem;
+    padding: 0.08rem 0.28rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (max-width: 380px) {
+  body.product-shell.schedule-page .schedule-filter-date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-toggle {
+    max-width: 8.8rem;
+    padding-inline: 0.58rem;
   }
 }
 

@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312p" />
+    <link rel="stylesheet" href="./styles.css?v=20260312q" />
   </head>
   <body class="product-shell schedule-page">
     <div class="noise"></div>
@@ -56,47 +56,56 @@
       </nav>
     </header>
     <header class="hero schedule-filter-hero">
-      <div class="schedule-filter-shell">
-        <div class="schedule-filter-head">
-          <div class="schedule-filter-title-block">
-            <p class="schedule-filter-kicker">Filters</p>
-          </div>
+      <div class="schedule-filter-shell is-collapsed">
+        <div class="schedule-filter-toolbar">
+          <label class="schedule-filter-inline-search">
+            <span class="sr-only">Search schedule and results</span>
+            <input id="slateSearchInput" type="search" placeholder="Search teams or events" />
+          </label>
+          <button
+            id="scheduleFilterToggle"
+            type="button"
+            class="schedule-filter-toggle"
+            aria-expanded="false"
+            aria-controls="scheduleFilterBody"
+          >
+            <span id="scheduleFilterSummary" class="schedule-filter-toggle-summary">All games · Live</span>
+            <span class="schedule-filter-toggle-icon" aria-hidden="true"></span>
+          </button>
           <p id="statusText" class="status-text schedule-filter-status" aria-live="polite">Ready.</p>
         </div>
-        <div class="schedule-filter-grid">
-          <label class="schedule-filter-field schedule-filter-field-search">
-            <span class="schedule-filter-label">Search</span>
-            <input id="slateSearchInput" type="text" placeholder="Team or event" />
-          </label>
-          <label class="schedule-filter-field schedule-filter-field-game">
-            <span class="schedule-filter-label">Game</span>
-            <select id="gameSelect">
-              <option value="">All games</option>
-              <option value="lol">League of Legends</option>
-              <option value="dota2">Dota 2</option>
-            </select>
-          </label>
-          <section class="schedule-filter-window" aria-label="Date range">
-            <div class="schedule-filter-window-head">
-              <span class="schedule-filter-label">Date range</span>
-              <div id="scheduleRangePresets" class="schedule-range-row" role="group" aria-label="Quick date ranges">
-                <button type="button" class="schedule-range-chip" data-range="live">Live</button>
-                <button type="button" class="schedule-range-chip" data-range="24h">24h</button>
-                <button type="button" class="schedule-range-chip" data-range="3d">3d</button>
-                <button type="button" class="schedule-range-chip" data-range="7d">7d</button>
+        <div id="scheduleFilterBody" class="schedule-filter-body">
+          <div class="schedule-filter-grid">
+            <label class="schedule-filter-field schedule-filter-field-game">
+              <span class="schedule-filter-label">Game</span>
+              <select id="gameSelect">
+                <option value="">All games</option>
+                <option value="lol">League of Legends</option>
+                <option value="dota2">Dota 2</option>
+              </select>
+            </label>
+            <section class="schedule-filter-window" aria-label="Date range">
+              <div class="schedule-filter-window-head">
+                <span class="schedule-filter-label">Date range</span>
+                <div id="scheduleRangePresets" class="schedule-range-row" role="group" aria-label="Quick date ranges">
+                  <button type="button" class="schedule-range-chip" data-range="live">Live</button>
+                  <button type="button" class="schedule-range-chip" data-range="24h">24h</button>
+                  <button type="button" class="schedule-range-chip" data-range="3d">3d</button>
+                  <button type="button" class="schedule-range-chip" data-range="7d">7d</button>
+                </div>
               </div>
-            </div>
-            <div class="schedule-filter-date-grid">
-              <label class="schedule-filter-field">
-                <span class="schedule-filter-label">From</span>
-                <input id="dateFromInput" type="datetime-local" />
-              </label>
-              <label class="schedule-filter-field">
-                <span class="schedule-filter-label">To</span>
-                <input id="dateToInput" type="datetime-local" />
-              </label>
-            </div>
-          </section>
+              <div class="schedule-filter-date-grid">
+                <label class="schedule-filter-field">
+                  <span class="schedule-filter-label">From</span>
+                  <input id="dateFromInput" type="datetime-local" />
+                </label>
+                <label class="schedule-filter-field">
+                  <span class="schedule-filter-label">To</span>
+                  <input id="dateToInput" type="datetime-local" />
+                </label>
+              </div>
+            </section>
+          </div>
         </div>
         <input id="apiBaseInput" type="hidden" />
       </div>
@@ -139,6 +148,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./schedule.js?v=20260312n"></script>
+    <script type="module" src="./schedule.js?v=20260312o"></script>
   </body>
 </html>

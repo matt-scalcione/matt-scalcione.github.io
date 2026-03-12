@@ -80,6 +80,10 @@ const TEAM_SHORT_NAMES = {
 };
 
 const elements = {
+  scheduleFilterShell: document.querySelector(".schedule-filter-shell"),
+  scheduleFilterBody: document.querySelector("#scheduleFilterBody"),
+  scheduleFilterToggle: document.querySelector("#scheduleFilterToggle"),
+  scheduleFilterSummary: document.querySelector("#scheduleFilterSummary"),
   apiBaseInput: document.querySelector("#apiBaseInput"),
   slateSearchInput: document.querySelector("#slateSearchInput"),
   gameSelect: document.querySelector("#gameSelect"),
@@ -111,8 +115,12 @@ const scheduleCollectionState = {
 const scheduleDiscoveryState = {
   searchTerm: ""
 };
+const scheduleUiState = {
+  filtersCollapsed: true
+};
 let activeLoadRequestId = 0;
 let resultsRetryHandle = null;
+const SCHEDULE_FILTER_COLLAPSE_KEY = "pulseboard.schedule.filtersCollapsed";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -577,8 +585,65 @@ function scheduleRangeMatches(rangeKey) {
   return Math.abs(fromMs - presetFromMs) <= toleranceMs && Math.abs(toMs - presetToMs) <= toleranceMs;
 }
 
+function activeScheduleRangeKey() {
+  return Object.keys(SCHEDULE_RANGE_PRESETS).find((rangeKey) => scheduleRangeMatches(rangeKey)) || null;
+}
+
+function shortDateSummary(iso) {
+  try {
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return "";
+    }
+
+    return parsed.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric"
+    });
+  } catch {
+    return "";
+  }
+}
+
+function scheduleFilterRangeSummary() {
+  const rangeKey = activeScheduleRangeKey();
+  if (rangeKey === "live") return "Live";
+  if (rangeKey === "24h") return "24h";
+  if (rangeKey === "3d") return "3d";
+  if (rangeKey === "7d") return "7d";
+
+  const fromIso = parseLocalInputToIso(elements.dateFromInput?.value || "");
+  const toIso = parseLocalInputToIso(elements.dateToInput?.value || "");
+  if (!fromIso && !toIso) {
+    return "Window";
+  }
+
+  const fromLabel = shortDateSummary(fromIso);
+  const toLabel = shortDateSummary(toIso);
+  if (fromLabel && toLabel) {
+    return fromLabel === toLabel ? fromLabel : `${fromLabel}-${toLabel}`;
+  }
+
+  return fromLabel || toLabel || "Window";
+}
+
+function scheduleFilterGameSummary() {
+  const game = selectedTitleKey();
+  if (game === "lol") return "LoL";
+  if (game === "dota2") return "Dota 2";
+  return "All games";
+}
+
+function syncScheduleFilterSummary() {
+  if (!elements.scheduleFilterSummary) {
+    return;
+  }
+  elements.scheduleFilterSummary.textContent = `${scheduleFilterGameSummary()} · ${scheduleFilterRangeSummary()}`;
+}
+
 function syncScheduleRangePresetState() {
   if (!Array.isArray(elements.scheduleRangePresets)) {
+    syncScheduleFilterSummary();
     return;
   }
 
@@ -587,6 +652,7 @@ function syncScheduleRangePresetState() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
   }
+  syncScheduleFilterSummary();
 }
 
 function applyScheduleRangePreset(rangeKey, options = {}) {
@@ -609,6 +675,52 @@ function rowLink(id) {
 
 function isCompactViewport() {
   return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+function readStoredScheduleFilterCollapse() {
+  try {
+    const stored = localStorage.getItem(SCHEDULE_FILTER_COLLAPSE_KEY);
+    if (stored === "1" || stored === "0") {
+      return stored === "1";
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+  return null;
+}
+
+function applyScheduleFilterCollapsed(collapsed, { persist = true } = {}) {
+  const compact = isCompactViewport();
+  const shouldCollapse = compact ? Boolean(collapsed) : false;
+  scheduleUiState.filtersCollapsed = shouldCollapse;
+
+  if (elements.scheduleFilterShell) {
+    elements.scheduleFilterShell.classList.toggle("is-collapsed", shouldCollapse);
+  }
+  if (elements.scheduleFilterBody) {
+    elements.scheduleFilterBody.hidden = shouldCollapse;
+  }
+  if (elements.scheduleFilterToggle) {
+    elements.scheduleFilterToggle.setAttribute("aria-expanded", String(!shouldCollapse));
+    elements.scheduleFilterToggle.classList.toggle("is-open", !shouldCollapse);
+  }
+
+  if (persist && compact) {
+    try {
+      localStorage.setItem(SCHEDULE_FILTER_COLLAPSE_KEY, shouldCollapse ? "1" : "0");
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+}
+
+function syncScheduleFilterChrome({ persist = false } = {}) {
+  syncScheduleFilterSummary();
+  if (!isCompactViewport()) {
+    applyScheduleFilterCollapsed(false, { persist: false });
+    return;
+  }
+  applyScheduleFilterCollapsed(scheduleUiState.filtersCollapsed, { persist });
 }
 
 function updateNav() {
@@ -1090,7 +1202,19 @@ async function loadCollections() {
 }
 
 function installEvents() {
-  elements.gameSelect?.addEventListener("change", loadCollections);
+  if (elements.scheduleFilterToggle) {
+    elements.scheduleFilterToggle.addEventListener("click", () => {
+      if (!isCompactViewport()) {
+        return;
+      }
+      applyScheduleFilterCollapsed(!scheduleUiState.filtersCollapsed);
+    });
+  }
+
+  elements.gameSelect?.addEventListener("change", () => {
+    syncScheduleFilterSummary();
+    loadCollections();
+  });
   elements.dateFromInput?.addEventListener("change", () => {
     syncScheduleRangePresetState();
     loadCollections();
@@ -1140,6 +1264,10 @@ function boot() {
   const initialWindow = presetWindow("live", now);
   elements.dateFromInput.value = toLocalInputValue(initialWindow.start);
   elements.dateToInput.value = toLocalInputValue(initialWindow.end);
+  scheduleUiState.filtersCollapsed = readStoredScheduleFilterCollapse();
+  if (scheduleUiState.filtersCollapsed == null) {
+    scheduleUiState.filtersCollapsed = isCompactViewport();
+  }
   try {
     scheduleDiscoveryState.searchTerm = String(localStorage.getItem("pulseboard.schedule.search") || "").trim();
   } catch {
@@ -1149,6 +1277,7 @@ function boot() {
     elements.slateSearchInput.value = scheduleDiscoveryState.searchTerm;
   }
   syncScheduleRangePresetState();
+  syncScheduleFilterChrome();
 
   installEvents();
   refreshScheduleSeo();
@@ -1158,6 +1287,7 @@ function boot() {
 window.addEventListener("resize", () => {
   renderScheduleCollectionMeta();
   renderCollectionsFromState();
+  syncScheduleFilterChrome();
 });
 
 boot();
