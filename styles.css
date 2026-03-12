@@ -18788,9 +18788,191 @@ body.product-shell.match-page #gameOverviewPanel .game-recap {
   gap: 0.56rem;
 }
 
+body.product-shell.match-page .match-content-group[data-layout-group="overview"] > #gameOverviewPanel {
+  order: 1;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="overview"] > #whatMattersPanel {
+  order: 2;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="overview"] > #gameSnapshotPanel {
+  order: 3;
+}
+
+body.product-shell.match-page .overview-support-panel {
+  display: grid;
+  align-self: start;
+  align-content: start;
+  gap: 0.68rem;
+}
+
+body.product-shell.match-page .overview-support-panel .section-head {
+  margin-bottom: 0;
+  padding-bottom: 0.58rem;
+  border-bottom: 1px solid rgba(233, 239, 245, 0.06);
+}
+
+body.product-shell.match-page .overview-support-panel .section-head h2 {
+  font-size: 0.92rem;
+}
+
+body.product-shell.match-page .overview-support-panel .section-head .meta-text {
+  max-width: none;
+  color: #9fadb9;
+  font-size: 0.74rem;
+}
+
+body.product-shell.match-page .recap-feature {
+  display: grid;
+  gap: 0.48rem;
+  padding: 0.78rem 0.82rem;
+  border-radius: 0.94rem;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: linear-gradient(180deg, rgba(48, 56, 67, 0.98), rgba(39, 47, 57, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .recap-feature.live,
+body.product-shell.match-page .recap-feature.left {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .recap-feature.right,
+body.product-shell.match-page .recap-feature.warn {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .recap-feature.complete {
+  border-color: rgba(140, 151, 166, 0.18);
+}
+
+body.product-shell.match-page .recap-feature.upcoming {
+  border-color: rgba(214, 182, 121, 0.2);
+}
+
+body.product-shell.match-page .recap-feature-copy {
+  display: grid;
+  gap: 0.18rem;
+}
+
+body.product-shell.match-page .recap-feature .recap-story-title {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
+body.product-shell.match-page .recap-feature .meta-text {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page .recap-feature-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+body.product-shell.match-page .recap-feature-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.42rem;
+  padding: 0.08rem 0.44rem;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #edf2f7;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .recap-feature-chip.left,
+body.product-shell.match-page .recap-feature-chip.live {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .recap-feature-chip.right,
+body.product-shell.match-page .recap-feature-chip.warn {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .recap-feature-chip.complete {
+  border-color: rgba(140, 151, 166, 0.18);
+}
+
+body.product-shell.match-page .recap-feature-chip.upcoming {
+  border-color: rgba(214, 182, 121, 0.22);
+}
+
+body.product-shell.match-page #gameOverviewPanel .recap-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+body.product-shell.match-page #gameOverviewPanel .recap-card,
+body.product-shell.match-page #gameOverviewPanel .recap-note,
+body.product-shell.match-page #gameOverviewPanel .recap-draft-state,
+body.product-shell.match-page #gameOverviewPanel .recap-draft-team,
+body.product-shell.match-page #gameOverviewPanel .recap-draft-row {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #gameOverviewPanel .recap-card .tempo-value,
+body.product-shell.match-page #gameOverviewPanel .recap-draft-state h3,
+body.product-shell.match-page #gameOverviewPanel .recap-draft-title {
+  color: #f2f6fb;
+}
+
+body.product-shell.match-page #gameOverviewPanel .recap-card .meta-text,
+body.product-shell.match-page #gameOverviewPanel .recap-note .meta-text,
+body.product-shell.match-page #gameOverviewPanel .recap-draft-state .meta-text,
+body.product-shell.match-page #gameOverviewPanel .recap-draft-meta {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #gameOverviewPanel .recap-draft-badge {
+  border-color: rgba(214, 182, 121, 0.26);
+  background: rgba(255, 255, 255, 0.05);
+  color: #efd3a1;
+}
+
+body.product-shell.match-page #gameOverviewPanel .recap-draft-row.pending {
+  background: linear-gradient(180deg, rgba(48, 56, 67, 0.92), rgba(42, 49, 58, 0.95));
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card {
+  border-color: rgba(233, 239, 245, 0.06);
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card.featured {
+  border-color: rgba(214, 182, 121, 0.2);
+  background: linear-gradient(180deg, rgba(70, 60, 44, 0.96), rgba(50, 45, 37, 0.98));
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card .tempo-value {
+  color: #f2f6fb;
+}
+
+body.product-shell.match-page #gameSnapshotPanel .command-card .meta-text {
+  color: #aab6c4;
+}
+
 @media (max-width: 980px) {
   body.product-shell.match-page .game-overview-hero {
     grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .match-content-group[data-layout-group="overview"] > #whatMattersPanel,
+  body.product-shell.match-page .match-content-group[data-layout-group="overview"] > #gameSnapshotPanel {
+    order: 0;
   }
 }
 
@@ -18836,6 +19018,38 @@ body.product-shell.match-page #gameOverviewPanel .game-recap {
 
   body.product-shell.match-page .game-overview-fact {
     padding: 0.6rem 0.64rem;
+  }
+
+  body.product-shell.match-page .overview-support-panel {
+    gap: 0.56rem;
+  }
+
+  body.product-shell.match-page .overview-support-panel .section-head {
+    padding-bottom: 0.46rem;
+  }
+
+  body.product-shell.match-page .overview-support-panel .section-head h2 {
+    font-size: 0.84rem;
+  }
+
+  body.product-shell.match-page .recap-feature {
+    padding: 0.66rem 0.68rem;
+    gap: 0.42rem;
+  }
+
+  body.product-shell.match-page .recap-feature .recap-story-title {
+    font-size: 0.9rem;
+  }
+
+  body.product-shell.match-page .recap-feature-chip {
+    min-height: 1.34rem;
+    padding: 0.08rem 0.4rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page #gameOverviewPanel .recap-grid,
+  body.product-shell.match-page #gameSnapshotPanel .command-grid {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312ac" />
+    <link rel="stylesheet" href="./styles.css?v=20260312ad" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -193,15 +193,16 @@
       <section class="panel" id="gameOverviewPanel" data-scope="game">
         <div class="section-head">
           <h2>Game Overview</h2>
-          <p class="meta-text">Scoreline, state, and the main read for the map you are focused on.</p>
+          <p class="meta-text">Result, state, and the main read for the map you are focused on.</p>
         </div>
         <div id="gameOverviewDeskWrap" class="game-overview-desk"></div>
         <div id="selectedGameRecapWrap" class="game-recap"></div>
       </section>
 
-      <section class="panel" data-scope="game">
+      <section class="panel overview-support-panel" id="gameSnapshotPanel" data-scope="game">
         <div class="section-head">
-          <h2>Live Snapshot</h2>
+          <h2>Map Desk</h2>
+          <p class="meta-text">Current pace, timers, coverage, and pressure at a glance.</p>
         </div>
         <div id="gameCommandWrap" class="command-grid"></div>
       </section>
@@ -284,9 +285,10 @@
         <div id="teamCompareWrap" class="compare-wrap"></div>
       </section>
 
-      <section class="panel" id="whatMattersPanel" data-scope="game">
+      <section class="panel overview-support-panel" id="whatMattersPanel" data-scope="game">
         <div class="section-head">
           <h2>Key Story</h2>
+          <p class="meta-text">The strongest live or final read explaining why this map is moving.</p>
         </div>
         <div id="pulseCard" class="pulse-card"></div>
       </section>
@@ -540,6 +542,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312j"></script>
+    <script type="module" src="./match.js?v=20260312k"></script>
   </body>
 </html>
