@@ -10702,7 +10702,7 @@ function recapFeatureChip(label, tone = "neutral") {
   return `<span class="recap-feature-chip ${tone}">${escapeHtml(label)}</span>`;
 }
 
-function recapFeatureCard({ kicker = null, title, summary = null, chips = [], tone = "neutral" }) {
+function recapFeatureCard({ kicker = null, title, summary = null, chips = [], tone = "neutral", compact = false }) {
   const chipMarkup = chips
     .filter(Boolean)
     .map((chip) => {
@@ -10714,7 +10714,7 @@ function recapFeatureCard({ kicker = null, title, summary = null, chips = [], to
     .join("");
 
   return `
-    <article class="recap-feature ${tone}">
+    <article class="recap-feature ${tone}${compact ? " compact" : ""}">
       <div class="recap-feature-copy">
         ${kicker ? `<p class="tempo-label">${escapeHtml(kicker)}</p>` : ""}
         <h3 class="recap-story-title">${escapeHtml(title || "Map recap")}</h3>
@@ -10725,12 +10725,12 @@ function recapFeatureCard({ kicker = null, title, summary = null, chips = [], to
   `;
 }
 
-function recapNoteMarkup(lines = []) {
+function recapNoteMarkup(lines = [], { compact = false } = {}) {
   const rendered = lines.filter(Boolean).map((line) => `<p class="meta-text">${escapeHtml(line)}</p>`).join("");
   if (!rendered) {
     return "";
   }
-  return `<article class="recap-note">${rendered}</article>`;
+  return `<article class="recap-note${compact ? " compact" : ""}">${rendered}</article>`;
 }
 
 function gameOverviewFactCard(label, value, note = null, tone = "neutral") {
@@ -10884,12 +10884,12 @@ function renderGameOverviewDesk(match) {
 
   const heroPills = [
     `Game ${selectedGame.number}`,
-    statusLabelText,
     `Series ${seriesScoreLabel}`,
     telemetryLabel,
     normalizeGameKey(match?.game) === "dota2" ? null : match?.patch ? `Patch ${match.patch}` : null
   ]
     .filter(Boolean)
+    .slice(0, compact ? 2 : 4)
     .map((pill) => `<span class="game-overview-pill">${escapeHtml(pill)}</span>`)
     .join("");
 
@@ -10973,16 +10973,23 @@ function renderGameOverviewDesk(match) {
     );
   }
 
+  const visibleFacts = compact ? facts.slice(0, 4) : facts;
+  const headlineText =
+    compact && status === "completed" && winnerName
+      ? `${scoreboardTeamName(winnerName, match?.game)} won G${selectedGame.number}`
+      : headline;
+  const noteText = compact ? clampSummaryText(note, 96) : note;
+
   elements.gameOverviewDeskWrap.innerHTML = `
-    <div class="game-overview-shell ${toneClass}">
-      <article class="game-overview-hero ${toneClass}">
+    <div class="game-overview-shell ${toneClass}${compact ? " compact" : ""}">
+      <article class="game-overview-hero ${toneClass}${compact ? " compact" : ""}">
         <div class="game-overview-copy">
           <div class="game-overview-topline">
             <span class="game-overview-pill ${toneClass}">${escapeHtml(statusLabelText)}</span>
             ${heroPills}
           </div>
-          <h3 class="game-overview-title">${escapeHtml(headline)}</h3>
-          <p class="game-overview-note">${escapeHtml(note)}</p>
+          <h3 class="game-overview-title">${escapeHtml(headlineText)}</h3>
+          <p class="game-overview-note">${escapeHtml(noteText)}</p>
         </div>
         <div class="game-overview-scorecard">
           <div class="game-overview-side left">
@@ -11002,8 +11009,8 @@ function renderGameOverviewDesk(match) {
           </div>
         </div>
       </article>
-      <div class="game-overview-grid">
-        ${facts.join("")}
+      <div class="game-overview-grid${compact ? " compact" : ""}">
+        ${visibleFacts.join("")}
       </div>
     </div>
   `;
@@ -11380,6 +11387,7 @@ function renderSelectedGameRecap(match) {
   }
 
   const selectedSeriesGame = (Array.isArray(match.seriesGames) ? match.seriesGames : []).find((game) => game.selected) || null;
+  const compact = isCompactUI();
   const winnerName = selectedGameWinnerName(match, selectedSeriesGame, selectedGame);
   const duration = durationLabelFromMinutes(selectedSeriesGame?.durationMinutes);
   const sideSummary = Array.isArray(selectedGame.sideSummary) ? selectedGame.sideSummary : [];
@@ -11411,10 +11419,11 @@ function renderSelectedGameRecap(match) {
           { label: `Series ${seriesScoreLabel}`, tone: "neutral" },
           estimatedStart ? { label: "Scheduled", tone: "upcoming" } : { label: "Pending", tone: "neutral" }
         ],
-        tone: "upcoming"
+        tone: "upcoming",
+        compact
       })}
-      <div class="recap-grid">${cards.join("")}</div>
-      ${recapNoteMarkup([sideSummary.length ? sideSummaryText : "Side assignment not available yet."])}
+      <div class="recap-grid${compact ? " compact" : ""}">${(compact ? cards.slice(0, 4) : cards).join("")}</div>
+      ${recapNoteMarkup([sideSummary.length ? sideSummaryText : "Side assignment not available yet."], { compact })}
     `;
     return;
   }
@@ -11432,15 +11441,16 @@ function renderSelectedGameRecap(match) {
       ${recapFeatureCard({
         kicker: "Map Setup",
         title: draftPreview.headline || draftPreview.label,
-        summary: draftPreview.summary,
+        summary: compact ? clampSummaryText(draftPreview.summary, 96) : draftPreview.summary,
         chips: [
           { label: `Game ${selectedGame.number}`, tone: "neutral" },
           { label: draftPreview.badge, tone: draftTone },
           { label: `Series ${seriesScoreLabel}`, tone: "neutral" }
         ],
-        tone: draftTone
+        tone: draftTone,
+        compact
       })}
-      <div class="recap-grid">${cards.join("")}</div>
+      <div class="recap-grid${compact ? " compact" : ""}">${(compact ? cards.slice(0, 4) : cards).join("")}</div>
       <article class="recap-draft-state ${draftPreview.tone}">
         <div>
           <p class="tempo-label">Map Phase</p>
@@ -11460,7 +11470,7 @@ function renderSelectedGameRecap(match) {
         ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
       </div>`
       }
-      ${recapNoteMarkup([sideSummaryText, tips.length ? tips.join(" · ") : null])}
+      ${recapNoteMarkup([sideSummaryText, !compact && tips.length ? tips.join(" · ") : null], { compact })}
     `;
     return;
   }
@@ -11512,26 +11522,31 @@ function renderSelectedGameRecap(match) {
       ${recapFeatureCard({
         kicker: "Final Read",
         title: featureTitle,
-        summary: featureSummary,
+        summary: compact ? [duration !== "n/a" ? `${duration} map` : null, `Series ${seriesScoreLabel}`].filter(Boolean).join(" · ") : featureSummary,
         chips: [
           winnerName ? { label: `${scoreboardTeamName(winnerName, match?.game)} won`, tone: winnerTone } : null,
           { label: `Series ${seriesScoreLabel}`, tone: "neutral" },
           duration !== "n/a" ? { label: duration, tone: "neutral" } : null
         ],
-        tone: "complete"
+        tone: "complete",
+        compact
       })}
       ${
         detailCards.length
-          ? `<div class="recap-grid">${detailCards.join("")}</div>`
+          ? `<div class="recap-grid${compact ? " compact" : ""}">${detailCards.slice(0, compact ? 4 : 6).join("")}</div>`
           : `<div class="empty">Detailed closing stats were not captured for this game.</div>`
       }
-      ${recapNoteMarkup([
-        sideSummaryText,
-        performerText,
-        completedStory?.peakLeadLabel ? `Peak lead: ${completedStory.peakLeadLabel}${completedStory.peakLeadNote ? ` · ${completedStory.peakLeadNote}` : ""}` : null,
-        completedStory?.turningPointLabel ? `Turning point: ${completedStory.turningPointLabel}${completedStory.turningPointNote ? ` · ${completedStory.turningPointNote}` : ""}` : null,
-        tips.length ? tips.join(" · ") : null
-      ])}
+      ${
+        compact
+          ? ""
+          : recapNoteMarkup([
+              sideSummaryText,
+              performerText,
+              completedStory?.peakLeadLabel ? `Peak lead: ${completedStory.peakLeadLabel}${completedStory.peakLeadNote ? ` · ${completedStory.peakLeadNote}` : ""}` : null,
+              completedStory?.turningPointLabel ? `Turning point: ${completedStory.turningPointLabel}${completedStory.turningPointNote ? ` · ${completedStory.turningPointNote}` : ""}` : null,
+              tips.length ? tips.join(" · ") : null
+            ])
+      }
     `;
     return;
   }
@@ -11569,16 +11584,17 @@ function renderSelectedGameRecap(match) {
     ${recapFeatureCard({
       kicker: "Live Read",
       title: liveTitle,
-      summary: liveSummary,
+      summary: compact ? clampSummaryText(liveSummary, 96) : liveSummary,
       chips: [
         { label: objectiveSummary.value, tone: "neutral" },
         hasGold && goldDiff !== 0 ? { label: `${scoreboardTeamName(leaderTeamName, match?.game)} ${signed(Math.round(goldDiff))} gold`, tone: leaderTone } : null,
         killDiff !== 0 ? { label: `${killDiff > 0 ? scoreboardTeamName(leftName, match?.game) : scoreboardTeamName(rightName, match?.game)} ${signed(Math.abs(killDiff))} kills`, tone: killDiff > 0 ? "left" : "right" } : null
       ],
-      tone: leaderTone
+      tone: leaderTone,
+      compact
     })}
-    <div class="recap-grid">${cards.join("")}</div>
-    ${recapNoteMarkup([sideSummaryText, performerText, tips.length ? tips.join(" · ") : null])}
+    <div class="recap-grid${compact ? " compact" : ""}">${(compact ? cards.slice(5) : cards).join("")}</div>
+    ${recapNoteMarkup([sideSummaryText, !compact ? performerText : null, tips.length && !compact ? tips.join(" · ") : null], { compact })}
   `;
 }
 
