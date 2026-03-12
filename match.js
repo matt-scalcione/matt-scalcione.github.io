@@ -1983,9 +1983,11 @@ function liveTelemetryStatus(match) {
 function applyMobileGameEnhancements(match) {
   const selectedState = String(match?.selectedGame?.state || "");
   const compactGameMode = isCompactUI() && uiState.viewMode === "game";
+  const compactSeriesMode = isCompactUI() && uiState.viewMode !== "game";
   const desktopGameMode = !isCompactUI() && uiState.viewMode === "game";
   const telemetryStatus = liveTelemetryStatus(match);
   document.body.classList.toggle("mobile-game-mode", compactGameMode);
+  document.body.classList.toggle("mobile-series-mode", compactSeriesMode);
   document.body.classList.toggle("mobile-game-live", compactGameMode && selectedState === "inProgress");
   document.body.classList.toggle("mobile-game-complete", compactGameMode && selectedState === "completed");
   document.body.classList.toggle(
@@ -3794,6 +3796,22 @@ function seriesInfoCard(label, value, note = null) {
   `;
 }
 
+function renderSeriesInfoCards(items, { limit = null } = {}) {
+  const visibleItems = (Array.isArray(items) ? items : []).filter(
+    (item) =>
+      item &&
+      item.label &&
+      item.value !== null &&
+      item.value !== undefined &&
+      String(item.value).trim() !== ""
+  );
+  const boundedItems =
+    Number.isInteger(limit) && limit > 0 ? visibleItems.slice(0, limit) : visibleItems;
+  return boundedItems
+    .map((item) => seriesInfoCard(item.label, item.value, item.note || null))
+    .join("");
+}
+
 function resolvedSeriesPrediction(match) {
   const matchupState = currentMatchupState(match);
   if (matchupState?.leftProfile && matchupState?.rightProfile) {
@@ -4369,13 +4387,13 @@ function winningSideLabelForSeriesGame(match, game) {
   return null;
 }
 
-function buildCompletedSeriesSummaryCards(match) {
+function buildCompletedSeriesSummaryCardItems(match) {
   const games = (Array.isArray(match?.seriesGames) ? match.seriesGames : [])
     .filter((game) => game?.state === "completed")
     .slice()
     .sort((left, right) => Number(left?.number || 0) - Number(right?.number || 0));
   if (!games.length) {
-    return "";
+    return [];
   }
 
   const overallWinner = winnerTeamName(match);
@@ -4437,74 +4455,64 @@ function buildCompletedSeriesSummaryCards(match) {
 
   const cards = [];
   if (clincher) {
-    cards.push(
-      seriesInfoCard(
-        "Clincher",
-        `G${clincher.number}`,
-        `${overallWinner ? scoreboardTeamName(overallWinner) : "Series winner"} · ${durationLabelFromMinutes(clincher.durationMinutes)}`
-      )
-    );
+    cards.push({
+      label: "Clincher",
+      value: `G${clincher.number}`,
+      note: `${overallWinner ? scoreboardTeamName(overallWinner) : "Series winner"} · ${durationLabelFromMinutes(clincher.durationMinutes)}`
+    });
   }
 
   if (averageDuration !== null) {
-    cards.push(
-      seriesInfoCard(
-        "Avg Map",
-        durationLabelFromMinutes(averageDuration),
-        `${games.length} completed map${games.length === 1 ? "" : "s"}`
-      )
-    );
+    cards.push({
+      label: "Avg Map",
+      value: durationLabelFromMinutes(averageDuration),
+      note: `${games.length} completed map${games.length === 1 ? "" : "s"}`
+    });
   }
 
   if (longestGame) {
-    cards.push(
-      seriesInfoCard(
-        "Longest",
-        `G${longestGame.number}`,
-        durationLabelFromMinutes(longestGame.durationMinutes)
-      )
-    );
+    cards.push({
+      label: "Longest",
+      value: `G${longestGame.number}`,
+      note: durationLabelFromMinutes(longestGame.durationMinutes)
+    });
   }
 
   if (shortestGame) {
-    cards.push(
-      seriesInfoCard(
-        "Fastest",
-        `G${shortestGame.number}`,
-        durationLabelFromMinutes(shortestGame.durationMinutes)
-      )
-    );
+    cards.push({
+      label: "Fastest",
+      value: `G${shortestGame.number}`,
+      note: durationLabelFromMinutes(shortestGame.durationMinutes)
+    });
   }
 
   if (firstWinner) {
-    cards.push(
-      seriesInfoCard(
-        "Game 1",
-        scoreboardTeamName(resolveSeriesGameWinnerName(firstWinner, match) || "TBD"),
-        "Opened the series"
-      )
-    );
+    cards.push({
+      label: "Game 1",
+      value: scoreboardTeamName(resolveSeriesGameWinnerName(firstWinner, match) || "TBD"),
+      note: "Opened the series"
+    });
   }
 
   if (sideWinsValue) {
-    cards.push(
-      seriesInfoCard(
-        "Side Wins",
-        sideWinsValue,
-        `${sideEntryTotal} map${sideEntryTotal === 1 ? "" : "s"} with side data`
-      )
-    );
+    cards.push({
+      label: "Side Wins",
+      value: sideWinsValue,
+      note: `${sideEntryTotal} map${sideEntryTotal === 1 ? "" : "s"} with side data`
+    });
   } else if (mapPath.length) {
-    cards.push(
-      seriesInfoCard(
-        "Map Path",
-        mapPath.join(" · "),
-        `${games.length} completed map${games.length === 1 ? "" : "s"}`
-      )
-    );
+    cards.push({
+      label: "Map Path",
+      value: mapPath.join(" · "),
+      note: `${games.length} completed map${games.length === 1 ? "" : "s"}`
+    });
   }
 
-  return cards.join("");
+  return cards;
+}
+
+function buildCompletedSeriesSummaryCards(match, { limit = null } = {}) {
+  return renderSeriesInfoCards(buildCompletedSeriesSummaryCardItems(match), { limit });
 }
 
 function currentSeriesLeader(match) {
@@ -4651,12 +4659,23 @@ function renderGameExplorer(match, apiBase) {
       navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">Next</a>`);
     }
   } else if (match.status === "live") {
-    navTitle = Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} Live` : "Series Live";
-    navNote = `Series ${seriesScoreLabel} · ${completedMaps} map${completedMaps === 1 ? "" : "s"} complete${
-      upcomingMaps > 0 ? ` · ${upcomingMaps} still to play` : ""
-    }`;
-    navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
-    if (Number.isInteger(liveGameNumber)) {
+    navTitle = compact ? "Series Live" : Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} Live` : "Series Live";
+    navEyebrow = compact
+      ? Number.isInteger(liveGameNumber)
+        ? `G${liveGameNumber} running`
+        : "Live series"
+      : navEyebrow;
+    navNote = compact
+      ? ""
+      : `Series ${seriesScoreLabel} · ${completedMaps} map${completedMaps === 1 ? "" : "s"} complete${
+          upcomingMaps > 0 ? ` · ${upcomingMaps} still to play` : ""
+        }`;
+    if (compact) {
+      navTags.push(seriesScoreLabel, Number.isInteger(liveGameNumber) ? `G${liveGameNumber} live` : "Live", `BO${bestOf}`);
+    } else {
+      navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
+    }
+    if (!compact && Number.isInteger(liveGameNumber)) {
       navTags.push(`Live G${liveGameNumber}`);
       navActions.push(
         `<a class="link-btn" href="${detailUrlForGame(match.id, apiBase, liveGameNumber)}">Open Game ${liveGameNumber}</a>`
@@ -4664,14 +4683,24 @@ function renderGameExplorer(match, apiBase) {
     }
   } else if (match.status === "completed") {
     const winner = winnerTeamName(match);
-    navTitle = "Final Series";
-    navNote = `${winner ? `${displayTeamName(winner)} won` : "Series complete"} ${seriesScoreLabel} · ${completedMaps} maps played`;
-    navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
+    navTitle = compact ? "Series Final" : "Final Series";
+    navEyebrow = compact ? "Result" : navEyebrow;
+    navNote = compact ? "" : `${winner ? `${displayTeamName(winner)} won` : "Series complete"} ${seriesScoreLabel} · ${completedMaps} maps played`;
+    if (compact) {
+      navTags.push(seriesScoreLabel, `${completedMaps} map${completedMaps === 1 ? "" : "s"}`, `BO${bestOf}`);
+    } else {
+      navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
+    }
   } else {
     navTitle = "Series Setup";
-    navNote = `Starts ${kickoffLabel} · ${tournamentName}`;
-    navTags.push(`BO${bestOf}`, `Kickoff ${kickoffLabel}`);
-    if (upcomingMaps > 0) {
+    navEyebrow = compact ? "Upcoming" : navEyebrow;
+    navNote = compact ? "" : `Starts ${kickoffLabel} · ${tournamentName}`;
+    if (compact) {
+      navTags.push(kickoffLabel, `BO${bestOf}`);
+    } else {
+      navTags.push(`BO${bestOf}`, `Kickoff ${kickoffLabel}`);
+    }
+    if (!compact && upcomingMaps > 0) {
       navTags.push(`${upcomingMaps} scheduled`);
     }
   }
@@ -4828,12 +4857,29 @@ function renderGameExplorer(match, apiBase) {
             : "neutral";
       const countdownLabel = countdown !== null ? (countdown > 0 ? shortDuration(Math.max(0, countdown)) : "Soon") : "TBD";
       const kickoffLabel = scheduledAt ? (compact ? dateTimeCompact(scheduledAt) : dateTimeLabel(scheduledAt)) : `${kickoffDate} · ${kickoffTime}`;
-      const heroTags = [
-        formatLabel,
-        tournamentName,
-        match.patch ? `Patch ${match.patch}` : null,
-        estimatedEndAt ? `Ends ${compact ? dateTimeCompact(estimatedEndAt) : dateTimeLabel(estimatedEndAt)}` : null
-      ].filter(Boolean);
+      const heroTags = compact
+        ? [tournamentName, match.patch ? `Patch ${match.patch}` : null].filter(Boolean)
+        : [
+            formatLabel,
+            tournamentName,
+            match.patch ? `Patch ${match.patch}` : null,
+            estimatedEndAt ? `Ends ${compact ? dateTimeCompact(estimatedEndAt) : dateTimeLabel(estimatedEndAt)}` : null
+          ].filter(Boolean);
+      const setupCards = compact
+        ? renderSeriesInfoCards([
+            { label: "Kickoff", value: kickoffLabel },
+            { label: "Countdown", value: countdownLabel },
+            { label: "Format", value: formatLabel },
+            { label: match.patch ? "Patch" : "Region", value: match.patch || String(match.region || "global").toUpperCase() }
+          ])
+        : renderSeriesInfoCards([
+            { label: "Kickoff", value: kickoffLabel },
+            { label: "Countdown", value: countdownLabel },
+            { label: "Format", value: formatLabel },
+            { label: "Tournament", value: tournamentName },
+            { label: "Patch", value: match.patch || "unknown" },
+            { label: "Region", value: String(match.region || "global").toUpperCase() }
+          ]);
       const watchMarkup = featuredWatchOptions.length
         ? `
           <div class="vod-options">
@@ -4888,9 +4934,7 @@ function renderGameExplorer(match, apiBase) {
 
       elements.gameContextWrap.innerHTML = `
         <article class="game-context-card none series-context-card upcoming-series-card">
-          <div class="game-context-top">
-            <p class="game-context-title">Series setup view</p>
-          </div>
+          ${compact ? "" : `<div class="game-context-top"><p class="game-context-title">Series setup view</p></div>`}
           <article class="series-context-hero">
             <div class="series-context-headline">
               <div class="series-context-matchup">
@@ -4909,24 +4953,23 @@ function renderGameExplorer(match, apiBase) {
           <div class="series-context-tags">
             ${heroTags.map((tag) => `<span class="series-context-tag">${tag}</span>`).join("")}
           </div>
-          <div class="series-context-grid">
-            ${seriesInfoCard("Kickoff", kickoffLabel)}
-            ${seriesInfoCard("Countdown", countdownLabel)}
-            ${seriesInfoCard("Format", formatLabel)}
-            ${seriesInfoCard("Tournament", tournamentName)}
-            ${seriesInfoCard("Patch", match.patch || "unknown")}
-            ${seriesInfoCard("Region", String(match.region || "global").toUpperCase())}
-          </div>
-          ${predictionMarkup}
-          <article class="series-watch-card">
-            <div class="series-forecast-head">
-              <div>
-                <p class="tempo-label">Watch</p>
-                <p class="series-forecast-favorite">${featuredWatchOptions.length ? "Official streams and mirrors" : "Watch links pending"}</p>
-              </div>
-            </div>
-            ${watchMarkup}
-          </article>
+          <div class="series-context-grid">${setupCards}</div>
+          ${compact ? "" : predictionMarkup}
+          ${
+            compact
+              ? ""
+              : `
+                <article class="series-watch-card">
+                  <div class="series-forecast-head">
+                    <div>
+                      <p class="tempo-label">Watch</p>
+                      <p class="series-forecast-favorite">${featuredWatchOptions.length ? "Official streams and mirrors" : "Watch links pending"}</p>
+                    </div>
+                  </div>
+                  ${watchMarkup}
+                </article>
+              `
+          }
         </article>
       `;
       return;
@@ -4939,23 +4982,29 @@ function renderGameExplorer(match, apiBase) {
         match?.winnerTeamId === match?.teams?.right?.id || winner === match?.teams?.right?.name;
       const winnerTone = leftWinner ? "winner-left" : rightWinner ? "winner-right" : "winner-neutral";
       const finalScoreLabel = `${match.seriesScore.left} - ${match.seriesScore.right}`;
-      const completedHeroTags = [
-        formatLabel,
-        tournamentName,
-        match.patch ? `Patch ${match.patch}` : null,
-        `${completedMaps} maps played`
-      ].filter(Boolean);
-      const seriesSummaryCards = buildCompletedSeriesSummaryCards(match);
+      const completedHeroTags = compact
+        ? [formatLabel, `${completedMaps} maps played`].filter(Boolean)
+        : [
+            formatLabel,
+            tournamentName,
+            match.patch ? `Patch ${match.patch}` : null,
+            `${completedMaps} maps played`
+          ].filter(Boolean);
+      const seriesSummaryCards = buildCompletedSeriesSummaryCards(match, compact ? { limit: 4 } : {});
       elements.gameContextWrap.innerHTML = `
         <article class="game-context-card none series-context-card completed-series-card">
-          <div class="game-context-top">
-            <p class="game-context-title">Series final view</p>
-          </div>
+          ${compact ? "" : `<div class="game-context-top"><p class="game-context-title">Series final view</p></div>`}
           <article class="series-context-hero result ${winnerTone}">
-            <div class="series-final-status-row">
-              <p class="series-final-kicker">Final result</p>
-              <span class="series-final-stamp">Series complete</span>
-            </div>
+            ${
+              compact
+                ? ""
+                : `
+                  <div class="series-final-status-row">
+                    <p class="series-final-kicker">Final result</p>
+                    <span class="series-final-stamp">Series complete</span>
+                  </div>
+                `
+            }
             <div class="series-final-scoreboard">
               <div class="series-final-side left ${leftWinner ? "winner" : "loser"}">
                 <div class="series-final-side-head">
@@ -4966,9 +5015,9 @@ function renderGameExplorer(match, apiBase) {
                 <span class="series-final-side-label">${leftWinner ? "Winner" : "Defeated"}</span>
               </div>
               <div class="series-final-center">
-                <span class="series-final-center-mark">Series closed</span>
+                ${compact ? "" : `<span class="series-final-center-mark">Series closed</span>`}
                 <strong class="series-final-center-score">${finalScoreLabel}</strong>
-                <p class="series-final-center-meta">${completedMaps} maps complete · Started ${kickoffDate}</p>
+                <p class="series-final-center-meta">${compact ? `${completedMaps} maps · ${kickoffDate}` : `${completedMaps} maps complete · Started ${kickoffDate}`}</p>
               </div>
               <div class="series-final-side right ${rightWinner ? "winner" : "loser"}">
                 <div class="series-final-side-head">
@@ -4993,18 +5042,60 @@ function renderGameExplorer(match, apiBase) {
     const liveLeadValue = Number(match?.momentum?.goldLead);
     const liveLeadLabel = Number.isFinite(liveLeadValue) ? feedLeadDescriptor(match, liveLeadValue).label : "Lead forming";
     const liveKickoffLabel = `${kickoffDate} · ${kickoffTime}`;
-    const liveHeroTags = [
-      formatLabel,
-      tournamentName,
-      match.patch ? `Patch ${match.patch}` : null,
-      liveSeriesGame?.startedAt ? `Started ${compact ? dateTimeCompact(liveSeriesGame.startedAt) : dateTimeLabel(liveSeriesGame.startedAt)}` : null
-    ].filter(Boolean);
+    const liveHeroTags = compact
+      ? [tournamentName, match.patch ? `Patch ${match.patch}` : null].filter(Boolean)
+      : [
+          formatLabel,
+          tournamentName,
+          match.patch ? `Patch ${match.patch}` : null,
+          liveSeriesGame?.startedAt ? `Started ${compact ? dateTimeCompact(liveSeriesGame.startedAt) : dateTimeLabel(liveSeriesGame.startedAt)}` : null
+        ].filter(Boolean);
+    const liveCards = compact
+      ? renderSeriesInfoCards([
+          { label: "Current", value: Number.isInteger(liveGameNumber) ? `G${liveGameNumber}` : "Live" },
+          { label: "Series", value: liveScoreLabel },
+          {
+            label: "Maps",
+            value: `${completedMaps} done`,
+            note: upcomingMaps > 0 ? `${upcomingMaps} left` : "Series in progress"
+          },
+          Number.isFinite(Number(match?.momentum?.goldLead))
+            ? { label: "Lead", value: liveLeadLabel }
+            : Number.isFinite(Number(match?.momentum?.killDiff))
+              ? { label: "Kill Diff", value: signed(match.momentum.killDiff) }
+              : liveSeriesGame?.startedAt
+                ? {
+                    label: "Started",
+                    value: compact ? dateTimeCompact(liveSeriesGame.startedAt) : dateTimeLabel(liveSeriesGame.startedAt)
+                  }
+                : { label: "Format", value: formatLabel }
+        ])
+      : renderSeriesInfoCards([
+          { label: "Current Game", value: Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber}` : "Live" },
+          { label: "Series Score", value: liveScoreLabel },
+          { label: "Matchup", value: matchupLabel },
+          { label: "Format", value: formatLabel },
+          { label: "Tournament", value: tournamentName },
+          { label: "Maps Completed", value: String(completedMaps) },
+          { label: "Kickoff", value: liveKickoffLabel },
+          { label: "Patch", value: match.patch || "unknown" },
+          Number.isFinite(Number(match?.momentum?.goldLead))
+            ? { label: "Gold Lead", value: liveLeadLabel }
+            : null,
+          Number.isFinite(Number(match?.momentum?.killDiff))
+            ? { label: "Kill Diff", value: signed(match.momentum.killDiff) }
+            : null,
+          liveSeriesGame?.startedAt
+            ? {
+                label: "Current Map Start",
+                value: compact ? dateTimeCompact(liveSeriesGame.startedAt) : dateTimeLabel(liveSeriesGame.startedAt)
+              }
+            : null
+        ]);
 
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card none series-context-card live-series-card">
-        <div class="game-context-top">
-          <p class="game-context-title">Live series view</p>
-        </div>
+        ${compact ? "" : `<div class="game-context-top"><p class="game-context-title">Live series view</p></div>`}
         <article class="series-context-hero live">
           <div class="series-context-headline">
             <div class="series-context-matchup">
@@ -5023,25 +5114,7 @@ function renderGameExplorer(match, apiBase) {
         <div class="series-context-tags">
           ${liveHeroTags.map((tag) => `<span class="series-context-tag">${tag}</span>`).join("")}
         </div>
-        <div class="series-context-grid">
-          ${seriesInfoCard("Current Game", Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber}` : "Live")}
-          ${seriesInfoCard("Series Score", liveScoreLabel)}
-          ${seriesInfoCard("Matchup", matchupLabel)}
-          ${seriesInfoCard("Format", formatLabel)}
-          ${seriesInfoCard("Tournament", tournamentName)}
-          ${seriesInfoCard("Maps Completed", String(completedMaps))}
-          ${seriesInfoCard("Kickoff", liveKickoffLabel)}
-          ${seriesInfoCard("Patch", match.patch || "unknown")}
-          ${Number.isFinite(Number(match?.momentum?.goldLead))
-            ? seriesInfoCard("Gold Lead", liveLeadLabel)
-            : ""}
-          ${Number.isFinite(Number(match?.momentum?.killDiff))
-            ? seriesInfoCard("Kill Diff", signed(match.momentum.killDiff))
-            : ""}
-          ${liveSeriesGame?.startedAt
-            ? seriesInfoCard("Current Map Start", compact ? dateTimeCompact(liveSeriesGame.startedAt) : dateTimeLabel(liveSeriesGame.startedAt))
-            : ""}
-        </div>
+        <div class="series-context-grid">${liveCards}</div>
       </article>
     `;
     return;

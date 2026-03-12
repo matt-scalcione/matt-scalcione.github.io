@@ -15694,6 +15694,140 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     justify-self: start;
     font-size: 0.5rem;
   }
+
+  body.product-shell.match-page.mobile-series-mode #gameExplorerPanel .section-head {
+    margin-bottom: 0.12rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav,
+  body.product-shell.match-page.mobile-series-mode .game-context {
+    margin-top: 0.18rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav-board {
+    margin-inline: -0.58rem;
+    padding: 0.46rem 0.54rem;
+    gap: 0.18rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav-board-title {
+    font-size: 0.84rem;
+    line-height: 1.04;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav-board-tags {
+    gap: 0.12rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav-chip {
+    min-height: 1.14rem;
+    padding: 0.06rem 0.28rem;
+    font-size: 0.46rem;
+    letter-spacing: 0.05em;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav-stepper {
+    grid-template-columns: 1.54rem minmax(0, 1fr) 1.54rem;
+    gap: 0.12rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav-stepper .game-pill-row {
+    gap: 0.12rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-nav-stepper .game-pill {
+    min-height: 1.42rem;
+    padding: 0.12rem 0.06rem;
+    border-radius: 8px;
+    font-size: 0.5rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .game-step-control {
+    min-height: 1.42rem;
+    border-radius: 8px;
+    font-size: 0.56rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-card {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-hero {
+    padding: 0.5rem 0.54rem;
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-headline,
+  body.product-shell.match-page.mobile-series-mode .series-context-timing {
+    gap: 0.08rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-matchup {
+    gap: 0.24rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-fullname {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-kicker {
+    font-size: 0.64rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-countdown {
+    font-size: 0.86rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-tags {
+    gap: 0.2rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-tag,
+  body.product-shell.match-page.mobile-series-mode .series-context-more {
+    min-height: 1.24rem;
+    padding: 0.08rem 0.34rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-context-grid {
+    gap: 0.38rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-info-card {
+    min-height: 3.34rem;
+    padding: 0.5rem 0.54rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-info-card .tempo-value {
+    font-size: 0.8rem;
+    line-height: 1.16;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-final-scoreboard {
+    gap: 0.4rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-final-side {
+    padding: 0.62rem 0.6rem;
+    gap: 0.28rem 0.5rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-final-side-name {
+    font-size: 0.8rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-final-side-score {
+    font-size: 1.84rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-final-center {
+    gap: 0.1rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-final-center-meta {
+    font-size: 0.6rem;
+  }
 }
 
 @media (max-width: 760px) {
