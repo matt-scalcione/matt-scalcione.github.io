@@ -16271,11 +16271,55 @@ body.product-shell.hub-page .table-link {
     padding-bottom: 0.06rem;
   }
 
+  body.product-shell .hero-kicker-row {
+    display: none;
+  }
+
   body.product-shell .hero-action-row {
     grid-template-columns: 1fr;
   }
 
   body.product-shell .hero-action-row .link-btn.ghost {
+    display: none;
+  }
+
+  body.product-shell.live-page .hero-action-row,
+  body.product-shell.schedule-page .hero-action-row,
+  body.product-shell.follows-page .hero-action-row,
+  body.product-shell.hub-page .hero-action-row {
+    display: none;
+  }
+
+  body.product-shell .mobile-glance-shell {
+    gap: 0.34rem;
+    padding: 0.54rem 0.56rem;
+  }
+
+  body.product-shell .mobile-glance-head {
+    gap: 0.14rem;
+  }
+
+  body.product-shell .mobile-glance-kicker {
+    display: none;
+  }
+
+  body.product-shell .mobile-glance-chip-row {
+    gap: 0.2rem;
+  }
+
+  body.product-shell .mobile-glance-chip-row .mobile-glance-chip:not(.primary):not(.warn) {
+    display: none;
+  }
+
+  body.product-shell .mobile-glance-stat-row {
+    gap: 0.22rem;
+  }
+
+  body.product-shell .mobile-glance-spotlight-top {
+    margin-bottom: 0.08rem;
+  }
+
+  body.product-shell .mobile-glance-spotlight-label {
     display: none;
   }
 
@@ -16303,9 +16347,20 @@ body.product-shell.hub-page .table-link {
     padding-inline: 0.16rem;
   }
 
+  body.product-shell.schedule-page .mobile-page-jump,
+  body.product-shell.follows-page #followsQuickJump,
+  body.product-shell.hub-page #hubQuickJump,
+  body.product-shell.team-page #teamQuickJump {
+    display: none !important;
+  }
+
   body.product-shell.match-page .mobile-mode-toolbar,
   body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
     margin-top: 0;
+  }
+
+  body.product-shell.match-page .mobile-jump-row {
+    display: none;
   }
 
   .mobile-tabbar {
