@@ -15623,6 +15623,77 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
   body.product-shell.match-page #gameExplorerPanel {
     margin-bottom: 0.04rem;
   }
+
+  body.product-shell.match-page.mobile-game-mode #gameExplorerPanel .section-head {
+    margin-bottom: 0.18rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav,
+  body.product-shell.match-page.mobile-game-mode .game-context {
+    margin-top: 0.26rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-board {
+    margin-inline: -0.58rem;
+    padding: 0.5rem 0.58rem;
+    gap: 0.22rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-board.compact {
+    padding: 0.46rem 0.54rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-board-title {
+    font-size: 0.88rem;
+    line-height: 1.04;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-board-tags {
+    gap: 0.14rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-chip {
+    min-height: 1.18rem;
+    padding: 0.06rem 0.32rem;
+    font-size: 0.48rem;
+    letter-spacing: 0.06em;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-stepper {
+    grid-template-columns: 1.62rem minmax(0, 1fr) 1.62rem;
+    gap: 0.14rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-stepper .game-pill-row {
+    gap: 0.14rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-nav-stepper .game-pill {
+    min-height: 1.5rem;
+    padding: 0.14rem 0.08rem;
+    border-radius: 9px;
+    font-size: 0.52rem;
+    letter-spacing: 0.01em;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .game-step-control {
+    min-height: 1.5rem;
+    border-radius: 9px;
+    font-size: 0.58rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
+    gap: 0.14rem;
+  }
+
+  body.product-shell.match-page.mobile-game-mode .mobile-advanced-toggle {
+    width: auto;
+    min-height: 1.52rem;
+    padding: 0.12rem 0.44rem;
+    border-radius: 999px;
+    justify-self: start;
+    font-size: 0.5rem;
+  }
 }
 
 @media (max-width: 760px) {
@@ -21155,6 +21226,78 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   }
 
   body.product-shell.match-page .game-feed-desk-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page .game-feed-desk-note,
+  body.product-shell.match-page .match-desk-mini-meta,
+  body.product-shell.match-page .signal-log-item .meta-text,
+  body.product-shell.match-page #gameAlertsPanel .live-alert-item .meta-text {
+    font-size: 0.7rem;
+  }
+
+  body.product-shell.match-page .match-desk-mini-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page .game-alert-desk,
+  body.product-shell.match-page .timeline-desk {
+    margin-bottom: 0.5rem;
+  }
+
+  body.product-shell.match-page .game-alert-desk-hero,
+  body.product-shell.match-page .timeline-desk-hero,
+  body.product-shell.match-page .match-desk-mini-card,
+  body.product-shell.match-page #gameAlertsPanel .live-alert-item,
+  body.product-shell.match-page #gameStorylinesPanel .storyline-item,
+  body.product-shell.match-page #gameTickerPanel .signal-log-item,
+  body.product-shell.match-page #gameSignalsPanel .signal-log-item,
+  body.product-shell.match-page #gameMilestonesPanel .signal-log-item,
+  body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item,
+  body.product-shell.match-page #gameMomentsPanel .signal-log-item,
+  body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card {
+    padding: 0.58rem 0.6rem;
+  }
+
+  body.product-shell.match-page .trend-card {
+    padding: 0.5rem;
+    gap: 0.3rem;
+  }
+
+  body.product-shell.match-page .trend-split,
+  body.product-shell.match-page .trend-card-map-only {
+    gap: 0.3rem;
+  }
+
+  body.product-shell.match-page .trend-headline {
+    font-size: 0.84rem;
+  }
+
+  body.product-shell.match-page .trend-chart {
+    height: 132px;
+  }
+
+  body.product-shell.match-page .trend-axis {
+    font-size: 0.56rem;
+  }
+
+  body.product-shell.match-page .trend-split > .minimap-card,
+  body.product-shell.match-page .trend-card-map-only > .minimap-card {
+    width: min(168px, 52vw);
+    justify-self: start;
+  }
+
+  body.product-shell.match-page .signal-log-top,
+  body.product-shell.match-page .objective-timeline-top,
+  body.product-shell.match-page #gameAlertsPanel .live-alert-top {
+    gap: 0.32rem;
+  }
+
+  body.product-shell.match-page .signal-log-time,
+  body.product-shell.match-page .objective-timeline-time,
+  body.product-shell.match-page #gameAlertsPanel .live-alert-index {
+    font-size: 0.62rem;
   }
 }

@@ -1950,7 +1950,7 @@ function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
 
   const advancedButton =
     advancedVisibleCount > 0
-      ? `<button type="button" class="mobile-advanced-toggle${uiState.mobileAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${uiState.mobileAdvancedExpanded ? "Hide extra panels" : `More stats (${advancedVisibleCount})`}</button>`
+      ? `<button type="button" class="mobile-advanced-toggle${uiState.mobileAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${uiState.mobileAdvancedExpanded ? "Hide extras" : `More (${advancedVisibleCount})`}</button>`
       : "";
 
   if (!jumpButtons && !advancedButton) {
@@ -4617,20 +4617,30 @@ function renderGameExplorer(match, apiBase) {
   const navActions = [];
 
   if (isGameMode && Number.isInteger(activeGameNumber)) {
-    navTitle =
-      selected?.state === "inProgress"
-        ? `Game ${activeGameNumber} Live`
-        : selected?.state === "completed"
-          ? `Game ${activeGameNumber} Final`
-          : `Game ${activeGameNumber} Preview`;
+    if (compact) {
+      navTitle = `Game ${activeGameNumber}`;
+      navEyebrow =
+        selected?.state === "inProgress"
+          ? "Live map"
+          : selected?.state === "completed"
+            ? "Final map"
+            : "Map focus";
+    } else {
+      navTitle =
+        selected?.state === "inProgress"
+          ? `Game ${activeGameNumber} Live`
+          : selected?.state === "completed"
+            ? `Game ${activeGameNumber} Final`
+            : `Game ${activeGameNumber} Preview`;
+    }
     navNote = `Series ${seriesScoreLabel} · ${completedMaps} complete${
       selectedWinner ? ` · Winner ${scoreboardTeamName(selectedWinner)}` : ""
     }`;
     navTags.push(`Series ${seriesScoreLabel}`, `BO${bestOf}`);
     if (selected?.telemetryStatus) {
-      navTags.push(`${String(selected.telemetryStatus).toUpperCase()} telemetry`);
+      navTags.push(compact ? String(selected.telemetryStatus).toUpperCase() : `${String(selected.telemetryStatus).toUpperCase()} telemetry`);
     }
-    if (selected?.startedAt) {
+    if (!compact && selected?.startedAt) {
       navTags.push(`Started ${compact ? dateTimeCompact(selected.startedAt) : dateTimeLabel(selected.startedAt)}`);
     }
     navActions.push(`<a class="link-btn ghost" href="${seriesHref}">Series View</a>`);
@@ -4692,18 +4702,21 @@ function renderGameExplorer(match, apiBase) {
     })
   ].join("");
 
-  const compactNavPills = availableGames
+  const compactNavPills = focusItems
     .map((item) => {
-      const game = item;
+      const game = item.game;
       const isCurrentLiveGame =
+        !item.game
+          ? false
+          :
         match.status === "live" &&
         Number.isInteger(liveGameNumber) &&
         liveGameNumber === game.number;
       return buildGameNavPill({
-        href: detailUrlForGame(match.id, apiBase, game.number),
-        label: `G${game.number}`,
-        state: game?.state,
-        selected: isGameMode && activeGameNumber === game.number,
+        href: item.href,
+        label: item.key === "series" ? "S" : `G${game.number}`,
+        state: item.key === "series" ? seriesNavPillState(match) : game?.state,
+        selected: item.key === "series" ? !isGameMode : isGameMode && activeGameNumber === game.number,
         currentLive: isCurrentLiveGame,
         disabled: game?.state === "unneeded"
       });
@@ -4721,7 +4734,7 @@ function renderGameExplorer(match, apiBase) {
     : "";
 
   elements.gameNavWrap.innerHTML = `
-    <article class="game-nav-board ${navTone}">
+    <article class="game-nav-board ${navTone}${compact ? " compact" : ""}">
       <div class="game-nav-board-copy">
         <p class="game-nav-board-eyebrow">${navEyebrow}</p>
         <p class="game-nav-board-title">${navTitle}</p>
