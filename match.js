@@ -554,6 +554,7 @@ const elements = {
   trackerSort: document.querySelector("#trackerSort"),
   trackerSortButtons: Array.from(document.querySelectorAll("#trackerSortButtons [data-sort]")),
   liveSummaryWrap: document.querySelector("#liveSummaryWrap"),
+  liveAlertsDeskWrap: document.querySelector("#liveAlertsDeskWrap"),
   feedControlsToggle: document.querySelector("#feedControlsToggle"),
   feedControlsWrap: document.querySelector("#feedControlsWrap"),
   feedResetFilter: document.querySelector("#feedResetFilter"),
@@ -561,6 +562,7 @@ const elements = {
   combatBurstsList: document.querySelector("#combatBurstsList"),
   goldMilestonesList: document.querySelector("#goldMilestonesList"),
   liveAlertsList: document.querySelector("#liveAlertsList"),
+  objectiveTimelineDeskWrap: document.querySelector("#objectiveTimelineDeskWrap"),
   feedTypeFilter: document.querySelector("#feedTypeFilter"),
   feedTeamFilter: document.querySelector("#feedTeamFilter"),
   feedImportanceFilter: document.querySelector("#feedImportanceFilter"),
@@ -8635,11 +8637,23 @@ function renderTacticalChecklist(match) {
 function renderStorylines(match) {
   const rows = Array.isArray(match.storylines) ? match.storylines : [];
   if (!rows.length) {
-    elements.storylinesList.innerHTML = "<li>No storyline signals yet.</li>";
+    elements.storylinesList.innerHTML = '<li class="storyline-item empty">No storyline signals yet.</li>';
     return;
   }
 
-  elements.storylinesList.innerHTML = rows.map((row) => `<li>${row}</li>`).join("");
+  elements.storylinesList.innerHTML = rows
+    .slice(0, 5)
+    .map(
+      (row, index) => `
+        <li class="storyline-item">
+          <div class="storyline-head">
+            <span class="storyline-index">Read ${index + 1}</span>
+          </div>
+          <p class="storyline-text">${escapeHtml(String(row || "Signal"))}</p>
+        </li>
+      `
+    )
+    .join("");
 }
 
 function renderSeriesProgress(match) {
@@ -11581,29 +11595,115 @@ function renderTopPerformers(match) {
   `;
 }
 
-function renderLiveTicker(rows, status) {
+function renderLiveTicker(rows, status, match) {
   if (!rows.length) {
     elements.liveTickerList.innerHTML =
       status === "live"
-        ? "<li>Waiting for ticker events from live frames...</li>"
-        : "<li>Live ticker appears during active games.</li>";
+        ? '<li class="signal-log-empty">Waiting for ticker events from live frames...</li>'
+        : '<li class="signal-log-empty">Live ticker appears during active games.</li>';
     return;
   }
 
   elements.liveTickerList.innerHTML = rows
-    .map(
-      (row) => `
-      <li>
-        <div class="moment-head">
-          <strong>${row.title}</strong>
-          <span class="importance">${row.importance || row.type || "info"}</span>
-        </div>
-        <p class="meta-text">${row.summary || "Live-derived update."}</p>
-        <p class="meta-text">${dateTimeLabel(row.occurredAt)}</p>
-      </li>
-    `
+    .map((row) =>
+      renderSignalListItem({
+        kind: "Ticker",
+        tone: teamSideFromCandidate(match, row?.team || row?.teamName || row?.winnerTeamName || "") || "neutral",
+        title: row.title || "Ticker update",
+        summary: row.summary || "Live-derived update.",
+        importance: row.importance || row.type || "info",
+        at: row.occurredAt,
+        clock: eventClockLabel(match, row.occurredAt, row.gameClockSeconds),
+        teamLabel: row.teamName || row.team || row.winnerTeamName || ""
+      })
     )
     .join("");
+}
+
+function importanceToneClass(importance) {
+  const normalized = String(importance || "low").toLowerCase();
+  if (normalized === "critical") {
+    return "critical";
+  }
+  if (normalized === "high") {
+    return "warn";
+  }
+  if (normalized === "medium") {
+    return "live";
+  }
+  return "neutral";
+}
+
+function metricDeskCard(label, value, meta, tone = "neutral") {
+  return `
+    <article class="match-desk-mini-card ${tone}">
+      <p class="match-desk-mini-label">${escapeHtml(label)}</p>
+      <p class="match-desk-mini-value">${escapeHtml(value)}</p>
+      <p class="match-desk-mini-meta">${escapeHtml(meta)}</p>
+    </article>
+  `;
+}
+
+function teamSideFromCandidate(match, candidate) {
+  const normalized = normalizeLookupKey(candidate);
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "left") {
+    return "left";
+  }
+  if (normalized === "right") {
+    return "right";
+  }
+  return teamSideFromWinnerCandidate(match, candidate);
+}
+
+function objectiveTimelineKindLabel(row) {
+  const normalized = normalizeLookupKey(row?.type || row?.label || "");
+  if (!normalized) {
+    return "Objective";
+  }
+  if (normalized.includes("baron")) return "Baron";
+  if (normalized.includes("dragon")) return "Dragon";
+  if (normalized.includes("grub")) return "Grubs";
+  if (normalized.includes("herald")) return "Herald";
+  if (normalized.includes("tower") || normalized.includes("turret")) return "Tower";
+  if (normalized.includes("inhib")) return "Inhib";
+  if (normalized.includes("barrack") || normalized.includes("rax")) return "Barracks";
+  if (normalized.includes("roshan")) return "Roshan";
+  if (normalized.includes("lotus")) return "Lotus";
+  if (normalized.includes("wisdom")) return "Wisdom";
+  return "Objective";
+}
+
+function objectiveTimelineTone(row, match) {
+  const teamSide = teamSideFromCandidate(match, row?.team || row?.winnerTeamName || "");
+  if (teamSide) {
+    return teamSide;
+  }
+  const inferred = teamSideFromWinnerCandidate(match, row?.label || "");
+  return inferred || "neutral";
+}
+
+function renderSignalListItem({ kind, tone = "neutral", title, summary, importance, at, clock, teamLabel = "" }) {
+  const importanceLabel = String(importance || "medium").toUpperCase();
+  const meta = [teamLabel, at ? shortTimeLabel(at) : ""].filter(Boolean).join(" · ");
+  return `
+    <li class="signal-log-item ${tone}">
+      <div class="signal-log-top">
+        <div class="signal-log-headline">
+          <span class="signal-log-kind ${tone}">${escapeHtml(kind)}</span>
+          <strong>${escapeHtml(title)}</strong>
+        </div>
+        <span class="signal-log-time">${escapeHtml(clock || "Time n/a")}</span>
+      </div>
+      <p class="meta-text">${escapeHtml(summary)}</p>
+      <div class="signal-log-meta">
+        <span class="signal-log-pill ${importanceToneClass(importance)}">${escapeHtml(importanceLabel)}</span>
+        ${meta ? `<span class="signal-log-stamp">${escapeHtml(meta)}</span>` : ""}
+      </div>
+    </li>
+  `;
 }
 
 function renderCombatBursts(rows, match) {
@@ -11638,26 +11738,23 @@ function renderCombatBursts(rows, match) {
     if (!signalRows.length) {
       elements.combatBurstsList.innerHTML =
         match.status === "live"
-          ? "<li>Signal log will populate once fights spike or economy checkpoints trigger.</li>"
-          : "<li>Signal log appears during active games.</li>";
+          ? "<li class=\"signal-log-empty\">Signal log will populate once fights spike or economy checkpoints trigger.</li>"
+          : "<li class=\"signal-log-empty\">Signal log appears during active games.</li>";
       return;
     }
 
     elements.combatBurstsList.innerHTML = signalRows
-      .map(
-        (row) => `
-        <li class="signal-log-item ${row.tone}">
-          <div class="moment-head">
-            <div class="signal-log-headline">
-              <span class="signal-log-kind ${row.tone}">${row.kind}</span>
-              <strong>${row.title}</strong>
-            </div>
-            <span class="importance">${row.importance}</span>
-          </div>
-          <p class="meta-text">${row.summary}</p>
-          <p class="meta-text">${dateTimeLabel(row.at)}${row.teamName ? ` · ${row.teamName}` : ""}</p>
-        </li>
-      `
+      .map((row) =>
+        renderSignalListItem({
+          kind: row.kind,
+          tone: row.tone,
+          title: row.title,
+          summary: row.summary,
+          importance: row.importance,
+          at: row.at,
+          clock: eventClockLabel(match, row.at),
+          teamLabel: row.teamName || ""
+        })
       )
       .join("");
     return;
@@ -11666,23 +11763,23 @@ function renderCombatBursts(rows, match) {
   if (!rows.length) {
     elements.combatBurstsList.innerHTML =
       match.status === "live"
-        ? "<li>Waiting for combat burst windows from kill deltas...</li>"
-        : "<li>Combat bursts appear when multi-kill windows are detected.</li>";
+        ? "<li class=\"signal-log-empty\">Waiting for combat burst windows from kill deltas...</li>"
+        : "<li class=\"signal-log-empty\">Combat bursts appear when multi-kill windows are detected.</li>";
     return;
   }
 
   elements.combatBurstsList.innerHTML = rows
-    .map(
-      (row) => `
-      <li>
-        <div class="moment-head">
-          <strong>${row.title || "Combat burst"}</strong>
-          <span class="importance">${String(row.importance || "medium").toUpperCase()}</span>
-        </div>
-        <p class="meta-text">${row.summary || "Burst event from kill deltas."}</p>
-        <p class="meta-text">${dateTimeLabel(row.occurredAt)}${row.winnerTeamName ? ` · Winner: ${row.winnerTeamName}` : ""}</p>
-      </li>
-    `
+    .map((row) =>
+      renderSignalListItem({
+        kind: "Fight",
+        tone: "fight",
+        title: row.title || "Combat burst",
+        summary: row.summary || "Burst event from kill deltas.",
+        importance: row.importance || "medium",
+        at: row.occurredAt,
+        clock: eventClockLabel(match, row.occurredAt),
+        teamLabel: row.winnerTeamName ? `Winner: ${row.winnerTeamName}` : ""
+      })
     )
     .join("");
 }
@@ -11691,23 +11788,23 @@ function renderGoldMilestones(rows, match) {
   if (!rows.length) {
     elements.goldMilestonesList.innerHTML =
       match.status === "live"
-        ? "<li>Gold milestones appear as team economy thresholds are crossed.</li>"
-        : "<li>No gold milestone telemetry for this game.</li>";
+        ? "<li class=\"signal-log-empty\">Gold milestones appear as team economy thresholds are crossed.</li>"
+        : "<li class=\"signal-log-empty\">No gold milestone telemetry for this game.</li>";
     return;
   }
 
   elements.goldMilestonesList.innerHTML = rows
-    .map(
-      (row) => `
-      <li>
-        <div class="moment-head">
-          <strong>${row.title || "Gold milestone"}</strong>
-          <span class="importance">${String(row.importance || "medium").toUpperCase()}</span>
-        </div>
-        <p class="meta-text">${row.summary || "Team crossed a major gold threshold."}</p>
-        <p class="meta-text">${dateTimeLabel(row.occurredAt)}${row.teamName ? ` · ${row.teamName}` : ""}</p>
-      </li>
-    `
+    .map((row) =>
+      renderSignalListItem({
+        kind: "Gold",
+        tone: "gold",
+        title: row.title || "Gold milestone",
+        summary: row.summary || "Team crossed a major gold threshold.",
+        importance: row.importance || "medium",
+        at: row.occurredAt,
+        clock: eventClockLabel(match, row.occurredAt),
+        teamLabel: row.teamName || ""
+      })
     )
     .join("");
 }
@@ -11782,33 +11879,123 @@ function buildLiveAlerts(match) {
 
 function renderLiveAlerts(match) {
   const alerts = buildLiveAlerts(match);
+  const primaryAlert = alerts[0] || null;
+  const criticalCount = alerts.filter((alert) => String(alert?.importance || "").toLowerCase() === "critical").length;
+  const highCount = alerts.filter((alert) => importanceRank(alert?.importance) >= importanceRank("high")).length;
+  const nextObjective = nextObjectiveWindow(match);
+  if (elements.liveAlertsDeskWrap) {
+    const selectedState = String(match?.selectedGame?.state || "");
+    const stateLabelText = selectedState === "inProgress" ? "Live" : stateLabel(selectedState);
+    elements.liveAlertsDeskWrap.innerHTML = `
+      <div class="game-alert-desk-shell ${importanceToneClass(primaryAlert?.importance)}">
+        <article class="game-alert-desk-hero">
+          <div class="game-alert-desk-copy">
+            <p class="tempo-label">Map risk</p>
+            <h3>${escapeHtml(primaryAlert?.title || "Stable state")}</h3>
+            <p class="game-feed-desk-note">${escapeHtml(primaryAlert?.summary || "No major pressure alerts right now.")}</p>
+          </div>
+          <div class="form-summary-strip">
+            <span class="form-summary-pill">${escapeHtml(stateLabelText)}</span>
+            <span class="form-summary-pill">${alerts.length} alert${alerts.length === 1 ? "" : "s"}</span>
+            <span class="form-summary-pill">${highCount ? `${highCount} high+` : "No escalations"}</span>
+          </div>
+        </article>
+        <div class="match-desk-mini-grid">
+          ${metricDeskCard("Critical", String(criticalCount), criticalCount ? "Immediate swing risk detected." : "No critical map states flagged.", criticalCount ? "critical" : "neutral")}
+          ${metricDeskCard("High+", String(highCount), highCount ? "Pressure is building in tracked lanes and objectives." : "Map pressure remains controlled.", highCount ? "warn" : "neutral")}
+          ${metricDeskCard(
+            "Next objective",
+            nextObjective ? displayObjectiveName(nextObjective.type, match) : "Forecast waiting",
+            nextObjective ? (nextObjective.state === "available" ? "Available now." : `ETA ${objectiveEtaLabel(nextObjective)}.`) : "Window appears once cadence is established.",
+            nextObjective?.state === "available" ? "live" : "neutral"
+          )}
+        </div>
+      </div>
+    `;
+  }
   elements.liveAlertsList.innerHTML = alerts
     .slice(0, 4)
     .map(
-      (alert) => `
+      (alert, index) => `
       <li class="live-alert-item importance-${String(alert.importance || "low").toLowerCase()}">
         <div class="live-alert-top">
-          <span class="live-alert-severity ${String(alert.importance || "low").toLowerCase()}">${String(alert.importance || "low").toUpperCase()}</span>
-          <strong>${alert.title}</strong>
+          <div class="live-alert-headline">
+            <span class="live-alert-severity ${String(alert.importance || "low").toLowerCase()}">${String(alert.importance || "low").toUpperCase()}</span>
+            <strong>${escapeHtml(alert.title)}</strong>
+          </div>
+          <span class="live-alert-index">Alert ${index + 1}</span>
         </div>
-        <p class="meta-text">${alert.summary}</p>
+        <p class="meta-text">${escapeHtml(alert.summary)}</p>
       </li>
     `
     )
     .join("");
 }
 
-function renderObjectiveTimeline(rows, status) {
+function renderObjectiveTimeline(rows, status, match) {
+  const nextObjective = nextObjectiveWindow(match);
+  if (elements.objectiveTimelineDeskWrap) {
+    const latest = rows[0] || null;
+    const latestTone = latest ? objectiveTimelineTone(latest, match) : "neutral";
+    elements.objectiveTimelineDeskWrap.innerHTML = `
+      <div class="timeline-desk-shell ${latestTone}">
+        <article class="timeline-desk-hero">
+          <div class="timeline-desk-copy">
+            <p class="tempo-label">Objective desk</p>
+            <h3>${escapeHtml(latest?.label || (status === "live" ? "Waiting for the next objective change" : "Objective desk is idle"))}</h3>
+            <p class="game-feed-desk-note">${escapeHtml(
+              latest
+                ? `${objectiveTimelineKindLabel(latest)} captured at ${eventClockLabel(match, latest.at)}.`
+                : status === "live"
+                  ? "Major objective swings will appear here as soon as the map state changes."
+                  : "Objective desk becomes active once the game begins."
+            )}</p>
+          </div>
+          <div class="form-summary-strip">
+            <span class="form-summary-pill">${rows.length} event${rows.length === 1 ? "" : "s"}</span>
+            <span class="form-summary-pill">${latest ? objectiveTimelineKindLabel(latest) : "Waiting"}</span>
+            <span class="form-summary-pill">${nextObjective ? `${displayObjectiveName(nextObjective.type, match)} ${objectiveEtaLabel(nextObjective)}` : "No forecast"}</span>
+          </div>
+        </article>
+        <div class="match-desk-mini-grid">
+          ${metricDeskCard("Latest", latest ? eventClockLabel(match, latest.at) : "--:--", latest ? "Most recent swing in this map." : "No objective swings yet.", latestTone)}
+          ${metricDeskCard("Next window", nextObjective ? objectiveEtaLabel(nextObjective) : "n/a", nextObjective ? displayObjectiveName(nextObjective.type, match) : "No forecast available yet.", nextObjective?.state === "available" ? "live" : "neutral")}
+          ${metricDeskCard("State", status === "live" ? "Tracking" : "Waiting", status === "live" ? "Objective cadence is being monitored now." : "Timeline updates appear during active games.", status === "live" ? "live" : "neutral")}
+        </div>
+      </div>
+    `;
+  }
+
   if (!rows.length) {
     elements.objectiveTimelineList.innerHTML =
       status === "live"
-        ? "<li>No objective changes in this frame window yet.</li>"
-        : "<li>Objective timeline appears during active games.</li>";
+        ? "<li class=\"objective-timeline-item empty\">No objective changes in this frame window yet.</li>"
+        : "<li class=\"objective-timeline-item empty\">Objective timeline appears during active games.</li>";
     return;
   }
 
   elements.objectiveTimelineList.innerHTML = rows
-    .map((row) => `<li><span>${dateTimeLabel(row.at)}</span><span>${row.label}</span></li>`)
+    .map((row) => {
+      const tone = objectiveTimelineTone(row, match);
+      const label = row?.label || "Objective update";
+      const kind = objectiveTimelineKindLabel(row);
+      const sideLabel = tone === "neutral" ? "Map state" : teamShortNameForSide(match, tone);
+      return `
+        <li class="objective-timeline-item ${tone}">
+          <div class="objective-timeline-top">
+            <div class="objective-timeline-headline">
+              <span class="objective-timeline-kind ${tone}">${escapeHtml(kind)}</span>
+              <strong>${escapeHtml(label)}</strong>
+            </div>
+            <span class="objective-timeline-time">${escapeHtml(eventClockLabel(match, row.at))}</span>
+          </div>
+          <div class="objective-timeline-meta">
+            <span class="objective-timeline-pill ${tone}">${escapeHtml(sideLabel)}</span>
+            <span class="objective-timeline-stamp">${escapeHtml(shortTimeLabel(row.at))}</span>
+          </div>
+        </li>
+      `;
+    })
     .join("");
 }
 
@@ -11843,11 +12030,14 @@ function renderObjectiveForecast(match) {
     .map(
       (row) => `
       <article class="forecast-card ${row.state === "available" ? "available" : "countdown"}">
-        <p class="forecast-title">${row.label || "Objective Window"}</p>
-        <p class="forecast-eta">${etaLabel(row.etaSeconds)}</p>
-        <p class="meta-text">Expected ${dateTimeLabel(row.nextAt)}</p>
+        <div class="forecast-top">
+          <p class="forecast-title">${escapeHtml(row.label || "Objective Window")}</p>
+          <span class="forecast-pill ${row.state === "available" ? "available" : "countdown"}">${escapeHtml(row.state === "available" ? "Ready" : "Forecast")}</span>
+        </div>
+        <p class="forecast-eta">${escapeHtml(etaLabel(row.etaSeconds))}</p>
+        <p class="meta-text">Expected ${escapeHtml(dateTimeLabel(row.nextAt))}</p>
         ${row.note ? `<p class="meta-text">${row.note}</p>` : ""}
-        <p class="meta-text">Confidence: ${String(row.confidence || "estimated").toUpperCase()}</p>
+        <p class="meta-text">Confidence: ${escapeHtml(String(row.confidence || "estimated").toUpperCase())}</p>
       </article>
     `
     )
@@ -11988,24 +12178,24 @@ function renderPlayerDeltaPanel(panel, match) {
   `;
 }
 
-function renderMoments(rows) {
+function renderMoments(rows, match) {
   if (!rows.length) {
-    elements.momentsList.innerHTML = "<li>No key moments yet.</li>";
+    elements.momentsList.innerHTML = '<li class="signal-log-empty">No key moments yet.</li>';
     return;
   }
 
   elements.momentsList.innerHTML = rows
-    .map(
-      (moment) => `
-      <li>
-        <div class="moment-head">
-          <strong>${moment.title}</strong>
-          <span class="importance">${moment.importance}</span>
-        </div>
-        <p class="meta-text">${moment.summary}</p>
-        <p class="meta-text">${dateTimeLabel(moment.occurredAt)}</p>
-      </li>
-    `
+    .map((moment) =>
+      renderSignalListItem({
+        kind: "Moment",
+        tone: teamSideFromCandidate(match, moment?.team || moment?.teamName || "") || "neutral",
+        title: moment.title || "Key moment",
+        summary: moment.summary || "Map-defining moment from the current game state.",
+        importance: moment.importance || "medium",
+        at: moment.occurredAt,
+        clock: eventClockLabel(match, moment.occurredAt, moment.gameClockSeconds),
+        teamLabel: moment.teamName || moment.team || ""
+      })
     )
     .join("");
 }
@@ -12213,13 +12403,13 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   renderSelectedGameRecap(match);
   renderPreMatchPlanner(match);
   renderTopPerformers(match);
-  renderLiveTicker(match.liveTicker || [], match.status);
+  renderLiveTicker(match.liveTicker || [], match.status, match);
   renderCombatBursts(match.combatBursts || [], match);
   renderGoldMilestones(match.goldMilestones || [], match);
-  renderObjectiveTimeline(match.objectiveTimeline || [], match.status);
+  renderObjectiveTimeline(match.objectiveTimeline || [], match.status, match);
   renderObjectiveForecast(match);
   renderPlayerDeltaPanel(match.playerDeltaPanel, match);
-  renderMoments(match.keyMoments || []);
+  renderMoments(match.keyMoments || [], match);
   renderTimeline(match.timeline || []);
   applyGamePanelVisibility(match);
   applySeriesPanelVisibility(match);

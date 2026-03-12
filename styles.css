@@ -17997,6 +17997,42 @@ body.product-shell.match-page .match-content-group[data-layout-group="stats"] > 
   order: 12;
 }
 
+body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #liveFeedPanel {
+  order: 1;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameAlertsPanel {
+  order: 2;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameTickerPanel {
+  order: 3;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameStorylinesPanel {
+  order: 4;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameObjectiveTimelinePanel {
+  order: 1;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameSignalsPanel {
+  order: 2;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameMilestonesPanel {
+  order: 3;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameObjectiveForecastPanel {
+  order: 4;
+}
+
+body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameMomentsPanel {
+  order: 5;
+}
+
 body.product-shell.match-page .match-content-group > .panel {
   margin: 0;
 }
@@ -20354,6 +20390,420 @@ body.product-shell.match-page .game-feed-desk-card.right {
 
 body.product-shell.match-page .game-feed-desk-card.critical {
   border-color: rgba(199, 90, 90, 0.24);
+}
+
+body.product-shell.match-page .game-alert-desk,
+body.product-shell.match-page .timeline-desk {
+  display: grid;
+  gap: 0.62rem;
+  margin-bottom: 0.7rem;
+}
+
+body.product-shell.match-page .game-alert-desk:empty,
+body.product-shell.match-page .timeline-desk:empty {
+  display: none;
+}
+
+body.product-shell.match-page .game-alert-desk-shell,
+body.product-shell.match-page .timeline-desk-shell,
+body.product-shell.match-page .match-desk-mini-grid {
+  display: grid;
+  gap: 0.58rem;
+}
+
+body.product-shell.match-page .match-desk-mini-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+body.product-shell.match-page .game-alert-desk-hero,
+body.product-shell.match-page .timeline-desk-hero,
+body.product-shell.match-page .match-desk-mini-card,
+body.product-shell.match-page #matchGroupFeed .live-summary-card,
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item,
+body.product-shell.match-page #gameAlertsPanel .live-alert-item,
+body.product-shell.match-page #gameStorylinesPanel .storyline-item,
+body.product-shell.match-page #gameTickerPanel .signal-log-item,
+body.product-shell.match-page #gameSignalsPanel .signal-log-item,
+body.product-shell.match-page #gameMilestonesPanel .signal-log-item,
+body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item,
+body.product-shell.match-page #gameMomentsPanel .signal-log-item,
+body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card {
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  border-radius: 0.94rem;
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .game-alert-desk-hero,
+body.product-shell.match-page .timeline-desk-hero {
+  display: grid;
+  gap: 0.44rem;
+  padding: 0.76rem 0.8rem;
+}
+
+body.product-shell.match-page .game-alert-desk-copy,
+body.product-shell.match-page .timeline-desk-copy {
+  display: grid;
+  gap: 0.16rem;
+}
+
+body.product-shell.match-page .game-alert-desk-copy h3,
+body.product-shell.match-page .timeline-desk-copy h3,
+body.product-shell.match-page .match-desk-mini-value {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.16;
+}
+
+body.product-shell.match-page .match-desk-mini-card {
+  display: grid;
+  gap: 0.14rem;
+  padding: 0.62rem 0.66rem;
+}
+
+body.product-shell.match-page .match-desk-mini-label {
+  margin: 0;
+  color: #9aa8b7;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .match-desk-mini-meta {
+  margin: 0;
+  color: #aab6c4;
+  font-size: 0.72rem;
+  line-height: 1.34;
+}
+
+body.product-shell.match-page .game-alert-desk-shell.live .game-alert-desk-hero,
+body.product-shell.match-page .timeline-desk-shell.left .timeline-desk-hero,
+body.product-shell.match-page .match-desk-mini-card.live,
+body.product-shell.match-page .match-desk-mini-card.left {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .game-alert-desk-shell.warn .game-alert-desk-hero,
+body.product-shell.match-page .timeline-desk-shell.right .timeline-desk-hero,
+body.product-shell.match-page .match-desk-mini-card.warn,
+body.product-shell.match-page .match-desk-mini-card.right {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .game-alert-desk-shell.critical .game-alert-desk-hero,
+body.product-shell.match-page .match-desk-mini-card.critical {
+  border-color: rgba(199, 90, 90, 0.24);
+}
+
+body.product-shell.match-page #matchGroupFeed .live-summary-card {
+  padding: 0.58rem 0.62rem;
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+}
+
+body.product-shell.match-page #matchGroupFeed .live-summary-label,
+body.product-shell.match-page #matchGroupFeed .live-summary-meta {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-summary-value {
+  color: #f2f6fb;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+}
+
+body.product-shell.match-page .live-feed-toolbar-shell {
+  margin: 0.12rem 0 0.5rem;
+}
+
+body.product-shell.match-page .live-feed-toolbar select,
+body.product-shell.match-page .live-feed-reset {
+  border-color: rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+}
+
+body.product-shell.match-page .live-feed-toolbar select {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item {
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+  padding: 0.56rem 0.62rem;
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.active {
+  background: linear-gradient(180deg, rgba(53, 66, 80, 0.98), rgba(41, 51, 64, 0.98));
+  border-color: rgba(123, 210, 160, 0.18);
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.major-objective {
+  border-color: rgba(86, 160, 117, 0.18);
+  background: linear-gradient(180deg, rgba(44, 66, 53, 0.96), rgba(35, 53, 43, 0.98));
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.major-swing,
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.major-lead {
+  border-color: rgba(108, 157, 204, 0.2);
+  background: linear-gradient(180deg, rgba(44, 58, 76, 0.96), rgba(35, 47, 63, 0.98));
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.major-fight,
+body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item.major-critical {
+  border-color: rgba(216, 138, 51, 0.18);
+  background: linear-gradient(180deg, rgba(72, 56, 42, 0.96), rgba(58, 45, 35, 0.98));
+}
+
+body.product-shell.match-page #matchGroupFeed .live-feed-title span,
+body.product-shell.match-page #matchGroupFeed .feed-absolute-time,
+body.product-shell.match-page #matchGroupFeed .live-feed-meta-row,
+body.product-shell.match-page #matchGroupFeed .feed-major-summary,
+body.product-shell.match-page #matchGroupFeed .feed-game-time {
+  color: #dfe7ef;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-item {
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.68rem 0.72rem;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-item.importance-critical {
+  border-color: rgba(199, 90, 90, 0.24);
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-item.importance-high {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-item.importance-medium {
+  border-color: rgba(108, 157, 204, 0.2);
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-top,
+body.product-shell.match-page .signal-log-top,
+body.product-shell.match-page .objective-timeline-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.56rem;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-headline,
+body.product-shell.match-page .objective-timeline-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-headline strong,
+body.product-shell.match-page .signal-log-headline strong,
+body.product-shell.match-page .objective-timeline-headline strong {
+  color: #f2f6fb;
+  font-size: 0.86rem;
+  line-height: 1.2;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-index,
+body.product-shell.match-page .signal-log-time,
+body.product-shell.match-page .objective-timeline-time {
+  color: #9aa8b7;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-severity,
+body.product-shell.match-page .signal-log-kind,
+body.product-shell.match-page .signal-log-pill,
+body.product-shell.match-page .objective-timeline-kind,
+body.product-shell.match-page .objective-timeline-pill,
+body.product-shell.match-page .forecast-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.46rem;
+  padding: 0.08rem 0.46rem;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-severity.critical,
+body.product-shell.match-page .signal-log-pill.critical {
+  border-color: rgba(199, 90, 90, 0.24);
+  background: rgba(199, 90, 90, 0.12);
+  color: #f3c1ba;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-severity.high,
+body.product-shell.match-page .signal-log-kind.gold,
+body.product-shell.match-page .signal-log-pill.warn,
+body.product-shell.match-page .objective-timeline-kind.right,
+body.product-shell.match-page .objective-timeline-pill.right,
+body.product-shell.match-page .forecast-pill.countdown {
+  border-color: rgba(216, 138, 51, 0.18);
+  background: rgba(216, 138, 51, 0.12);
+  color: #f4d8b3;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-severity.medium,
+body.product-shell.match-page .objective-timeline-kind.neutral,
+body.product-shell.match-page .objective-timeline-pill.neutral {
+  border-color: rgba(108, 157, 204, 0.2);
+  background: rgba(108, 157, 204, 0.12);
+  color: #d4e3f3;
+}
+
+body.product-shell.match-page .signal-log-kind.fight,
+body.product-shell.match-page .objective-timeline-kind.left,
+body.product-shell.match-page .objective-timeline-pill.left,
+body.product-shell.match-page .forecast-pill.available,
+body.product-shell.match-page .signal-log-pill.live {
+  border-color: rgba(86, 160, 117, 0.18);
+  background: rgba(86, 160, 117, 0.12);
+  color: #bfe5cc;
+}
+
+body.product-shell.match-page #gameAlertsPanel .live-alert-item .meta-text,
+body.product-shell.match-page .signal-log-item .meta-text {
+  margin: 0;
+  color: #aab6c4;
+  line-height: 1.38;
+}
+
+body.product-shell.match-page #gameStorylinesPanel .storyline-item {
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.68rem 0.72rem;
+}
+
+body.product-shell.match-page #gameStorylinesPanel .storyline-item.empty {
+  color: #aab6c4;
+}
+
+body.product-shell.match-page .storyline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.42rem;
+}
+
+body.product-shell.match-page .storyline-index {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.46rem;
+  padding: 0.08rem 0.46rem;
+  border-radius: 999px;
+  border: 1px solid rgba(108, 157, 204, 0.2);
+  background: rgba(108, 157, 204, 0.12);
+  color: #d4e3f3;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .storyline-text {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.84rem;
+  line-height: 1.36;
+}
+
+body.product-shell.match-page .signal-log-item {
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.68rem 0.72rem;
+}
+
+body.product-shell.match-page .signal-log-item.fight {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .signal-log-item.gold {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .signal-log-meta,
+body.product-shell.match-page .objective-timeline-meta,
+body.product-shell.match-page .forecast-top {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+}
+
+body.product-shell.match-page .signal-log-stamp,
+body.product-shell.match-page .objective-timeline-stamp {
+  color: #9aa8b7;
+  font-size: 0.72rem;
+}
+
+body.product-shell.match-page .signal-log-empty,
+body.product-shell.match-page .objective-timeline-item.empty {
+  padding: 0.74rem 0.78rem;
+  color: #aab6c4;
+}
+
+body.product-shell.match-page #gameObjectiveTimelinePanel .timeline {
+  gap: 0.54rem;
+}
+
+body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item {
+  display: grid;
+  gap: 0.36rem;
+  padding: 0.68rem 0.72rem;
+}
+
+body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item.left {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item.right {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item.empty {
+  border-color: rgba(233, 239, 245, 0.06);
+}
+
+body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card {
+  padding: 0.72rem 0.76rem;
+}
+
+body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.available {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.countdown {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page #gameObjectiveForecastPanel .forecast-title {
+  color: #f2f6fb;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+body.product-shell.match-page #gameObjectiveForecastPanel .forecast-eta {
+  color: #f1b25f;
+}
+
+body.product-shell.match-page #gameObjectiveForecastPanel .meta-text {
+  margin: 0;
+  color: #aab6c4;
 }
 
 body.product-shell.match-page #playerTrackerPanel .tracker-sort-chip,

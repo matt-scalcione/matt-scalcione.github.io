@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312ai" />
+    <link rel="stylesheet" href="./styles.css?v=20260312aj" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -301,10 +301,12 @@
         <div id="pulseCard" class="pulse-card"></div>
       </section>
 
-      <section class="panel" data-scope="game">
+      <section class="panel" id="gameAlertsPanel" data-scope="game">
         <div class="section-head">
           <h2>Alerts</h2>
+          <p class="meta-text">The highest-risk map states worth reacting to right now.</p>
         </div>
+        <div id="liveAlertsDeskWrap" class="game-alert-desk"></div>
         <ul id="liveAlertsList" class="moments"></ul>
       </section>
 
@@ -316,15 +318,16 @@
         <div id="performersWrap" class="performer-list"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameObjectiveTimelinePanel" data-scope="game">
         <div class="section-head">
           <h2>Objective Timeline</h2>
           <p class="meta-text">Dragons, barons, towers, inhibitors, and major objective timing.</p>
         </div>
+        <div id="objectiveTimelineDeskWrap" class="timeline-desk"></div>
         <ul id="objectiveTimelineList" class="timeline"></ul>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameSignalsPanel" data-scope="game">
         <div class="section-head">
           <h2>Signals</h2>
           <p class="meta-text">Fight spikes and economy checkpoints worth tracking.</p>
@@ -332,7 +335,7 @@
         <ul id="combatBurstsList" class="moments"></ul>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameMilestonesPanel" data-scope="game">
         <div class="section-head">
           <h2>Economy Milestones</h2>
           <p class="meta-text">Team economy threshold progression.</p>
@@ -340,7 +343,7 @@
         <ul id="goldMilestonesList" class="moments"></ul>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameObjectiveForecastPanel" data-scope="game">
         <div class="section-head">
           <h2>Objective Forecast</h2>
           <p class="meta-text">Estimated next major objective windows.</p>
@@ -493,7 +496,7 @@
         <div id="tacticalChecklistWrap" class="checklist"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameStorylinesPanel" data-scope="game">
         <div class="section-head">
           <h2>Storylines</h2>
           <p class="meta-text">Auto-generated narratives from current metrics.</p>
@@ -501,7 +504,7 @@
         <ul id="storylinesList" class="moments"></ul>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameTickerPanel" data-scope="game">
         <div class="section-head">
           <h2>Live Ticker</h2>
           <p class="meta-text">Derived from live frame deltas.</p>
@@ -517,7 +520,7 @@
         <div id="playerDeltaWrap" class="delta-grid"></div>
       </section>
 
-      <section class="panel secondary-panel" data-scope="game">
+      <section class="panel secondary-panel" id="gameMomentsPanel" data-scope="game">
         <div class="section-head">
           <h2>Key Moments</h2>
           <p class="meta-text">Auto-refresh every 15 seconds.</p>
@@ -551,6 +554,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312q"></script>
+    <script type="module" src="./match.js?v=20260312r"></script>
   </body>
 </html>
