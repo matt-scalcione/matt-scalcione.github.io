@@ -1139,6 +1139,23 @@ function scoreboardTeamName(teamOrName, game = null) {
   return TEAM_HEADER_ABBREVIATIONS[normalizeTeamKey(raw)] || shortTeamName(raw);
 }
 
+function headerTeamCodeValue(teamOrName, game = null) {
+  const displayName = displayTeamName(teamOrName, game);
+  const scoreboardName = scoreboardTeamName(teamOrName, game);
+  const normalizedDisplay = String(displayName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+  const normalizedScoreboard = String(scoreboardName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+
+  if (!normalizedScoreboard || normalizedScoreboard === normalizedDisplay) {
+    return "";
+  }
+
+  return scoreboardName;
+}
+
 function feedTypeSummaryLabel(value) {
   const normalized = String(value || "all").toLowerCase();
   if (normalized === "combat") return "Combat";
@@ -2093,8 +2110,8 @@ function renderScoreboard(match) {
   const rightRawName = String(match?.teams?.right?.name || "Unknown");
   const leftDisplayName = displayTeamName(leftRawName, match?.game);
   const rightDisplayName = displayTeamName(rightRawName, match?.game);
-  const leftCode = scoreboardTeamName(leftRawName, match?.game);
-  const rightCode = scoreboardTeamName(rightRawName, match?.game);
+  const leftCode = headerTeamCodeValue(leftRawName, match?.game);
+  const rightCode = headerTeamCodeValue(rightRawName, match?.game);
   const selectedGameNumber = contextGameNumber();
   const bestOf = Number(match?.bestOf || match?.seriesProgress?.bestOf || 1);
   const formatLabel = `BO${bestOf}`;
@@ -2237,7 +2254,7 @@ function renderScoreboard(match) {
         <span class="score-hero-team-mark">
           ${teamBadgeMarkup(match?.teams?.left || leftRawName, match?.game)}
         </span>
-        <span class="score-hero-team-code">${leftCode}</span>
+        ${leftCode ? `<span class="score-hero-team-code">${leftCode}</span>` : ""}
         <span class="score-hero-team-name">${escapeHtml(leftDisplayName)}</span>
         ${
           leftFacts.length
@@ -2258,7 +2275,7 @@ function renderScoreboard(match) {
         <span class="score-hero-team-mark">
           ${teamBadgeMarkup(match?.teams?.right || rightRawName, match?.game)}
         </span>
-        <span class="score-hero-team-code">${rightCode}</span>
+        ${rightCode ? `<span class="score-hero-team-code">${rightCode}</span>` : ""}
         <span class="score-hero-team-name">${escapeHtml(rightDisplayName)}</span>
         ${
           rightFacts.length

@@ -17317,24 +17317,24 @@ body.product-shell.match-page .match-shell-hero {
 body.product-shell.match-page .match-shell-copy {
   display: grid;
   justify-items: center;
-  gap: 0.26rem;
-  max-width: 760px;
+  gap: 0.18rem;
+  max-width: 720px;
 }
 
 body.product-shell.match-page .match-shell-kicker {
   color: #8d9cb0;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
 }
 
 body.product-shell.match-page .match-shell h1 {
-  max-width: 22ch;
-  color: #f4f7fb;
-  font-size: clamp(1.18rem, 2.5vw, 1.72rem);
-  font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: 0.01em;
+  max-width: 26ch;
+  color: #eef3f8;
+  font-size: clamp(0.96rem, 1.55vw, 1.28rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: 0.02em;
   text-transform: none;
   text-wrap: balance;
 }
@@ -17342,11 +17342,11 @@ body.product-shell.match-page .match-shell h1 {
 body.product-shell.match-page .match-shell-subtitle {
   max-width: 74ch;
   color: #8f9caf;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.64rem;
+  font-weight: 500;
   line-height: 1.45;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-transform: none;
 }
 
 body.product-shell.match-page .match-shell-chips {
@@ -17388,6 +17388,11 @@ body.product-shell.match-page .score-hero-team {
   text-align: center;
 }
 
+body.product-shell.match-page .score-hero-team.right {
+  justify-items: center;
+  text-align: center;
+}
+
 body.product-shell.match-page .score-hero-team-mark {
   display: inline-flex;
   align-items: center;
@@ -17424,6 +17429,10 @@ body.product-shell.match-page .score-hero-team-name {
 body.product-shell.match-page .score-hero-team-facts {
   justify-content: center;
   gap: 0.26rem;
+}
+
+body.product-shell.match-page .score-hero-team.right .score-hero-team-facts {
+  justify-content: center;
 }
 
 body.product-shell.match-page .score-hero-team-fact {
@@ -17570,8 +17579,8 @@ body.product-shell.match-page .score-hero-open-link.link-btn {
   }
 
   body.product-shell.match-page .match-shell h1 {
-    max-width: 18ch;
-    font-size: clamp(1rem, 4.8vw, 1.22rem);
+    max-width: 22ch;
+    font-size: clamp(0.9rem, 4.2vw, 1.04rem);
   }
 
   body.product-shell.match-page .match-shell-subtitle {
