@@ -4677,7 +4677,12 @@ function renderGameExplorer(match, apiBase) {
 
   if (isGameMode && Number.isInteger(activeGameNumber)) {
     if (compact) {
-      navTitle = `Game ${activeGameNumber}`;
+      navTitle =
+        selected?.state === "inProgress"
+          ? `G${activeGameNumber} Live`
+          : selected?.state === "completed"
+            ? `G${activeGameNumber} Final`
+            : `G${activeGameNumber}`;
       navEyebrow =
         selected?.state === "inProgress"
           ? "Live map"
@@ -4695,8 +4700,12 @@ function renderGameExplorer(match, apiBase) {
     navNote = `Series ${seriesScoreLabel} · ${completedMaps} complete${
       selectedWinner ? ` · Winner ${scoreboardTeamName(selectedWinner)}` : ""
     }`;
-    navTags.push(`Series ${seriesScoreLabel}`, `BO${bestOf}`);
-    if (selected?.telemetryStatus) {
+    if (compact) {
+      navTags.push(seriesScoreLabel, selected?.state === "completed" ? "Final" : selected?.state === "inProgress" ? "Live" : `BO${bestOf}`);
+    } else {
+      navTags.push(`Series ${seriesScoreLabel}`, `BO${bestOf}`);
+    }
+    if (!compact && selected?.telemetryStatus) {
       navTags.push(compact ? String(selected.telemetryStatus).toUpperCase() : `${String(selected.telemetryStatus).toUpperCase()} telemetry`);
     }
     if (!compact && selected?.startedAt) {
@@ -4710,7 +4719,7 @@ function renderGameExplorer(match, apiBase) {
       navActions.push(`<a class="link-btn ghost" href="${detailUrlForGame(match.id, apiBase, nav.nextGameNumber)}">Next</a>`);
     }
   } else if (match.status === "live") {
-    navTitle = compact ? "Series Live" : Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} Live` : "Series Live";
+    navTitle = compact ? (Number.isInteger(liveGameNumber) ? `G${liveGameNumber} Live` : "Series Live") : Number.isInteger(liveGameNumber) ? `Game ${liveGameNumber} Live` : "Series Live";
     navEyebrow = compact
       ? Number.isInteger(liveGameNumber)
         ? `G${liveGameNumber} running`
@@ -4722,7 +4731,7 @@ function renderGameExplorer(match, apiBase) {
           upcomingMaps > 0 ? ` · ${upcomingMaps} still to play` : ""
         }`;
     if (compact) {
-      navTags.push(seriesScoreLabel, Number.isInteger(liveGameNumber) ? `G${liveGameNumber} live` : "Live", `BO${bestOf}`);
+      navTags.push(seriesScoreLabel, `BO${bestOf}`);
     } else {
       navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
     }
@@ -4738,7 +4747,7 @@ function renderGameExplorer(match, apiBase) {
     navEyebrow = compact ? "Result" : navEyebrow;
     navNote = compact ? "" : `${winner ? `${displayTeamName(winner)} won` : "Series complete"} ${seriesScoreLabel} · ${completedMaps} maps played`;
     if (compact) {
-      navTags.push(seriesScoreLabel, `${completedMaps} map${completedMaps === 1 ? "" : "s"}`, `BO${bestOf}`);
+      navTags.push(seriesScoreLabel, `${completedMaps} map${completedMaps === 1 ? "" : "s"}`);
     } else {
       navTags.push(`BO${bestOf}`, `Started ${kickoffLabel}`, `Series ${seriesScoreLabel}`);
     }
@@ -4757,6 +4766,9 @@ function renderGameExplorer(match, apiBase) {
   }
   if (skippedMaps > 0) {
     navTags.push(`${skippedMaps} skipped`);
+  }
+  if (compact && navTags.length > 2) {
+    navTags.length = 2;
   }
 
   const desktopNavPills = [
@@ -5181,6 +5193,7 @@ function renderGameExplorer(match, apiBase) {
   const watchOptions = Array.isArray(selected.watchOptions) ? selected.watchOptions : [];
   const draftPreview = inferDraftPreview(match);
   const compactStateSummary = compact && selected.state !== "inProgress";
+  const selectedGameTitle = compact ? `Game ${selected.number}` : `Game ${selected.number} command`;
   const telemetryCountsLine = `Ticker ${selected.telemetryCounts?.tickerEvents || 0} · Objective ${selected.telemetryCounts?.objectiveEvents || 0} · Bursts ${selected.telemetryCounts?.combatBursts || 0} · Milestones ${selected.telemetryCounts?.goldMilestones || 0}`;
   const startedLabel = selected.startedAt
     ? compact
@@ -5206,7 +5219,7 @@ function renderGameExplorer(match, apiBase) {
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card ${selected.telemetryStatus || "none"} draft-context-card">
         <div class="game-context-top">
-          <p class="game-context-title">Game ${selected.number} command</p>
+          <p class="game-context-title">${selectedGameTitle}</p>
           <span class="pill live">${draftPreview.badge}</span>
         </div>
         <article class="draft-phase-banner ${draftPreview.tone}">
@@ -5293,7 +5306,7 @@ function renderGameExplorer(match, apiBase) {
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card ${selected.telemetryStatus || "none"} completed-context-card">
         <div class="game-context-top">
-          <p class="game-context-title">Game ${selected.number} command</p>
+          <p class="game-context-title">${selectedGameTitle}</p>
           <span class="pill complete">Complete</span>
         </div>
         <article class="completed-result-banner ${winnerTone}">
@@ -5331,7 +5344,7 @@ function renderGameExplorer(match, apiBase) {
   elements.gameContextWrap.innerHTML = `
     <article class="game-context-card ${selected.telemetryStatus || "none"}">
       <div class="game-context-top">
-        <p class="game-context-title">Game ${selected.number} command</p>
+        <p class="game-context-title">${selectedGameTitle}</p>
         <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
       </div>
       <p class="meta-text">${selected.label || "No game label."}</p>
