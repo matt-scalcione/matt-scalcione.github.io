@@ -291,6 +291,133 @@ function matchSummaryLead(match = {}) {
   return `Final ${leftScore}-${rightScore}`;
 }
 
+function liveBoardGroupTitle(rows = []) {
+  const title = String(rows[0]?.tournament || "").trim();
+  return title || "Tournament";
+}
+
+function liveBoardGroupSubtitle(rows = []) {
+  const games = Array.from(new Set(
+    rows
+      .map((row) => normalizeGameKey(row?.game))
+      .filter(Boolean)
+  ));
+  const counts = statusCounts(rows);
+  const parts = [];
+
+  if (games.length === 1) {
+    parts.push(compactBoardGameLabel(games[0]));
+  } else if (games.length > 1) {
+    parts.push("Mixed games");
+  }
+
+  if (counts.live) parts.push(`${counts.live} live`);
+  if (counts.upcoming) parts.push(`${counts.upcoming} next`);
+  if (counts.completed) parts.push(`${counts.completed} final`);
+
+  return parts.join(" · ") || "Match feed";
+}
+
+function compactBoardTeamName(team, game) {
+  const short = teamShortLabel(team, game);
+  if (short && short.length <= 6) {
+    return short;
+  }
+  return teamDisplayName(team);
+}
+
+function compactBoardGameLabel(game) {
+  const normalized = normalizeGameKey(game);
+  if (normalized === "lol") return "LoL";
+  if (normalized === "dota2") return "Dota 2";
+  return gameLabel(game);
+}
+
+function renderMobileLiveBoard(rows = []) {
+  const groups = new Map();
+
+  for (const row of rows) {
+    const key = liveBoardGroupTitle([row]);
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(row);
+  }
+
+  return `
+    <div class="live-board-groups">
+      ${Array.from(groups.entries())
+        .map(([title, groupRows]) => {
+          const subtitle = liveBoardGroupSubtitle(groupRows);
+          const items = groupRows
+            .map((match) => {
+              const link = buildMatchUrl({ matchId: match.id });
+              const status = String(match?.status || "upcoming").toLowerCase();
+              const statusLabel = status === "live" ? "LIVE" : status === "upcoming" ? "NEXT" : "FINAL";
+              const signal = String(match?.keySignal || "").trim();
+              const provenance = buildRowDataProvenance(match);
+              const qualityNotice = buildRowQualityNotice(match);
+              const secondaryNote = qualityNotice.text || provenance.text || "";
+
+              return `
+                <a class="live-board-row live-board-row-${status}" href="${link}">
+                  <div class="live-board-row-top">
+                    <span class="pill ${statusPillClass(status)}">${statusLabel}</span>
+                    <span class="live-board-row-time">${escapeHtml(matchTimeLabel(match))}</span>
+                  </div>
+                  <div class="live-board-row-matchup">
+                    <div class="live-board-row-team">
+                      <span class="live-board-row-team-main">
+                        ${teamBadgeMarkup(match.teams.left, match.game)}
+                        <span class="live-board-row-team-name">${escapeHtml(compactBoardTeamName(match.teams.left, match.game))}</span>
+                      </span>
+                      <strong class="live-board-row-score">${Number(match?.seriesScore?.left || 0)}</strong>
+                    </div>
+                    <div class="live-board-row-team">
+                      <span class="live-board-row-team-main">
+                        ${teamBadgeMarkup(match.teams.right, match.game)}
+                        <span class="live-board-row-team-name">${escapeHtml(compactBoardTeamName(match.teams.right, match.game))}</span>
+                      </span>
+                      <strong class="live-board-row-score">${Number(match?.seriesScore?.right || 0)}</strong>
+                    </div>
+                  </div>
+                  <div class="live-board-row-meta">
+                    <div class="live-board-row-chip-row">
+                      <span class="live-board-row-chip format">${escapeHtml(bestOfCompactLabel(match.bestOf))}</span>
+                      <span class="live-board-row-chip">${escapeHtml(compactBoardGameLabel(match.game))}</span>
+                      ${match.region ? `<span class="live-board-row-chip">${escapeHtml(String(match.region).toUpperCase())}</span>` : ""}
+                      ${signal ? `<span class="live-board-row-chip signal">${escapeHtml(signalLabel(signal))}</span>` : ""}
+                    </div>
+                    <p class="live-board-row-note">${escapeHtml(matchSummaryLead(match))}</p>
+                    ${secondaryNote ? `<p class="live-board-row-subnote">${escapeHtml(secondaryNote)}</p>` : ""}
+                  </div>
+                </a>
+              `;
+            })
+            .join("");
+
+          return `
+            <section class="live-board-group">
+              <div class="live-board-group-head">
+                <div class="live-board-group-title-row">
+                  <div class="live-board-group-copy">
+                    <p class="live-board-group-title">${escapeHtml(title)}</p>
+                    <p class="live-board-group-subtitle">${escapeHtml(subtitle)}</p>
+                  </div>
+                </div>
+                <span class="live-board-group-count">${groupRows.length}</span>
+              </div>
+              <div class="live-board-group-list">
+                ${items}
+              </div>
+            </section>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
 function featuredHeadline(rows = [], counts = { live: 0, upcoming: 0, completed: 0 }) {
   const tournamentCount = new Set(
     rows
@@ -654,6 +781,11 @@ function renderLiveMobileOverview({
   const summaryTitle = visibleRows.length
     ? featuredHeadline(visibleRows, visibleCounts)
     : "No matches in the current filter";
+  const mobileSpotlightTitle = featured && isCompactViewport()
+    ? `${teamShortLabel(featured.teams.left, featured.game)} vs ${teamShortLabel(featured.teams.right, featured.game)}`
+    : featured
+      ? `${teamDisplayName(featured.teams.left)} vs ${teamDisplayName(featured.teams.right)}`
+      : "";
   const summaryCopy = visibleRows.length
     ? `${filteredRows.length}/${totalRows.length} in view across ${Math.max(tournaments, 1)} tournaments.`
     : "Clear search or switch status to widen the board.";
@@ -691,7 +823,7 @@ function renderLiveMobileOverview({
               <span class="mobile-glance-spotlight-label">Spotlight</span>
               <span class="mobile-glance-spotlight-meta">${escapeHtml(String(featured.status || "upcoming").toUpperCase())} · ${escapeHtml(matchTimeLabel(featured))}</span>
             </div>
-            <strong>${escapeHtml(teamDisplayName(featured.teams.left))} vs ${escapeHtml(teamDisplayName(featured.teams.right))}</strong>
+            <strong>${escapeHtml(mobileSpotlightTitle)}</strong>
             <span>${escapeHtml(featured.tournament || "Tournament")}</span>
           </a>
         `
@@ -731,7 +863,7 @@ function applyControlsCollapsed(collapsed) {
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
   const compact = isCompactViewport();
   elements.controlsToggle.textContent = compact
-    ? (collapsed ? "Show" : "Hide")
+    ? (collapsed ? "Filters" : "Close")
     : (collapsed ? "Show Filters" : "Hide Filters");
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
@@ -872,6 +1004,7 @@ function setStatus(message, tone = "neutral") {
 }
 
 function renderLoadingCards() {
+  elements.cardGrid.classList.remove("mobile-live-board");
   if (elements.liveDeskSummary?.dataset.loaded !== "1") {
     elements.liveDeskSummary.innerHTML = overviewSkeletonMarkup();
   }
@@ -879,6 +1012,7 @@ function renderLoadingCards() {
 }
 
 function renderEmpty(message, tips = ["Switch board mode", "Clear search", "Widen region or game scope"]) {
+  elements.cardGrid.classList.remove("mobile-live-board");
   elements.cardGrid.innerHTML = productEmptyMarkup({
     eyebrow: "Board empty",
     title: "No matches in the current board",
@@ -890,6 +1024,14 @@ function renderEmpty(message, tips = ["Switch board mode", "Clear search", "Wide
 
 function renderCards(rows) {
   const orderedRows = sortDeskRows(rows);
+  const compact = isCompactViewport();
+  elements.cardGrid.classList.toggle("mobile-live-board", compact);
+
+  if (compact) {
+    elements.cardGrid.innerHTML = renderMobileLiveBoard(orderedRows);
+    elements.cardGrid.dataset.loaded = "1";
+    return;
+  }
 
   elements.cardGrid.innerHTML = orderedRows
     .map((match, index) => {
@@ -967,6 +1109,7 @@ function renderLiveDesk() {
   const totalRows = liveDeskState.rows.length;
   const counts = statusCounts(liveDeskState.rows);
   const filteredRows = applyClientFilters(liveDeskState.rows);
+  const activeGame = normalizeGameKey(elements.gameSelect?.value || "");
   renderLiveDeskSummary(liveDeskState.rows, filteredRows, counts);
 
   if (!filteredRows.length) {

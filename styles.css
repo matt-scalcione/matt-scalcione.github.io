@@ -11102,6 +11102,20 @@ body.product-shell .match-quick-nav {
 }
 
 @media (max-width: 980px) {
+  body.product-shell.schedule-page .schedule-board-row {
+    grid-template-columns: 4.1rem minmax(0, 1fr);
+    align-items: flex-start;
+  }
+
+  body.product-shell.schedule-page .schedule-board-series,
+  body.product-shell.schedule-page .schedule-board-meta {
+    grid-column: 2;
+  }
+
+  body.product-shell.schedule-page .schedule-board-meta {
+    justify-content: flex-start;
+  }
+
   body.product-shell .hero-grid {
     grid-template-columns: 1fr;
   }
@@ -13129,4 +13143,2823 @@ body.product-shell.match-page .match-quick-nav .team-jump-chip {
   .score-hero-team-facts {
     gap: 0.28rem;
   }
+}
+
+/* DLTV shell pass: denser dark utility chrome for product pages. */
+body.product-shell,
+body.product-shell input,
+body.product-shell select,
+body.product-shell textarea,
+body.product-shell button,
+body.product-shell .link-btn {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+body.product-shell {
+  --ink: #edf2f8;
+  --muted: #97a5b8;
+  --accent: #d88a33;
+  --accent-strong: #f1b25f;
+  --signal: #ff634f;
+  --ok: #74c17c;
+  --warn: #dca04d;
+  --line: rgba(217, 225, 235, 0.08);
+  --line-strong: rgba(217, 225, 235, 0.16);
+  --card: rgba(17, 21, 28, 0.96);
+  --surface-top: rgba(17, 21, 28, 0.96);
+  --surface-bottom: rgba(11, 14, 20, 0.98);
+  --radius: 14px;
+  --radius-tight: 10px;
+  --shadow: 0 18px 38px rgba(0, 0, 0, 0.26);
+  --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.18);
+  --focus-ring: 0 0 0 3px rgba(216, 138, 51, 0.18);
+  color: var(--ink);
+  background:
+    radial-gradient(960px 620px at 12% -8%, rgba(216, 138, 51, 0.12), transparent 60%),
+    radial-gradient(960px 620px at 100% 0, rgba(68, 88, 121, 0.2), transparent 58%),
+    linear-gradient(180deg, #101318 0%, #0b0e13 100%);
+}
+
+body.product-shell::before {
+  inset: auto -12vw -18vh auto;
+  width: 48vw;
+  height: 48vw;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    radial-gradient(circle at 32% 34%, rgba(216, 138, 51, 0.12), rgba(216, 138, 51, 0.02) 62%, transparent 78%);
+  filter: blur(8px);
+}
+
+body.product-shell::after {
+  inset: -16vh auto auto -18vw;
+  width: 42vw;
+  height: 42vw;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+    radial-gradient(circle at 62% 38%, rgba(66, 99, 145, 0.16), rgba(66, 99, 145, 0.02) 64%, transparent 80%);
+  filter: blur(10px);
+}
+
+body.product-shell .noise {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.06));
+  opacity: 0.14;
+}
+
+body.product-shell .hero {
+  max-width: 1280px;
+  padding: 1rem 0.9rem 0.26rem;
+  gap: 0.38rem;
+}
+
+body.product-shell .hero::before {
+  inset: 0.34rem 0.9rem 0.08rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(19, 23, 30, 0.96), rgba(11, 14, 20, 0.99));
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell .hero::after {
+  left: 1.15rem;
+  right: 1.15rem;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(216, 138, 51, 0.48), transparent);
+  opacity: 0.82;
+}
+
+body.product-shell h1,
+body.product-shell h2,
+body.product-shell h3,
+body.product-shell .section-head h2,
+body.product-shell .match-brand-name,
+body.product-shell .hero-metric strong {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+body.product-shell h1 {
+  font-size: clamp(1.72rem, 3.1vw, 2.38rem);
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: #f4f7fb;
+}
+
+body:not(.match-page).product-shell .hero h1 {
+  background: none;
+  color: #f4f7fb;
+}
+
+body.product-shell .subtitle {
+  margin-top: 0.04rem;
+  max-width: 58ch;
+  color: #a4b1c2;
+  font-size: 0.82rem;
+  line-height: 1.42;
+}
+
+body.product-shell .hero-grid {
+  grid-template-columns: minmax(0, 1.82fr) minmax(240px, 0.72fr);
+  gap: 0.78rem;
+}
+
+body.product-shell .hero-main {
+  gap: 0.56rem;
+}
+
+body.product-shell .hero-kicker-row {
+  gap: 0.36rem;
+}
+
+body.product-shell .kicker {
+  color: #748295;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+body.product-shell .hero-badge {
+  min-height: 1.55rem;
+  padding: 0.16rem 0.54rem;
+  border-radius: 999px;
+  border: 1px solid rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.12);
+  color: #f1b25f;
+  font-size: 0.63rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.product-shell .hero-metrics {
+  gap: 0.42rem;
+}
+
+body.product-shell .hero-metric {
+  gap: 0.16rem;
+  padding: 0.56rem 0.68rem;
+  border-radius: 12px;
+  border: 1px solid rgba(217, 225, 235, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell .hero-metric span {
+  color: #748295;
+  font-size: 0.57rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+body.product-shell .hero-metric strong {
+  color: #f0f4f8;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.18;
+  text-transform: uppercase;
+}
+
+body.product-shell .hero-chip,
+.lens-chip {
+  min-height: 1.56rem;
+  padding: 0.12rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cad4df;
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+body.product-shell .hero-chip.warn,
+.lens-chip.warn {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.1);
+  color: #f1b25f;
+}
+
+body.product-shell .hero-side {
+  gap: 0.34rem;
+  padding: 0.74rem 0.78rem;
+  border-radius: 12px;
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+}
+
+body.product-shell .hero-side-label {
+  color: #748295;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+body.product-shell .hero-side-value {
+  color: #f1f5f9;
+  font-size: 1.16rem;
+  font-weight: 600;
+  line-height: 1.02;
+  text-transform: uppercase;
+}
+
+body.product-shell .hero-side-copy {
+  color: #a4b1c2;
+  font-size: 0.74rem;
+  line-height: 1.42;
+}
+
+body.product-shell .page-nav {
+  margin-top: 0.24rem;
+  gap: 0.24rem;
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+  padding: 0.2rem;
+  backdrop-filter: blur(10px);
+}
+
+body.product-shell .page-nav a {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cad4df;
+  padding: 0.34rem 0.74rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell .page-nav a:hover {
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.1);
+  color: #f5d19f;
+}
+
+body.product-shell .page-nav a[aria-current="page"] {
+  color: #f8ddbb;
+  background: rgba(216, 138, 51, 0.14);
+  border-color: rgba(216, 138, 51, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(216, 138, 51, 0.08);
+}
+
+body.product-shell .layout {
+  max-width: 1280px;
+  padding: 0.74rem 0.9rem 1.6rem;
+  gap: 0.86rem;
+  grid-template-columns: 308px 1fr;
+}
+
+body.product-shell .layout:not(.detail) > .controls {
+  top: 0.62rem;
+}
+
+body.product-shell .panel {
+  background: linear-gradient(180deg, rgba(17, 21, 28, 0.96), rgba(11, 14, 20, 0.99));
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+  padding: 0.9rem;
+  backdrop-filter: blur(10px);
+}
+
+body.product-shell .panel::before {
+  left: 0.8rem;
+  right: 0.8rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(216, 138, 51, 0.42), transparent);
+}
+
+body.product-shell .panel::after {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell .controls-head {
+  margin-bottom: 0.66rem;
+}
+
+body.product-shell .controls-head h2,
+body.product-shell .section-head h2 {
+  color: #f0f4f8;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.product-shell label {
+  color: #8f9db0;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+}
+
+body.product-shell input,
+body.product-shell select {
+  border-radius: 10px;
+  border: 1px solid rgba(217, 225, 235, 0.1);
+  background: rgba(8, 10, 14, 0.74);
+  color: #edf2f8;
+  padding: 0.62rem 0.7rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell input::placeholder {
+  color: #6f7e90;
+}
+
+body.product-shell button,
+body.product-shell .link-btn {
+  border-radius: 10px;
+  border-color: rgba(255, 191, 114, 0.22);
+  background: linear-gradient(180deg, rgba(216, 138, 51, 0.95), rgba(176, 111, 36, 0.95));
+  color: #10151c;
+  padding: 0.62rem 0.82rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell button:hover,
+body.product-shell .link-btn:hover {
+  background: linear-gradient(180deg, rgba(230, 150, 61, 0.98), rgba(189, 118, 38, 0.98));
+}
+
+body.product-shell button.ghost,
+body.product-shell .link-btn.ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: #cad4df;
+  border-color: rgba(217, 225, 235, 0.12);
+}
+
+body.product-shell button.ghost:hover,
+body.product-shell .link-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f0f4f8;
+}
+
+body.product-shell .status-text,
+body.product-shell .meta-text {
+  color: #97a5b8;
+}
+
+body.product-shell .status-text {
+  border-radius: 10px;
+  border-color: rgba(217, 225, 235, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell .status-text.loading {
+  border-color: rgba(113, 152, 215, 0.28);
+  background: rgba(52, 86, 136, 0.16);
+  color: #c8d9f3;
+}
+
+body.product-shell .status-text.success {
+  border-color: rgba(91, 170, 104, 0.28);
+  background: rgba(45, 92, 53, 0.18);
+  color: #ccefd1;
+}
+
+body.product-shell .status-text.error {
+  border-color: rgba(211, 100, 85, 0.26);
+  background: rgba(122, 40, 32, 0.22);
+  color: #ffd1cb;
+}
+
+body.product-shell .section-head {
+  margin-bottom: 0.68rem;
+  gap: 0.72rem;
+}
+
+body.product-shell.live-page .section-head h2::before,
+body.product-shell.hub-page .section-head h2::before,
+body.product-shell.schedule-page .section-head h2::before,
+body.product-shell.follows-page .section-head h2::before,
+body.product-shell.team-page .section-head h2::before,
+body.product-shell.logo-admin-page .section-head h2::before {
+  width: 0.2rem;
+  height: 0.74rem;
+  background: linear-gradient(180deg, rgba(216, 138, 51, 0.95), rgba(240, 175, 89, 0.72));
+  opacity: 1;
+}
+
+body.product-shell .live-tools-shell,
+body.product-shell .desk-summary-hero,
+body.product-shell .desk-featured-card,
+body.product-shell .match-card {
+  border-radius: 12px;
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  background: linear-gradient(180deg, rgba(22, 27, 34, 0.94), rgba(16, 20, 27, 0.96));
+  box-shadow: none;
+}
+
+body.product-shell .guide-kicker,
+body.product-shell .guide-copy {
+  color: #8f9db0;
+}
+
+body.product-shell .guide-copy {
+  font-size: 0.8rem;
+  line-height: 1.42;
+}
+
+body.product-shell .guide-step {
+  gap: 0.28rem;
+  padding: 0.78rem;
+  border-radius: 12px;
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  background: linear-gradient(180deg, rgba(26, 31, 39, 0.96), rgba(18, 22, 29, 0.98));
+}
+
+body.product-shell .guide-step-index {
+  color: #f1b25f;
+}
+
+body.product-shell .guide-step h3 {
+  color: #f0f4f8;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+body.product-shell .guide-step p {
+  color: #9aa8ba;
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+body.product-shell .desk-summary-hero,
+body.product-shell .desk-featured-card {
+  padding: 0.74rem;
+}
+
+body.product-shell .desk-summary-title,
+body.product-shell .desk-featured-event,
+body.product-shell .match-card-event,
+body.product-shell .desk-featured-team-name,
+body.product-shell .match-card-team-name {
+  color: #f0f4f8;
+}
+
+body.product-shell .desk-summary-subline,
+body.product-shell .desk-featured-time,
+body.product-shell .desk-featured-note,
+body.product-shell .live-tools-copy,
+body.product-shell .match-card-time,
+body.product-shell .match-card-summary {
+  color: #9aa8ba;
+}
+
+body.product-shell .desk-summary-stat,
+body.product-shell .desk-featured-scoreboard,
+body.product-shell .match-card-scoreboard,
+body.product-shell .live-status-switch {
+  border-radius: 10px;
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  background: rgba(5, 7, 10, 0.38);
+}
+
+body.product-shell .desk-summary-value,
+body.product-shell .desk-featured-score,
+body.product-shell .team-line.compact strong {
+  color: #f1b25f;
+}
+
+body.product-shell .desk-summary-label,
+body.product-shell .live-tools-kicker,
+body.product-shell .live-search-field {
+  color: #7c8a9c;
+}
+
+body.product-shell .live-tools-shell {
+  gap: 0.46rem;
+  margin-bottom: 0.56rem;
+  padding: 0.62rem 0.68rem;
+}
+
+body.product-shell .live-status-switch {
+  min-height: 2.28rem;
+  padding: 0.2rem;
+}
+
+body.product-shell .live-status-btn {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cad4df;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  min-height: 1.84rem;
+}
+
+body.product-shell .live-status-btn:hover {
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(216, 138, 51, 0.1);
+}
+
+body.product-shell .live-status-btn[aria-pressed="true"] {
+  color: #f7d8aa;
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.16);
+}
+
+body.product-shell .live-search-field input,
+body.product-shell .live-reset-btn {
+  min-height: 2.28rem;
+}
+
+body.product-shell .match-card {
+  padding: 0.76rem;
+  gap: 0.54rem;
+}
+
+body.product-shell .match-card:hover {
+  border-color: rgba(216, 138, 51, 0.26);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+}
+
+body.product-shell .pill.live {
+  color: #9ce5a3;
+  border-color: rgba(116, 193, 124, 0.3);
+  background: rgba(44, 94, 53, 0.26);
+}
+
+body.product-shell .pill.upcoming,
+body.product-shell .pill.overdue {
+  color: #f2c37d;
+  border-color: rgba(216, 160, 77, 0.3);
+  background: rgba(109, 74, 23, 0.3);
+}
+
+body.product-shell .pill.complete {
+  color: #c7d2de;
+  border-color: rgba(130, 145, 161, 0.24);
+  background: rgba(55, 65, 76, 0.28);
+}
+
+body.product-shell .match-card-chip,
+body.product-shell .data-provenance-line,
+body.product-shell .data-quality-line {
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #bac6d4;
+}
+
+body.product-shell .match-card-chip.emphasis {
+  color: #f5d19f;
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(216, 138, 51, 0.12);
+}
+
+body.product-shell .match-card-chip.signal,
+body.product-shell .data-quality-line.degraded {
+  color: #ffb7ab;
+  border-color: rgba(255, 99, 79, 0.2);
+  background: rgba(122, 40, 32, 0.2);
+}
+
+body.product-shell .data-provenance-line.snapshot {
+  color: #f1c17b;
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(104, 70, 23, 0.24);
+}
+
+body.product-shell .match-card-cta {
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.12);
+  color: #f5d19f;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-weight: 600;
+}
+
+body.product-shell .empty {
+  border-radius: 12px;
+  border-color: rgba(217, 225, 235, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell .empty-title {
+  color: #f0f4f8;
+}
+
+body.product-shell .data-table {
+  border-radius: 10px;
+  border-color: rgba(217, 225, 235, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.product-shell .data-table th {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1b25f;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+body.product-shell .table-link {
+  color: #e3eaf2;
+}
+
+body.product-shell .table-link:hover {
+  color: #f1b25f;
+}
+
+body.product-shell .game-chip {
+  border-color: rgba(217, 225, 235, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cad4df;
+}
+
+body.product-shell .game-chip.lol {
+  color: #8ad4ff;
+  border-color: rgba(61, 149, 218, 0.24);
+  background: rgba(27, 82, 129, 0.22);
+}
+
+body.product-shell .game-chip.dota2 {
+  color: #ffb8ad;
+  border-color: rgba(201, 93, 76, 0.24);
+  background: rgba(113, 39, 30, 0.24);
+}
+
+body.product-shell.schedule-page .top-space {
+  margin-top: 0.82rem;
+}
+
+body.product-shell.schedule-page .schedule-range-row {
+  gap: 0.28rem;
+  margin-bottom: 0.44rem;
+}
+
+body.product-shell.schedule-page .schedule-range-chip {
+  min-height: 1.74rem;
+  padding: 0.14rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cad4df;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.schedule-page .schedule-range-chip.active,
+body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.14);
+  color: #f7d8aa;
+}
+
+body.product-shell.schedule-page .schedule-board-groups {
+  display: grid;
+  gap: 0.72rem;
+}
+
+body.product-shell.schedule-page .schedule-day-group {
+  gap: 0.56rem;
+}
+
+body.product-shell.schedule-page .schedule-day-label {
+  color: #f0f4f8;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+body.product-shell.schedule-page .schedule-day-count {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1b25f;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-weight: 700;
+}
+
+body.product-shell.schedule-page .schedule-event-groups {
+  display: grid;
+  gap: 0.56rem;
+}
+
+body.product-shell.schedule-page .schedule-event-group {
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(22, 27, 34, 0.94), rgba(16, 20, 27, 0.97));
+  overflow: hidden;
+}
+
+body.product-shell.schedule-page .schedule-event-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.66rem;
+  padding: 0.7rem 0.78rem;
+  border-bottom: 1px solid rgba(217, 225, 235, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.schedule-page .schedule-event-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.56rem;
+  min-width: 0;
+}
+
+body.product-shell.schedule-page .schedule-event-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.16rem;
+}
+
+body.product-shell.schedule-page .schedule-event-title {
+  margin: 0;
+  color: #f0f4f8;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+body.product-shell.schedule-page .schedule-event-subtitle {
+  margin: 0;
+  color: #7f8ea1;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+body.product-shell.schedule-page .schedule-event-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.54rem;
+  min-height: 1.54rem;
+  padding: 0 0.38rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1b25f;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+body.product-shell.schedule-page .schedule-event-list {
+  display: grid;
+}
+
+body.product-shell.schedule-page .schedule-board-row {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1.35fr) minmax(220px, 0.92fr) minmax(160px, 0.72fr);
+  align-items: center;
+  gap: 0.78rem;
+  padding: 0.72rem 0.78rem;
+  border-top: 1px solid rgba(217, 225, 235, 0.08);
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.015);
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+body.product-shell.schedule-page .schedule-event-list .schedule-board-row:first-child {
+  border-top: 0;
+}
+
+body.product-shell.schedule-page .schedule-board-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.schedule-page .schedule-board-row.schedule-live {
+  box-shadow: inset 2px 0 0 rgba(116, 193, 124, 0.72);
+}
+
+body.product-shell.schedule-page .schedule-board-row.schedule-upcoming {
+  box-shadow: inset 2px 0 0 rgba(216, 138, 51, 0.48);
+}
+
+body.product-shell.schedule-page .schedule-board-row.schedule-overdue {
+  box-shadow: inset 2px 0 0 rgba(255, 99, 79, 0.72);
+}
+
+body.product-shell.schedule-page .schedule-board-row.schedule-completed {
+  box-shadow: inset 2px 0 0 rgba(130, 145, 161, 0.52);
+}
+
+body.product-shell.schedule-page .schedule-board-time {
+  display: grid;
+  gap: 0.08rem;
+}
+
+body.product-shell.schedule-page .schedule-board-time-main {
+  color: #f0f4f8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+body.product-shell.schedule-page .schedule-board-matchup {
+  display: grid;
+  gap: 0.32rem;
+  min-width: 0;
+}
+
+body.product-shell.schedule-page .schedule-board-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.56rem;
+  min-width: 0;
+}
+
+body.product-shell.schedule-page .schedule-board-team-main {
+  display: flex;
+  align-items: center;
+  gap: 0.46rem;
+  min-width: 0;
+}
+
+body.product-shell.schedule-page .schedule-board-team .schedule-card-badge {
+  width: 1.54rem;
+  min-width: 1.54rem;
+  height: 1.54rem;
+  min-height: 1.54rem;
+  border-radius: 10px;
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1b25f;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.52rem;
+  font-weight: 700;
+}
+
+body.product-shell.schedule-page .schedule-board-team .schedule-card-badge.has-logo {
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04) 68%, rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.product-shell.schedule-page .schedule-board-team-name {
+  color: #edf2f8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.18;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.product-shell.schedule-page .schedule-board-team-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.58rem;
+  min-height: 1.58rem;
+  padding: 0 0.34rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1b25f;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+body.product-shell.schedule-page .schedule-board-series {
+  display: grid;
+  gap: 0.26rem;
+  min-width: 0;
+}
+
+body.product-shell.schedule-page .schedule-board-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+body.product-shell.schedule-page .schedule-board-format,
+body.product-shell.schedule-page .schedule-board-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.34rem;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cad4df;
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.schedule-page .schedule-board-format {
+  color: #f5d19f;
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(216, 138, 51, 0.12);
+}
+
+body.product-shell.schedule-page .schedule-board-status {
+  min-height: 1.34rem;
+  padding: 0.08rem 0.42rem;
+  font-size: 0.56rem;
+}
+
+body.product-shell.schedule-page .schedule-board-note {
+  margin: 0;
+  color: #9aa8ba;
+  font-size: 0.72rem;
+  line-height: 1.28;
+}
+
+body.product-shell.schedule-page .schedule-board-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.28rem;
+}
+
+body.product-shell.schedule-page .schedule-board-tag {
+  margin: 0;
+}
+
+body.product-shell.match-page {
+  background:
+    radial-gradient(1080px 640px at 12% -10%, rgba(216, 138, 51, 0.16), transparent 58%),
+    linear-gradient(180deg, #12161d 0, #0d1016 13.5rem, #090c11 13.5rem, #090c11 100%);
+}
+
+body.product-shell.match-page .noise {
+  opacity: 0.1;
+  mix-blend-mode: normal;
+}
+
+.match-shell {
+  max-width: 1280px;
+  padding: 0.74rem 0.9rem 0.22rem;
+  gap: 0.68rem;
+}
+
+.match-shell::before {
+  inset: 0.3rem 0.9rem 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(19, 23, 30, 0.98), rgba(10, 13, 18, 0.99));
+  border: 1px solid rgba(217, 225, 235, 0.08);
+  box-shadow:
+    0 24px 42px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.match-shell-bar {
+  gap: 0.72rem;
+  padding: 0.64rem 0.78rem 0;
+}
+
+.match-brand {
+  color: #edf2f8;
+}
+
+.match-brand-mark {
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(180deg, rgba(216, 138, 51, 0.96), rgba(175, 110, 36, 0.96));
+  box-shadow: none;
+  color: #10151c;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.match-brand-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #f0f4f8;
+}
+
+.match-brand-tag {
+  font-size: 0.56rem;
+  font-weight: 600;
+  color: #8291a4;
+}
+
+.match-shell-nav {
+  gap: 0.24rem;
+  padding: 0.18rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(217, 225, 235, 0.08);
+}
+
+.match-shell-nav a {
+  min-height: 1.92rem;
+  padding: 0.24rem 0.66rem;
+  border-radius: 8px;
+  color: #cad4df;
+  background: rgba(255, 255, 255, 0.03);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.match-shell-nav a:hover,
+.match-shell-nav a[aria-current="page"] {
+  color: #f7d8aa;
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.12);
+}
+
+.match-shell-back.link-btn {
+  min-height: 1.92rem;
+  border-radius: 8px;
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cad4df;
+  font-size: 0.62rem;
+}
+
+.match-shell-hero {
+  grid-template-columns: minmax(0, 1.85fr) minmax(220px, 0.62fr);
+  gap: 0.74rem;
+  padding: 0 0.78rem;
+}
+
+.match-shell-copy {
+  gap: 0.42rem;
+}
+
+.match-shell-kicker {
+  color: #748295;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.match-shell h1 {
+  color: #f4f7fb;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: clamp(1.62rem, 3vw, 2.46rem);
+  font-weight: 700;
+}
+
+.match-shell-subtitle {
+  color: #9aa8ba;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.match-shell-chip {
+  min-height: 1.58rem;
+  padding: 0.16rem 0.52rem;
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cad4df;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.match-shell-chip.focus {
+  background: rgba(216, 138, 51, 0.12);
+  color: #f7d8aa;
+}
+
+.match-shell-chip.live,
+.score-hero-status.live {
+  background: rgba(122, 40, 32, 0.22);
+  border-color: rgba(255, 99, 79, 0.22);
+  color: #ffbeb4;
+}
+
+.match-shell-chip.live::before,
+.score-hero-status.live::before {
+  box-shadow: 0 0 0 2px rgba(255, 99, 79, 0.16);
+}
+
+.match-shell-chip.upcoming,
+.score-hero-status.upcoming {
+  background: rgba(104, 70, 23, 0.24);
+  border-color: rgba(216, 138, 51, 0.2);
+  color: #f4c98c;
+}
+
+.match-shell-chip.complete,
+.score-hero-status.complete {
+  background: rgba(55, 65, 76, 0.24);
+  border-color: rgba(130, 145, 161, 0.2);
+  color: #ced7e0;
+}
+
+.match-shell-side {
+  gap: 0.34rem;
+  padding: 0.72rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(217, 225, 235, 0.08);
+}
+
+.match-shell-side-label,
+.score-hero-event,
+.score-hero-game-label,
+body.product-shell.match-page .section-head h2 {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.match-shell-side-label {
+  color: #748295;
+}
+
+.match-shell-side-value {
+  color: #f0f4f8;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.match-shell-side-copy {
+  color: #9aa8ba;
+  font-size: 0.74rem;
+  line-height: 1.42;
+}
+
+.match-shell-board {
+  gap: 0.48rem;
+  padding: 0 0.78rem 0.78rem;
+}
+
+.score-hero-board {
+  padding: 0.78rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(217, 225, 235, 0.08);
+}
+
+body.product-shell.match-page .layout.detail {
+  max-width: 1280px;
+  padding: 0.24rem 0.9rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  gap: 0.74rem;
+}
+
+body.product-shell.match-page .panel {
+  padding: 0.9rem 0.84rem 0.94rem;
+  border-radius: 12px;
+  border-color: rgba(217, 225, 235, 0.08);
+  background: linear-gradient(180deg, rgba(17, 21, 28, 0.96), rgba(11, 14, 20, 0.98));
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+body.product-shell.match-page .panel.secondary-panel {
+  border-color: rgba(217, 225, 235, 0.06);
+  background: linear-gradient(180deg, rgba(22, 26, 33, 0.95), rgba(15, 18, 24, 0.98));
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+}
+
+body.product-shell.match-page .section-head {
+  margin-bottom: 0.62rem;
+}
+
+body.product-shell.match-page .section-head h2 {
+  color: #f0f4f8;
+}
+
+body.product-shell.match-page .section-head .meta-text,
+body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
+  color: #7f8ea1;
+}
+
+@media (max-width: 980px) {
+  body.product-shell .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell .layout {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell .layout:not(.detail) > .controls {
+    position: static;
+  }
+
+  .match-shell-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.schedule-page .schedule-range-chip {
+    min-height: 1.64rem;
+    padding-inline: 0.42rem;
+    font-size: 0.58rem;
+  }
+
+  body.product-shell.schedule-page .schedule-board-groups {
+    gap: 0.62rem;
+  }
+
+  body.product-shell.schedule-page .schedule-event-group {
+    border-radius: 10px;
+  }
+
+  body.product-shell.schedule-page .schedule-event-head {
+    padding: 0.62rem 0.68rem;
+  }
+
+  body.product-shell.schedule-page .schedule-event-title {
+    font-size: 0.8rem;
+  }
+
+  body.product-shell.schedule-page .schedule-event-subtitle {
+    font-size: 0.58rem;
+  }
+
+  body.product-shell.schedule-page .schedule-event-count {
+    min-width: 1.4rem;
+    min-height: 1.4rem;
+    font-size: 0.62rem;
+  }
+
+  body.product-shell.schedule-page .schedule-board-row {
+    grid-template-columns: 1fr;
+    gap: 0.44rem;
+    padding: 0.62rem 0.68rem;
+  }
+
+  body.product-shell.schedule-page .schedule-board-time {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  body.product-shell.schedule-page .schedule-board-time-main {
+    font-size: 0.76rem;
+  }
+
+  body.product-shell.schedule-page .schedule-board-team .schedule-card-badge {
+    width: 1.46rem;
+    min-width: 1.46rem;
+    height: 1.46rem;
+    min-height: 1.46rem;
+  }
+
+  body.product-shell.schedule-page .schedule-board-team-name {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  body.product-shell.schedule-page .schedule-board-series,
+  body.product-shell.schedule-page .schedule-board-meta {
+    grid-column: auto;
+  }
+
+  body.product-shell.schedule-page .schedule-board-meta {
+    justify-content: flex-start;
+  }
+
+  body.product-shell .hero {
+    padding: 0.78rem 0.56rem 0.16rem;
+  }
+
+  body.product-shell .hero::before {
+    inset: 0.22rem 0.56rem 0.06rem;
+  }
+
+  body.product-shell .page-nav {
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  body.product-shell .page-nav a {
+    border-radius: 8px;
+    font-size: 0.64rem;
+  }
+
+  body.product-shell .layout {
+    padding: 0.62rem 0.56rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.62rem;
+  }
+
+  body.product-shell .panel {
+    padding: 0.76rem 0.72rem 0.8rem;
+    border-radius: 12px;
+  }
+
+  .schedule-page .mobile-page-jump {
+    border-color: rgba(217, 225, 235, 0.12);
+    background: rgba(17, 21, 28, 0.96);
+    box-shadow:
+      0 14px 24px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+  }
+
+  body.product-shell.match-page {
+    background:
+      radial-gradient(820px 520px at 12% -10%, rgba(216, 138, 51, 0.16), transparent 56%),
+      linear-gradient(180deg, #12161d 0, #0d1016 10.75rem, #090c11 10.75rem, #090c11 100%);
+  }
+
+  .match-shell {
+    padding: 0.56rem 0.52rem 0.22rem;
+    gap: 0.56rem;
+  }
+
+  .match-shell::before {
+    inset: 0.2rem 0.52rem 0;
+    border-radius: 12px;
+  }
+
+  .match-shell-bar,
+  .match-shell-hero,
+  .match-shell-board {
+    padding-inline: 0.68rem;
+  }
+
+  .match-shell-nav {
+    border-radius: 10px;
+  }
+
+  .match-shell-nav a,
+  .match-shell-back.link-btn {
+    border-radius: 8px;
+  }
+
+  .score-hero-board {
+    padding: 0.72rem;
+  }
+
+  body.product-shell.match-page .layout.detail {
+    padding: 0.16rem 0.52rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.52rem;
+  }
+
+  body.product-shell.match-page .panel {
+    background: linear-gradient(180deg, rgba(17, 21, 28, 0.98), rgba(11, 14, 20, 0.99));
+    border-inline: 1px solid rgba(217, 225, 235, 0.08);
+    border-radius: 12px;
+  }
+
+  body.product-shell.match-page .match-state-panel {
+    background: linear-gradient(180deg, rgba(20, 24, 31, 0.98), rgba(13, 16, 22, 0.98));
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell {
+    padding-bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.product-shell .hero {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding: 0.58rem 0.56rem 0.14rem;
+    gap: 0.18rem;
+    background: rgba(11, 14, 20, 0.96);
+    border-bottom: 1px solid rgba(217, 225, 235, 0.08);
+    box-shadow: 0 12px 22px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(14px);
+  }
+
+  body.product-shell .hero::before,
+  body.product-shell .hero::after {
+    display: none;
+  }
+
+  body.product-shell h1 {
+    font-size: clamp(1.42rem, 8vw, 1.74rem);
+    line-height: 0.96;
+  }
+
+  body.product-shell .subtitle {
+    margin: 0;
+    max-width: none;
+    color: #93a2b4;
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  body.product-shell.live-page .page-nav,
+  body.product-shell.schedule-page .page-nav,
+  body.product-shell.follows-page .page-nav {
+    display: none;
+  }
+
+  body.product-shell.live-page .layout,
+  body.product-shell.schedule-page .layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.52rem;
+    padding: 0.52rem 0.56rem calc(5.2rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.product-shell.live-page .layout > .controls,
+  body.product-shell.schedule-page .layout > .controls {
+    order: 2;
+    position: static;
+    margin-top: 0;
+  }
+
+  body.product-shell.live-page .layout > .live-desk,
+  body.product-shell.schedule-page .layout > .panel:not(.controls):not(.guide-panel) {
+    order: 1;
+  }
+
+  body.product-shell.live-page .controls,
+  body.product-shell.schedule-page .controls {
+    padding: 0.56rem 0.6rem;
+    border-radius: 10px;
+  }
+
+  body.product-shell.live-page .controls.collapsed,
+  body.product-shell.schedule-page .controls.collapsed {
+    padding: 0.5rem 0.6rem;
+  }
+
+  body.product-shell .controls-head {
+    margin-bottom: 0;
+  }
+
+  body.product-shell .controls-head h2 {
+    font-size: 0.6rem;
+  }
+
+  body.product-shell .controls-toggle {
+    min-height: 1.72rem;
+    padding: 0.24rem 0.54rem;
+    border-radius: 8px;
+    font-size: 0.56rem;
+  }
+
+  body.product-shell .mobile-glance-strip {
+    margin-bottom: 0.44rem;
+  }
+
+  body.product-shell .mobile-glance-shell {
+    gap: 0.44rem;
+    padding: 0.62rem;
+    border-radius: 12px;
+    border: 1px solid rgba(217, 225, 235, 0.08);
+    background: linear-gradient(180deg, rgba(22, 27, 34, 0.96), rgba(15, 19, 26, 0.98));
+    box-shadow: none;
+  }
+
+  body.product-shell .mobile-glance-kicker {
+    color: #748295;
+    font-size: 0.54rem;
+    letter-spacing: 0.14em;
+  }
+
+  body.product-shell .mobile-glance-title {
+    color: #f0f4f8;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    line-height: 1.14;
+  }
+
+  body.product-shell .mobile-glance-copy,
+  body.product-shell .mobile-glance-spotlight span:last-child {
+    color: #98a6b7;
+    font-size: 0.66rem;
+    line-height: 1.28;
+  }
+
+  body.product-shell .mobile-glance-chip {
+    min-height: 1.4rem;
+    padding: 0.12rem 0.42rem;
+    border-color: rgba(217, 225, 235, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #cad4df;
+    font-size: 0.58rem;
+    font-weight: 600;
+  }
+
+  body.product-shell .mobile-glance-chip.primary {
+    border-color: rgba(216, 138, 51, 0.22);
+    background: rgba(216, 138, 51, 0.14);
+    color: #f7d8aa;
+  }
+
+  body.product-shell .mobile-glance-chip.warn {
+    border-color: rgba(216, 138, 51, 0.18);
+    background: rgba(104, 70, 23, 0.24);
+    color: #f1c17b;
+  }
+
+  body.product-shell .mobile-glance-stat-row {
+    gap: 0.28rem;
+  }
+
+  body.product-shell .mobile-glance-stat {
+    padding: 0.42rem 0.46rem;
+    border-radius: 10px;
+    border-color: rgba(217, 225, 235, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  body.product-shell .mobile-glance-stat span {
+    color: #7c8a9c;
+    font-size: 0.5rem;
+    letter-spacing: 0.12em;
+  }
+
+  body.product-shell .mobile-glance-stat strong {
+    color: #f0f4f8;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  body.product-shell .mobile-glance-spotlight {
+    gap: 0.18rem;
+    padding: 0.54rem 0.58rem;
+    border-radius: 10px;
+    border-color: rgba(217, 225, 235, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  body.product-shell .mobile-glance-spotlight-label {
+    min-height: 1.2rem;
+    padding: 0.08rem 0.36rem;
+    border-radius: 999px;
+    background: rgba(216, 138, 51, 0.14);
+    color: #f7d8aa;
+    font-size: 0.54rem;
+    font-weight: 700;
+  }
+
+  body.product-shell .mobile-glance-spotlight-meta {
+    color: #8fa0b4;
+    font-size: 0.6rem;
+  }
+
+  body.product-shell .mobile-glance-spotlight strong {
+    color: #f0f4f8;
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  body.product-shell.schedule-page .mobile-segment {
+    position: sticky;
+    top: calc(3.7rem + env(safe-area-inset-top, 0px));
+    z-index: 24;
+    gap: 0.18rem;
+    padding: 0.18rem;
+    border: 1px solid rgba(217, 225, 235, 0.08);
+    border-radius: 12px;
+    background: rgba(17, 21, 28, 0.96);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  }
+
+  body.product-shell.schedule-page .mobile-segment-btn {
+    min-height: 1.76rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #cad4df;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body.product-shell.schedule-page .mobile-segment-btn[aria-pressed="true"] {
+    background: rgba(216, 138, 51, 0.14);
+    border-color: rgba(216, 138, 51, 0.22);
+    color: #f7d8aa;
+  }
+
+  body.product-shell.schedule-page .mobile-segment-label,
+  body.product-shell.schedule-page .mobile-segment-count {
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  }
+
+  body.product-shell.schedule-page .mobile-page-jump {
+    top: calc(6.5rem + env(safe-area-inset-top, 0px));
+    margin-top: 0.2rem;
+  }
+
+  .mobile-tabbar {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.24rem;
+    position: fixed;
+    left: 0.56rem;
+    right: 0.56rem;
+    bottom: calc(0.56rem + env(safe-area-inset-bottom, 0px));
+    z-index: 50;
+    padding: 0.24rem;
+    border-radius: 14px;
+    border: 1px solid rgba(217, 225, 235, 0.08);
+    background: rgba(11, 14, 20, 0.94);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-tab {
+    display: grid;
+    justify-items: center;
+    gap: 0.12rem;
+    padding: 0.34rem 0.18rem;
+    border-radius: 10px;
+    color: #8fa0b4;
+    font-size: 0.54rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .mobile-tab[aria-current="page"] {
+    background: rgba(216, 138, 51, 0.14);
+    color: #f7d8aa;
+  }
+
+  .mobile-tab-icon {
+    width: 1.3rem;
+    height: 1.3rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: currentColor;
+    font-size: 0.58rem;
+  }
+
+  .mobile-tab[aria-current="page"] .mobile-tab-icon {
+    background: rgba(216, 138, 51, 0.18);
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.live-page .live-desk {
+    display: flex;
+    flex-direction: column;
+    gap: 0.44rem;
+  }
+
+  body.product-shell.live-page #liveDeskSummary,
+  body.product-shell.live-page #boardLensStrip {
+    display: none !important;
+  }
+
+  body.product-shell.live-page .live-desk > .section-head {
+    order: 0;
+  }
+
+  body.product-shell.live-page #liveMobileOverview {
+    order: 1;
+    margin-bottom: 0;
+  }
+
+  body.product-shell.live-page #cardGrid {
+    order: 2;
+  }
+
+  body.product-shell.live-page .live-tools-shell {
+    order: 3;
+    margin-bottom: 0;
+    padding: 0.52rem 0.56rem;
+    border-radius: 10px;
+  }
+
+  body.product-shell.live-page .live-tools-head {
+    display: none;
+  }
+
+  body.product-shell.live-page .live-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+  }
+
+  body.product-shell.live-page .live-status-switch {
+    grid-column: 1 / -1;
+  }
+
+  body.product-shell.live-page .live-search-field {
+    gap: 0.18rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.live-page .live-search-field input,
+  body.product-shell.live-page .live-reset-btn {
+    min-height: 2rem;
+  }
+
+  body.product-shell.live-page .card-grid.mobile-live-board {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.56rem;
+  }
+
+  body.product-shell.live-page .live-board-groups {
+    display: grid;
+    gap: 0.56rem;
+  }
+
+  body.product-shell.live-page .live-board-group {
+    border: 1px solid rgba(217, 225, 235, 0.08);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(22, 27, 34, 0.94), rgba(16, 20, 27, 0.97));
+    overflow: hidden;
+  }
+
+  body.product-shell.live-page .live-board-group-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.56rem;
+    padding: 0.62rem 0.68rem;
+    border-bottom: 1px solid rgba(217, 225, 235, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  body.product-shell.live-page .live-board-group-copy {
+    display: grid;
+    gap: 0.14rem;
+    min-width: 0;
+  }
+
+  body.product-shell.live-page .live-board-group-title {
+    margin: 0;
+    color: #f0f4f8;
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.18;
+  }
+
+  body.product-shell.live-page .live-board-group-subtitle {
+    margin: 0;
+    color: #7f8ea1;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  body.product-shell.live-page .live-board-group-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.42rem;
+    min-height: 1.42rem;
+    padding: 0 0.34rem;
+    border-radius: 999px;
+    border: 1px solid rgba(217, 225, 235, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: #f1b25f;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  body.product-shell.live-page .live-board-group-list {
+    display: grid;
+  }
+
+  body.product-shell.live-page .live-board-row {
+    display: grid;
+    gap: 0.42rem;
+    padding: 0.62rem 0.68rem;
+    border-top: 1px solid rgba(217, 225, 235, 0.08);
+    text-decoration: none;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.015);
+  }
+
+  body.product-shell.live-page .live-board-group-list .live-board-row:first-child {
+    border-top: 0;
+  }
+
+  body.product-shell.live-page .live-board-row-live {
+    box-shadow: inset 2px 0 0 rgba(116, 193, 124, 0.72);
+  }
+
+  body.product-shell.live-page .live-board-row-upcoming {
+    box-shadow: inset 2px 0 0 rgba(216, 138, 51, 0.48);
+  }
+
+  body.product-shell.live-page .live-board-row-completed {
+    box-shadow: inset 2px 0 0 rgba(130, 145, 161, 0.5);
+  }
+
+  body.product-shell.live-page .live-board-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+
+  body.product-shell.live-page .live-board-row-top .pill {
+    min-height: 1.26rem;
+    padding: 0.08rem 0.42rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.live-page .live-board-row-time {
+    color: #8fa0b4;
+    font-size: 0.58rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: right;
+  }
+
+  body.product-shell.live-page .live-board-row-matchup {
+    display: grid;
+    gap: 0.26rem;
+  }
+
+  body.product-shell.live-page .live-board-row-team {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.48rem;
+  }
+
+  body.product-shell.live-page .live-board-row-team-main {
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
+    min-width: 0;
+  }
+
+  body.product-shell.live-page .live-board-row-team-main .team-badge {
+    width: 1.46rem;
+    min-width: 1.46rem;
+    height: 1.46rem;
+    min-height: 1.46rem;
+    border-radius: 10px;
+  }
+
+  body.product-shell.live-page .live-board-row-team-name {
+    color: #edf2f8;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.14;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.product-shell.live-page .live-board-row-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.54rem;
+    min-height: 1.54rem;
+    padding: 0 0.32rem;
+    border-radius: 999px;
+    border: 1px solid rgba(217, 225, 235, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: #f1b25f;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body.product-shell.live-page .live-board-row-meta {
+    display: grid;
+    gap: 0.26rem;
+  }
+
+  body.product-shell.live-page .live-board-row-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.24rem;
+  }
+
+  body.product-shell.live-page .live-board-row-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.22rem;
+    padding: 0.08rem 0.38rem;
+    border-radius: 999px;
+    border: 1px solid rgba(217, 225, 235, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: #cad4df;
+    font-size: 0.54rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body.product-shell.live-page .live-board-row-chip.format {
+    color: #f5d19f;
+    border-color: rgba(216, 138, 51, 0.2);
+    background: rgba(216, 138, 51, 0.12);
+  }
+
+  body.product-shell.live-page .live-board-row-chip.signal {
+    color: #ffb7ab;
+    border-color: rgba(255, 99, 79, 0.2);
+    background: rgba(122, 40, 32, 0.2);
+  }
+
+  body.product-shell.live-page .live-board-row-note,
+  body.product-shell.live-page .live-board-row-subnote {
+    margin: 0;
+    line-height: 1.28;
+  }
+
+  body.product-shell.live-page .live-board-row-note {
+    color: #9aa8ba;
+    font-size: 0.68rem;
+  }
+
+  body.product-shell.live-page .live-board-row-subnote {
+    color: #748295;
+    font-size: 0.6rem;
+  }
+
+  body.product-shell.match-page .match-shell-bar {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  body.product-shell.match-page .match-shell-nav {
+    display: none;
+  }
+
+  body.product-shell.match-page .match-shell-back.link-btn {
+    display: inline-flex;
+    min-height: 1.72rem;
+    padding: 0.24rem 0.56rem;
+  }
+
+  body.product-shell.match-page .match-shell-hero {
+    gap: 0.4rem;
+  }
+
+  body.product-shell.match-page .match-shell-copy {
+    gap: 0.32rem;
+  }
+
+  body.product-shell.match-page .match-shell-subtitle,
+  body.product-shell.match-page .match-shell-side,
+  body.product-shell.match-page .score-hero-team-facts {
+    display: none;
+  }
+
+  body.product-shell.match-page .match-shell-chips {
+    gap: 0.24rem;
+  }
+
+  body.product-shell.match-page .match-shell-chip {
+    min-height: 1.38rem;
+    padding: 0.1rem 0.42rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page .score-hero-board {
+    gap: 0.56rem;
+    padding: 0.66rem;
+  }
+
+  body.product-shell.match-page .score-hero-team {
+    gap: 0.36rem;
+  }
+
+  body.product-shell.match-page .score-hero-team .team-badge {
+    width: 2.22rem;
+    height: 2.22rem;
+  }
+
+  body.product-shell.match-page .score-hero-team-name {
+    font-size: 0.82rem;
+  }
+
+  body.product-shell.match-page .score-hero-center {
+    gap: 0.24rem;
+    min-width: 0;
+  }
+
+  body.product-shell.match-page .score-hero-score {
+    font-size: 1.9rem;
+  }
+
+  body.product-shell.match-page .score-hero-note {
+    font-size: 0.68rem;
+  }
+
+  body.product-shell.match-page .score-hero-statuses {
+    gap: 0.22rem;
+  }
+
+  body.product-shell.match-page .score-hero-status {
+    min-height: 1.38rem;
+    padding: 0.1rem 0.42rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page .score-hero-game-band {
+    padding: 0.58rem 0.62rem;
+    gap: 0.42rem;
+  }
+
+  body.product-shell.match-page .score-hero-game-main {
+    font-size: 1rem;
+  }
+
+  body.product-shell.match-page .game-nav-board {
+    gap: 0.44rem;
+    padding: 0.62rem 0.68rem;
+  }
+
+  body.product-shell.match-page .game-nav-board-title {
+    font-size: 0.92rem;
+  }
+
+  body.product-shell.match-page .game-nav-board-note {
+    font-size: 0.66rem;
+    line-height: 1.3;
+  }
+
+  body.product-shell.match-page .game-nav-board-tags .game-nav-chip:nth-child(n + 4) {
+    display: none;
+  }
+
+  body.product-shell.match-page .game-nav-board-actions .link-btn {
+    min-height: 1.72rem;
+    padding: 0.24rem 0.56rem;
+    font-size: 0.56rem;
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.match-page .layout.detail {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.product-shell.match-page main > .panel {
+    transition: border-color 140ms ease, background 140ms ease, opacity 140ms ease;
+  }
+
+  body.product-shell.match-page main > .panel.mobile-priority-panel {
+    border-color: rgba(216, 138, 51, 0.18);
+    background: linear-gradient(180deg, rgba(19, 24, 31, 0.99), rgba(11, 14, 20, 0.99));
+  }
+
+  body.product-shell.match-page main > .panel.mobile-secondary-panel {
+    border-color: rgba(217, 225, 235, 0.06);
+  }
+
+  body.product-shell.match-page main > .panel.mobile-secondary-panel.mobile-panel-collapsed {
+    background: linear-gradient(180deg, rgba(15, 18, 24, 0.98), rgba(10, 13, 18, 0.99));
+  }
+
+  body.product-shell.match-page main > .panel.mobile-priority-panel .section-head h2 {
+    color: #f7d8aa;
+  }
+
+  body.product-shell.match-page main > .panel.mobile-priority-panel .section-mini-icon {
+    border-color: rgba(216, 138, 51, 0.24);
+    background: rgba(216, 138, 51, 0.14);
+    color: #f7d8aa;
+  }
+
+  body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed .section-head .meta-text {
+    display: none;
+  }
+
+  body.product-shell.match-page .mobile-mode-toolbar,
+  body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
+    margin-top: 0.32rem;
+    top: calc(3.55rem + env(safe-area-inset-top, 0px));
+  }
+
+  body.product-shell.match-page .mobile-mode-row,
+  body.product-shell.match-page .mobile-jump-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.product-shell.match-page .mobile-mode-chip,
+  body.product-shell.match-page .mobile-jump-chip,
+  body.product-shell.match-page .mobile-advanced-toggle {
+    min-height: 1.8rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page #gameExplorerPanel {
+    margin-bottom: 0.04rem;
+  }
+}
+
+@media (max-width: 760px) {
+  body.product-shell.team-page .page-nav,
+  body.product-shell.team-page #teamQuickNav {
+    display: none !important;
+  }
+
+  body.product-shell.team-page .hero {
+    padding-bottom: 0.08rem;
+  }
+
+  body.product-shell.team-page .hero-metrics,
+  body.product-shell.team-page .hero-chips {
+    display: none;
+  }
+
+  body.product-shell.team-page .hero-side {
+    padding: 0;
+    background: none;
+    border: 0;
+    justify-items: end;
+  }
+
+  body.product-shell.team-page .hero-side-label,
+  body.product-shell.team-page .hero-side-value,
+  body.product-shell.team-page .hero-side-copy {
+    display: none;
+  }
+
+  body.product-shell.team-page .hero-back-link {
+    display: inline-flex;
+    min-height: 1.72rem;
+    padding: 0.24rem 0.56rem;
+    border-radius: 8px;
+  }
+
+  body.product-shell.team-page .layout.detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.52rem;
+    padding: 0.52rem 0.56rem calc(5.2rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.product-shell.team-page #teamMobileOverview {
+    order: 1;
+    margin-bottom: 0;
+  }
+
+  body.product-shell.team-page #teamQuickJump {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.22rem;
+    order: 2;
+    position: sticky;
+    top: calc(3.55rem + env(safe-area-inset-top, 0px));
+    z-index: 24;
+    margin: 0;
+    padding: 0.18rem;
+    border-radius: 10px;
+    border: 1px solid rgba(217, 225, 235, 0.08);
+    background: rgba(17, 21, 28, 0.96);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  }
+
+  body.product-shell.team-page #controlsPanel {
+    order: 10;
+    padding: 0.56rem 0.6rem;
+    border-radius: 10px;
+  }
+
+  body.product-shell.team-page #team-snapshot {
+    order: 3;
+  }
+
+  body.product-shell.team-page #team-form {
+    order: 4;
+  }
+
+  body.product-shell.team-page #team-recent {
+    order: 5;
+  }
+
+  body.product-shell.team-page #team-upcoming {
+    order: 6;
+  }
+
+  body.product-shell.team-page #team-read {
+    order: 7;
+  }
+
+  body.product-shell.team-page #team-h2h {
+    order: 8;
+  }
+
+  body.product-shell.team-page #team-archive {
+    order: 9;
+  }
+
+  body.product-shell.team-page .team-jump-chip {
+    min-height: 1.58rem;
+    padding: 0.1rem 0.34rem;
+    border-radius: 8px;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-size: 0.54rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body.product-shell.team-page .panel.mobile-collapsible.mobile-panel-collapsed .section-head .meta-text {
+    display: none;
+  }
+
+  body.product-shell.team-page .team-summary-hero {
+    padding: 0.62rem;
+    gap: 0.52rem;
+    border-radius: 12px;
+  }
+
+  body.product-shell.team-page .team-summary-main {
+    flex-direction: column;
+    gap: 0.52rem;
+  }
+
+  body.product-shell.team-page .team-summary-identity {
+    gap: 0.52rem;
+  }
+
+  body.product-shell.team-page .team-summary-badge {
+    width: 2.32rem;
+    height: 2.32rem;
+    font-size: 0.74rem;
+  }
+
+  body.product-shell.team-page .team-context-title {
+    font-size: 0.96rem;
+  }
+
+  body.product-shell.team-page .team-summary-subline {
+    font-size: 0.66rem;
+  }
+
+  body.product-shell.team-page .team-summary-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  body.product-shell.team-page .team-summary-actions .link-btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  body.product-shell.team-page .team-summary-primary,
+  body.product-shell.team-page .team-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.34rem;
+  }
+
+  body.product-shell.team-page .team-summary-stat,
+  body.product-shell.team-page .team-summary-mini {
+    padding: 0.44rem 0.48rem;
+    border-radius: 10px;
+  }
+
+  body.product-shell.team-page .team-summary-label {
+    font-size: 0.52rem;
+  }
+
+  body.product-shell.team-page .team-summary-value {
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-size: 0.84rem;
+    font-weight: 700;
+  }
+
+  body.product-shell.team-page .team-match-list {
+    gap: 0.42rem;
+  }
+
+  body.product-shell.team-page .team-match-card {
+    padding: 0.54rem 0.58rem;
+    gap: 0.3rem;
+    border-radius: 10px;
+  }
+
+  body.product-shell.team-page .team-match-chip-row {
+    gap: 0.24rem;
+  }
+
+  body.product-shell.team-page .team-match-score-pill,
+  body.product-shell.team-page .team-match-chip {
+    min-height: 1.34rem;
+    padding: 0.08rem 0.34rem;
+    font-size: 0.56rem;
+  }
+
+  body.product-shell.team-page .team-match-opponent-row {
+    gap: 0.42rem;
+  }
+
+  body.product-shell.team-page .team-match-opponent-badge {
+    width: 1.46rem;
+    height: 1.46rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.team-page .team-match-opponent-line {
+    font-size: 0.8rem;
+  }
+
+  body.product-shell.team-page .team-match-meta {
+    font-size: 0.62rem;
+  }
+}
+
+body.product-shell.team-page .team-summary-hero,
+body.product-shell.team-page .team-summary-stat,
+body.product-shell.team-page .team-summary-mini,
+body.product-shell.team-page .team-match-card,
+body.product-shell.team-page .team-analysis-hero,
+body.product-shell.team-page .team-analysis-footer,
+body.product-shell.team-page .team-analysis-metric,
+body.product-shell.team-page .upcoming-card,
+body.product-shell.team-page .upcoming-note {
+  border-color: rgba(217, 225, 235, 0.08);
+  background: linear-gradient(180deg, rgba(22, 27, 34, 0.94), rgba(16, 20, 27, 0.97));
+  box-shadow: none;
+}
+
+body.product-shell.team-page .team-context-title,
+body.product-shell.team-page .team-summary-value,
+body.product-shell.team-page .team-match-opponent-line,
+body.product-shell.team-page .team-analysis-title,
+body.product-shell.team-page .team-form-hero-title,
+body.product-shell.team-page .tempo-value {
+  color: #f0f4f8;
+}
+
+body.product-shell.team-page .team-summary-subline,
+body.product-shell.team-page .team-match-meta,
+body.product-shell.team-page .team-analysis-copy .meta-text,
+body.product-shell.team-page .team-analysis-footer .meta-text {
+  color: #9aa8ba;
+}
+
+body.product-shell.team-page .team-summary-label,
+body.product-shell.team-page .tempo-label {
+  color: #7c8a9c;
+}
+
+body.product-shell.team-page .team-summary-game-pill,
+body.product-shell.team-page .team-summary-context-pill,
+body.product-shell.team-page .team-summary-tag,
+body.product-shell.team-page .team-match-chip,
+body.product-shell.team-page .team-form-badge,
+body.product-shell.team-page .team-analysis-badge,
+body.product-shell.team-page .team-analysis-chip {
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cad4df;
+}
+
+body.product-shell.team-page .team-summary-game-pill,
+body.product-shell.team-page .team-match-score-pill {
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(216, 138, 51, 0.12);
+  color: #f5d19f;
+}
+
+body.product-shell.team-page .team-match-opponent-line .team-link {
+  color: #edf2f8;
+}
+
+@media (max-width: 760px) {
+  body.product-shell.follows-page .hero,
+  body.product-shell.hub-page .hero {
+    max-width: none;
+    padding: 0.74rem 0 0.18rem;
+  }
+
+  body.product-shell.follows-page .hero-grid,
+  body.product-shell.hub-page .hero-grid {
+    gap: 0.42rem;
+    padding-inline: 0.72rem;
+  }
+
+  body.product-shell.follows-page .hero-main,
+  body.product-shell.hub-page .hero-main {
+    gap: 0.36rem;
+  }
+
+  body.product-shell.follows-page .hero-metrics,
+  body.product-shell.follows-page .hero-chips,
+  body.product-shell.hub-page .page-nav,
+  body.product-shell.hub-page .hero-metrics,
+  body.product-shell.hub-page .hero-chips {
+    display: none;
+  }
+
+  body.product-shell.follows-page .hero-side,
+  body.product-shell.hub-page .hero-side {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    gap: 0.34rem;
+    box-shadow: none;
+  }
+
+  body.product-shell.follows-page .hero-side-label,
+  body.product-shell.follows-page .hero-side-value,
+  body.product-shell.follows-page .hero-side-copy,
+  body.product-shell.follows-page .hero-side-chips,
+  body.product-shell.hub-page .hero-side-label,
+  body.product-shell.hub-page .hero-side-value,
+  body.product-shell.hub-page .hero-side-copy,
+  body.product-shell.hub-page .hero-side-chips {
+    display: none;
+  }
+
+  body.product-shell.follows-page .hero-action-row,
+  body.product-shell.hub-page .hero-action-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.28rem;
+  }
+
+  body.product-shell.follows-page .hero-action-row .link-btn,
+  body.product-shell.hub-page .hero-action-row .link-btn {
+    width: 100%;
+    min-height: 1.86rem;
+    justify-content: center;
+    padding-inline: 0.42rem;
+    border-radius: 10px;
+    font-size: 0.6rem;
+  }
+
+  body.product-shell.follows-page .layout,
+  body.product-shell.hub-page .layout.detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.42rem;
+    max-width: none;
+    padding: 0 0 calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.product-shell.follows-page .panel,
+  body.product-shell.hub-page .panel {
+    padding: 0.78rem 0.72rem 0.84rem;
+    border-inline: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body.product-shell.follows-page .panel::before,
+  body.product-shell.hub-page .panel::before {
+    left: 0;
+    right: 0;
+    opacity: 0.5;
+  }
+
+  body.product-shell.follows-page .panel::after,
+  body.product-shell.hub-page .panel::after {
+    display: none;
+  }
+
+  body.product-shell.follows-page #watchlistSummaryPanel {
+    order: 1;
+  }
+
+  body.product-shell.follows-page #followsQuickJump {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem;
+    order: 2;
+    position: sticky;
+    top: calc(4.5rem + env(safe-area-inset-top, 0px));
+    z-index: 24;
+    margin: 0;
+    padding: 0.24rem 0.56rem;
+    border-top: 1px solid rgba(217, 225, 235, 0.08);
+    border-bottom: 1px solid rgba(217, 225, 235, 0.08);
+    background: rgba(11, 14, 20, 0.96);
+    backdrop-filter: blur(14px);
+  }
+
+  body.product-shell.follows-page #alertsPanel {
+    order: 3;
+  }
+
+  body.product-shell.follows-page #outboxPanel {
+    order: 4;
+  }
+
+  body.product-shell.follows-page #watchlistWorkspacePanel {
+    order: 5;
+  }
+
+  body.product-shell.follows-page #controlsPanel {
+    order: 6;
+    margin-top: 0;
+  }
+
+  body.product-shell.follows-page .stack {
+    gap: 0.42rem;
+  }
+
+  body.product-shell.follows-page .mobile-segment {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.18rem;
+    padding: 0.18rem;
+    border: 1px solid rgba(217, 225, 235, 0.08);
+    border-radius: 10px;
+    background: rgba(17, 21, 28, 0.96);
+    box-shadow: none;
+  }
+
+  body.product-shell.follows-page .mobile-segment-btn {
+    min-height: 1.76rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #cad4df;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body.product-shell.follows-page .mobile-segment-btn[aria-pressed="true"] {
+    background: rgba(216, 138, 51, 0.14);
+    border-color: rgba(216, 138, 51, 0.22);
+    color: #f7d8aa;
+  }
+
+  body.product-shell.follows-page .follow-list {
+    gap: 0.42rem;
+  }
+
+  body.product-shell.follows-page .follow-item {
+    padding: 0.58rem 0.6rem;
+    border-radius: 10px;
+    gap: 0.58rem;
+  }
+
+  body.product-shell.follows-page .follow-alert-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: initial;
+  }
+
+  body.product-shell.follows-page .follow-actions {
+    width: 100%;
+  }
+
+  body.product-shell.follows-page .follow-actions .link-btn,
+  body.product-shell.follows-page .follow-actions .ghost {
+    width: 100%;
+    justify-content: center;
+  }
+
+  body.product-shell.follows-page .prefs-grid {
+    grid-template-columns: 1fr;
+    gap: 0.42rem;
+  }
+
+  body.product-shell.follows-page .controls-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.hub-page #hubOverviewPanel {
+    order: 1;
+  }
+
+  body.product-shell.hub-page #hubQuickJump {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem;
+    order: 2;
+    position: sticky;
+    top: calc(4.5rem + env(safe-area-inset-top, 0px));
+    z-index: 24;
+    margin: 0;
+    padding: 0.24rem 0.56rem;
+    border-top: 1px solid rgba(217, 225, 235, 0.08);
+    border-bottom: 1px solid rgba(217, 225, 235, 0.08);
+    background: rgba(11, 14, 20, 0.96);
+    backdrop-filter: blur(14px);
+  }
+
+  body.product-shell.hub-page #hubLivePanel {
+    order: 3;
+  }
+
+  body.product-shell.hub-page #hubUpcomingPanel {
+    order: 4;
+  }
+
+  body.product-shell.hub-page #hubResultsPanel {
+    order: 5;
+  }
+
+  body.product-shell.hub-page #hubRadarPanel {
+    order: 6;
+  }
+
+  body.product-shell.hub-page #controlsPanel {
+    order: 7;
+    margin-top: 0;
+  }
+
+  body.product-shell.hub-page .controls-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.product-shell.hub-page .hub-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.42rem;
+  }
+
+  body.product-shell.hub-page .hub-tournament-grid,
+  body.product-shell.hub-page .schedule-mobile-list {
+    gap: 0.42rem;
+  }
+
+  body.product-shell.hub-page .hub-kpi-card,
+  body.product-shell.hub-page .hub-radar-card,
+  body.product-shell.hub-page .hub-match-card {
+    padding: 0.6rem;
+    border-radius: 10px;
+  }
+
+  body.product-shell.hub-page .hub-match-card .schedule-card-badge {
+    min-width: 1.92rem;
+    min-height: 1.92rem;
+  }
+}
+
+@media (max-width: 430px) {
+  body.product-shell.follows-page .hero-grid,
+  body.product-shell.hub-page .hero-grid {
+    padding-inline: 0.58rem;
+  }
+
+  body.product-shell.follows-page .panel,
+  body.product-shell.hub-page .panel {
+    padding-inline: 0.58rem;
+  }
+
+  body.product-shell.follows-page #followsQuickJump,
+  body.product-shell.hub-page #hubQuickJump {
+    top: calc(4.2rem + env(safe-area-inset-top, 0px));
+    padding-inline: 0.58rem;
+  }
+
+  body.product-shell.follows-page .team-jump-chip,
+  body.product-shell.hub-page .team-jump-chip {
+    min-height: 1.62rem;
+    padding: 0.14rem 0.28rem;
+    border-radius: 8px;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.hub-page .hub-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.product-shell.follows-page .panel,
+body.product-shell.follows-page .overview-card,
+body.product-shell.follows-page .overview-featured,
+body.product-shell.follows-page .follow-summary-main,
+body.product-shell.follows-page .follow-summary-stat,
+body.product-shell.follows-page .follow-item,
+body.product-shell.follows-page .lens-strip-shell,
+body.product-shell.follows-page .prefs-grid .check {
+  border-color: rgba(217, 225, 235, 0.08);
+  background: linear-gradient(180deg, rgba(22, 27, 34, 0.94), rgba(16, 20, 27, 0.97));
+  box-shadow: none;
+}
+
+body.product-shell.follows-page .overview-label,
+body.product-shell.follows-page .follow-summary-label,
+body.product-shell.follows-page .follow-created,
+body.product-shell.follows-page .lens-kicker,
+body.product-shell.follows-page .meta-text,
+body.product-shell.follows-page .status-text {
+  color: #9aa8ba;
+}
+
+body.product-shell.follows-page .overview-value,
+body.product-shell.follows-page .follow-entity-id,
+body.product-shell.follows-page .follow-title strong,
+body.product-shell.follows-page .follow-summary-title,
+body.product-shell.follows-page .follow-summary-value {
+  color: #f0f4f8;
+}
+
+body.product-shell.follows-page .overview-note,
+body.product-shell.follows-page .follow-summary-subline,
+body.product-shell.follows-page .lens-copy {
+  color: #8fa0b4;
+}
+
+body.product-shell.follows-page .follow-entity-chip,
+body.product-shell.follows-page .follow-summary-chip,
+body.product-shell.follows-page .lens-chip {
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cad4df;
+}
+
+body.product-shell.follows-page .follow-summary-user,
+body.product-shell.follows-page .lens-chip-primary {
+  border-color: rgba(216, 138, 51, 0.22);
+  background: rgba(216, 138, 51, 0.14);
+  color: #f7d8aa;
+}
+
+body.product-shell.follows-page .danger-btn {
+  border-color: rgba(209, 109, 90, 0.22);
+  background: rgba(111, 41, 31, 0.36);
+  color: #f0b4a7;
+}
+
+body.product-shell.hub-page .panel,
+body.product-shell.hub-page .hub-kpi-card,
+body.product-shell.hub-page .hub-radar-card,
+body.product-shell.hub-page .hub-match-card {
+  border-color: rgba(217, 225, 235, 0.08);
+  background: linear-gradient(180deg, rgba(22, 27, 34, 0.94), rgba(16, 20, 27, 0.97));
+  box-shadow: none;
+}
+
+body.product-shell.hub-page #hubOverviewPanel {
+  background: linear-gradient(180deg, rgba(26, 31, 39, 0.98), rgba(16, 20, 27, 0.98));
+}
+
+body.product-shell.hub-page .tempo-label,
+body.product-shell.hub-page .schedule-card-game,
+body.product-shell.hub-page .schedule-card-meta,
+body.product-shell.hub-page .data-provenance-line,
+body.product-shell.hub-page .data-quality-line,
+body.product-shell.hub-page .meta-text {
+  color: #9aa8ba;
+}
+
+body.product-shell.hub-page .tempo-value,
+body.product-shell.hub-page .hub-radar-total,
+body.product-shell.hub-page .schedule-card-name,
+body.product-shell.hub-page .schedule-card-score {
+  color: #f0f4f8;
+}
+
+body.product-shell.hub-page .hub-radar-pill,
+body.product-shell.hub-page .game-chip,
+body.product-shell.hub-page .schedule-card-status {
+  box-shadow: none;
+}
+
+body.product-shell.hub-page .hub-radar-pill {
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cad4df;
+}
+
+body.product-shell.hub-page .hub-radar-pill.live {
+  border-color: rgba(82, 173, 122, 0.2);
+  background: rgba(47, 118, 78, 0.24);
+  color: #b8e0c8;
+}
+
+body.product-shell.hub-page .hub-radar-pill.upcoming {
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(104, 70, 23, 0.24);
+  color: #f1c17b;
+}
+
+body.product-shell.hub-page .hub-radar-pill.final {
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cad4df;
+}
+
+body.product-shell.hub-page .schedule-card-badge {
+  border-color: rgba(217, 225, 235, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #edf2f8;
+  box-shadow: none;
+}
+
+body.product-shell.hub-page .table-link {
+  color: #f7d8aa;
 }

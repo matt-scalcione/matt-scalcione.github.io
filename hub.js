@@ -84,6 +84,7 @@ const HUB_JUMP_TARGETS = [
   { id: "hubResultsPanel", label: "Results" },
   { id: "hubRadarPanel", label: "Radar" }
 ];
+const HUB_MOBILE_JUMP_TARGETS = HUB_JUMP_TARGETS.filter((item) => item.id !== "hubOverviewPanel");
 
 function resolveGameKey() {
   const bodyGame = normalizeGameKey(document.body?.dataset?.game || "");
@@ -176,7 +177,7 @@ function renderHubQuickJump() {
     return;
   }
 
-  const visibleTargets = HUB_JUMP_TARGETS.filter((item) => {
+  const visibleTargets = HUB_MOBILE_JUMP_TARGETS.filter((item) => {
     const target = document.getElementById(item.id);
     if (!target) {
       return false;
@@ -254,7 +255,11 @@ function applyControlsCollapsed(collapsed) {
   }
 
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
-  elements.controlsToggle.textContent = collapsed ? "Show Controls" : "Hide Controls";
+  if (isCompactViewport()) {
+    elements.controlsToggle.textContent = collapsed ? "Filters" : "Close";
+  } else {
+    elements.controlsToggle.textContent = collapsed ? "Show Controls" : "Hide Controls";
+  }
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
@@ -845,6 +850,9 @@ function installEvents() {
   }
 
   window.addEventListener("resize", () => {
+    if (elements.controlsPanel) {
+      applyControlsCollapsed(elements.controlsPanel.classList.contains("collapsed"));
+    }
     renderHubQuickJump();
   });
 }

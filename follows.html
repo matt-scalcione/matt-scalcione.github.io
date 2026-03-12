@@ -27,10 +27,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260310d" />
+    <link rel="stylesheet" href="./styles.css?v=20260312e" />
   </head>
   <body class="product-shell follows-page">
     <div class="noise"></div>
@@ -85,7 +85,7 @@
     </header>
 
     <main class="layout">
-      <section class="panel summary-panel">
+      <section class="panel summary-panel" id="watchlistSummaryPanel">
         <div class="section-head">
           <h2>Account Snapshot</h2>
           <p class="meta-text">Live summary of watchlist coverage, alert readiness, and queue state.</p>
@@ -101,7 +101,9 @@
 
       <section id="productGuidePanel" class="panel guide-panel hidden-panel"></section>
 
-      <section class="panel">
+      <div id="followsQuickJump" class="mobile-page-jump" hidden></div>
+
+      <section class="panel" id="alertsPanel">
         <div class="section-head">
           <h2>Attention Now</h2>
           <p id="alertsMeta" class="meta-text">Previewing current alert candidates for the selected user.</p>
@@ -109,7 +111,7 @@
         <div id="alertsPreviewWrap" class="follow-list"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="outboxPanel">
         <div class="section-head">
           <h2>Delivery Queue</h2>
           <p id="alertOutboxMeta" class="meta-text">Pending and acknowledged alert events for this user.</p>
@@ -169,7 +171,7 @@
         </div>
       </section>
 
-      <section class="panel stack">
+      <section class="panel stack" id="watchlistWorkspacePanel">
         <div id="followsSummaryHero" class="follow-summary-hero" aria-live="polite" hidden>
           <div class="empty">
             <p class="empty-title">Follow Overview</p>
@@ -242,6 +244,6 @@
     </nav>
 
     <script src="./site-config.js?v=20260309c"></script>
-    <script type="module" src="./follows.js?v=20260309c"></script>
+    <script type="module" src="./follows.js?v=20260312a"></script>
   </body>
 </html>

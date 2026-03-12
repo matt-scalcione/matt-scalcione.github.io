@@ -7,6 +7,12 @@ const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
 const PRODUCT_GUIDE_KEY = "pulseboard.productGuideDismissed.watchlist";
+const FOLLOWS_JUMP_TARGETS = [
+  { id: "alertsPanel", label: "Now" },
+  { id: "outboxPanel", label: "Queue" },
+  { id: "followsBlock", label: "Watchlist" },
+  { id: "prefsBlock", label: "Rules" }
+];
 
 const elements = {
   liveDeskNav: document.querySelector("#liveDeskNav"),
@@ -29,6 +35,7 @@ const elements = {
   heroContextCopy: document.querySelector("#heroContextCopy"),
   heroContextChips: document.querySelector("#heroContextChips"),
   heroActionRow: document.querySelector("#heroActionRow"),
+  quickJump: document.querySelector("#followsQuickJump"),
   productGuidePanel: document.querySelector("#productGuidePanel"),
   watchlistLensStrip: document.querySelector("#watchlistLensStrip"),
   entityTypeSelect: document.querySelector("#entityTypeSelect"),
@@ -107,13 +114,104 @@ function isCompactViewport() {
   return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
 }
 
+function scrollToFollowsTarget(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return;
+  }
+
+  const topOffset = isCompactViewport() ? 124 : 88;
+  const top = Math.max(0, Math.round(target.getBoundingClientRect().top + window.scrollY - topOffset));
+  window.scrollTo({ top, behavior: "smooth" });
+}
+
+function setFollowsQuickJumpActive(targetId) {
+  if (!elements.quickJump) {
+    return;
+  }
+
+  const activeTarget = String(targetId || "");
+  for (const button of elements.quickJump.querySelectorAll("[data-jump-target]")) {
+    const matches = button.getAttribute("data-jump-target") === activeTarget;
+    button.classList.toggle("active", matches);
+    if (matches) {
+      button.setAttribute("aria-pressed", "true");
+    } else {
+      button.removeAttribute("aria-pressed");
+    }
+  }
+}
+
+function renderFollowsQuickJump() {
+  if (!elements.quickJump) {
+    return;
+  }
+
+  if (!isCompactViewport()) {
+    elements.quickJump.hidden = true;
+    elements.quickJump.innerHTML = "";
+    return;
+  }
+
+  const visibleTargets = FOLLOWS_JUMP_TARGETS.filter((item) => {
+    const target = document.getElementById(item.id);
+    if (!target) {
+      return false;
+    }
+    return !target.hidden && !target.classList.contains("hidden-panel");
+  });
+
+  if (!visibleTargets.length) {
+    elements.quickJump.hidden = true;
+    elements.quickJump.innerHTML = "";
+    return;
+  }
+
+  elements.quickJump.hidden = false;
+  elements.quickJump.innerHTML = visibleTargets
+    .map(
+      (item) =>
+        `<button type="button" class="team-jump-chip" data-jump-target="${item.id}">${item.label}</button>`
+    )
+    .join("");
+  setFollowsQuickJumpActive(visibleTargets[0]?.id || "");
+}
+
+function bindFollowsQuickJump() {
+  if (!elements.quickJump || elements.quickJump.dataset.bound === "1") {
+    return;
+  }
+
+  elements.quickJump.dataset.bound = "1";
+  elements.quickJump.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const button = target.closest("[data-jump-target]");
+    if (!button) {
+      return;
+    }
+    const jumpTarget = button.getAttribute("data-jump-target") || "";
+    if (!jumpTarget) {
+      return;
+    }
+    setFollowsQuickJumpActive(jumpTarget);
+    scrollToFollowsTarget(jumpTarget);
+  });
+}
+
 function applyControlsCollapsed(collapsed) {
   if (!elements.controlsPanel || !elements.controlsToggle) {
     return;
   }
 
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
-  elements.controlsToggle.textContent = collapsed ? "Show Panel" : "Hide Panel";
+  if (isCompactViewport()) {
+    elements.controlsToggle.textContent = collapsed ? "Filters" : "Close";
+  } else {
+    elements.controlsToggle.textContent = collapsed ? "Show Panel" : "Hide Panel";
+  }
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
@@ -167,6 +265,8 @@ function applyFollowsViewMode(mode) {
     const active = button.getAttribute("data-view") === normalized;
     button.setAttribute("aria-pressed", String(active));
   }
+
+  renderFollowsQuickJump();
 }
 
 function setupFollowsViewSwitch() {
@@ -967,13 +1067,19 @@ function boot() {
   refreshFollowsSeo();
   setupControlsPanel();
   setupFollowsViewSwitch();
+  bindFollowsQuickJump();
   renderSummaryHero();
+  renderFollowsQuickJump();
   installEvents();
   loadAll();
 }
 
 window.addEventListener("resize", () => {
   applyFollowsViewMode(followsViewMode);
+  if (elements.controlsPanel) {
+    applyControlsCollapsed(elements.controlsPanel.classList.contains("collapsed"));
+  }
+  renderFollowsQuickJump();
 });
 
 boot();

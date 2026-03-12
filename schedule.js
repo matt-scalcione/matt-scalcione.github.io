@@ -1,5 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
+import { applyRouteContext, buildMatchUrl } from "./routes.js?v=20260309c";
 import {
   buildCollectionFallbackSummary,
   buildRowDataProvenance,
@@ -584,12 +584,6 @@ function gameChipMarkup(game) {
   return `<span class="game-chip">${String(game || "?").slice(0, 1).toUpperCase()}</span>`;
 }
 
-function hubUrlForGame(game) {
-  const normalized = normalizeGameKey(game);
-  const page = normalized === "dota2" ? "dota2.html" : "lol.html";
-  return new URL(`./${page}`, window.location.href).toString();
-}
-
 function toLocalInputValue(date) {
   const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
   return shifted.toISOString().slice(0, 16);
@@ -710,7 +704,7 @@ function applyControlsCollapsed(collapsed) {
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
   const compact = isCompactViewport();
   elements.controlsToggle.textContent = compact
-    ? (collapsed ? "Show" : "Hide")
+    ? (collapsed ? "Filters" : "Close")
     : (collapsed ? "Show Filters" : "Hide Filters");
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
@@ -910,28 +904,6 @@ function setupScheduleViewSwitch() {
       // Ignore storage failures in private mode.
     }
   });
-}
-
-function teamLink({
-  teamId,
-  teamName,
-  label = null,
-  game,
-  matchId = null,
-  opponentId = null
-}) {
-  if (!teamId) {
-    return teamName || "Unknown";
-  }
-
-  const url = buildTeamUrl({
-    teamId,
-    game,
-    matchId,
-    opponentId,
-    teamName
-  });
-  return `<a class="team-link" href="${url}">${label || teamName || teamId}</a>`;
 }
 
 function updateNav() {
@@ -1315,8 +1287,15 @@ function renderScheduleMobileOverview(scheduleRows = [], resultRows = []) {
   }
 
   const summaryTitle = spotlight
-    ? `${teamNameValue(spotlight.teams.left)} vs ${teamNameValue(spotlight.teams.right)}`
+    ? isCompactViewport()
+      ? `${shortTeamName(spotlight.teams.left, spotlight.game)} vs ${shortTeamName(spotlight.teams.right, spotlight.game)}`
+      : `${teamNameValue(spotlight.teams.left)} vs ${teamNameValue(spotlight.teams.right)}`
     : `${scheduleRows.length} schedule · ${resultRows.length} finals`;
+  const spotlightTitle = spotlight
+    ? isCompactViewport()
+      ? `${shortTeamName(spotlight.teams.left, spotlight.game)} vs ${shortTeamName(spotlight.teams.right, spotlight.game)}`
+      : `${teamNameValue(spotlight.teams.left)} vs ${teamNameValue(spotlight.teams.right)}`
+    : "";
   const summaryCopy = `${scheduleRows.length} schedule rows · ${resultRows.length} finals${liveCount ? ` · ${liveCount} live now` : ""}${overdueCount ? ` · ${overdueCount} overdue` : ""}`;
 
   elements.scheduleMobileOverview.innerHTML = `
@@ -1352,7 +1331,7 @@ function renderScheduleMobileOverview(scheduleRows = [], resultRows = []) {
               <span class="mobile-glance-spotlight-label">Spotlight</span>
               <span class="mobile-glance-spotlight-meta">${escapeHtml(scheduleCardStatusLabel(spotlight, resultRows.includes(spotlight) ? "result" : "scheduled"))} · ${escapeHtml(timeOnlyLabel(spotlight.startAt))}</span>
             </div>
-            <strong>${escapeHtml(teamNameValue(spotlight.teams.left))} vs ${escapeHtml(teamNameValue(spotlight.teams.right))}</strong>
+            <strong>${escapeHtml(spotlightTitle)}</strong>
             <span>${escapeHtml(spotlight.tournament || "Tournament")}</span>
           </a>
         `
@@ -1363,6 +1342,165 @@ function renderScheduleMobileOverview(scheduleRows = [], resultRows = []) {
 
 function renderLoadingTable(container) {
   container.innerHTML = tableSkeletonMarkup({ rows: 5, columns: 5 });
+}
+
+function groupRowsByTournament(rows = []) {
+  const groups = new Map();
+
+  for (const row of rows) {
+    const game = normalizeGameKey(row?.game) || String(row?.game || "").toLowerCase() || "unknown";
+    const tournament = String(row?.tournament || gameLabel(row?.game) || "Tournament").trim() || "Tournament";
+    const key = `${game}::${tournament.toLowerCase()}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        game,
+        tournament,
+        rows: []
+      });
+    }
+    groups.get(key).rows.push(row);
+  }
+
+  return Array.from(groups.values());
+}
+
+function scheduleEventMetaLabel(group, type) {
+  const regions = Array.from(
+    new Set(
+      group.rows
+        .map((row) => String(row?.region || "").trim().toUpperCase())
+        .filter(Boolean)
+    )
+  );
+  const count = group.rows.length;
+  const countLabel =
+    type === "result"
+      ? `${count} ${count === 1 ? "final" : "finals"}`
+      : `${count} ${count === 1 ? "match" : "matches"}`;
+  const liveCount =
+    type === "scheduled"
+      ? group.rows.filter((row) => scheduleDisplayState(row, type) === "live").length
+      : 0;
+  const parts = [];
+
+  if (regions.length === 1) {
+    parts.push(regions[0]);
+  } else if (regions.length > 1) {
+    parts.push(`${regions.length} regions`);
+  }
+
+  parts.push(countLabel);
+
+  if (liveCount > 0) {
+    parts.push(`${liveCount} live`);
+  }
+
+  return parts.join(" · ");
+}
+
+function renderScheduleBoardRow(row, type) {
+  const detailUrl = rowLink(row.id);
+  const leftName = teamNameValue(row.teams.left) || "Team A";
+  const rightName = teamNameValue(row.teams.right) || "Team B";
+  const leftBadge = scheduleBadgeMarkup(row.teams.left, row.game);
+  const rightBadge = scheduleBadgeMarkup(row.teams.right, row.game);
+  const winnerLong =
+    row.winnerTeamId === row.teams.left.id
+      ? row.teams.left.name
+      : row.winnerTeamId === row.teams.right.id
+        ? row.teams.right.name
+        : null;
+  const scoreLabel = seriesScoreLabel(row, type);
+  const statusLabel = scheduleCardStatusLabel(row, type);
+  const stateClass = scheduleDisplayState(row, type);
+  const context = scheduleCardContext(row, type, scoreLabel, winnerLong);
+  const footer = scheduleCardFooter(row, type, winnerLong);
+  const showSeriesScore = type === "result" || row?.status === "live" || scoreLabel !== "—";
+  const leftSeriesScore = Number(row?.seriesScore?.left ?? 0);
+  const rightSeriesScore = Number(row?.seriesScore?.right ?? 0);
+  const provenance = buildRowDataProvenance(row);
+  const qualityNotice = buildRowQualityNotice(row);
+  const boardNote = type === "result" ? footer.secondary : context.note;
+
+  return `
+    <a class="schedule-board-row schedule-${stateClass}" href="${detailUrl}" aria-label="Open ${leftName} vs ${rightName}">
+      <div class="schedule-board-time">
+        <span class="schedule-board-time-main">${timeOnlyLabel(row.startAt)}</span>
+      </div>
+      <div class="schedule-board-matchup">
+        <div class="schedule-board-team">
+          <span class="schedule-board-team-main">
+            ${leftBadge}
+            <span class="schedule-board-team-name">${escapeHtml(leftName)}</span>
+          </span>
+          ${showSeriesScore ? `<span class="schedule-board-team-score">${leftSeriesScore}</span>` : ""}
+        </div>
+        <div class="schedule-board-team">
+          <span class="schedule-board-team-main">
+            ${rightBadge}
+            <span class="schedule-board-team-name">${escapeHtml(rightName)}</span>
+          </span>
+          ${showSeriesScore ? `<span class="schedule-board-team-score">${rightSeriesScore}</span>` : ""}
+        </div>
+      </div>
+      <div class="schedule-board-series">
+        <div class="schedule-board-chip-row">
+          <span class="schedule-board-format">${escapeHtml(context.format)}</span>
+          ${row?.region ? `<span class="schedule-board-chip">${escapeHtml(String(row.region).toUpperCase())}</span>` : ""}
+          <span class="pill ${stateClass} schedule-board-status">${escapeHtml(statusLabel)}</span>
+        </div>
+        <p class="schedule-board-note">${escapeHtml(boardNote)}</p>
+      </div>
+      <div class="schedule-board-meta">
+        ${provenance.text
+          ? `<span class="data-provenance-line ${provenance.tone} schedule-board-tag" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</span>`
+          : ""}
+        ${qualityNotice.text
+          ? `<span class="data-quality-line ${qualityNotice.tone} schedule-board-tag" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</span>`
+          : ""}
+      </div>
+    </a>
+  `;
+}
+
+function renderGroupedScheduleMarkup(rows, type) {
+  return groupRowsByDay(rows)
+    .map((dayGroup) => {
+      const eventGroups = groupRowsByTournament(dayGroup.rows)
+        .map((eventGroup) => {
+          const eventMeta = scheduleEventMetaLabel(eventGroup, type);
+          const rowsMarkup = eventGroup.rows.map((row) => renderScheduleBoardRow(row, type)).join("");
+
+          return `
+            <section class="schedule-event-group">
+              <div class="schedule-event-head">
+                <div class="schedule-event-title-row">
+                  <span class="schedule-event-game" title="${escapeHtml(gameLabel(eventGroup.game))}">${gameChipMarkup(eventGroup.game)}</span>
+                  <div class="schedule-event-copy">
+                    <p class="schedule-event-title">${escapeHtml(eventGroup.tournament)}</p>
+                    <p class="schedule-event-subtitle">${escapeHtml(eventMeta)}</p>
+                  </div>
+                </div>
+                <span class="schedule-event-count">${eventGroup.rows.length}</span>
+              </div>
+              <div class="schedule-event-list">${rowsMarkup}</div>
+            </section>
+          `;
+        })
+        .join("");
+
+      return `
+        <section class="schedule-day-group">
+          <div class="schedule-day-label">
+            <span>${dayGroup.label}</span>
+            <span class="schedule-day-count">${dayGroup.rows.length}</span>
+          </div>
+          <div class="schedule-event-groups">${eventGroups}</div>
+        </section>
+      `;
+    })
+    .join("");
 }
 
 function renderTable(container, rows, type) {
@@ -1388,169 +1526,7 @@ function renderTable(container, rows, type) {
     return;
   }
 
-  const desktopBody = rows
-    .map((row) => {
-      const detailUrl = rowLink(row.id);
-      const hubUrl = hubUrlForGame(row.game);
-      const leftName = teamNameValue(row.teams.left) || "Team A";
-      const rightName = teamNameValue(row.teams.right) || "Team B";
-      const winnerLong =
-        row.winnerTeamId === row.teams.left.id
-          ? row.teams.left.name
-          : row.winnerTeamId === row.teams.right.id
-            ? row.teams.right.name
-            : "TBD";
-      const scoreLabel = seriesScoreLabel(row, type);
-      const leftTeam = teamLink({
-        teamId: row.teams.left.id,
-        teamName: row.teams.left.name,
-        label: leftName,
-        game: row.game,
-        matchId: row.id,
-        opponentId: row.teams.right.id
-      });
-      const rightTeam = teamLink({
-        teamId: row.teams.right.id,
-        teamName: row.teams.right.name,
-        label: rightName,
-        game: row.game,
-        matchId: row.id,
-        opponentId: row.teams.left.id
-      });
-      const provenance = buildRowDataProvenance(row);
-      const qualityNotice = buildRowQualityNotice(row);
-
-      return `
-        <tr class="schedule-row schedule-row-${scheduleDisplayState(row, type)}" data-href="${detailUrl}" tabindex="0" role="link" aria-label="Open ${leftName} vs ${rightName}">
-          <td class="schedule-time-cell">
-            <div class="schedule-time-stack">
-              <span class="schedule-time-label">${dateTimeCompact(row.startAt)}</span>
-              ${provenance.text
-                ? `<span class="data-provenance-line ${provenance.tone} schedule-table-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</span>`
-                : ""}
-              ${qualityNotice.text
-                ? `<span class="data-quality-line ${qualityNotice.tone} schedule-table-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</span>`
-                : ""}
-            </div>
-          </td>
-          <td class="schedule-game-cell"><a class="hub-chip-link" href="${hubUrl}" aria-label="Open ${gameLabel(row.game)} hub">${gameChipMarkup(row.game)}</a></td>
-          <td class="schedule-match-cell">${leftTeam} <span class="vs-token">vs</span> ${rightTeam}</td>
-          <td class="schedule-score-cell"><span class="schedule-score-pill">${scoreLabel}</span></td>
-          <td class="schedule-winner-cell"><span class="schedule-winner-text${type === "result" && winnerLong !== "TBD" ? "" : " placeholder"}">${type === "result" ? winnerLong : "—"}</span></td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  const mobileCards = rows
-    .length
-    ? groupRowsByDay(rows)
-        .map((group) => {
-          const cards = group.rows
-            .map((row) => {
-              const detailUrl = rowLink(row.id);
-              const leftName = teamNameValue(row.teams.left) || "Team A";
-              const rightName = teamNameValue(row.teams.right) || "Team B";
-              const leftBadge = scheduleBadgeMarkup(row.teams.left, row.game);
-              const rightBadge = scheduleBadgeMarkup(row.teams.right, row.game);
-              const winnerLong =
-                row.winnerTeamId === row.teams.left.id
-                  ? row.teams.left.name
-                  : row.winnerTeamId === row.teams.right.id
-                    ? row.teams.right.name
-                    : null;
-              const scoreLabel = seriesScoreLabel(row, type);
-              const statusLabel = scheduleCardStatusLabel(row, type);
-              const statusClass = scheduleDisplayState(row, type);
-              const stateClass = scheduleDisplayState(row, type);
-              const context = scheduleCardContext(row, type, scoreLabel, winnerLong);
-              const footer = scheduleCardFooter(row, type, winnerLong);
-              const showSeriesScore = type === "result" || row?.status === "live" || scoreLabel !== "—";
-              const leftSeriesScore = Number(row?.seriesScore?.left ?? 0);
-              const rightSeriesScore = Number(row?.seriesScore?.right ?? 0);
-              const provenance = buildRowDataProvenance(row);
-              const qualityNotice = buildRowQualityNotice(row);
-              const leftScoreMarkup = showSeriesScore
-                ? `<span class="schedule-card-team-score">${leftSeriesScore}</span>`
-                : "";
-              const rightScoreMarkup = showSeriesScore
-                ? `<span class="schedule-card-team-score">${rightSeriesScore}</span>`
-                : "";
-
-              return `
-                <a class="schedule-row-card schedule-${stateClass}" href="${detailUrl}" aria-label="Open ${leftName} vs ${rightName}">
-                  <div class="schedule-card-top">
-                    <div class="schedule-card-game">
-                      <span class="schedule-card-game-icon" title="${gameLabel(row.game)}">${gameChipMarkup(row.game)}</span>
-                      <span class="schedule-card-time">${timeOnlyLabel(row.startAt)}</span>
-                    </div>
-                    <span class="pill ${statusClass} schedule-card-status">${statusLabel}</span>
-                  </div>
-                  <div class="schedule-card-board schedule-card-board-stacked">
-                    <div class="schedule-card-team-row left">
-                      <div class="schedule-card-team-main">
-                        ${leftBadge}
-                        <span class="schedule-card-name">${leftName}</span>
-                      </div>
-                      ${leftScoreMarkup}
-                    </div>
-                    <div class="schedule-card-series-row">
-                      <span class="schedule-card-format">${context.format}</span>
-                      <span class="schedule-card-series-note">${context.note}</span>
-                    </div>
-                    <div class="schedule-card-team-row right">
-                      <div class="schedule-card-team-main">
-                        ${rightBadge}
-                        <span class="schedule-card-name">${rightName}</span>
-                      </div>
-                      ${rightScoreMarkup}
-                    </div>
-                  </div>
-                  <div class="schedule-card-foot">
-                    <p class="schedule-card-meta primary">${footer.primary}</p>
-                    <p class="schedule-card-meta secondary">${footer.secondary}</p>
-                  </div>
-                  ${provenance.text
-                    ? `<p class="data-provenance-line ${provenance.tone} schedule-card-provenance" title="${escapeHtml(provenance.title)}">${escapeHtml(provenance.text)}</p>`
-                    : ""}
-                  ${qualityNotice.text
-                    ? `<p class="data-quality-line ${qualityNotice.tone} schedule-card-quality" title="${escapeHtml(qualityNotice.title)}">${escapeHtml(qualityNotice.text)}</p>`
-                    : ""}
-                </a>
-              `;
-            })
-            .join("");
-
-          return `
-            <section class="schedule-day-group">
-              <div class="schedule-day-label">
-                <span>${group.label}</span>
-                <span class="schedule-day-count">${group.rows.length}</span>
-              </div>
-              <div class="schedule-day-list">${cards}</div>
-            </section>
-          `;
-        })
-        .join("")
-    : "";
-
-  container.innerHTML = `
-    <div class="table-wrap schedule-desktop-wrap">
-      <table class="data-table schedule-table">
-        <thead>
-          <tr>
-            <th>Start</th>
-            <th>Game</th>
-            <th>Match</th>
-            <th>Score</th>
-            <th>Winner</th>
-          </tr>
-        </thead>
-        <tbody>${desktopBody}</tbody>
-      </table>
-    </div>
-    <div class="schedule-mobile-list">${mobileCards}</div>
-  `;
+  container.innerHTML = `<div class="schedule-board-groups">${renderGroupedScheduleMarkup(rows, type)}</div>`;
 }
 
 function renderCollectionsFromState() {
@@ -1617,45 +1593,6 @@ function applyScheduleStructuredData(scheduleRows = [], resultRows = []) {
     "@type": "ItemList",
     name: "Pulseboard Schedule and Results",
     itemListElement: items
-  });
-}
-
-function wireRowNavigation(container) {
-  if (!container) {
-    return;
-  }
-
-  container.addEventListener("click", (event) => {
-    if (event.target.closest("a")) {
-      return;
-    }
-
-    const row = event.target.closest("tr.schedule-row");
-    if (!row) {
-      return;
-    }
-
-    const href = row.getAttribute("data-href");
-    if (href) {
-      window.location.href = href;
-    }
-  });
-
-  container.addEventListener("keydown", (event) => {
-    const row = event.target.closest("tr.schedule-row");
-    if (!row) {
-      return;
-    }
-
-    if (event.key !== "Enter" && event.key !== " ") {
-      return;
-    }
-
-    event.preventDefault();
-    const href = row.getAttribute("data-href");
-    if (href) {
-      window.location.href = href;
-    }
   });
 }
 
@@ -1873,9 +1810,6 @@ async function loadCollections() {
 }
 
 function installEvents() {
-  wireRowNavigation(elements.scheduleTableWrap);
-  wireRowNavigation(elements.resultsTableWrap);
-
   elements.refreshButton.addEventListener("click", loadCollections);
   elements.saveButton.addEventListener("click", () => {
     const value = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;

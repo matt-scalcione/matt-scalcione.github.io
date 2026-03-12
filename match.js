@@ -94,26 +94,27 @@ const MOBILE_SERIES_JUMP_TARGETS = [
 ];
 const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Games" },
+  { id: "seriesGamesWrap", label: "Maps" },
+  { id: "seriesProgressWrap", label: "Progress" },
   { id: "matchupConsoleWrap", label: "Stats" },
   { id: "upcomingFormWrap", label: "Past" },
-  { id: "upcomingH2hWrap", label: "H2H" },
-  { id: "seriesGamesWrap", label: "Maps" },
-  { id: "seriesProgressWrap", label: "Progress" }
+  { id: "upcomingH2hWrap", label: "H2H" }
 ];
 const MOBILE_COMPLETED_SERIES_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Games" },
+  { id: "seriesGamesWrap", label: "Maps" },
+  { id: "seriesCompareWrap", label: "Results" },
   { id: "matchupConsoleWrap", label: "Stats" },
   { id: "upcomingFormWrap", label: "Past" },
-  { id: "upcomingH2hWrap", label: "H2H" },
-  { id: "seriesGamesWrap", label: "Maps" },
-  { id: "seriesCompareWrap", label: "Results" }
+  { id: "upcomingH2hWrap", label: "H2H" }
 ];
 const MOBILE_UPCOMING_JUMP_TARGETS = [
   { id: "gameContextWrap", label: "Overview" },
+  { id: "upcomingWatchWrap", label: "Watch" },
+  { id: "upcomingPredictionWrap", label: "Predict" },
   { id: "matchupConsoleWrap", label: "Stats" },
   { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "upcomingFormWrap", label: "Past" },
-  { id: "upcomingH2hWrap", label: "H2H" }
+  { id: "upcomingFormWrap", label: "Past" }
 ];
 const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
   inProgress: [
@@ -195,19 +196,93 @@ const MOBILE_SECTION_HEADINGS = {
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
-  seriesLive: new Set(["Games", "Statistics", "Past Matches", "Head-to-Head", "Game Results", "Progress"]),
-  seriesCompleted: new Set(["Games", "Statistics", "Past Matches", "Head-to-Head", "Game Results", "Results Table", "Player Trends"]),
-  series: new Set(["Games", "Statistics", "Lineups", "Past Matches", "Head-to-Head"]),
-  upcoming: new Set([
-    "Games",
-    "Statistics",
-    "Overview",
-    "Watch",
-    "Prediction",
-    "Past Matches",
-    "Head-to-Head"
-  ]),
-  game: new Set(["Map Overview", "Final Map", "Selected Game Recap", "Live Snapshot", "Players", "Live Feed", "Map Feed", "Team Stats", "Key Story", "Alerts"])
+  seriesLive: new Set(["Games", "Statistics", "Game Results"]),
+  seriesCompleted: new Set(["Games", "Game Results", "Results Table"]),
+  series: new Set(["Games", "Statistics"]),
+  upcoming: new Set(["Games", "Overview", "Watch", "Prediction"]),
+  game: new Set(["Games", "Map Overview", "Final Map", "Selected Game Recap", "Live Snapshot", "Players", "Live Feed", "Map Feed"])
+};
+const MOBILE_PANEL_ORDER_BY_MODE = {
+  seriesLive: [
+    "gameExplorerPanel",
+    "matchupConsoleWrap",
+    "seriesGamesWrap",
+    "seriesProgressWrap",
+    "seriesLineupsWrap",
+    "upcomingFormWrap",
+    "upcomingH2hWrap",
+    "seriesMomentsList",
+    "seriesCompareWrap",
+    "seriesPlayerTrendsWrap"
+  ],
+  seriesCompleted: [
+    "gameExplorerPanel",
+    "seriesGamesWrap",
+    "seriesCompareWrap",
+    "matchupConsoleWrap",
+    "seriesPlayerTrendsWrap",
+    "seriesLineupsWrap",
+    "upcomingFormWrap",
+    "upcomingH2hWrap",
+    "seriesMomentsList"
+  ],
+  series: [
+    "gameExplorerPanel",
+    "matchupConsoleWrap",
+    "seriesLineupsWrap",
+    "upcomingFormWrap",
+    "upcomingH2hWrap",
+    "seriesGamesWrap",
+    "seriesProgressWrap"
+  ],
+  upcoming: [
+    "gameExplorerPanel",
+    "upcomingEssentialsWrap",
+    "upcomingWatchWrap",
+    "upcomingPredictionWrap",
+    "preMatchPlanner",
+    "matchupConsoleWrap",
+    "seriesLineupsWrap",
+    "upcomingFormWrap",
+    "upcomingH2hWrap"
+  ],
+  gameLive: [
+    "gameExplorerPanel",
+    "selectedGameRecapWrap",
+    "gameCommandWrap",
+    "playerTrackerWrap",
+    "liveFeedList",
+    "teamCompareWrap",
+    "pulseCard",
+    "liveAlertsList",
+    "matchupConsoleWrap",
+    "seriesGamesWrap",
+    "seriesProgressWrap",
+    "upcomingFormWrap",
+    "upcomingH2hWrap"
+  ],
+  gameCompleted: [
+    "gameExplorerPanel",
+    "selectedGameRecapWrap",
+    "gameCommandWrap",
+    "teamCompareWrap",
+    "playerTrackerWrap",
+    "pulseCard",
+    "seriesGamesWrap",
+    "seriesCompareWrap",
+    "matchupConsoleWrap",
+    "upcomingFormWrap",
+    "upcomingH2hWrap"
+  ],
+  gameUpcoming: [
+    "gameExplorerPanel",
+    "selectedGameRecapWrap",
+    "gameCommandWrap",
+    "matchupConsoleWrap",
+    "seriesLineupsWrap",
+    "upcomingFormWrap",
+    "upcomingH2hWrap"
+  ]
 };
 const LOL_CDN_VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 const LOL_CDN_CHAMPION_DATA = "https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
@@ -537,6 +612,91 @@ function shouldMatchPanelBeOpenByDefault(headingTitle, match) {
           ? "seriesLive"
           : "series";
   return MOBILE_MATCH_PANELS_DEFAULT_OPEN[mode]?.has(headingTitle) || false;
+}
+
+function panelElementForPriorityTarget(targetId) {
+  if (!targetId) {
+    return null;
+  }
+
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return null;
+  }
+
+  if (target.matches("section.panel")) {
+    return target;
+  }
+
+  return target.closest("section.panel");
+}
+
+function mobilePanelPriorityMode(match) {
+  if (uiState.viewMode === "game") {
+    const selectedState = String(match?.selectedGame?.state || "inProgress");
+    if (selectedState === "completed") {
+      return "gameCompleted";
+    }
+    if (selectedState === "unstarted" || selectedState === "unneeded") {
+      return "gameUpcoming";
+    }
+    return "gameLive";
+  }
+
+  if (match?.status === "upcoming") {
+    return "upcoming";
+  }
+
+  if (match?.status === "completed") {
+    return "seriesCompleted";
+  }
+
+  if (match?.status === "live") {
+    return "seriesLive";
+  }
+
+  return "series";
+}
+
+function applyMobilePanelPriorities(match = uiState.match) {
+  const panels = Array.from(document.querySelectorAll(".match-page main > section.panel"));
+
+  if (!isCompactUI() || !match) {
+    panels.forEach((panel) => {
+      panel.style.order = "";
+      panel.classList.remove("mobile-priority-panel", "mobile-secondary-panel");
+    });
+    return;
+  }
+
+  const priorityMode = mobilePanelPriorityMode(match);
+  const orderedTargets = MOBILE_PANEL_ORDER_BY_MODE[priorityMode] || [];
+  const orderedPanels = [];
+
+  for (const targetId of orderedTargets) {
+    const panel = panelElementForPriorityTarget(targetId);
+    if (panel && !orderedPanels.includes(panel)) {
+      orderedPanels.push(panel);
+    }
+  }
+
+  let nextOrder = 1;
+  for (const panel of orderedPanels) {
+    panel.style.order = String(nextOrder);
+    panel.classList.toggle("mobile-priority-panel", nextOrder <= 4);
+    panel.classList.toggle("mobile-secondary-panel", nextOrder > 4);
+    nextOrder += 1;
+  }
+
+  for (const panel of panels) {
+    if (orderedPanels.includes(panel)) {
+      continue;
+    }
+    panel.style.order = String(nextOrder);
+    panel.classList.remove("mobile-priority-panel");
+    panel.classList.add("mobile-secondary-panel");
+    nextOrder += 1;
+  }
 }
 
 function applyMatchMobilePanelCollapseState(match = uiState.match) {
@@ -1841,8 +2001,8 @@ function renderMatchHero(match) {
     copy = "Use the series layer for kickoff timing, lineup context, and matchup strength before the first game starts.";
     chips.push({ label: "Upcoming", tone: "upcoming" });
     chips.push({ label: `BO${bestOf}`, tone: "neutral" });
-    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
     if (Number.isFinite(startTs)) chips.push({ label: `Starts ${dateTimeCompact(match.startAt)}`, tone: "neutral" });
+    if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
   } else if (match.status === "live") {
     meta = `${seriesScore} series${Number.isInteger(liveGameNumber) ? ` · Game ${liveGameNumber} live` : " · Live now"}${match.patch ? ` · Patch ${match.patch}` : ""}`;
     copy = Number.isInteger(liveGameNumber)
@@ -1851,8 +2011,8 @@ function renderMatchHero(match) {
         : `Game ${liveGameNumber} is live. Stay on the series read for context, or open the active map when you want live game detail.`
       : "The series is live. Use the header for score and status, then drop into the active game for the detailed read.";
     chips.push({ label: "Live", tone: "live" });
-    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
     if (Number.isInteger(liveGameNumber)) chips.push({ label: `G${liveGameNumber} Live`, tone: "live" });
+    chips.push({ label: `BO${bestOf}`, tone: "neutral" });
     if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
   } else {
     const winner = winnerTeamName(match);
@@ -1861,9 +2021,9 @@ function renderMatchHero(match) {
       ? `This game is final. Use the series score up top and the recap sections below to move between the match result and map-level detail.`
       : "The series is complete. Read the result first, then move through the games below for the full match story.";
     chips.push({ label: "Final", tone: "complete" });
+    if (winner) chips.push({ label: `${scoreboardTeamName(winner)} won`, tone: "complete" });
     chips.push({ label: `BO${bestOf}`, tone: "neutral" });
     if (match.patch) chips.push({ label: `Patch ${match.patch}`, tone: "neutral" });
-    if (winner) chips.push({ label: `${scoreboardTeamName(winner)} won`, tone: "complete" });
   }
 
   if (isGameMode) {
@@ -1872,13 +2032,15 @@ function renderMatchHero(match) {
     chips.unshift({ label: "Series View", tone: "focus" });
   }
 
+  const visibleChips = compact ? chips.slice(0, 4) : chips;
+
   setMatchHeroState({
     title: `${displayTeamName(match.teams.left.name, match.game)} vs ${displayTeamName(match.teams.right.name, match.game)}`,
     kicker: heroKicker,
     meta,
     focus: focusLabel,
     copy,
-    chips
+    chips: visibleChips
   });
 }
 
@@ -9891,6 +10053,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   applyUpcomingPanelVisibility(match);
   applyGameStateSectionTitles(match);
   applyMobileGameEnhancements(match);
+  applyMobilePanelPriorities(match);
   applyMatchMobilePanelCollapseState(match);
 
   if (uiState.stream.connected) {
@@ -10156,9 +10319,11 @@ window.addEventListener("resize", () => {
   applyMobileSectionHeadings();
   if (uiState.match) {
     applyMobileGameEnhancements(uiState.match);
+    applyMobilePanelPriorities(uiState.match);
     applyMatchMobilePanelCollapseState(uiState.match);
   } else {
     renderMatchQuickNav(null);
+    applyMobilePanelPriorities(null);
     applyMatchMobilePanelCollapseState(null);
   }
 });
@@ -10166,5 +10331,6 @@ window.addEventListener("resize", () => {
 applyMobileSectionHeadings();
 bindMatchMobilePanelControls();
 bindMatchQuickNav();
+applyMobilePanelPriorities(null);
 applyMatchMobilePanelCollapseState(null);
 loadMatch();

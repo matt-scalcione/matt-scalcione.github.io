@@ -17,18 +17,16 @@ const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
 const TEAM_MOBILE_PANELS_DEFAULT_OPEN = new Set([
-  "Team Snapshot",
-  "Performance Insights",
+  "Snapshot",
+  "Form",
   "Recent Matches",
   "Upcoming Matches"
 ]);
 const TEAM_MOBILE_JUMP_TARGETS = [
   { id: "teamSummaryWrap", label: "Snapshot" },
-  { id: "performanceInsightsWrap", label: "Insights" },
   { id: "formTimelineWrap", label: "Form" },
   { id: "recentMatchesWrap", label: "Recent" },
   { id: "upcomingMatchesWrap", label: "Upcoming" },
-  { id: "opponentBreakdownWrap", label: "Past" },
   { id: "headToHeadWrap", label: "H2H" }
 ];
 
@@ -198,7 +196,9 @@ function applyControlsCollapsed(collapsed) {
   }
 
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
-  elements.controlsToggle.textContent = collapsed ? "Show Filters" : "Hide Filters";
+  elements.controlsToggle.textContent = isCompactViewport()
+    ? (collapsed ? "Filters" : "Close")
+    : (collapsed ? "Show Filters" : "Hide Filters");
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
@@ -2069,6 +2069,9 @@ window.addEventListener("resize", () => {
     renderUpcomingMatches(state.profile, apiBase);
     renderPastMatches(state.profile, apiBase);
     renderHeadToHead(state.profile, apiBase);
+  }
+  if (elements.controlsPanel) {
+    applyControlsCollapsed(elements.controlsPanel.classList.contains("collapsed"));
   }
   applyTeamMobilePanelCollapseState();
   renderTeamQuickJump();
