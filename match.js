@@ -7735,13 +7735,13 @@ function renderGameFeedDesk(match) {
     cards = [
       createDeskCard(compact ? "Turn" : "Turning Point", story?.turningPointLabel || "n/a", story?.turningPointNote || "No decisive event captured.", "neutral"),
       createDeskCard(compact ? "Peak" : "Peak Lead", story?.peakLeadLabel || "n/a", story?.peakLeadNote || "Lead data unavailable.", "neutral"),
-      createDeskCard("Events", String(totalEvents), latestEventTime ? `Latest ${latestEventTime}` : "No event timestamps.", "neutral"),
       createDeskCard(
         compact ? "Alert" : "Alerts",
         priorityAlert?.title || "Stable",
         priorityAlert?.summary || "No major pressure alerts recorded.",
         priorityAlert && importanceRank(priorityAlert.importance) >= importanceRank("high") ? "warn" : "neutral"
-      )
+      ),
+      createDeskCard("Events", String(totalEvents), latestEventTime ? `Latest ${latestEventTime}` : "No event timestamps.", "neutral")
     ];
   } else if (selectedState === "inProgress") {
     const context = focusedLiveEventContext(match);
@@ -7801,6 +7801,7 @@ function renderGameFeedDesk(match) {
   const summaryPills = compact
     ? [`G${selected.number}`, compactStateLabel, `${totalEvents} ev`]
     : [`Game ${selected.number}`, stateLabel(selectedState), `${totalEvents} event${totalEvents === 1 ? "" : "s"}`];
+  const visibleCards = compact ? cards.slice(0, 3) : cards;
 
   elements.gameFeedDeskWrap.innerHTML = `
     <div class="game-feed-desk-shell ${stateClass}${compact ? " compact" : ""}">
@@ -7808,14 +7809,14 @@ function renderGameFeedDesk(match) {
         <div class="game-feed-desk-copy">
           <p class="tempo-label">Feed desk</p>
           <h3>${escapeHtml(compact ? clampSummaryText(title, 58) : title)}</h3>
-          <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(note, 92) : note)}</p>
+          <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(note, 78) : note)}</p>
         </div>
-        <div class="form-summary-strip${compact ? " compact" : ""}">
+        ${compact ? "" : `<div class="form-summary-strip${compact ? " compact" : ""}">
           ${summaryPills.map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`).join("")}
-        </div>
+        </div>`}
       </article>
       <div class="game-feed-desk-grid${compact ? " compact" : ""}">
-        ${cards.join("")}
+        ${visibleCards.join("")}
       </div>
     </div>
   `;
@@ -9039,6 +9040,7 @@ function renderTacticalChecklist(match) {
 }
 
 function renderStorylines(match) {
+  const compact = isCompactUI();
   const rows = Array.isArray(match.storylines) ? match.storylines : [];
   if (!rows.length) {
     elements.storylinesList.innerHTML = '<li class="storyline-item empty">No storyline signals yet.</li>';
@@ -9046,13 +9048,11 @@ function renderStorylines(match) {
   }
 
   elements.storylinesList.innerHTML = rows
-    .slice(0, 5)
+    .slice(0, compact ? 3 : 5)
     .map(
       (row, index) => `
         <li class="storyline-item">
-          <div class="storyline-head">
-            <span class="storyline-index">Read ${index + 1}</span>
-          </div>
+          ${compact ? "" : `<div class="storyline-head"><span class="storyline-index">Read ${index + 1}</span></div>`}
           <p class="storyline-text">${escapeHtml(String(row || "Signal"))}</p>
         </li>
       `
@@ -12119,7 +12119,9 @@ function renderSignalListItem({ kind, tone = "neutral", title, summary, importan
   const compact = isCompactUI();
   const importanceLabel = String(importance || "medium").toUpperCase();
   const compactTeamLabel = compact ? String(teamLabel || "").replace(/^Winner:\s*/i, "") : teamLabel;
-  const meta = [compactTeamLabel, at ? shortTimeLabel(at) : ""].filter(Boolean).join(" · ");
+  const meta = compact
+    ? [compactTeamLabel].filter(Boolean).join(" · ")
+    : [compactTeamLabel, at ? shortTimeLabel(at) : ""].filter(Boolean).join(" · ");
   return `
     <li class="signal-log-item ${tone}${compact ? " compact" : ""}">
       <div class="signal-log-top">
@@ -12353,11 +12355,11 @@ function renderLiveAlerts(match) {
           <div class="game-alert-desk-copy">
             <p class="tempo-label">Map risk</p>
             <h3>${escapeHtml(compact ? clampSummaryText(primaryAlert?.title || "Stable state", 50) : primaryAlert?.title || "Stable state")}</h3>
-            <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(primaryAlert?.summary || "No major pressure alerts right now.", 88) : primaryAlert?.summary || "No major pressure alerts right now.")}</p>
+            <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(primaryAlert?.summary || "No major pressure alerts right now.", 72) : primaryAlert?.summary || "No major pressure alerts right now.")}</p>
           </div>
-          <div class="form-summary-strip${compact ? " compact" : ""}">
+          ${compact ? "" : `<div class="form-summary-strip${compact ? " compact" : ""}">
             ${summaryPills.map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`).join("")}
-          </div>
+          </div>`}
         </article>
         <div class="match-desk-mini-grid${compact ? " compact" : ""}">
           ${deskCards.join("")}
@@ -12366,7 +12368,7 @@ function renderLiveAlerts(match) {
     `;
   }
   elements.liveAlertsList.innerHTML = alerts
-    .slice(0, compact ? 3 : 4)
+    .slice(0, compact ? 2 : 4)
     .map(
       (alert, index) => `
       <li class="live-alert-item importance-${String(alert.importance || "low").toLowerCase()}${compact ? " compact" : ""}">
@@ -12385,9 +12387,9 @@ function renderLiveAlerts(match) {
 }
 
 function renderObjectiveTimeline(rows, status, match) {
+  const compact = isCompactUI();
   const nextObjective = nextObjectiveWindow(match);
   if (elements.objectiveTimelineDeskWrap) {
-    const compact = isCompactUI();
     const latest = rows[0] || null;
     const latestTone = latest ? objectiveTimelineTone(latest, match) : "neutral";
     const latestLabel = latest?.label || (status === "live" ? "Waiting for the next objective change" : "Objective desk is idle");
@@ -12417,11 +12419,11 @@ function renderObjectiveTimeline(rows, status, match) {
           <div class="timeline-desk-copy">
             <p class="tempo-label">Objective desk</p>
             <h3>${escapeHtml(compact ? clampSummaryText(latestLabel, 56) : latestLabel)}</h3>
-            <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(deskNote, 82) : deskNote)}</p>
+            <p class="game-feed-desk-note">${escapeHtml(compact ? clampSummaryText(deskNote, 68) : deskNote)}</p>
           </div>
-          <div class="form-summary-strip${compact ? " compact" : ""}">
+          ${compact ? "" : `<div class="form-summary-strip${compact ? " compact" : ""}">
             ${pills.map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`).join("")}
-          </div>
+          </div>`}
         </article>
         <div class="match-desk-mini-grid${compact ? " compact" : ""}">
           ${deskCards.filter((_, index) => !compact || index < 2).join("")}
@@ -12439,6 +12441,7 @@ function renderObjectiveTimeline(rows, status, match) {
   }
 
   elements.objectiveTimelineList.innerHTML = rows
+    .slice(0, compact ? 6 : rows.length)
     .map((row) => {
       const tone = objectiveTimelineTone(row, match);
       const label = row?.label || "Objective update";
@@ -12455,7 +12458,7 @@ function renderObjectiveTimeline(rows, status, match) {
           </div>
           <div class="objective-timeline-meta">
             <span class="objective-timeline-pill ${tone}">${escapeHtml(sideLabel)}</span>
-            <span class="objective-timeline-stamp">${escapeHtml(shortTimeLabel(row.at))}</span>
+            ${compact ? "" : `<span class="objective-timeline-stamp">${escapeHtml(shortTimeLabel(row.at))}</span>`}
           </div>
         </li>
       `;
@@ -12492,7 +12495,7 @@ function renderObjectiveForecast(match) {
   }
 
   elements.objectiveForecastWrap.innerHTML = rows
-    .slice(0, compact ? 3 : rows.length)
+    .slice(0, compact ? 2 : rows.length)
     .map(
       (row) => `
       <article class="forecast-card ${row.state === "available" ? "available" : "countdown"}${compact ? " compact" : ""}">
@@ -12506,7 +12509,7 @@ function renderObjectiveForecast(match) {
             ? `Expected ${escapeHtml(dateTimeCompact(row.nextAt))} · ${escapeHtml(String(row.confidence || "estimated").toUpperCase())}`
             : `Expected ${escapeHtml(dateTimeLabel(row.nextAt))}`
         }</p>
-        ${row.note ? `<p class="meta-text">${escapeHtml(compact ? clampSummaryText(row.note, 88) : row.note)}</p>` : ""}
+        ${row.note && !compact ? `<p class="meta-text">${escapeHtml(row.note)}</p>` : ""}
         ${compact ? "" : `<p class="meta-text">Confidence: ${escapeHtml(String(row.confidence || "estimated").toUpperCase())}</p>`}
       </article>
     `
