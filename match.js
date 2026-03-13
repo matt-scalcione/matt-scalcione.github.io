@@ -4279,8 +4279,12 @@ function renderSeriesStatsSummary(match) {
           <p class="series-stats-center-note">${escapeHtml(
             compact
               ? prediction
-                ? `Sample ${h2hTotal || "pending"} · ${String(prediction.confidence || "low").toUpperCase()} confidence`
-                : centerNote
+                ? `${String(prediction.confidence || "low").toUpperCase()} confidence`
+                : matchupState?.loading
+                  ? "Loading edge"
+                  : matchupState?.error
+                    ? "Edge unavailable"
+                    : "Edge pending"
               : centerNote
           )}</p>
         </div>
@@ -4306,7 +4310,9 @@ function renderSeriesStatsSummary(match) {
         }
         ${
           drivers.length
-            ? `<ul class="series-stats-driver-list">${drivers.map((driver) => `<li>${escapeHtml(driver)}</li>`).join("")}</ul>`
+            ? compact
+              ? ""
+              : `<ul class="series-stats-driver-list">${drivers.map((driver) => `<li>${escapeHtml(driver)}</li>`).join("")}</ul>`
             : compact
               ? ""
               : `<p class="meta-text">Use the sample control below to widen or tighten the form window.</p>`
@@ -4359,23 +4365,34 @@ function renderSeriesGamePathTile(match, game, apiBase) {
   const durationText = durationLabelFromMinutes(game?.durationMinutes);
   const winningSide = winningSideLabelForSeriesGame(match, game);
   const etaLabel = nextSeriesGameEstimateLabel(match, game);
+  const compact = isCompactUI();
   let title = "Waiting";
   let note = seriesGameStatusNote(game, match);
 
   if (game?.state === "completed") {
     title = winnerName ? `${scoreboardTeamName(winnerName, match?.game)} won` : "Result confirmed";
-    note = [durationText !== "n/a" ? durationText : null, winningSide ? `${winningSide} side` : null].filter(Boolean).join(" · ") || "Result confirmed";
+    note = compact
+      ? durationText !== "n/a"
+        ? durationText
+        : winnerName
+          ? "Final"
+          : "Result"
+      : [durationText !== "n/a" ? durationText : null, winningSide ? `${winningSide} side` : null].filter(Boolean).join(" · ") || "Result confirmed";
   } else if (game?.state === "inProgress") {
     title = "Live now";
-    note = game?.startedAt
-      ? `Started ${isCompactUI() ? dateTimeCompact(game.startedAt) : shortTimeLabel(game.startedAt)}`
-      : "Current map in progress";
+    note = compact
+      ? game?.startedAt
+        ? dateTimeCompact(game.startedAt)
+        : "Live"
+      : game?.startedAt
+        ? `Started ${shortTimeLabel(game.startedAt)}`
+        : "Current map in progress";
   } else if (game?.state === "unneeded") {
     title = "Not needed";
-    note = "Series closed before this map.";
+    note = compact ? "Skipped" : "Series closed before this map.";
   } else if (etaLabel) {
     title = `ETA ${etaLabel}`;
-    note = "Projected next start.";
+    note = compact ? "Queued" : "Projected next start.";
   }
 
   const openHref =
@@ -4447,7 +4464,7 @@ function renderSeriesGamesSummary(match, apiBase) {
   if (status === "live" && liveGame) {
     headline = compact ? `G${liveGame.number} live` : `Game ${liveGame.number} is live`;
     note = compact
-      ? `${seriesScoreLabel} in series · ${completedCount}/${games.length} played`
+      ? `${seriesScoreLabel} series`
       : `${completedCount} map${completedCount === 1 ? "" : "s"} complete · ${leftShort} ${match?.seriesScore?.left ?? 0} - ${match?.seriesScore?.right ?? 0} ${rightShort}`;
   } else if (status === "completed") {
     const winnerName = winnerTeamName(match);
@@ -4457,12 +4474,12 @@ function renderSeriesGamesSummary(match, apiBase) {
         : `${scoreboardTeamName(winnerName, match?.game)} closed the series ${seriesScoreLabel}`
       : `Series final ${seriesScoreLabel}`;
     note = compact
-      ? `${leftShort} ${match?.seriesScore?.left ?? 0} - ${match?.seriesScore?.right ?? 0} ${rightShort} · ${completedCount} played`
+      ? `${completedCount}/${games.length} complete`
       : `${completedCount} completed map${completedCount === 1 ? "" : "s"} · BO${bestOf}`;
   } else if (upcomingGame) {
-    const etaLabel = nextSeriesGameEstimateLabel(match, upcomingGame);
-    headline = compact ? `Waiting for G${upcomingGame.number}` : `Waiting for Game ${upcomingGame.number}`;
-    note = etaLabel ? `Projected ${etaLabel} · BO${bestOf}` : `Next map pending · BO${bestOf}`;
+    const nextLabel = nextSeriesGameEstimateLabel(match, upcomingGame);
+    headline = compact ? `Next G${upcomingGame.number}` : `Waiting for Game ${upcomingGame.number}`;
+    note = compact ? (nextLabel || `BO${bestOf}`) : nextLabel ? `Projected ${nextLabel} · BO${bestOf}` : `Next map pending · BO${bestOf}`;
   }
 
   const leadCardItems = [
@@ -4546,7 +4563,7 @@ function renderSeriesGamesSummary(match, apiBase) {
         <div class="series-games-lead-copy">
           <p class="tempo-label">Series path</p>
           <h3>${escapeHtml(headline)}</h3>
-          <p class="series-games-lead-note">${escapeHtml(note)}</p>
+          ${note ? `<p class="series-games-lead-note">${escapeHtml(note)}</p>` : ""}
         </div>
         ${compactRaceStrip}
         <div class="series-games-path">
