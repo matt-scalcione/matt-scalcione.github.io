@@ -11427,19 +11427,21 @@ function renderGameOverviewDesk(match) {
     centerNote = estimatedStart ? estimatedStartLabel : "Waiting for start";
   }
 
-  const heroPills = [
+  const heroPillValues = [
     `Game ${selectedGame.number}`,
     `Series ${seriesScoreLabel}`,
     telemetryLabel,
     normalizeGameKey(match?.game) === "dota2" ? null : match?.patch ? `Patch ${match.patch}` : null
-  ]
-    .filter(Boolean)
-    .slice(0, compact ? 2 : 4)
+  ].filter(Boolean);
+  const heroPills = heroPillValues
+    .slice(0, compact ? 1 : 4)
     .map((pill) => `<span class="game-overview-pill">${escapeHtml(pill)}</span>`)
     .join("");
 
   const facts = [];
-  facts.push(gameOverviewFactCard("State", statusLabelText, `Telemetry ${telemetryLabel}`, toneClass));
+  if (!compact) {
+    facts.push(gameOverviewFactCard("State", statusLabelText, `Telemetry ${telemetryLabel}`, toneClass));
+  }
 
   if (status === "completed") {
     facts.push(
@@ -11524,18 +11526,15 @@ function renderGameOverviewDesk(match) {
       ? `${scoreboardTeamName(winnerName, match?.game)} won G${selectedGame.number}`
       : headline;
   const noteText = compact ? clampSummaryText(note, 96) : note;
-
-  elements.gameOverviewDeskWrap.innerHTML = `
-    <div class="game-overview-shell ${toneClass}${compact ? " compact" : ""}">
-      <article class="game-overview-hero ${toneClass}${compact ? " compact" : ""}">
-        <div class="game-overview-copy">
-          <div class="game-overview-topline">
-            <span class="game-overview-pill ${toneClass}">${escapeHtml(statusLabelText)}</span>
-            ${heroPills}
-          </div>
-          <h3 class="game-overview-title">${escapeHtml(headlineText)}</h3>
-          <p class="game-overview-note">${escapeHtml(noteText)}</p>
+  const scorecardMarkup = compact
+    ? `
+        <div class="game-overview-scoreline compact">
+          <span class="game-overview-scoreline-team left">${escapeHtml(leftShort)}</span>
+          <strong class="game-overview-scoreline-value">${escapeHtml(centerValue)}</strong>
+          <span class="game-overview-scoreline-team right">${escapeHtml(rightShort)}</span>
         </div>
+      `
+    : `
         <div class="game-overview-scorecard">
           <div class="game-overview-side left">
             <span class="game-overview-team-mark">${teamBadgeMarkup(match.teams.left, match?.game)}</span>
@@ -11553,6 +11552,20 @@ function renderGameOverviewDesk(match) {
             <strong class="game-overview-team-score">${Number.isFinite(rightKills) ? rightKills : 0}</strong>
           </div>
         </div>
+      `;
+
+  elements.gameOverviewDeskWrap.innerHTML = `
+    <div class="game-overview-shell ${toneClass}${compact ? " compact" : ""}">
+      <article class="game-overview-hero ${toneClass}${compact ? " compact" : ""}">
+        <div class="game-overview-copy">
+          <div class="game-overview-topline">
+            <span class="game-overview-pill ${toneClass}">${escapeHtml(statusLabelText)}</span>
+            ${heroPills}
+          </div>
+          <h3 class="game-overview-title">${escapeHtml(headlineText)}</h3>
+          <p class="game-overview-note">${escapeHtml(noteText)}</p>
+        </div>
+        ${scorecardMarkup}
       </article>
       <div class="game-overview-grid${compact ? " compact" : ""}">
         ${visibleFacts.join("")}
