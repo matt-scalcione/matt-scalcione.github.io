@@ -7659,6 +7659,11 @@ button.ghost,
   gap: 0.24rem;
 }
 
+.series-trend-card.compact {
+  gap: 0.18rem;
+  padding: 0.48rem 0.52rem;
+}
+
 .series-trend-card.left {
   border-left: 4px solid #257ac0;
 }
@@ -19849,6 +19854,11 @@ body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-card {
   background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
 }
 
+body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-card.compact {
+  gap: 0.18rem;
+  padding: 0.48rem 0.52rem;
+}
+
 body.product-shell.match-page #seriesPlayerTrendsWrap .series-trend-player {
   color: #f2f6fb;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
@@ -20009,11 +20019,20 @@ body.product-shell.match-page .series-lineups-desk {
   gap: 0.68rem;
 }
 
+body.product-shell.match-page .series-lineups-desk.compact {
+  gap: 0.44rem;
+}
+
 body.product-shell.match-page .series-lineups-lead,
 body.product-shell.match-page .series-lineup-card {
   display: grid;
   gap: 0.68rem;
   padding: 0.78rem 0.82rem;
+}
+
+body.product-shell.match-page .series-lineups-lead.compact,
+body.product-shell.match-page .series-lineup-card.compact {
+  gap: 0.46rem;
 }
 
 body.product-shell.match-page .series-lineup-grid {
@@ -20082,6 +20101,11 @@ body.product-shell.match-page .series-lineup-row {
   border-radius: 0.86rem;
   border: 1px solid rgba(233, 239, 245, 0.06);
   background: rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .series-lineup-row.compact {
+  gap: 0.42rem;
+  padding: 0.46rem 0.5rem;
 }
 
 body.product-shell.match-page .series-lineup-icons {
@@ -20713,6 +20737,89 @@ body.product-shell.match-page #seriesComparePanel .series-compare-table tbody td
   body.product-shell.match-page .series-lineup-mark .team-badge {
     width: 2.7rem;
     height: 2.7rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineups-desk.compact {
+    gap: 0.36rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineups-lead.compact {
+    gap: 0.34rem;
+    padding: 0.56rem 0.6rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineups-lead.compact .series-lineups-note {
+    font-size: 0.66rem;
+    line-height: 1.22;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineups-lead.compact .series-lineups-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineup-card.compact {
+    gap: 0.34rem;
+    padding: 0.54rem 0.58rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineup-card.compact .series-lineup-summary {
+    grid-template-columns: 1fr;
+    gap: 0.24rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineup-card.compact .series-lineup-head {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineup-row.compact {
+    grid-template-columns: auto 1fr auto;
+    gap: 0.34rem;
+    padding: 0.4rem 0.44rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineup-row.compact .series-lineup-copy .meta-text {
+    font-size: 0.64rem;
+    line-height: 1.18;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-lineup-row.compact .series-lineup-role-tag {
+    min-height: 1.34rem;
+    padding: 0.08rem 0.38rem;
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesPlayerTrendsWrap .series-trend-cards {
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesPlayerTrendsWrap .series-trend-card.compact {
+    gap: 0.14rem;
+    padding: 0.42rem 0.46rem;
+    border-radius: 0.82rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesPlayerTrendsWrap .series-trend-card.compact .series-trend-player {
+    font-size: 0.76rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesPlayerTrendsWrap .series-trend-card.compact .series-trend-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.18rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesPlayerTrendsWrap .series-trend-card.compact .series-trend-metrics span {
+    padding: 0.14rem 0.24rem;
+    font-size: 0.56rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesPlayerTrendsWrap .series-trend-card.compact .meta-text {
+    font-size: 0.64rem;
+    line-height: 1.2;
+  }
+
+  body.product-shell.match-page.mobile-series-mode #seriesPlayerTrendsWrap .series-trend-card.compact .series-trend-spark {
+    padding: 0.18rem 0.22rem;
   }
 
   body.product-shell.match-page .series-lineup-row {

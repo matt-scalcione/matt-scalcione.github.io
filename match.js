@@ -10207,37 +10207,42 @@ function compactLineupSourceLabel(source) {
 }
 
 function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass = "left" }) {
+  const compact = isCompactUI();
   const gameKey = normalizeGameKey(match?.game);
   const normalizedRows = normalizeLineupRows(rows);
   const shortName = scoreboardTeamName(teamName, match?.game);
   return `
-    <section class="series-lineup-card ${toneClass}">
+    <section class="series-lineup-card ${toneClass}${compact ? " compact" : ""}">
       <div class="series-lineup-head">
         <div class="series-lineup-ident">
           <span class="series-lineup-mark">${teamBadgeMarkup({ name: teamName }, match?.game)}</span>
           <div class="series-lineup-copyhead">
             <h3>${escapeHtml(displayTeamName(teamName, match?.game))}</h3>
-            <p class="meta-text">${normalizedRows.length} projected starter${normalizedRows.length === 1 ? "" : "s"}</p>
+            <p class="meta-text">${normalizedRows.length} ${compact ? "starters" : `projected starter${normalizedRows.length === 1 ? "" : "s"}`}</p>
           </div>
         </div>
         <span class="form-summary-pill">${compactLineupSourceLabel(source)}</span>
       </div>
       <div class="series-lineup-summary">
-        ${seriesDeskMetricCard("Team", shortName, `Series roster view`, toneClass)}
-        ${seriesDeskMetricCard("Roles", String(normalizedRows.length), normalizedRows.length ? "Projected positions mapped" : "Waiting on roster feed", toneClass)}
+        ${seriesDeskMetricCard(compact ? "Team" : "Team", shortName, compact ? null : "Series roster view", toneClass)}
+        ${compact ? "" : seriesDeskMetricCard("Roles", String(normalizedRows.length), normalizedRows.length ? "Projected positions mapped" : "Waiting on roster feed", toneClass)}
       </div>
       ${normalizedRows.length
         ? normalizedRows
             .map(
               (row) => `
-                <article class="series-lineup-row">
+                <article class="series-lineup-row${compact ? " compact" : ""}">
                   <div class="series-lineup-icons">
                     ${heroIconMarkup(match, row)}
                     ${roleIconMarkup(row.role, gameKey, false)}
                   </div>
                   <div class="series-lineup-copy">
                     <p class="series-lineup-player">${escapeHtml(displayPlayerHandle(row.name, teamName))}</p>
-                    <p class="meta-text">${escapeHtml(row.champion || "Unknown")} · ${escapeHtml(roleMeta(row.role, gameKey).label)}</p>
+                    <p class="meta-text">${escapeHtml(
+                      compact
+                        ? row.champion || roleMeta(row.role, gameKey).label
+                        : `${row.champion || "Unknown"} · ${roleMeta(row.role, gameKey).label}`
+                    )}</p>
                   </div>
                   <span class="series-lineup-role-tag">${escapeHtml(roleMeta(row.role, gameKey).short)}</span>
                 </article>
@@ -10254,6 +10259,7 @@ function renderSeriesLineups(match) {
     return;
   }
 
+  const compact = isCompactUI();
   scheduleHeroIconCatalogLoad(match);
   const left = resolveSeriesLineup(match, "left");
   const right = resolveSeriesLineup(match, "right");
@@ -10271,21 +10277,25 @@ function renderSeriesLineups(match) {
   const leftShort = scoreboardTeamName(match?.teams?.left?.name || "Left Team", match?.game);
   const rightShort = scoreboardTeamName(match?.teams?.right?.name || "Right Team", match?.game);
   elements.seriesLineupsWrap.innerHTML = `
-    <div class="series-lineups-desk">
-      <article class="series-lineups-lead">
+    <div class="series-lineups-desk${compact ? " compact" : ""}">
+      <article class="series-lineups-lead${compact ? " compact" : ""}">
         <div class="series-lineups-head">
           <div>
             <p class="tempo-label">Lineup desk</p>
-            <h3>Projected starters and likely roles</h3>
-            <p class="series-lineups-note">Use the series roster view for likely starters. Open a game tab for live per-map player stats and champion confirmation.</p>
+            <h3>${compact ? "Projected starters" : "Projected starters and likely roles"}</h3>
+            <p class="series-lineups-note">${escapeHtml(
+              compact
+                ? `${leftShort} ${left.rows.length} · ${rightShort} ${right.rows.length} · ${sources.length ? sources.map((value) => compactLineupSourceLabel(value)).join(" · ") : "Source pending"}`
+                : "Use the series roster view for likely starters. Open a game tab for live per-map player stats and champion confirmation."
+            )}</p>
           </div>
           <div class="form-summary-strip">${sourcePills}</div>
         </div>
         <div class="series-lineups-metrics">
-          ${seriesDeskMetricCard(`${leftShort} starters`, String(left.rows.length), compactLineupSourceLabel(left.source), "left")}
-          ${seriesDeskMetricCard(`${rightShort} starters`, String(right.rows.length), compactLineupSourceLabel(right.source), "right")}
-          ${seriesDeskMetricCard("Coverage", String(left.rows.length + right.rows.length), "Projected players on this series view", "neutral")}
-          ${seriesDeskMetricCard("Source blend", sources.length ? sources.map((value) => compactLineupSourceLabel(value)).join(" · ") : "Unavailable", "Draft, live, or trend-derived roster seed", "neutral")}
+          ${seriesDeskMetricCard(compact ? leftShort : `${leftShort} starters`, String(left.rows.length), compact ? compactLineupSourceLabel(left.source) : compactLineupSourceLabel(left.source), "left")}
+          ${seriesDeskMetricCard(compact ? rightShort : `${rightShort} starters`, String(right.rows.length), compact ? compactLineupSourceLabel(right.source) : compactLineupSourceLabel(right.source), "right")}
+          ${compact ? "" : seriesDeskMetricCard("Coverage", String(left.rows.length + right.rows.length), "Projected players on this series view", "neutral")}
+          ${compact ? "" : seriesDeskMetricCard("Source blend", sources.length ? sources.map((value) => compactLineupSourceLabel(value)).join(" · ") : "Unavailable", "Draft, live, or trend-derived roster seed", "neutral")}
         </div>
       </article>
       <div class="series-lineup-grid">
@@ -11835,7 +11845,7 @@ function renderSeriesPlayerTrends(match) {
     return;
   }
 
-  const topRows = rows.slice(0, compact ? 12 : 16);
+  const topRows = rows.slice(0, compact ? 6 : 16);
   const tableRows = topRows
     .map((row) => {
       const teamName = row.team === "right" ? match.teams.right.name : match.teams.left.name;
@@ -11874,22 +11884,21 @@ function renderSeriesPlayerTrends(match) {
         const kda = Number.isFinite(row.avgKda) ? row.avgKda.toFixed(2) : "n/a";
         const avgGpm = Number.isFinite(row.avgGpm) ? formatNumber(Math.round(row.avgGpm)) : "n/a";
         const avgKp = Number.isFinite(row.avgKillParticipationPct) ? `${row.avgKillParticipationPct.toFixed(1)}%` : "n/a";
-        const champions = Array.isArray(row.champions) ? row.champions.slice(0, 2).join(", ") : "n/a";
+        const champions = Array.isArray(row.champions) ? row.champions.slice(0, 1).join(", ") : "n/a";
 
         return `
-          <article class="series-trend-card ${row.team === "right" ? "right" : "left"}">
+          <article class="series-trend-card compact ${row.team === "right" ? "right" : "left"}">
             <div class="series-trend-head">
               <p class="series-trend-player">${row.name}</p>
               <span class="series-trend-role">${String(row.role || "flex").toUpperCase()}</span>
             </div>
-            <p class="meta-text">${teamDisplay} · Maps ${row.mapsPlayed} · Wins ${row.mapWins}</p>
+            <p class="meta-text">${teamDisplay} · ${row.mapsPlayed} maps · ${row.mapWins} wins</p>
             <div class="series-trend-metrics">
               <span>WR ${winRate}</span>
               <span>KDA ${kda}</span>
               <span>KP ${avgKp}</span>
-              <span>GPM ${avgGpm}</span>
             </div>
-            <p class="meta-text">Picks: ${champions}</p>
+            <p class="meta-text">Key pick: ${champions} · GPM ${avgGpm}</p>
             <div class="series-trend-spark">${trendSparkline(row.mapPoints || [])}</div>
           </article>
         `;
