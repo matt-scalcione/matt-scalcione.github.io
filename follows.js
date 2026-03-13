@@ -1,5 +1,5 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { applyRouteContext } from "./routes.js?v=20260309c";
+import { applyRouteContext, buildMatchUrl } from "./routes.js?v=20260309c";
 import { applySeo, inferRobotsDirective, setJsonLd } from "./seo.js";
 import { productEmptyMarkup } from "./loading.js";
 
@@ -678,7 +678,7 @@ function renderAlertPreview(payload) {
             <p class="meta-text">${escapeHtml(alert.detail)}</p>
           </div>
           <div class="follow-actions">
-            <a class="link-btn" href="./match.html?id=${encodeURIComponent(alert.matchId)}&api=${encodeURIComponent(getContext().apiBase)}">Open</a>
+            <a class="link-btn" href="${buildMatchUrl({ matchId: alert.matchId })}">Open</a>
           </div>
         </article>
       `

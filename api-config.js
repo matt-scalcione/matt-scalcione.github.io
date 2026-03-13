@@ -1,6 +1,10 @@
 const DEFAULT_LOCAL_API_BASE = "http://localhost:4000";
-const DEFAULT_PRODUCTION_API_BASE = "https://pulseboard-api-drq0.onrender.com";
+const DEFAULT_PRODUCTION_API_BASE = "https://api.pulseboard.mindpointdesign.opalstacked.com";
 const API_STORAGE_KEY = "pulseboard.apiBase";
+const DEPRECATED_API_BASES = new Set([
+  "https://pulseboard-api-drq0.onrender.com",
+  "https://pulseboard-api.onrender.com"
+]);
 
 function isLoopbackHost(hostname) {
   const host = String(hostname || "").trim().toLowerCase();
@@ -20,6 +24,19 @@ function normalizeApiBase(value) {
   } catch {
     return null;
   }
+}
+
+function canonicalApiBase(value) {
+  const normalized = normalizeApiBase(value);
+  if (!normalized) {
+    return null;
+  }
+
+  if (DEPRECATED_API_BASES.has(normalized)) {
+    return configuredGlobalApiBase() || DEFAULT_PRODUCTION_API_BASE;
+  }
+
+  return normalized;
 }
 
 function configuredGlobalApiBase() {
@@ -46,12 +63,12 @@ function fallbackApiBaseForHost() {
 
 export function resolveInitialApiBase() {
   const url = new URL(window.location.href);
-  const queryApi = normalizeApiBase(url.searchParams.get("api"));
+  const queryApi = canonicalApiBase(url.searchParams.get("api"));
   if (queryApi) {
     return queryApi;
   }
 
-  const storedApi = normalizeApiBase(localStorage.getItem(API_STORAGE_KEY));
+  const storedApi = canonicalApiBase(localStorage.getItem(API_STORAGE_KEY));
   if (storedApi) {
     return storedApi;
   }

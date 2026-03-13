@@ -46,7 +46,18 @@ function appendIfPresent(params, key, value) {
 
 function normalizedApiBase(value) {
   const raw = String(value || "").trim();
-  return raw || null;
+  if (!raw) {
+    return null;
+  }
+
+  if (
+    raw === "https://pulseboard-api-drq0.onrender.com" ||
+    raw === "https://pulseboard-api.onrender.com"
+  ) {
+    return String(window.PULSEBOARD_CONFIG?.apiBase || window.PULSEBOARD_API_BASE || "").trim() || null;
+  }
+
+  return raw;
 }
 
 export function applyRouteContext(targetUrl, { apiBase = null, sourceUrl = window.location.href } = {}) {
@@ -54,7 +65,13 @@ export function applyRouteContext(targetUrl, { apiBase = null, sourceUrl = windo
   const source = new URL(String(sourceUrl), window.location.origin);
   const resolvedApiBase = normalizedApiBase(apiBase) || normalizedApiBase(source.searchParams.get("api"));
 
-  if (resolvedApiBase) {
+  const configuredApiBase = normalizedApiBase(window.PULSEBOARD_CONFIG?.apiBase || window.PULSEBOARD_API_BASE);
+  const shouldPersistApi =
+    resolvedApiBase &&
+    resolvedApiBase !== configuredApiBase &&
+    isLoopbackHost(window.location.hostname);
+
+  if (shouldPersistApi) {
     url.searchParams.set("api", resolvedApiBase);
   } else {
     url.searchParams.delete("api");
