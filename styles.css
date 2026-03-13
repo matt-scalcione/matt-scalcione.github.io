@@ -15722,6 +15722,28 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     display: none;
   }
 
+  body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed {
+    padding: 0.62rem 0.68rem;
+    border-radius: 0.88rem;
+  }
+
+  body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed::before {
+    left: 0.68rem;
+    right: 0.68rem;
+    opacity: 0.52;
+  }
+
+  body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed .section-head h2 {
+    font-size: 0.76rem;
+    line-height: 1.04;
+  }
+
+  body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed .section-mini-icon {
+    width: 1.08rem;
+    height: 1.08rem;
+    font-size: 0.46rem;
+  }
+
   body.product-shell.match-page .mobile-mode-toolbar,
   body.product-shell.match-page.mobile-game-mode .mobile-game-toolbar {
     margin-top: 0.32rem;
