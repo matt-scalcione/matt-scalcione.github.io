@@ -8496,6 +8496,7 @@ function formatRecentFormRow(row, apiBase, { match = null, focalTeamId = null } 
     return `<li class="meta-text">No recent result.</li>`;
   }
 
+  const compact = isCompactUI();
   const resultClass = row.result === "win" ? "win-left" : row.result === "loss" ? "win-right" : "even";
   const detailLink = row.id ? `<a class="table-link" href="${detailUrlForGame(row.id, apiBase)}">Open</a>` : "";
   const opponentLink = row.opponentId
@@ -8505,6 +8506,15 @@ function formatRecentFormRow(row, apiBase, { match = null, focalTeamId = null } 
         teamName: row.opponentName || null
       })}">${row.opponentName || "Unknown"}</a>`
     : row.opponentName || "Unknown";
+  const metaLine = compact
+    ? [row.startAt ? `<span>${dateTimeCompact(row.startAt)}</span>` : "", detailLink]
+        .filter(Boolean)
+        .join("")
+    : `
+        <span>${dateTimeLabel(row.startAt)}</span>
+        <span>${row.tournament || "Unknown"}</span>
+        ${detailLink || `<span class="meta-text">-</span>`}
+      `;
   return `
     <li class="form-match-item">
       <div class="form-match-top">
@@ -8512,11 +8522,7 @@ function formatRecentFormRow(row, apiBase, { match = null, focalTeamId = null } 
         <span class="form-match-opponent">${opponentLink}</span>
         <span class="form-match-score">${row.scoreLabel || "n/a"}</span>
       </div>
-      <div class="form-match-meta">
-        <span>${isCompactUI() ? dateTimeCompact(row.startAt) : dateTimeLabel(row.startAt)}</span>
-        <span>${row.tournament || "Unknown"}</span>
-        ${detailLink || `<span class="meta-text">-</span>`}
-      </div>
+      <div class="form-match-meta">${metaLine}</div>
     </li>
   `;
 }
@@ -8627,7 +8633,7 @@ function renderUpcomingForm(match) {
             <h3>${compact ? "Recent form" : "Recent form and streak context"}</h3>
             <p class="series-history-note">${escapeHtml(
               compact
-                ? `${leftShort} ${teamForm.left?.streakLabel || "n/a"} · ${rightShort} ${teamForm.right?.streakLabel || "n/a"}`
+                ? "Latest three series results."
                 : "Read current momentum first, then scan the last five series for both sides."
             )}</p>
           </div>
@@ -10489,6 +10495,7 @@ function renderSeriesLineups(match) {
     : `<span class="form-summary-pill">Unavailable</span>`;
   const leftShort = scoreboardTeamName(match?.teams?.left?.name || "Left Team", match?.game);
   const rightShort = scoreboardTeamName(match?.teams?.right?.name || "Right Team", match?.game);
+  const trackedCount = left.rows.length + right.rows.length;
   elements.seriesLineupsWrap.innerHTML = `
     <div class="series-lineups-desk${compact ? " compact" : ""}">
       <article class="series-lineups-lead${compact ? " compact" : ""}">
@@ -10498,7 +10505,7 @@ function renderSeriesLineups(match) {
             <h3>${compact ? "Projected starters" : "Projected starters and likely roles"}</h3>
             <p class="series-lineups-note">${escapeHtml(
               compact
-                ? `${leftShort} ${left.rows.length} · ${rightShort} ${right.rows.length}`
+                ? `${trackedCount} starters`
                 : "Use the series roster view for likely starters. Open a game tab for live per-map player stats and champion confirmation."
             )}</p>
           </div>
