@@ -8589,7 +8589,7 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
       <div class="series-history-team-summary">
         ${compact ? compactSummaryCards : fullSummaryCards}
       </div>
-      <p class="series-history-team-list-head">${compact ? "Recent" : "Recent results"}</p>
+      ${compact ? "" : `<p class="series-history-team-list-head">Recent results</p>`}
       <ul class="mini-list form-list">
         ${recentRows.length
           ? recentRows
@@ -8730,6 +8730,7 @@ function renderUpcomingHeadToHead(match) {
   const leftShort = scoreboardTeamName(match.teams.left.name, match?.game);
   const rightShort = scoreboardTeamName(match.teams.right.name, match?.game);
   const totalMeetings = Number(h2h.total ?? h2h.matches ?? h2h.lastMeetings.length ?? 0);
+  const visibleMeetings = compact ? Math.min(3, h2h.lastMeetings.length) : h2h.lastMeetings.length;
   const leftWins = Number(h2h.leftWins ?? h2h.wins ?? 0);
   const rightWins = Number(h2h.rightWins ?? h2h.losses ?? 0);
   const draws = Number(h2h.draws ?? 0);
@@ -8747,9 +8748,9 @@ function renderUpcomingHeadToHead(match) {
             <h3>${compact ? "Head-to-head" : "Direct meetings and latest results"}</h3>
             <p class="series-history-note">${escapeHtml(
               compact
-                ? lastMeeting
-                  ? `Latest ${dateTimeCompact(lastMeeting.startAt)}`
-                  : `${totalMeetings} meetings on record`
+                ? totalMeetings > visibleMeetings
+                  ? `Last ${visibleMeetings} shown`
+                  : `${visibleMeetings} meetings`
                 : lastMeeting ? `Latest meeting: ${dateTimeCompact(lastMeeting.startAt)} · ${lastMeeting.tournament || "Unknown tournament"}` : "Recent series history is available below."
             )}</p>
           </div>
