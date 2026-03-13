@@ -12,6 +12,9 @@ const storeState = {
   lastPruneAt: null,
   lastPruneError: null,
   lastPruneResults: [],
+  lastCompactionAt: null,
+  lastCompactionError: null,
+  lastCompactionResult: null,
   collectionHashes: new Map(),
   detailHashes: new Map(),
   profileHashes: new Map(),
@@ -60,6 +63,12 @@ function canonicalStoreConfig() {
         : Boolean(connectionString);
   const pruneEnabled =
     enabled && String(process.env.CANONICAL_STORE_PRUNE_ENABLED || "1").trim() !== "0";
+  const snapshotHistoryEnabled =
+    enabled && String(process.env.CANONICAL_STORE_SNAPSHOT_HISTORY_ENABLED || "0").trim() === "1";
+  const compactOnInit =
+    enabled &&
+    !snapshotHistoryEnabled &&
+    String(process.env.CANONICAL_STORE_COMPACT_ON_INIT || "1").trim() !== "0";
   const retentionDays = Math.max(
     1,
     Number.parseInt(process.env.CANONICAL_STORE_RETENTION_DAYS || "3", 10) || 3
@@ -75,6 +84,8 @@ function canonicalStoreConfig() {
     connectionString,
     schema,
     pruneEnabled,
+    snapshotHistoryEnabled,
+    compactOnInit,
     retentionDays,
     pruneIntervalMs
   };
@@ -206,6 +217,76 @@ function canonicalTables(schema) {
 async function loadPgPool() {
   const pgModule = await import("pg");
   return pgModule.Pool;
+}
+
+async function maybeCompactSnapshotHistory(pool, tables, config) {
+  if (!config.enabled || config.snapshotHistoryEnabled || !config.compactOnInit) {
+    return {
+      enabled: config.enabled,
+      compacted: false,
+      skipped: true,
+      reason: config.snapshotHistoryEnabled ? "snapshot_history_enabled" : "disabled"
+    };
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `TRUNCATE TABLE ${tables.matchSnapshots}, ${tables.matchDetailSnapshots}, ${tables.teamProfileSnapshots}`
+    );
+    const ingestRuns = await client.query(
+      `
+        DELETE FROM ${tables.ingestRuns} AS runs
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM ${tables.matchState} AS match_state
+          WHERE match_state.last_ingest_run_id = runs.ingest_run_id
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM ${tables.matchDetailState} AS match_detail_state
+          WHERE match_detail_state.last_ingest_run_id = runs.ingest_run_id
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM ${tables.teamProfileState} AS team_profile_state
+          WHERE team_profile_state.last_ingest_run_id = runs.ingest_run_id
+        )
+      `
+    );
+    await client.query("COMMIT");
+
+    const observedAt = new Date().toISOString();
+    const result = {
+      enabled: true,
+      compacted: true,
+      skipped: false,
+      observedAt,
+      mode: "truncate_snapshot_history",
+      deleted: {
+        ingestRuns: ingestRuns.rowCount || 0
+      }
+    };
+
+    storeState.lastCompactionAt = observedAt;
+    storeState.lastCompactionError = null;
+    storeState.lastCompactionResult = result;
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    storeState.lastCompactionError = error?.message || String(error);
+    return {
+      enabled: true,
+      compacted: false,
+      skipped: true,
+      reason: "compaction_failed",
+      error: storeState.lastCompactionError
+    };
+  } finally {
+    client.release();
+  }
 }
 
 async function ensureInitialized() {
@@ -360,6 +441,8 @@ async function ensureInitialized() {
         ON ${tables.teamProfileSnapshots} (profile_key, observed_at DESC)
       `);
 
+      await maybeCompactSnapshotHistory(pool, tables, config);
+
       if (storeState.pool && storeState.pool !== pool) {
         await storeState.pool.end().catch(() => {});
       }
@@ -393,6 +476,8 @@ export function getCanonicalStoreDiagnostics() {
     schema: config.schema,
     databaseConfigured: Boolean(config.connectionString),
     pruneEnabled: config.pruneEnabled,
+    snapshotHistoryEnabled: config.snapshotHistoryEnabled,
+    compactOnInit: config.compactOnInit,
     retentionDays: config.retentionDays,
     pruneIntervalMs: config.pruneIntervalMs,
     initializedAt: storeState.initializedAt,
@@ -403,6 +488,9 @@ export function getCanonicalStoreDiagnostics() {
     lastPruneAt: storeState.lastPruneAt,
     lastPruneError: storeState.lastPruneError,
     lastPruneResults: storeState.lastPruneResults.slice(),
+    lastCompactionAt: storeState.lastCompactionAt,
+    lastCompactionError: storeState.lastCompactionError,
+    lastCompactionResult: storeState.lastCompactionResult,
     trackedCollections: Array.from(storeState.collectionHashes.entries()).map(([key, value]) => ({
       key,
       hash: value.hash,
@@ -850,37 +938,39 @@ export async function persistCanonicalMatchCollection({
       const rowUpdatedAt = toIsoTimestamp(row?.updatedAt || row?.freshness?.updatedAt);
       const payload = safeJson(row);
 
-      await client.query(
-        `
-          INSERT INTO ${tables.matchSnapshots} (
-            snapshot_id,
-            ingest_run_id,
-            match_id,
-            external_match_id,
+      if (config.snapshotHistoryEnabled) {
+        await client.query(
+          `
+            INSERT INTO ${tables.matchSnapshots} (
+              snapshot_id,
+              ingest_run_id,
+              match_id,
+              external_match_id,
+              game,
+              surface,
+              status,
+              provider,
+              provider_priority,
+              observed_at,
+              payload
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
+          `,
+          [
+            randomUUID(),
+            ingestRunId,
+            matchId,
+            externalMatchId,
             game,
-            surface,
+            normalizedSurface,
             status,
             provider,
-            provider_priority,
-            observed_at,
-            payload
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
-        `,
-        [
-          randomUUID(),
-          ingestRunId,
-          matchId,
-          externalMatchId,
-          game,
-          normalizedSurface,
-          status,
-          provider,
-          providerPriority,
-          observedAt,
-          JSON.stringify(payload)
-        ]
-      );
+            providerPriority,
+            observedAt,
+            JSON.stringify(payload)
+          ]
+        );
+      }
 
       await client.query(
         `
@@ -1094,31 +1184,33 @@ export async function persistCanonicalTeamProfile({
         observedAt
       ]
     );
-    await client.query(
-      `
-        INSERT INTO ${tables.teamProfileSnapshots} (
-          snapshot_id,
-          ingest_run_id,
-          profile_key,
-          team_id,
-          game,
-          opponent_id,
-          observed_at,
-          payload
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
-      `,
-      [
-        randomUUID(),
-        ingestRunId,
-        profileKey,
-        normalizedTeamId,
-        normalizedGame,
-        normalizedOpponentId,
-        observedAt,
-        JSON.stringify(payload)
-      ]
-    );
+    if (config.snapshotHistoryEnabled) {
+      await client.query(
+        `
+          INSERT INTO ${tables.teamProfileSnapshots} (
+            snapshot_id,
+            ingest_run_id,
+            profile_key,
+            team_id,
+            game,
+            opponent_id,
+            observed_at,
+            payload
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+        `,
+        [
+          randomUUID(),
+          ingestRunId,
+          profileKey,
+          normalizedTeamId,
+          normalizedGame,
+          normalizedOpponentId,
+          observedAt,
+          JSON.stringify(payload)
+        ]
+      );
+    }
     await client.query(
       `
         INSERT INTO ${tables.teamProfileState} (
@@ -1316,31 +1408,33 @@ export async function persistCanonicalMatchDetail({
         observedAt
       ]
     );
-    await client.query(
-      `
-        INSERT INTO ${tables.matchDetailSnapshots} (
-          snapshot_id,
-          ingest_run_id,
-          detail_key,
-          match_id,
-          game,
-          game_number,
-          observed_at,
-          payload
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
-      `,
-      [
-        randomUUID(),
-        ingestRunId,
-        detailKey,
-        normalizedMatchId,
-        normalizedGame,
-        gameNumber,
-        observedAt,
-        JSON.stringify(payload)
-      ]
-    );
+    if (config.snapshotHistoryEnabled) {
+      await client.query(
+        `
+          INSERT INTO ${tables.matchDetailSnapshots} (
+            snapshot_id,
+            ingest_run_id,
+            detail_key,
+            match_id,
+            game,
+            game_number,
+            observed_at,
+            payload
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+        `,
+        [
+          randomUUID(),
+          ingestRunId,
+          detailKey,
+          normalizedMatchId,
+          normalizedGame,
+          gameNumber,
+          observedAt,
+          JSON.stringify(payload)
+        ]
+      );
+    }
     await client.query(
       `
         INSERT INTO ${tables.matchDetailState} (
@@ -1422,4 +1516,8 @@ export async function persistCanonicalMatchDetail({
   } finally {
     client.release();
   }
+}
+
+export async function primeCanonicalStore() {
+  return ensureInitialized();
 }

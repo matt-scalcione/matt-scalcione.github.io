@@ -18,6 +18,10 @@ services:
         value: 15000
       - key: CANONICAL_STORE_RETENTION_DAYS
         value: 3
+      - key: CANONICAL_STORE_SNAPSHOT_HISTORY_ENABLED
+        value: 0
+      - key: CANONICAL_STORE_COMPACT_ON_INIT
+        value: 1
       - key: CANONICAL_PREWARM_MATCH_LIMIT
         value: 2
       - key: CANONICAL_PREWARM_TEAM_LIMIT
