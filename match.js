@@ -658,7 +658,8 @@ const uiState = {
     eventSource: null,
     reconnectTimer: null
   },
-  mobileAdvancedExpanded: false,
+  mobileAdvancedExpandedGame: false,
+  mobileAdvancedExpandedSeries: false,
   mobilePanelCollapsedByKey: {},
   mobilePanelControlsBound: false,
   controlsBound: false,
@@ -683,9 +684,12 @@ const heroIconCatalog = {
 };
 
 try {
-  uiState.mobileAdvancedExpanded = localStorage.getItem("pulseboard.mobileAdvancedExpanded") === "1";
+  const legacyExpanded = localStorage.getItem("pulseboard.mobileAdvancedExpanded") === "1";
+  uiState.mobileAdvancedExpandedGame = localStorage.getItem("pulseboard.mobileAdvancedExpanded.game") === "1" || legacyExpanded;
+  uiState.mobileAdvancedExpandedSeries = localStorage.getItem("pulseboard.mobileAdvancedExpanded.series") === "1";
 } catch {
-  uiState.mobileAdvancedExpanded = false;
+  uiState.mobileAdvancedExpandedGame = false;
+  uiState.mobileAdvancedExpandedSeries = false;
 }
 
 try {
@@ -726,6 +730,29 @@ function scheduleRefresh(seconds = DEFAULT_REFRESH_SECONDS) {
 
 function isCompactUI() {
   return typeof window !== "undefined" && window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+function mobileAdvancedMode() {
+  return uiState.viewMode === "game" ? "game" : "series";
+}
+
+function mobileAdvancedExpanded(mode = mobileAdvancedMode()) {
+  return mode === "game" ? uiState.mobileAdvancedExpandedGame : uiState.mobileAdvancedExpandedSeries;
+}
+
+function setMobileAdvancedExpanded(expanded, mode = mobileAdvancedMode()) {
+  const safeExpanded = Boolean(expanded);
+  if (mode === "game") {
+    uiState.mobileAdvancedExpandedGame = safeExpanded;
+  } else {
+    uiState.mobileAdvancedExpandedSeries = safeExpanded;
+  }
+
+  try {
+    localStorage.setItem(`pulseboard.mobileAdvancedExpanded.${mode}`, safeExpanded ? "1" : "0");
+  } catch {
+    // Ignore storage failures and keep current in-memory preference.
+  }
 }
 
 function normalizePanelToken(value) {
@@ -1700,6 +1727,19 @@ function activeMatchLayoutTab(match = uiState.match) {
   return { mode, layout, tabs, activeTab };
 }
 
+function compactSeriesVisibleGroups(match = uiState.match) {
+  const status = String(match?.status || "");
+  const primaryGroups =
+    status === "upcoming"
+      ? ["overview", "stats", "history"]
+      : ["overview", "games", "stats", "history"];
+  const extraGroups = ["lineups"];
+  return new Set([
+    ...primaryGroups,
+    ...(mobileAdvancedExpanded("series") ? extraGroups : [])
+  ]);
+}
+
 function renderMatchTopTabs(match) {
   if (!elements.matchTopTabs) {
     return;
@@ -1762,6 +1802,7 @@ function applyMatchLayoutGroups(match = uiState.match) {
   const { mode, activeTab } = activeMatchLayoutTab(match);
   const activeGroups = new Set(activeTab?.groups || []);
   const compact = isCompactUI();
+  const compactSeriesGroups = compact && uiState.viewMode !== "game" ? compactSeriesVisibleGroups(match) : null;
 
   elements.matchDetailContent.dataset.layoutMode = mode;
   elements.matchDetailContent.dataset.activeTab = compact ? "" : activeTab?.id || "";
@@ -1769,7 +1810,11 @@ function applyMatchLayoutGroups(match = uiState.match) {
 
   for (const [groupId, wrapper] of groupMap.entries()) {
     const hasVisiblePanels = visiblePanelsInGroup(groupId).length > 0;
-    wrapper.hidden = compact ? !hasVisiblePanels : !activeGroups.has(groupId) || !hasVisiblePanels;
+    if (compact) {
+      wrapper.hidden = !hasVisiblePanels || (compactSeriesGroups ? !compactSeriesGroups.has(groupId) : false);
+      continue;
+    }
+    wrapper.hidden = !activeGroups.has(groupId) || !hasVisiblePanels;
   }
 
   if (elements.matchDetailRail) {
@@ -1846,12 +1891,8 @@ function bindMobileJumpContainer(container, { allowAdvanced = false } = {}) {
       return;
     }
 
-    uiState.mobileAdvancedExpanded = !uiState.mobileAdvancedExpanded;
-    try {
-      localStorage.setItem("pulseboard.mobileAdvancedExpanded", uiState.mobileAdvancedExpanded ? "1" : "0");
-    } catch {
-      // Ignore storage failures and keep current in-memory preference.
-    }
+    const mode = mobileAdvancedMode();
+    setMobileAdvancedExpanded(!mobileAdvancedExpanded(mode), mode);
 
     if (uiState.match) {
       applyMobileGameEnhancements(uiState.match);
@@ -1920,7 +1961,7 @@ function renderMatchQuickNav(match) {
   elements.matchQuickNav.innerHTML = "";
 }
 
-function renderMobileModeToolbar(match) {
+function renderMobileModeToolbar(match, { advancedVisibleCount = 0 } = {}) {
   if (!elements.mobileModeToolbar) {
     return;
   }
@@ -1931,6 +1972,7 @@ function renderMobileModeToolbar(match) {
     return;
   }
 
+  const seriesAdvancedExpanded = mobileAdvancedExpanded("series");
   const jumpButtons = mobileJumpTargetsForCurrentMode(match)
     .filter((item) => {
       const panel = panelForTargetId(item.id);
@@ -1939,14 +1981,22 @@ function renderMobileModeToolbar(match) {
     .map((item) => `<button type="button" class="mobile-mode-chip" data-jump-target="${item.id}">${item.label}</button>`)
     .join("");
 
-  if (!jumpButtons) {
+  const advancedButton =
+    advancedVisibleCount > 0
+      ? `<button type="button" class="mobile-advanced-toggle${seriesAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${seriesAdvancedExpanded ? "Hide extras" : `More (${advancedVisibleCount})`}</button>`
+      : "";
+
+  if (!jumpButtons && !advancedButton) {
     elements.mobileModeToolbar.hidden = true;
     elements.mobileModeToolbar.innerHTML = "";
     return;
   }
 
   elements.mobileModeToolbar.hidden = false;
-  elements.mobileModeToolbar.innerHTML = `<div class="mobile-mode-row">${jumpButtons}</div>`;
+  elements.mobileModeToolbar.innerHTML = `
+    ${jumpButtons ? `<div class="mobile-mode-row">${jumpButtons}</div>` : ""}
+    ${advancedButton}
+  `;
 }
 
 function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
@@ -1960,6 +2010,7 @@ function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
     return;
   }
 
+  const gameAdvancedExpanded = mobileAdvancedExpanded("game");
   const jumpButtons = MOBILE_GAME_JUMP_TARGETS
     .filter((item) => {
       const panel = panelForTargetId(item.id);
@@ -1970,7 +2021,7 @@ function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
 
   const advancedButton =
     advancedVisibleCount > 0
-      ? `<button type="button" class="mobile-advanced-toggle${uiState.mobileAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${uiState.mobileAdvancedExpanded ? "Hide extras" : `More (${advancedVisibleCount})`}</button>`
+      ? `<button type="button" class="mobile-advanced-toggle${gameAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${gameAdvancedExpanded ? "Hide extras" : `More (${advancedVisibleCount})`}</button>`
       : "";
 
   if (!jumpButtons && !advancedButton) {
@@ -2005,6 +2056,8 @@ function applyMobileGameEnhancements(match) {
   const compactGameMode = isCompactUI() && uiState.viewMode === "game";
   const compactSeriesMode = isCompactUI() && uiState.viewMode !== "game";
   const desktopGameMode = !isCompactUI() && uiState.viewMode === "game";
+  const gameAdvancedExpanded = mobileAdvancedExpanded("game");
+  const seriesAdvancedExpanded = mobileAdvancedExpanded("series");
   const telemetryStatus = liveTelemetryStatus(match);
   document.body.classList.toggle("mobile-game-mode", compactGameMode);
   document.body.classList.toggle("mobile-series-mode", compactSeriesMode);
@@ -2026,7 +2079,7 @@ function applyMobileGameEnhancements(match) {
     desktopGameMode && selectedState === "inProgress" && telemetryStatus === "rich"
   );
   bindMobileJumpContainer(elements.mobileGameToolbar, { allowAdvanced: true });
-  bindMobileJumpContainer(elements.mobileModeToolbar);
+  bindMobileJumpContainer(elements.mobileModeToolbar, { allowAdvanced: true });
 
   const corePanels = new Set(
     mobileCorePanelTargetIds(match)
@@ -2036,10 +2089,16 @@ function applyMobileGameEnhancements(match) {
 
   let advancedVisibleCount = 0;
   for (const panel of elements.gamePanels) {
+    if (compactSeriesMode) {
+      panel.classList.remove("mobile-core-panel", "mobile-advanced-panel");
+      panel.classList.add("mobile-advanced-collapsed");
+      continue;
+    }
+
     const isCore = corePanels.has(panel);
     panel.classList.toggle("mobile-core-panel", isCore);
     panel.classList.toggle("mobile-advanced-panel", !isCore);
-    panel.classList.toggle("mobile-advanced-collapsed", compactGameMode && !uiState.mobileAdvancedExpanded && !isCore);
+    panel.classList.toggle("mobile-advanced-collapsed", compactGameMode && !gameAdvancedExpanded && !isCore);
     if (!isCore && !panel.classList.contains("hidden-panel")) {
       advancedVisibleCount += 1;
     }
@@ -2049,7 +2108,34 @@ function applyMobileGameEnhancements(match) {
     compactGameMode,
     advancedVisibleCount
   });
-  renderMobileModeToolbar(match);
+
+  const seriesScopePanels = [...elements.seriesPanels, ...elements.upcomingPanels];
+  const priorityMode = mobilePanelPriorityMode(match);
+  const orderedTargets = MOBILE_PANEL_ORDER_BY_MODE[priorityMode] || [];
+  const priorityPanels = [];
+  for (const targetId of orderedTargets) {
+    const panel = panelElementForPriorityTarget(targetId);
+    if (panel && !priorityPanels.includes(panel)) {
+      priorityPanels.push(panel);
+    }
+  }
+  const keptSeriesPanels = new Set(priorityPanels.slice(0, 4));
+  let seriesAdvancedVisibleCount = 0;
+  for (const panel of seriesScopePanels) {
+    const isAdvanced = compactSeriesMode && !keptSeriesPanels.has(panel);
+    panel.classList.toggle("mobile-advanced-panel", isAdvanced);
+    panel.classList.toggle("mobile-advanced-collapsed", isAdvanced && !seriesAdvancedExpanded);
+    if (isAdvanced && !panel.classList.contains("hidden-panel")) {
+      seriesAdvancedVisibleCount += 1;
+    }
+    if (!compactSeriesMode) {
+      panel.classList.remove("mobile-advanced-panel", "mobile-advanced-collapsed");
+    }
+  }
+
+  renderMobileModeToolbar(match, {
+    advancedVisibleCount: compactSeriesMode ? seriesAdvancedVisibleCount : 0
+  });
   renderMatchQuickNav(match);
   renderFeedControlsChrome(match);
 }

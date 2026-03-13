@@ -9290,6 +9290,14 @@ button.ghost,
     display: none !important;
   }
 
+  .match-page.mobile-series-mode .panel.mobile-advanced-collapsed {
+    display: none !important;
+  }
+
+  .match-page.mobile-series-mode .panel[data-scope="game"] {
+    display: none !important;
+  }
+
   .match-page.mobile-game-mode .panel[data-scope="game"].mobile-core-panel {
     border-color: rgba(14, 83, 125, 0.22);
     box-shadow: 0 8px 18px rgba(10, 24, 40, 0.12);
