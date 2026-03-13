@@ -15879,16 +15879,14 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
   body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .section-head,
   body.product-shell.match-page.mobile-series-mode #seriesComparePanel .section-head,
   body.product-shell.match-page.mobile-series-mode #seriesStatsPanel .section-head,
-  body.product-shell.match-page.mobile-series-mode #seriesHistoryPanel .section-head {
+  body.product-shell.match-page.mobile-series-mode #seriesHistoryPanel .section-head,
+  body.product-shell.match-page.mobile-series-mode .panel[data-scope="series"] .section-head,
+  body.product-shell.match-page.mobile-series-mode .panel[data-scope="upcoming"] .section-head {
     margin-bottom: 0.14rem;
   }
 
-  body.product-shell.match-page.mobile-series-mode #seriesOverviewPanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-series-mode #seriesComparePanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-series-mode #seriesStatsPanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-series-mode #seriesHistoryPanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-series-mode #seriesLineupsPanel .section-head .meta-text {
+  body.product-shell.match-page.mobile-series-mode .panel[data-scope="series"] .section-head .meta-text,
+  body.product-shell.match-page.mobile-series-mode .panel[data-scope="upcoming"] .section-head .meta-text {
     display: none;
   }
 
