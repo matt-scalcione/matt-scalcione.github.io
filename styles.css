@@ -20739,6 +20739,10 @@ body.product-shell.match-page #seriesComparePanel .series-compare-table tbody td
     line-height: 1.22;
   }
 
+  body.product-shell.match-page.mobile-series-mode .series-lineup-card.compact .series-lineup-summary {
+    display: none;
+  }
+
   body.product-shell.match-page.mobile-series-mode .series-stats-center.compact .tempo-label,
   body.product-shell.match-page.mobile-series-mode .series-history-lead.compact .tempo-label,
   body.product-shell.match-page.mobile-series-mode .series-h2h-lead.compact .tempo-label,

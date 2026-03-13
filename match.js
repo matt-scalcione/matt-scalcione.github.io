@@ -6489,7 +6489,7 @@ function renderTeamComparison(match) {
             <h3>${escapeHtml(topSummary?.label || "Map-wide team comparison")}</h3>
             <p class="game-team-compare-note">${escapeHtml(
               compact
-                ? `${leftShort} vs ${rightShort} across the latest map totals.`
+                ? "Latest map totals."
                 : `${leftShort} vs ${rightShort} across the latest tracked map totals.`
             )}</p>
           </div>
@@ -10302,15 +10302,19 @@ function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass =
           <span class="series-lineup-mark">${teamBadgeMarkup({ name: teamName }, match?.game)}</span>
           <div class="series-lineup-copyhead">
             <h3>${escapeHtml(displayTeamName(teamName, match?.game))}</h3>
-            <p class="meta-text">${normalizedRows.length} ${compact ? "starters" : `projected starter${normalizedRows.length === 1 ? "" : "s"}`}</p>
+            ${compact ? "" : `<p class="meta-text">${normalizedRows.length} projected starter${normalizedRows.length === 1 ? "" : "s"}</p>`}
           </div>
         </div>
         <span class="form-summary-pill">${compactLineupSourceLabel(source)}</span>
       </div>
-      <div class="series-lineup-summary">
-        ${seriesDeskMetricCard(compact ? "Team" : "Team", shortName, compact ? null : "Series roster view", toneClass)}
-        ${compact ? "" : seriesDeskMetricCard("Roles", String(normalizedRows.length), normalizedRows.length ? "Projected positions mapped" : "Waiting on roster feed", toneClass)}
-      </div>
+      ${
+        compact
+          ? ""
+          : `<div class="series-lineup-summary">
+        ${seriesDeskMetricCard("Team", shortName, "Series roster view", toneClass)}
+        ${seriesDeskMetricCard("Roles", String(normalizedRows.length), normalizedRows.length ? "Projected positions mapped" : "Waiting on roster feed", toneClass)}
+      </div>`
+      }
       ${normalizedRows.length
         ? normalizedRows
             .map(
@@ -10369,7 +10373,7 @@ function renderSeriesLineups(match) {
             <h3>${compact ? "Projected starters" : "Projected starters and likely roles"}</h3>
             <p class="series-lineups-note">${escapeHtml(
               compact
-                ? `${leftShort} ${left.rows.length} · ${rightShort} ${right.rows.length} · ${sources.length ? sources.map((value) => compactLineupSourceLabel(value)).join(" · ") : "Source pending"}`
+                ? `${leftShort} ${left.rows.length} · ${rightShort} ${right.rows.length}`
                 : "Use the series roster view for likely starters. Open a game tab for live per-map player stats and champion confirmation."
             )}</p>
           </div>
@@ -10966,8 +10970,8 @@ function renderSeriesComparison(match, apiBase) {
           <h3>Map outcomes</h3>
           <p class="series-results-note">${escapeHtml(
             resolvedWinnerCount === completedGames.length
-              ? `All ${completedGames.length} completed maps resolved`
-              : `Coverage ${resultsCoverageLabel} · ${completedGames.length} completed map${completedGames.length === 1 ? "" : "s"}`
+              ? `${completedGames.length} map${completedGames.length === 1 ? "" : "s"} resolved`
+              : `${resultsCoverageLabel} · ${completedGames.length} map${completedGames.length === 1 ? "" : "s"}`
           )}</p>
         </div>
       </article>
