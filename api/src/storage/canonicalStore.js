@@ -62,7 +62,7 @@ function canonicalStoreConfig() {
     enabled && String(process.env.CANONICAL_STORE_PRUNE_ENABLED || "1").trim() !== "0";
   const retentionDays = Math.max(
     1,
-    Number.parseInt(process.env.CANONICAL_STORE_RETENTION_DAYS || "14", 10) || 14
+    Number.parseInt(process.env.CANONICAL_STORE_RETENTION_DAYS || "3", 10) || 3
   );
   const pruneIntervalMs = Math.max(
     5 * 60 * 1000,

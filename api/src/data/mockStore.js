@@ -77,11 +77,11 @@ const providerTeamProfileCacheLimit = Number.parseInt(
 const canonicalPrewarmEnabled = String(process.env.CANONICAL_PREWARM_ENABLED || "1").trim() !== "0";
 const canonicalPrewarmMatchLimit = Math.max(
   0,
-  Number.parseInt(process.env.CANONICAL_PREWARM_MATCH_LIMIT || "6", 10) || 6
+  Number.parseInt(process.env.CANONICAL_PREWARM_MATCH_LIMIT || "2", 10) || 2
 );
 const canonicalPrewarmTeamLimit = Math.max(
   0,
-  Number.parseInt(process.env.CANONICAL_PREWARM_TEAM_LIMIT || "10", 10) || 10
+  Number.parseInt(process.env.CANONICAL_PREWARM_TEAM_LIMIT || "2", 10) || 2
 );
 const providerRateLimitCooldownMs = Math.max(
   providerCacheMs,

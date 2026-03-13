@@ -16,6 +16,12 @@ services:
         value: 30000
       - key: PROVIDER_TIMEOUT_MS
         value: 15000
+      - key: CANONICAL_STORE_RETENTION_DAYS
+        value: 3
+      - key: CANONICAL_PREWARM_MATCH_LIMIT
+        value: 2
+      - key: CANONICAL_PREWARM_TEAM_LIMIT
+        value: 2
       - key: LIQUIPEDIA_DOTA_API_CACHE_MS
         value: 30000
       - key: PULSEBOARD_PUBLIC_BASE
