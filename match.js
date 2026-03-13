@@ -9129,6 +9129,7 @@ function renderSeriesProgress(match) {
     return;
   }
 
+  const compact = isCompactUI();
   const status = String(match?.status || "").toLowerCase();
   const leftName = match?.teams?.left?.name || "Left Team";
   const rightName = match?.teams?.right?.name || "Right Team";
@@ -9151,10 +9152,16 @@ function renderSeriesProgress(match) {
         : "Series race is still even";
   const note =
     status === "completed"
-      ? `${progress.completedGames} map${progress.completedGames === 1 ? "" : "s"} completed${progress.skippedGames ? ` · ${progress.skippedGames} skipped` : ""}.`
+      ? compact
+        ? `${progress.completedGames} map${progress.completedGames === 1 ? "" : "s"} done${progress.skippedGames ? ` · ${progress.skippedGames} skipped` : ""}`
+        : `${progress.completedGames} map${progress.completedGames === 1 ? "" : "s"} completed${progress.skippedGames ? ` · ${progress.skippedGames} skipped` : ""}.`
       : Number.isInteger(liveGameNumber)
-        ? `Game ${liveGameNumber} is live. First to ${progress.winsNeeded} wins takes the series.`
-        : `First to ${progress.winsNeeded} wins takes the series.`;
+        ? compact
+          ? `G${liveGameNumber} live · first to ${progress.winsNeeded}`
+          : `Game ${liveGameNumber} is live. First to ${progress.winsNeeded} wins takes the series.`
+        : compact
+          ? `First to ${progress.winsNeeded}`
+          : `First to ${progress.winsNeeded} wins takes the series.`;
 
   elements.seriesProgressWrap.innerHTML = `
     <article class="series-progress-card ${tone}">
