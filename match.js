@@ -1731,9 +1731,9 @@ function compactSeriesVisibleGroups(match = uiState.match) {
   const status = String(match?.status || "");
   const primaryGroups =
     status === "upcoming"
-      ? ["overview", "stats", "history"]
-      : ["overview", "games", "stats", "history"];
-  const extraGroups = ["lineups"];
+      ? ["overview", "stats"]
+      : ["overview", "games", "stats"];
+  const extraGroups = ["history", "lineups"];
   return new Set([
     ...primaryGroups,
     ...(mobileAdvancedExpanded("series") ? extraGroups : [])
