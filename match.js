@@ -4009,6 +4009,7 @@ function renderSeriesOverview(match) {
   const watchOptions = Array.isArray(upcomingIntel(match)?.watchOptions) ? upcomingIntel(match).watchOptions.slice(0, 4) : [];
   const formProfiles = resolvedUpcomingFormProfiles(match);
   const heroTags = [stageLabel, tournamentName, formatLabel, match.patch ? `Patch ${match.patch}` : null, regionLabel].filter(Boolean);
+  const visibleHeroTags = compact ? [formatLabel, stageLabel || regionLabel].filter(Boolean) : heroTags;
 
   let title = "Series overview";
   let note = `${startLabel} · ${formatLabel}`;
@@ -4032,6 +4033,16 @@ function renderSeriesOverview(match) {
       : `Series live · ${completedMaps} complete`;
     statePill = "Live";
     stateTone = "live";
+  }
+
+  if (compact) {
+    if (status === "upcoming") {
+      note = `Starts in ${countdownLabel}`;
+    } else if (status === "completed") {
+      note = `${seriesScoreLabel} final`;
+    } else {
+      note = Number.isInteger(liveGameNumber) ? `G${liveGameNumber} live` : "Series live";
+    }
   }
 
   const overviewCards = [
@@ -4065,6 +4076,29 @@ function renderSeriesOverview(match) {
   ]
     .filter(Boolean)
     .join("");
+
+  const compactOverviewCards = renderSeriesInfoCards(
+    status === "upcoming"
+      ? [
+          { label: "Kickoff", value: startLabel },
+          { label: "Format", value: formatLabel },
+          { label: "Patch", value: match.patch || "Unknown" },
+          { label: "Countdown", value: countdownLabel }
+        ]
+      : status === "completed"
+        ? [
+            { label: "Started", value: startLabel },
+            { label: "Final", value: seriesScoreLabel },
+            { label: "Winner", value: winnerName ? scoreboardTeamName(winnerName) : "TBD" },
+            { label: "Maps", value: String(completedMaps) }
+          ]
+        : [
+            { label: "Started", value: startLabel },
+            { label: "Format", value: formatLabel },
+            { label: "Game", value: Number.isInteger(liveGameNumber) ? `G${liveGameNumber}` : "Live" },
+            { label: "Score", value: seriesScoreLabel }
+          ]
+  );
 
   const predictionMarkup = prediction
     ? `
@@ -4127,18 +4161,15 @@ function renderSeriesOverview(match) {
       : "";
 
   const completedSummaryMarkup = status === "completed" ? buildCompletedSeriesSummaryCards(match) : "";
-
-  elements.seriesOverviewWrap.innerHTML = `
-    <div class="series-overview-shell status-${status}">
-      <article class="series-overview-hero ${stateTone}">
-        <div class="series-overview-copy">
-          <div class="series-overview-topline">
-            <span class="series-overview-pill ${stateTone}">${statePill}</span>
-            ${heroTags.map((tag) => `<span class="series-overview-pill">${escapeHtml(tag)}</span>`).join("")}
-          </div>
-          <h3 class="series-overview-title">${escapeHtml(title)}</h3>
-          <p class="series-overview-note">${escapeHtml(note)}</p>
+  const scorecardMarkup = compact
+    ? `
+        <div class="series-overview-scoreline compact">
+          <span class="series-overview-scoreline-team left">${escapeHtml(leftShort)}</span>
+          <strong class="series-overview-scoreline-value">${seriesScoreLabel}</strong>
+          <span class="series-overview-scoreline-team right">${escapeHtml(rightShort)}</span>
         </div>
+      `
+    : `
         <div class="series-overview-scorecard">
           <div class="series-overview-side left">
             <span class="series-overview-team-mark">${teamBadgeMarkup(match.teams.left, match.game)}</span>
@@ -4155,13 +4186,25 @@ function renderSeriesOverview(match) {
             <strong class="series-overview-team-score">${match?.seriesScore?.right ?? 0}</strong>
           </div>
         </div>
+      `;
+
+  elements.seriesOverviewWrap.innerHTML = `
+    <div class="series-overview-shell status-${status}">
+      <article class="series-overview-hero ${stateTone}${compact ? " compact" : ""}">
+        <div class="series-overview-copy">
+          <div class="series-overview-topline">
+            <span class="series-overview-pill ${stateTone}">${statePill}</span>
+            ${visibleHeroTags.map((tag) => `<span class="series-overview-pill">${escapeHtml(tag)}</span>`).join("")}
+          </div>
+          <h3 class="series-overview-title">${escapeHtml(title)}</h3>
+          <p class="series-overview-note">${escapeHtml(note)}</p>
+        </div>
+        ${scorecardMarkup}
       </article>
-      <div class="series-overview-grid">
-        ${overviewCards}
-        ${formCards}
-        ${completedSummaryMarkup}
+      <div class="series-overview-grid${compact ? " compact" : ""}">
+        ${compact ? compactOverviewCards : `${overviewCards}${formCards}${completedSummaryMarkup}`}
       </div>
-      ${predictionMarkup || watchMarkup ? `<div class="series-overview-lower">${predictionMarkup}${watchMarkup}</div>` : ""}
+      ${compact ? "" : predictionMarkup || watchMarkup ? `<div class="series-overview-lower">${predictionMarkup}${watchMarkup}</div>` : ""}
     </div>
   `;
 }
@@ -5834,7 +5877,8 @@ function applySeriesPanelVisibility(match = uiState.match) {
 
 function applyUpcomingPanelVisibility(match) {
   const isUpcoming = match?.status === "upcoming";
-  setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), isUpcoming);
+  const compactUpcomingSeries = isUpcoming && isCompactUI() && uiState.viewMode === "series";
+  setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), isUpcoming && !compactUpcomingSeries);
   setPanelVisibility(elements.upcomingWatchWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), isUpcoming);
   setPanelVisibility(elements.preMatchPlanner?.closest("section.panel"), isUpcoming);
