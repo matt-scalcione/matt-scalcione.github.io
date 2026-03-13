@@ -95,15 +95,15 @@ const MOBILE_SERIES_JUMP_TARGETS = [
 const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
   { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
-  { id: "seriesGamesWrap", label: "Maps" },
   { id: "matchupConsoleWrap", label: "Stats" },
+  { id: "seriesLineupsWrap", label: "Lineups" },
   { id: "upcomingFormWrap", label: "Past" }
 ];
 const MOBILE_COMPLETED_SERIES_JUMP_TARGETS = [
   { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
-  { id: "seriesCompareWrap", label: "Results" },
   { id: "matchupConsoleWrap", label: "Stats" },
+  { id: "seriesLineupsWrap", label: "Lineups" },
   { id: "upcomingFormWrap", label: "Past" }
 ];
 const MOBILE_UPCOMING_JUMP_TARGETS = [
@@ -200,7 +200,7 @@ const MOBILE_SECTION_HEADINGS = {
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   seriesLive: new Set(["Overview", "Games", "Game Results", "Statistics"]),
-  seriesCompleted: new Set(["Overview", "Games", "Game Results", "Results Table"]),
+  seriesCompleted: new Set(["Overview", "Games", "Game Results", "Statistics"]),
   series: new Set(["Overview", "Games", "Statistics"]),
   upcoming: new Set(["Overview", "Games", "Watch", "Prediction"]),
   game: new Set(["Games", "Game Overview", "Final Game", "Map Overview", "Final Map", "Selected Game Recap", "Map Desk", "Live Snapshot", "Players", "Live Feed", "Map Feed"])
@@ -210,25 +210,25 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesOverviewWrap",
     "gameExplorerPanel",
     "seriesGamesWrap",
-    "seriesProgressWrap",
     "matchupConsoleWrap",
     "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",
-    "seriesMomentsList",
     "seriesCompareWrap",
+    "seriesProgressWrap",
+    "seriesMomentsList",
     "seriesPlayerTrendsWrap"
   ],
   seriesCompleted: [
     "seriesOverviewWrap",
     "gameExplorerPanel",
     "seriesGamesWrap",
-    "seriesCompareWrap",
     "matchupConsoleWrap",
-    "seriesPlayerTrendsWrap",
     "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",
+    "seriesCompareWrap",
+    "seriesPlayerTrendsWrap",
     "seriesMomentsList"
   ],
   series: [
@@ -4316,17 +4316,23 @@ function renderSeriesGamesSummary(match, apiBase) {
   let headline = `${completedCount}/${games.length} maps played`;
   let note = `First to ${winsNeeded} wins · Series score ${seriesScoreLabel}`;
   if (status === "live" && liveGame) {
-    headline = `Game ${liveGame.number} is live`;
-    note = `${completedCount} map${completedCount === 1 ? "" : "s"} complete · ${leftShort} ${match?.seriesScore?.left ?? 0} - ${match?.seriesScore?.right ?? 0} ${rightShort}`;
+    headline = compact ? `G${liveGame.number} live` : `Game ${liveGame.number} is live`;
+    note = compact
+      ? `${seriesScoreLabel} in series · ${completedCount}/${games.length} played`
+      : `${completedCount} map${completedCount === 1 ? "" : "s"} complete · ${leftShort} ${match?.seriesScore?.left ?? 0} - ${match?.seriesScore?.right ?? 0} ${rightShort}`;
   } else if (status === "completed") {
     const winnerName = winnerTeamName(match);
     headline = winnerName
-      ? `${scoreboardTeamName(winnerName, match?.game)} closed the series ${seriesScoreLabel}`
+      ? compact
+        ? "Series final"
+        : `${scoreboardTeamName(winnerName, match?.game)} closed the series ${seriesScoreLabel}`
       : `Series final ${seriesScoreLabel}`;
-    note = `${completedCount} completed map${completedCount === 1 ? "" : "s"} · BO${bestOf}`;
+    note = compact
+      ? `${leftShort} ${match?.seriesScore?.left ?? 0} - ${match?.seriesScore?.right ?? 0} ${rightShort} · ${completedCount} played`
+      : `${completedCount} completed map${completedCount === 1 ? "" : "s"} · BO${bestOf}`;
   } else if (upcomingGame) {
     const etaLabel = nextSeriesGameEstimateLabel(match, upcomingGame);
-    headline = `Waiting for Game ${upcomingGame.number}`;
+    headline = compact ? `Waiting for G${upcomingGame.number}` : `Waiting for Game ${upcomingGame.number}`;
     note = etaLabel ? `Projected ${etaLabel} · BO${bestOf}` : `Next map pending · BO${bestOf}`;
   }
 
@@ -4378,6 +4384,25 @@ function renderSeriesGamesSummary(match, apiBase) {
       : null
   ];
   const leadCards = renderSeriesInfoCards(leadCardItems, compact ? { limit: 4 } : {});
+  const compactRaceStrip =
+    compact && (status === "live" || status === "completed")
+      ? `
+        <div class="series-games-race-strip status-${status}">
+          <div class="series-games-race-team left">
+            <span>${escapeHtml(leftShort)}</span>
+            <strong>${match?.seriesScore?.left ?? 0}</strong>
+          </div>
+          <div class="series-games-race-meta">
+            <span>${status === "completed" ? "Final" : `G${liveGame?.number || completedCount + 1} live`}</span>
+            <strong>First to ${winsNeeded}</strong>
+          </div>
+          <div class="series-games-race-team right">
+            <strong>${match?.seriesScore?.right ?? 0}</strong>
+            <span>${escapeHtml(rightShort)}</span>
+          </div>
+        </div>
+      `
+      : "";
 
   const completedCards = status === "completed" && !compact ? buildCompletedSeriesSummaryCards(match) : "";
   const pathTiles = games
@@ -4394,6 +4419,7 @@ function renderSeriesGamesSummary(match, apiBase) {
           <h3>${escapeHtml(headline)}</h3>
           <p class="series-games-lead-note">${escapeHtml(note)}</p>
         </div>
+        ${compactRaceStrip}
         <div class="series-games-path">
           ${pathTiles}
         </div>
@@ -5635,6 +5661,7 @@ function applySeriesPanelVisibility(match = uiState.match) {
   }
 
   const status = String(match?.status || "");
+  const compactSeriesMode = isCompactUI() && uiState.viewMode === "series";
   const seriesGames = Array.isArray(match?.seriesGames) ? match.seriesGames : [];
   const completedGames = seriesGames.filter((game) => game?.state === "completed").length;
   const hasSeriesMoments = Array.isArray(match?.seriesMoments) && match.seriesMoments.length > 0;
@@ -5652,8 +5679,8 @@ function applySeriesPanelVisibility(match = uiState.match) {
   setSeriesVisibility(elements.seriesLineupsWrap, true);
   setSeriesVisibility(elements.upcomingFormWrap, true);
   setSeriesVisibility(elements.upcomingH2hWrap, true);
-  setSeriesVisibility(elements.seriesProgressWrap, status === "live" || status === "completed");
-  setSeriesVisibility(elements.seriesMomentsList, hasSeriesMoments && (status === "live" || status === "completed"));
+  setSeriesVisibility(elements.seriesProgressWrap, !compactSeriesMode && (status === "live" || status === "completed"));
+  setSeriesVisibility(elements.seriesMomentsList, !compactSeriesMode && hasSeriesMoments && (status === "live" || status === "completed"));
   setSeriesVisibility(elements.seriesGamesWrap, status === "live" || status === "completed");
   setSeriesVisibility(elements.seriesCompareWrap, status === "completed" && completedGames > 0);
   setSeriesVisibility(elements.seriesPlayerTrendsWrap, status === "completed" && hasPlayerTrends);
@@ -10684,10 +10711,10 @@ function renderSeriesComparison(match, apiBase) {
 
   const summaryCards = compact
     ? [
-        { label: "Final", value: `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`, note: null },
-        { label: "Maps", value: String(completedGames.length), note: null },
         { label: "Coverage", value: resultsCoverageLabel, note: null },
-        { label: "Avg", value: avgDuration, note: null }
+        { label: "Maps", value: String(completedGames.length), note: null },
+        { label: "Avg", value: avgDuration, note: null },
+        { label: "Fast", value: fastest, note: null }
       ]
     : [
         { label: "Final Score", value: `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`, note: null },
@@ -10771,19 +10798,30 @@ function renderSeriesComparison(match, apiBase) {
     })
     .join("");
 
-  elements.seriesCompareWrap.innerHTML = `
-    <div class="series-results-shell">
+  const heroMarkup = compact
+    ? `
+      <article class="series-results-hero compact-header ${resolvedWinnerCount === completedGames.length ? "complete" : "partial"}">
+        <div class="series-results-copy">
+          <p class="tempo-label">Results desk</p>
+          <h3>Map outcomes</h3>
+          <p class="series-results-note">${escapeHtml(
+            resolvedWinnerCount === completedGames.length
+              ? `All ${completedGames.length} completed maps resolved`
+              : `Coverage ${resultsCoverageLabel} · ${completedGames.length} completed map${completedGames.length === 1 ? "" : "s"}`
+          )}</p>
+        </div>
+      </article>
+    `
+    : `
       <article class="series-results-hero ${resolvedWinnerCount === completedGames.length ? "complete" : "partial"}">
         <div class="series-results-copy">
-          <p class="tempo-label">${compact ? "Results" : "Results Desk"}</p>
+          <p class="tempo-label">Results Desk</p>
           <h3>${escapeHtml(
-            compact
-              ? `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`
-              : resolvedWinnerCount === completedGames.length
-                ? `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0} with map winners resolved`
-                : `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`
+            resolvedWinnerCount === completedGames.length
+              ? `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0} with map winners resolved`
+              : `Final ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`
           )}</h3>
-          <p class="series-results-note">${escapeHtml(compact ? `Coverage ${resultsCoverageLabel}` : resultsCoverageNote)}</p>
+          <p class="series-results-note">${escapeHtml(resultsCoverageNote)}</p>
         </div>
         <div class="series-results-hero-score">
           <span class="series-results-team">${escapeHtml(scoreboardTeamName(match?.teams?.left?.name, match?.game))}</span>
@@ -10791,6 +10829,11 @@ function renderSeriesComparison(match, apiBase) {
           <span class="series-results-team">${escapeHtml(scoreboardTeamName(match?.teams?.right?.name, match?.game))}</span>
         </div>
       </article>
+    `;
+
+  elements.seriesCompareWrap.innerHTML = `
+    <div class="series-results-shell">
+      ${heroMarkup}
     <div class="series-compare-summary">
       ${summaryCards
         .map(

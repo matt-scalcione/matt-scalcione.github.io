@@ -16053,6 +16053,25 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     padding-bottom: 0.04rem;
   }
 
+  body.product-shell.match-page.mobile-series-mode .series-games-race-strip {
+    gap: 0.28rem;
+    padding: 0.4rem 0.44rem;
+    border-radius: 0.76rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-games-race-team span,
+  body.product-shell.match-page.mobile-series-mode .series-games-race-meta span {
+    font-size: 0.52rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-games-race-team strong {
+    font-size: 0.94rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-games-race-meta strong {
+    font-size: 0.66rem;
+  }
+
   body.product-shell.match-page.mobile-series-mode .series-games-path-card {
     flex-basis: 8.4rem;
     min-width: 8.4rem;
@@ -16146,7 +16165,7 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
   }
 
   body.product-shell.match-page.mobile-series-mode .series-results-shell {
-    gap: 0.5rem;
+    gap: 0.42rem;
   }
 
   body.product-shell.match-page.mobile-series-mode .series-results-hero {
@@ -16175,6 +16194,21 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
 
   body.product-shell.match-page.mobile-series-mode .series-results-team {
     font-size: 0.56rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-results-hero.compact-header {
+    gap: 0.14rem;
+    padding: 0.46rem 0.5rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-results-hero.compact-header .series-results-copy h3 {
+    font-size: 0.8rem;
+    line-height: 1.14;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-results-hero.compact-header .series-results-note {
+    font-size: 0.64rem;
+    line-height: 1.22;
   }
 
   body.product-shell.match-page.mobile-series-mode #seriesComparePanel .series-compare-list {
@@ -20035,6 +20069,68 @@ body.product-shell.match-page .series-games-lead-copy {
   gap: 0.18rem;
 }
 
+body.product-shell.match-page .series-games-race-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.46rem 0.5rem;
+  border-radius: 0.82rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .series-games-race-strip.status-live {
+  border-color: rgba(86, 160, 117, 0.18);
+}
+
+body.product-shell.match-page .series-games-race-strip.status-completed {
+  border-color: rgba(140, 151, 166, 0.16);
+}
+
+body.product-shell.match-page .series-games-race-team,
+body.product-shell.match-page .series-games-race-meta {
+  display: grid;
+  gap: 0.04rem;
+}
+
+body.product-shell.match-page .series-games-race-team.left {
+  justify-items: start;
+}
+
+body.product-shell.match-page .series-games-race-team.right {
+  justify-items: end;
+}
+
+body.product-shell.match-page .series-games-race-team span,
+body.product-shell.match-page .series-games-race-meta span {
+  color: #9aa8b7;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .series-games-race-team strong,
+body.product-shell.match-page .series-games-race-meta strong {
+  color: #f2f6fb;
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+body.product-shell.match-page .series-games-race-team strong {
+  font-size: 1.02rem;
+}
+
+body.product-shell.match-page .series-games-race-meta {
+  justify-items: center;
+  text-align: center;
+}
+
+body.product-shell.match-page .series-games-race-meta strong {
+  font-size: 0.72rem;
+}
+
 body.product-shell.match-page .series-games-path {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
@@ -20241,6 +20337,12 @@ body.product-shell.match-page .series-results-hero.complete {
 
 body.product-shell.match-page .series-results-hero.partial {
   border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .series-results-hero.compact-header {
+  grid-template-columns: 1fr;
+  gap: 0.2rem;
+  align-items: flex-start;
 }
 
 body.product-shell.match-page .series-results-copy {
