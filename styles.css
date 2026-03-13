@@ -18615,7 +18615,8 @@ body.product-shell.match-page .match-detail-rail {
 
 body.product-shell.match-page .match-detail-rail[hidden],
 body.product-shell.match-page .match-detail-content[hidden],
-body.product-shell.match-page .match-content-group[hidden] {
+body.product-shell.match-page .match-content-group[hidden],
+body.product-shell.match-page section.panel[hidden] {
   display: none !important;
 }
 
