@@ -18,7 +18,6 @@ const DEFAULT_API_TIMEOUT_MS = 8000;
 const MOBILE_BREAKPOINT = 760;
 const TEAM_MOBILE_PANELS_DEFAULT_OPEN = new Set([
   "Snapshot",
-  "Form",
   "Recent Matches",
   "Upcoming Matches"
 ]);
@@ -190,15 +189,28 @@ function isCompactViewport() {
   return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
 }
 
+function compactTeamControlsSummary() {
+  const game = normalizeGameKey(elements.gameSelect?.value || "");
+  const gameText = game ? gameLabel(game) : "All games";
+  const limitValue = Number(elements.limitSelect?.value || 0);
+  const limitText = limitValue > 0 ? `Last ${limitValue}` : "Recent";
+  return `${gameText} · ${limitText}`;
+}
+
 function applyControlsCollapsed(collapsed) {
   if (!elements.controlsPanel || !elements.controlsToggle) {
     return;
   }
 
   elements.controlsPanel.classList.toggle("collapsed", collapsed);
-  elements.controlsToggle.textContent = isCompactViewport()
-    ? (collapsed ? "Filters" : "Close")
-    : (collapsed ? "Show Filters" : "Hide Filters");
+  if (isCompactViewport()) {
+    elements.controlsToggle.innerHTML = `
+      <span class="toggle-label">${collapsed ? "Filters" : "Close"}</span>
+      <span class="toggle-value">${escapeHtml(compactTeamControlsSummary())}</span>
+    `;
+  } else {
+    elements.controlsToggle.textContent = collapsed ? "Show Filters" : "Hide Filters";
+  }
   elements.controlsToggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
@@ -208,13 +220,15 @@ function setupControlsPanel() {
   }
 
   let collapsed = isCompactViewport();
-  try {
-    const saved = localStorage.getItem("pulseboard.team.controlsCollapsed");
-    if (saved === "1" || saved === "0") {
-      collapsed = saved === "1";
+  if (!isCompactViewport()) {
+    try {
+      const saved = localStorage.getItem("pulseboard.team.controlsCollapsed");
+      if (saved === "1" || saved === "0") {
+        collapsed = saved === "1";
+      }
+    } catch {
+      collapsed = false;
     }
-  } catch {
-    collapsed = isCompactViewport();
   }
 
   applyControlsCollapsed(collapsed);
@@ -446,6 +460,18 @@ function dateTimeLabel(iso) {
   }
 }
 
+function dateTimeCompact(iso) {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric"
+    });
+  } catch {
+    return String(iso || "");
+  }
+}
+
 function formatPercent(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) {
@@ -612,6 +638,7 @@ function teamLogoAssetLabel(assetType) {
 }
 
 function renderTeamContextCard(profile, apiBase) {
+  const compact = isCompactViewport();
   const summary = profile.summary || {};
   const opponentId = String(state.pendingOpponentId || profile?.headToHead?.opponentId || "").trim();
   const opponentName = resolveProfileOpponentName(profile, opponentId);
@@ -673,7 +700,7 @@ function renderTeamContextCard(profile, apiBase) {
     { label: "Win", value: formatPercent(summary.seriesWinRatePct) },
     { label: "Streak", value: summary.streakLabel || "n/a" },
     { label: "Form", value: summary.formLast5 || "n/a" }
-  ];
+  ].slice(0, compact ? 2 : 4);
 
   if (!actions && !pills.length && !opponentName && !primaryStats.length) {
     return "";
@@ -718,7 +745,7 @@ function renderTeamContextCard(profile, apiBase) {
           )
           .join("")}
       </div>
-      ${pills.length ? `<div class="team-summary-tags">${pills.map((pill) => `<span class="team-summary-tag">${escapeHtml(pill)}</span>`).join("")}</div>` : ""}
+      ${!compact && pills.length ? `<div class="team-summary-tags">${pills.map((pill) => `<span class="team-summary-tag">${escapeHtml(pill)}</span>`).join("")}</div>` : ""}
     </article>
   `;
 }
@@ -1101,13 +1128,14 @@ function teamCompactTrustMarkup(row) {
   return "";
 }
 
-function teamMatchMetaLabel(row) {
+function teamMatchMetaLabel(row, options = {}) {
+  const compact = options.compact === true;
   const parts = [];
   if (row?.tournament) {
     parts.push(String(row.tournament));
   }
   if (row?.startAt) {
-    parts.push(dateTimeLabel(row.startAt));
+    parts.push(compact ? dateTimeCompact(row.startAt) : dateTimeLabel(row.startAt));
   }
   return parts.join(" · ") || "Unknown";
 }
@@ -1124,6 +1152,7 @@ function teamTableMetaMarkup(row) {
 
 function teamMatchCard(row, profile, apiBase, options = {}) {
   const mode = String(options.mode || "recent");
+  const compact = isCompactViewport();
   const opponentLabel = teamOpponentLabel(row, profile, apiBase);
   const opponentBadge = teamBadgeMarkup({
     game: row.game || profile.game,
@@ -1136,7 +1165,7 @@ function teamMatchCard(row, profile, apiBase, options = {}) {
   const score = seriesScoreLabel(row);
   const relativeLabel = relativeStartLabel(row.startAt);
   const bestOf = Number(row?.bestOf || 0);
-  const metaLabel = teamMatchMetaLabel(row);
+  const metaLabel = teamMatchMetaLabel(row, { compact });
   const trustNotice = teamCompactTrustMarkup(row);
   const topChips = [];
 
@@ -1163,6 +1192,7 @@ function teamMatchCard(row, profile, apiBase, options = {}) {
       </div>
       <div class="team-match-meta">
         <span>${escapeHtml(metaLabel)}</span>
+        ${mode === "upcoming" && compact ? `<span>${escapeHtml(bestOf > 0 ? `BO${bestOf} · ${relativeLabel}` : relativeLabel)}</span>` : ""}
       </div>
       ${trustNotice}
     </article>
@@ -1346,10 +1376,9 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
 
   if (loading) {
     elements.teamMobileOverview.innerHTML = `
-      <div class="mobile-glance-shell">
+      <div class="mobile-glance-shell team-mobile-glance">
         <div class="mobile-glance-head">
           <div>
-            <p class="mobile-glance-kicker">Team glance</p>
             <h3 class="mobile-glance-title">Loading team context...</h3>
           </div>
           <p class="mobile-glance-copy">Pulling form, recent series, and upcoming slate.</p>
@@ -1363,10 +1392,9 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
     const title = errorMessage ? "Unable to load team glance" : "Team glance unavailable";
     const copy = errorMessage || "Refresh the page or return to Schedule while the profile reloads.";
     elements.teamMobileOverview.innerHTML = `
-      <div class="mobile-glance-shell">
+      <div class="mobile-glance-shell team-mobile-glance">
         <div class="mobile-glance-head">
           <div>
-            <p class="mobile-glance-kicker">Team glance</p>
             <h3 class="mobile-glance-title">${escapeHtml(title)}</h3>
           </div>
           <p class="mobile-glance-copy">${escapeHtml(copy)}</p>
@@ -1406,22 +1434,20 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
       : "";
   const chips = [
     game ? `<span class="mobile-glance-chip primary">${escapeHtml(gameLabel(game))}</span>` : "",
-    h2h?.opponentName ? `<span class="mobile-glance-chip">vs ${escapeHtml(h2h.opponentName)}</span>` : "",
-    nextMatch ? `<span class="mobile-glance-chip">Next ${escapeHtml(relativeStartLabel(nextMatch.startAt))}</span>` : "",
-    summary.formLast5 ? `<span class="mobile-glance-chip">Form ${escapeHtml(summary.formLast5)}</span>` : ""
-  ].filter(Boolean);
+    summary.streakLabel ? `<span class="mobile-glance-chip">${escapeHtml(summary.streakLabel)}</span>` : "",
+    h2h?.opponentName ? `<span class="mobile-glance-chip">vs ${escapeHtml(h2h.opponentName)}</span>` : ""
+  ].filter(Boolean).slice(0, 2);
   const summaryCopy = nextMatch
-    ? `Next ${nextMatch.opponentName || "opponent"} ${relativeStartLabel(nextMatch.startAt)}. ${recentCount} recent series on file.`
+    ? `Next vs ${nextMatch.opponentName || "opponent"} ${relativeStartLabel(nextMatch.startAt)}.`
     : h2h?.opponentName
-      ? `Focused on the ${h2h.opponentName} matchup with ${recentCount} recent series for context.`
-      : `${recentCount} recent series and ${upcomingRows.length} upcoming matches on file.`;
+      ? `Focused on the ${h2h.opponentName} matchup.`
+      : `${recentCount} recent series and ${upcomingRows.length} upcoming matches tracked.`;
 
   elements.teamMobileOverview.innerHTML = `
-    <div class="mobile-glance-shell">
+    <div class="mobile-glance-shell team-mobile-glance">
       <div class="mobile-glance-head">
         <div>
-          <p class="mobile-glance-kicker">Team glance</p>
-          <h3 class="mobile-glance-title">${escapeHtml(profile.name || state.teamNameHint || state.teamId || "Team")}</h3>
+          <h3 class="mobile-glance-title">${escapeHtml(summary.formLast5 ? `Form ${summary.formLast5}` : "Team glance")}</h3>
         </div>
         <p class="mobile-glance-copy">${escapeHtml(summaryCopy)}</p>
       </div>
@@ -1430,12 +1456,12 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
       </div>
       <div class="mobile-glance-stat-row">
         <article class="mobile-glance-stat live">
-          <span>Win</span>
-          <strong>${escapeHtml(formatPercent(summary.seriesWinRatePct))}</strong>
+          <span>Series</span>
+          <strong>${escapeHtml(formatSeriesRecord(summary.wins, summary.losses, summary.draws))}</strong>
         </article>
         <article class="mobile-glance-stat upcoming">
-          <span>Recent</span>
-          <strong>${recentCount}</strong>
+          <span>Win</span>
+          <strong>${escapeHtml(formatPercent(summary.seriesWinRatePct))}</strong>
         </article>
         <article class="mobile-glance-stat final">
           <span>Upcoming</span>
@@ -1447,7 +1473,7 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
           <a class="mobile-glance-spotlight" href="${spotlightHref}">
             <div class="mobile-glance-spotlight-top">
               <span class="mobile-glance-spotlight-label">${escapeHtml(spotlightLabel)}</span>
-              <span class="mobile-glance-spotlight-meta">${escapeHtml(summary.streakLabel || "No streak")}</span>
+              <span class="mobile-glance-spotlight-meta">${escapeHtml(nextMatch ? dateTimeCompact(nextMatch.startAt) : (summary.streakLabel || "No streak"))}</span>
             </div>
             <strong>${escapeHtml(spotlightTitle)}</strong>
             <span>${escapeHtml(spotlightCopy)}</span>
@@ -1978,8 +2004,14 @@ function installEvents() {
     saveApiBase(value);
     setStatus("API base saved locally.", "success");
   });
-  elements.gameSelect.addEventListener("change", loadTeamProfile);
-  elements.limitSelect.addEventListener("change", loadTeamProfile);
+  elements.gameSelect.addEventListener("change", () => {
+    applyControlsCollapsed(elements.controlsPanel?.classList.contains("collapsed"));
+    loadTeamProfile();
+  });
+  elements.limitSelect.addEventListener("change", () => {
+    applyControlsCollapsed(elements.controlsPanel?.classList.contains("collapsed"));
+    loadTeamProfile();
+  });
   if (elements.opponentSelect) {
     elements.opponentSelect.addEventListener("change", () => {
       state.pendingOpponentId = String(elements.opponentSelect.value || "").trim() || null;
