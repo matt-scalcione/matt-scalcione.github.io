@@ -79,7 +79,7 @@ const TEAM_LOGO_BY_KEY = {
   "red canids": "./assets/team-logos/red-canids.png"
 };
 const MOBILE_GAME_JUMP_TARGETS = [
-  { id: "selectedGameRecapWrap", label: "Overview" },
+  { id: "gameOverviewDeskWrap", label: "Overview" },
   { id: "gameCommandWrap", label: "Desk" },
   { id: "playerTrackerWrap", label: "Players" },
   { id: "liveFeedList", label: "Feed" },
@@ -202,7 +202,7 @@ const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
   seriesLive: new Set(["Overview", "Games", "Game Results", "Statistics"]),
   seriesCompleted: new Set(["Overview", "Games", "Game Results", "Results Table"]),
   series: new Set(["Overview", "Games", "Statistics"]),
-  upcoming: new Set(["Overview", "Series Story", "Series Desk", "Games", "Watch", "Prediction"]),
+  upcoming: new Set(["Overview", "Games", "Watch", "Prediction"]),
   game: new Set(["Games", "Game Overview", "Final Game", "Map Overview", "Final Map", "Selected Game Recap", "Map Desk", "Live Snapshot", "Players", "Live Feed", "Map Feed"])
 };
 const MOBILE_PANEL_ORDER_BY_MODE = {
@@ -212,8 +212,6 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesGamesWrap",
     "seriesProgressWrap",
     "matchupConsoleWrap",
-    "seriesHeaderWrap",
-    "statusSummary",
     "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",
@@ -227,8 +225,6 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesGamesWrap",
     "seriesCompareWrap",
     "matchupConsoleWrap",
-    "seriesHeaderWrap",
-    "statusSummary",
     "seriesPlayerTrendsWrap",
     "seriesLineupsWrap",
     "upcomingFormWrap",
@@ -239,8 +235,6 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesOverviewWrap",
     "gameExplorerPanel",
     "matchupConsoleWrap",
-    "seriesHeaderWrap",
-    "statusSummary",
     "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",
@@ -249,8 +243,6 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
   ],
   upcoming: [
     "seriesOverviewWrap",
-    "seriesHeaderWrap",
-    "statusSummary",
     "gameExplorerPanel",
     "upcomingEssentialsWrap",
     "upcomingWatchWrap",
@@ -1889,36 +1881,8 @@ function renderMatchQuickNav(match) {
     return;
   }
 
-  if (isCompactUI() || !match) {
-    elements.matchQuickNav.hidden = true;
-    elements.matchQuickNav.innerHTML = "";
-    return;
-  }
-
-  const visibleTargets = mobileJumpTargetsForCurrentMode(match).filter((item) => {
-    const panel = panelForTargetId(item.id);
-    return panelVisibleInCurrentLayout(panel);
-  });
-
-  if (visibleTargets.length < 2) {
-    elements.matchQuickNav.hidden = true;
-    elements.matchQuickNav.innerHTML = "";
-    return;
-  }
-
-  elements.matchQuickNav.hidden = false;
-  elements.matchQuickNav.innerHTML = visibleTargets
-    .map(
-      (item, index) => `
-        <button
-          type="button"
-          class="team-jump-chip${index === 0 ? " active" : ""}"
-          data-jump-target="${item.id}"
-          aria-pressed="${index === 0 ? "true" : "false"}"
-        >${item.label}</button>
-      `
-    )
-    .join("");
+  elements.matchQuickNav.hidden = true;
+  elements.matchQuickNav.innerHTML = "";
 }
 
 function renderMobileModeToolbar(match) {
@@ -5612,17 +5576,12 @@ function applyGamePanelVisibility(match) {
 
 function applySeriesPanelVisibility(match = uiState.match) {
   const showSeriesPanels = uiState.viewMode === "series";
-  const seriesSupportTargets = [elements.seriesHeaderWrap, elements.statusSummary];
   for (const panel of elements.seriesPanels) {
     setPanelVisibility(panel, showSeriesPanels);
   }
 
-  for (const target of seriesSupportTargets) {
-    const panel = target?.closest("section.panel");
-    if (panel) {
-      setPanelVisibility(panel, showSeriesPanels);
-    }
-  }
+  setPanelVisibility(elements.seriesHeaderWrap?.closest("section.panel"), false);
+  setPanelVisibility(elements.statusSummary?.closest("section.panel"), false);
 
   if (!showSeriesPanels) {
     return;
@@ -5642,8 +5601,6 @@ function applySeriesPanelVisibility(match = uiState.match) {
   };
 
   setSeriesVisibility(elements.seriesOverviewWrap, true);
-  setSeriesVisibility(elements.seriesHeaderWrap, true);
-  setSeriesVisibility(elements.statusSummary, true);
   setSeriesVisibility(elements.matchupConsoleWrap, true);
   setSeriesVisibility(elements.seriesLineupsWrap, true);
   setSeriesVisibility(elements.upcomingFormWrap, true);
@@ -11562,84 +11519,60 @@ function renderSelectedGameRecap(match) {
   const sideSummary = Array.isArray(selectedGame.sideSummary) ? selectedGame.sideSummary : [];
   const sideSummaryText = sideSummary.length ? sideSummary.join(" · ") : "Side assignment not available.";
   const draftPreview = inferDraftPreview(match);
-  const seriesScoreLabel = `${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`;
-  const cards = [
-    recapCard("Map", `Game ${selectedGame.number}`),
-    recapCard("State", draftPreview?.label || stateLabel(selectedGame.state)),
-    recapCard("Winner", winnerName || "TBD"),
-    recapCard("Duration", duration),
-    recapCard("Telemetry", String(selectedGame.telemetryStatus || "none").toUpperCase())
-  ];
+  const detailIntro = (label, note = null) => `
+    <div class="game-detail-intro">
+      <p class="tempo-label">${escapeHtml(label)}</p>
+      ${note ? `<p class="meta-text">${escapeHtml(note)}</p>` : ""}
+    </div>
+  `;
 
   if (selectedGame.state === "unstarted") {
     const estimatedStart = selectedGameEstimatedStart(match, selectedGame.number);
-    if (estimatedStart) {
-      cards.push(recapCard("Estimated Start", dateTimeLabel(estimatedStart)));
-    }
+    const setupCards = [
+      estimatedStart ? recapCard("Projected Start", compact ? dateTimeCompact(estimatedStart) : dateTimeLabel(estimatedStart)) : "",
+      sideSummary.length ? recapCard("Sides", sideSummaryText, null) : "",
+      selectedGame.watchUrl ? recapCard("Coverage", "Ready", "Primary broadcast is published.") : ""
+    ]
+      .filter(Boolean)
+      .join("");
 
-    elements.selectedGameRecapWrap.innerHTML = `
-      ${recapFeatureCard({
-        kicker: "Map Setup",
-        title: estimatedStart ? `Game ${selectedGame.number} starts ${dateTimeCompact(estimatedStart)}` : `Game ${selectedGame.number} is next`,
-        summary: estimatedStart
-          ? `Projected start ${dateTimeLabel(estimatedStart)}. Waiting for draft, side assignment, and the first published map feed.`
-          : `The next map is queued once the series pace and stage delay are confirmed.`,
-        chips: [
-          { label: `Series ${seriesScoreLabel}`, tone: "neutral" },
-          estimatedStart ? { label: "Scheduled", tone: "upcoming" } : { label: "Pending", tone: "neutral" }
-        ],
-        tone: "upcoming",
-        compact
-      })}
-      <div class="recap-grid${compact ? " compact" : ""}">${(compact ? cards.slice(0, 4) : cards).join("")}</div>
-      ${recapNoteMarkup([sideSummary.length ? sideSummaryText : "Side assignment not available yet."], { compact })}
-    `;
+    elements.selectedGameRecapWrap.innerHTML = setupCards
+      ? `
+        <div class="game-detail-stack">
+          ${detailIntro("Setup detail")}
+          <div class="recap-grid${compact ? " compact" : ""}">${setupCards}</div>
+        </div>
+      `
+      : "";
     return;
   }
 
   if (draftPreview) {
     const tips = Array.isArray(selectedGame.tips) ? selectedGame.tips : [];
-    if (normalizeGameKey(match?.game) === "dota2") {
-      cards.push(
-        recapCard("Series", `${match.seriesScore?.left ?? 0} : ${match.seriesScore?.right ?? 0}`),
-        recapCard("Feed", draftPreview.badge, draftPreview.detail)
-      );
-    }
-    const draftTone = draftPreview.tone === "draft" ? "warn" : draftPreview.tone === "pending" ? "neutral" : "upcoming";
     elements.selectedGameRecapWrap.innerHTML = `
-      ${recapFeatureCard({
-        kicker: "Map Setup",
-        title: draftPreview.headline || draftPreview.label,
-        summary: compact ? clampSummaryText(draftPreview.summary, 96) : draftPreview.summary,
-        chips: [
-          { label: `Game ${selectedGame.number}`, tone: "neutral" },
-          { label: draftPreview.badge, tone: draftTone },
-          { label: `Series ${seriesScoreLabel}`, tone: "neutral" }
-        ],
-        tone: draftTone,
-        compact
-      })}
-      <div class="recap-grid${compact ? " compact" : ""}">${(compact ? cards.slice(0, 4) : cards).join("")}</div>
-      <article class="recap-draft-state ${draftPreview.tone}">
-        <div>
-          <p class="tempo-label">Map Phase</p>
-          <h3>${draftPreview.label}</h3>
-          <p class="meta-text">${draftPreview.summary}</p>
-        </div>
-        <div class="recap-draft-state-meta">
-          <span class="recap-draft-badge">${draftPreview.badge}</span>
-          <p class="meta-text">${draftPreview.detail}</p>
-        </div>
-      </article>
-      ${
-        draftPreview.suppressDraftGrid
-          ? ""
-          : `<div class="recap-draft-grid">
-        ${renderRecapDraftTeam(match, match.teams.left.name, draftPreview.leftRows)}
-        ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
-      </div>`
-      }
-      ${recapNoteMarkup([sideSummaryText, !compact && tips.length ? tips.join(" · ") : null], { compact })}
+      <div class="game-detail-stack">
+        ${detailIntro("Draft detail", compact ? clampSummaryText(draftPreview.summary, 88) : draftPreview.summary)}
+        <article class="recap-draft-state ${draftPreview.tone}">
+          <div>
+            <p class="tempo-label">Map Phase</p>
+            <h3>${draftPreview.label}</h3>
+            <p class="meta-text">${draftPreview.summary}</p>
+          </div>
+          <div class="recap-draft-state-meta">
+            <span class="recap-draft-badge">${draftPreview.badge}</span>
+            <p class="meta-text">${draftPreview.detail}</p>
+          </div>
+        </article>
+        ${
+          draftPreview.suppressDraftGrid
+            ? ""
+            : `<div class="recap-draft-grid">
+          ${renderRecapDraftTeam(match, match.teams.left.name, draftPreview.leftRows)}
+          ${renderRecapDraftTeam(match, match.teams.right.name, draftPreview.rightRows)}
+        </div>`
+        }
+        ${recapNoteMarkup([sideSummaryText, !compact && tips.length ? tips.join(" · ") : null], { compact })}
+      </div>
     `;
     return;
   }
@@ -11656,17 +11589,16 @@ function renderSelectedGameRecap(match) {
   const hasGold = Number.isFinite(leftGold) && Number.isFinite(rightGold);
   const goldDiff = hasGold ? leftGold - rightGold : null;
   const terms = objectiveTerminology(match);
-  const objectiveSummary = gameOverviewObjectiveSummary(match, left, right);
-
-  cards.push(recapCard("Kills", `${left.kills ?? 0} : ${right.kills ?? 0}`, `Diff ${signed(killDiff)}`));
-  cards.push(recapCard("Towers", `${left.towers ?? 0} : ${right.towers ?? 0}`, `Diff ${signed(towerDiff)}`));
+  const detailCards = [];
+  detailCards.push(recapCard("Kills", `${left.kills ?? 0} : ${right.kills ?? 0}`, `Diff ${signed(killDiff)}`));
+  detailCards.push(recapCard("Towers", `${left.towers ?? 0} : ${right.towers ?? 0}`, `Diff ${signed(towerDiff)}`));
   if (normalizeGameKey(match?.game) !== "dota2") {
     const dragonDiff = Number(left.dragons || 0) - Number(right.dragons || 0);
-    cards.push(recapCard(terms.dragonLabel, `${left.dragons ?? 0} : ${right.dragons ?? 0}`, `Diff ${signed(dragonDiff)}`));
+    detailCards.push(recapCard(terms.dragonLabel, `${left.dragons ?? 0} : ${right.dragons ?? 0}`, `Diff ${signed(dragonDiff)}`));
   }
-  cards.push(recapCard(terms.baronLabel, `${left.barons ?? 0} : ${right.barons ?? 0}`, `Diff ${signed(baronDiff)}`));
-  cards.push(recapCard(terms.inhibitorLabel, `${left.inhibitors ?? 0} : ${right.inhibitors ?? 0}`, `Diff ${signed(inhibDiff)}`));
-  cards.push(recapCard("Gold", hasGold ? `${formatNumber(leftGold)} : ${formatNumber(rightGold)}` : "n/a", hasGold ? `Diff ${signed(Math.round(goldDiff))}` : "No gold totals"));
+  detailCards.push(recapCard(terms.baronLabel, `${left.barons ?? 0} : ${right.barons ?? 0}`, `Diff ${signed(baronDiff)}`));
+  detailCards.push(recapCard(terms.inhibitorLabel, `${left.inhibitors ?? 0} : ${right.inhibitors ?? 0}`, `Diff ${signed(inhibDiff)}`));
+  detailCards.push(recapCard("Gold", hasGold ? `${formatNumber(leftGold)} : ${formatNumber(rightGold)}` : "n/a", hasGold ? `Diff ${signed(Math.round(goldDiff))}` : "No gold totals"));
 
   const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, 3) : [];
   const performerText = topRows.length
@@ -11675,12 +11607,9 @@ function renderSelectedGameRecap(match) {
   const tips = Array.isArray(selectedGame.tips) ? selectedGame.tips : [];
 
   if (selectedGame.state === "completed") {
-    const detailCards = buildCompletedGameDetailCards(match);
+    const completedCards = buildCompletedGameDetailCards(match);
     const completedStory = buildCompletedGameStory(match);
-    const winnerTone = winnerName === match.teams.left.name ? "left" : winnerName === match.teams.right.name ? "right" : "complete";
-    const featureTitle =
-      completedStory?.headline || (winnerName ? `${displayTeamName(winnerName, match?.game)} won Game ${selectedGame.number}` : `Game ${selectedGame.number} is final`);
-    const featureSummary = [
+    const detailSummary = [
       completedStory?.summary || null,
       duration !== "n/a" ? `${duration} map length` : null
     ]
@@ -11688,82 +11617,35 @@ function renderSelectedGameRecap(match) {
       .join(" · ");
 
     elements.selectedGameRecapWrap.innerHTML = `
-      ${recapFeatureCard({
-        kicker: "Final Read",
-        title: featureTitle,
-        summary: compact ? [duration !== "n/a" ? `${duration} map` : null, `Series ${seriesScoreLabel}`].filter(Boolean).join(" · ") : featureSummary,
-        chips: [
-          winnerName ? { label: `${scoreboardTeamName(winnerName, match?.game)} won`, tone: winnerTone } : null,
-          { label: `Series ${seriesScoreLabel}`, tone: "neutral" },
-          duration !== "n/a" ? { label: duration, tone: "neutral" } : null
-        ],
-        tone: "complete",
-        compact
-      })}
-      ${
-        detailCards.length
-          ? `<div class="recap-grid${compact ? " compact" : ""}">${detailCards.slice(0, compact ? 4 : 6).join("")}</div>`
-          : `<div class="empty">Detailed closing stats were not captured for this game.</div>`
-      }
-      ${
-        compact
-          ? ""
-          : recapNoteMarkup([
-              sideSummaryText,
-              performerText,
-              completedStory?.peakLeadLabel ? `Peak lead: ${completedStory.peakLeadLabel}${completedStory.peakLeadNote ? ` · ${completedStory.peakLeadNote}` : ""}` : null,
-              completedStory?.turningPointLabel ? `Turning point: ${completedStory.turningPointLabel}${completedStory.turningPointNote ? ` · ${completedStory.turningPointNote}` : ""}` : null,
-              tips.length ? tips.join(" · ") : null
-            ])
-      }
+      <div class="game-detail-stack">
+        ${detailIntro("Closing detail", compact ? clampSummaryText(detailSummary || (winnerName ? `${displayTeamName(winnerName, match?.game)} won Game ${selectedGame.number}` : `Game ${selectedGame.number} final`), 80) : detailSummary || null)}
+        ${
+          completedCards.length
+            ? `<div class="recap-grid${compact ? " compact" : ""}">${completedCards.slice(0, compact ? 4 : 6).join("")}</div>`
+            : `<div class="empty">Detailed closing stats were not captured for this game.</div>`
+        }
+        ${
+          compact
+            ? ""
+            : recapNoteMarkup([
+                sideSummaryText,
+                performerText,
+                completedStory?.peakLeadLabel ? `Peak lead: ${completedStory.peakLeadLabel}${completedStory.peakLeadNote ? ` · ${completedStory.peakLeadNote}` : ""}` : null,
+                completedStory?.turningPointLabel ? `Turning point: ${completedStory.turningPointLabel}${completedStory.turningPointNote ? ` · ${completedStory.turningPointNote}` : ""}` : null,
+                tips.length ? tips.join(" · ") : null
+              ])
+        }
+      </div>
     `;
     return;
   }
 
-  const leftName = match.teams?.left?.name || "Left Team";
-  const rightName = match.teams?.right?.name || "Right Team";
-  const livePulseTitle = String(match?.pulseCard?.title || "").trim();
-  const genericPulseTitle = !livePulseTitle || livePulseTitle === "Match Pulse";
-  const leaderTeamName =
-    hasGold && goldDiff !== 0
-      ? goldDiff > 0
-        ? leftName
-        : rightName
-      : killDiff !== 0
-        ? killDiff > 0
-          ? leftName
-          : rightName
-        : null;
-  const leaderTone = leaderTeamName === leftName ? "left" : leaderTeamName === rightName ? "right" : "neutral";
-  const liveTitle =
-    !genericPulseTitle
-      ? livePulseTitle
-      : leaderTeamName
-        ? `${scoreboardTeamName(leaderTeamName, match?.game)} has the cleaner map state`
-        : `Game ${selectedGame.number} is balanced right now`;
-  const liveSummary = [
-    hasGold ? `${formatNumber(leftGold)}-${formatNumber(rightGold)} gold` : null,
-    `${left.kills ?? 0}-${right.kills ?? 0} kills`,
-    objectiveSummary.note
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
   elements.selectedGameRecapWrap.innerHTML = `
-    ${recapFeatureCard({
-      kicker: "Live Read",
-      title: liveTitle,
-      summary: compact ? clampSummaryText(liveSummary, 96) : liveSummary,
-      chips: [
-        { label: objectiveSummary.value, tone: "neutral" },
-        hasGold && goldDiff !== 0 ? { label: `${scoreboardTeamName(leaderTeamName, match?.game)} ${signed(Math.round(goldDiff))} gold`, tone: leaderTone } : null,
-        killDiff !== 0 ? { label: `${killDiff > 0 ? scoreboardTeamName(leftName, match?.game) : scoreboardTeamName(rightName, match?.game)} ${signed(Math.abs(killDiff))} kills`, tone: killDiff > 0 ? "left" : "right" } : null
-      ],
-      tone: leaderTone,
-      compact
-    })}
-    <div class="recap-grid${compact ? " compact" : ""}">${(compact ? cards.slice(5) : cards).join("")}</div>
-    ${recapNoteMarkup([sideSummaryText, !compact ? performerText : null, tips.length && !compact ? tips.join(" · ") : null], { compact })}
+    <div class="game-detail-stack">
+      ${detailIntro("Live map detail")}
+      <div class="recap-grid${compact ? " compact" : ""}">${(compact ? detailCards.slice(0, 4) : detailCards).join("")}</div>
+      ${recapNoteMarkup([sideSummaryText, !compact ? performerText : null, tips.length && !compact ? tips.join(" · ") : null], { compact })}
+    </div>
   `;
 }
 

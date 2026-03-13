@@ -20774,6 +20774,26 @@ body.product-shell.match-page #gameOverviewPanel .game-recap {
   gap: 0.56rem;
 }
 
+body.product-shell.match-page #gameOverviewPanel .game-recap:empty {
+  display: none;
+}
+
+body.product-shell.match-page #gameOverviewPanel .game-detail-stack {
+  display: grid;
+  gap: 0.56rem;
+}
+
+body.product-shell.match-page #gameOverviewPanel .game-detail-intro {
+  display: grid;
+  gap: 0.12rem;
+}
+
+body.product-shell.match-page #gameOverviewPanel .game-detail-intro .meta-text {
+  color: #9fadb9;
+  font-size: 0.74rem;
+  line-height: 1.34;
+}
+
 body.product-shell.match-page .match-content-group[data-layout-group="overview"] > #gameOverviewPanel {
   order: 1;
 }
