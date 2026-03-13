@@ -44,7 +44,7 @@ jobs:
       - name: Generate sitemap from live API data
         run: node scripts/generate-sitemap.mjs
         env:
-          PULSEBOARD_API_BASE: https://pulseboard-api-drq0.onrender.com
+          PULSEBOARD_API_BASE: https://api.pulseboard.mindpointdesign.opalstacked.com
           PULSEBOARD_SITE_ORIGIN: https://matt-scalcione.github.io
           PULSEBOARD_INDEX_DETAIL_PAGES: "false"
       - name: Validate SEO metadata and sitemap

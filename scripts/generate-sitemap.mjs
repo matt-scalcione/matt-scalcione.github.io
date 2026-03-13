@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 const DEFAULT_SITE_ORIGIN = "https://matt-scalcione.github.io";
-const DEFAULT_API_BASE = "https://pulseboard-api-drq0.onrender.com";
+const DEFAULT_API_BASE = "https://api.pulseboard.mindpointdesign.opalstacked.com";
 const STATIC_LASTMOD = new Date().toISOString().slice(0, 10);
 const MAX_MATCH_URLS = 800;
 const MAX_TEAM_URLS = 500;
