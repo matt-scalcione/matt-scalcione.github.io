@@ -4193,7 +4193,7 @@ function renderSeriesStatsSummary(match) {
           <p class="series-stats-center-note">${escapeHtml(
             compact
               ? prediction
-                ? `${h2hLabel} · ${String(prediction.confidence || "low").toUpperCase()} confidence`
+                ? `Sample ${h2hTotal || "pending"} · ${String(prediction.confidence || "low").toUpperCase()} confidence`
                 : centerNote
               : centerNote
           )}</p>
@@ -8515,7 +8515,7 @@ function renderUpcomingForm(match) {
             <h3>${compact ? "Recent form" : "Recent form and streak context"}</h3>
             <p class="series-history-note">${escapeHtml(
               compact
-                ? `${leftShort} ${leftRecent.recordLabel} · ${rightShort} ${rightRecent.recordLabel}`
+                ? `${leftShort} ${teamForm.left?.streakLabel || "n/a"} · ${rightShort} ${teamForm.right?.streakLabel || "n/a"}`
                 : "Read current momentum first, then scan the last five series for both sides."
             )}</p>
           </div>
@@ -8621,7 +8621,9 @@ function renderUpcomingHeadToHead(match) {
             <h3>${compact ? "Head-to-head" : "Direct meetings and latest results"}</h3>
             <p class="series-history-note">${escapeHtml(
               compact
-                ? `${leftShort} ${leftWins}-${rightWins}${draws ? `-${draws}` : ""} ${rightShort}`
+                ? lastMeeting
+                  ? `Latest ${dateTimeCompact(lastMeeting.startAt)}`
+                  : `${totalMeetings} meetings on record`
                 : lastMeeting ? `Latest meeting: ${dateTimeCompact(lastMeeting.startAt)} · ${lastMeeting.tournament || "Unknown tournament"}` : "Recent series history is available below."
             )}</p>
           </div>
