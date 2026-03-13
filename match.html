@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312ba" />
+    <link rel="stylesheet" href="./styles.css?v=20260312bb" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -295,6 +295,20 @@
           <div id="liveAlertsDeskWrap" class="game-alert-desk"></div>
           <ul id="liveAlertsList" class="moments"></ul>
         </section>
+        <section id="feedTickerCluster" class="match-subcluster" hidden>
+          <div class="match-subcluster-head">
+            <h3>Ticker</h3>
+            <p class="meta-text">Derived map events and swing updates from tracked live frames.</p>
+          </div>
+          <ul id="liveTickerList" class="moments"></ul>
+        </section>
+        <section id="feedStoryCluster" class="match-subcluster" hidden>
+          <div class="match-subcluster-head">
+            <h3>Desk Notes</h3>
+            <p class="meta-text">Auto-generated reads that add context beyond the score shell.</p>
+          </div>
+          <ul id="storylinesList" class="moments"></ul>
+        </section>
       </section>
 
       <section class="panel" id="gameTeamComparePanel" data-scope="game">
@@ -503,22 +517,6 @@
         <div id="tacticalChecklistWrap" class="checklist"></div>
       </section>
 
-      <section class="panel secondary-panel" id="gameStorylinesPanel" data-scope="game">
-        <div class="section-head">
-          <h2>Storylines</h2>
-          <p class="meta-text">Auto-generated narratives from current metrics.</p>
-        </div>
-        <ul id="storylinesList" class="moments"></ul>
-      </section>
-
-      <section class="panel secondary-panel" id="gameTickerPanel" data-scope="game">
-        <div class="section-head">
-          <h2>Live Ticker</h2>
-          <p class="meta-text">Derived from live frame deltas.</p>
-        </div>
-        <ul id="liveTickerList" class="moments"></ul>
-      </section>
-
       <section class="panel secondary-panel" id="gamePlayerDeltaPanel" data-scope="game">
         <div class="section-head">
           <h2>Player Delta</h2>
@@ -553,6 +551,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312ah"></script>
+    <script type="module" src="./match.js?v=20260312ai"></script>
   </body>
 </html>

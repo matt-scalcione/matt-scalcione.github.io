@@ -18798,14 +18798,6 @@ body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #
   order: 1;
 }
 
-body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameTickerPanel {
-  order: 2;
-}
-
-body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameStorylinesPanel {
-  order: 3;
-}
-
 body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameObjectiveTimelinePanel {
   order: 1;
 }
@@ -21448,8 +21440,8 @@ body.product-shell.match-page .match-desk-mini-card,
 body.product-shell.match-page #matchGroupFeed .live-summary-card,
 body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item,
 body.product-shell.match-page #feedAlertsCluster .live-alert-item,
-body.product-shell.match-page #gameStorylinesPanel .storyline-item,
-body.product-shell.match-page #gameTickerPanel .signal-log-item,
+body.product-shell.match-page #feedStoryCluster .storyline-item,
+body.product-shell.match-page #feedTickerCluster .signal-log-item,
 body.product-shell.match-page #timelineSignalsCluster .signal-log-item,
 body.product-shell.match-page #timelineMilestonesCluster .signal-log-item,
 body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item,
@@ -21852,13 +21844,13 @@ body.product-shell.match-page #timelineForecastCluster .forecast-card.compact .m
   overflow: hidden;
 }
 
-body.product-shell.match-page #gameStorylinesPanel .storyline-item {
+body.product-shell.match-page #feedStoryCluster .storyline-item {
   display: grid;
   gap: 0.34rem;
   padding: 0.68rem 0.72rem;
 }
 
-body.product-shell.match-page #gameStorylinesPanel .storyline-item.empty {
+body.product-shell.match-page #feedStoryCluster .storyline-item.empty {
   color: #aab6c4;
 }
 
@@ -22461,8 +22453,8 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   body.product-shell.match-page .timeline-desk-hero,
   body.product-shell.match-page .match-desk-mini-card,
   body.product-shell.match-page #feedAlertsCluster .live-alert-item,
-  body.product-shell.match-page #gameStorylinesPanel .storyline-item,
-  body.product-shell.match-page #gameTickerPanel .signal-log-item,
+  body.product-shell.match-page #feedStoryCluster .storyline-item,
+  body.product-shell.match-page #feedTickerCluster .signal-log-item,
   body.product-shell.match-page #timelineSignalsCluster .signal-log-item,
   body.product-shell.match-page #timelineMilestonesCluster .signal-log-item,
   body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item,
@@ -22540,7 +22532,7 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
 
   body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact .live-alert-headline strong,
   body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-headline strong,
-  body.product-shell.match-page #gameTickerPanel .signal-log-headline strong,
+  body.product-shell.match-page #feedTickerCluster .signal-log-headline strong,
   body.product-shell.match-page #timelineSignalsCluster .signal-log-headline strong,
   body.product-shell.match-page #timelineMomentsCluster .signal-log-headline strong,
   body.product-shell.match-page #timelineMilestonesCluster .signal-log-headline strong {
@@ -22549,7 +22541,7 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   }
 
   body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-meta,
-  body.product-shell.match-page #gameTickerPanel .signal-log-meta,
+  body.product-shell.match-page #feedTickerCluster .signal-log-meta,
   body.product-shell.match-page #timelineSignalsCluster .signal-log-meta,
   body.product-shell.match-page #timelineMomentsCluster .signal-log-meta,
   body.product-shell.match-page #timelineMilestonesCluster .signal-log-meta {

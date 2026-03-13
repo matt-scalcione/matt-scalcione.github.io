@@ -543,6 +543,8 @@ const elements = {
   liveSummaryWrap: document.querySelector("#liveSummaryWrap"),
   liveFeedPanel: document.querySelector("#liveFeedPanel"),
   feedAlertsCluster: document.querySelector("#feedAlertsCluster"),
+  feedTickerCluster: document.querySelector("#feedTickerCluster"),
+  feedStoryCluster: document.querySelector("#feedStoryCluster"),
   liveAlertsDeskWrap: document.querySelector("#liveAlertsDeskWrap"),
   feedControlsToggle: document.querySelector("#feedControlsToggle"),
   feedControlsWrap: document.querySelector("#feedControlsWrap"),
@@ -5484,7 +5486,7 @@ function applyGamePanelVisibility(match) {
     hasRows(match?.goldMilestones);
   const showEconomyMilestones = hasRows(match?.goldMilestones);
   const showKeyMoments = hasRows(match?.keyMoments);
-  const showFeedPanel = hasLiveFeedPanel || showLiveAlerts;
+  const showFeedPanel = hasLiveFeedPanel || showLiveAlerts || showLiveTicker || showStorylines;
   const showTimelinePanel =
     showObjectiveTimeline ||
     showSignals ||
@@ -5535,6 +5537,8 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.gameCommandWrap, showGameCommand);
     setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
     setInlineVisibility(elements.feedAlertsCluster, false);
+    setInlineVisibility(elements.feedTickerCluster, false);
+    setInlineVisibility(elements.feedStoryCluster, false);
     setInlineVisibility(elements.timelineSignalsCluster, false);
     setInlineVisibility(elements.timelineMilestonesCluster, false);
     setInlineVisibility(elements.timelineForecastCluster, false);
@@ -5551,6 +5555,8 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
     setTargetVisibility(elements.pulseCard, false);
     setInlineVisibility(elements.feedAlertsCluster, false);
+    setInlineVisibility(elements.feedTickerCluster, false);
+    setInlineVisibility(elements.feedStoryCluster, false);
     setInlineVisibility(elements.timelineSignalsCluster, false);
     setInlineVisibility(elements.timelineMilestonesCluster, false);
     setInlineVisibility(elements.timelineForecastCluster, false);
@@ -5574,6 +5580,8 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
     setInlineVisibility(elements.objectiveTimelineList, showObjectiveTimeline);
     setInlineVisibility(elements.feedAlertsCluster, showLiveAlerts);
+    setInlineVisibility(elements.feedTickerCluster, showLiveTicker);
+    setInlineVisibility(elements.feedStoryCluster, showStorylines);
     setInlineVisibility(elements.timelineSignalsCluster, showSignals);
     setInlineVisibility(elements.timelineMilestonesCluster, showEconomyMilestones);
     setInlineVisibility(elements.timelineForecastCluster, showObjectiveForecast);
@@ -5585,7 +5593,6 @@ function applyGamePanelVisibility(match) {
   setTargetVisibility(elements.edgeMeterWrap, showAnalysis);
   setTargetVisibility(elements.tempoSnapshotWrap, showPace);
   setTargetVisibility(elements.tacticalChecklistWrap, showKeysToWin);
-  setTargetVisibility(elements.storylinesList, showStorylines);
   setTargetVisibility(elements.objectiveControlWrap, showObjectiveControl);
   setTargetVisibility(elements.objectiveBreakdownWrap, showObjectiveBreakdown);
   setTargetVisibility(elements.draftBoardWrap, showDraftBoard);
@@ -5597,7 +5604,6 @@ function applyGamePanelVisibility(match) {
   setTargetVisibility(elements.performersWrap, showPerformers);
   setPanelVisibility(elements.liveFeedPanel, showFeedPanel);
   setPanelVisibility(elements.gameObjectiveTimelinePanel, showTimelinePanel);
-  setTargetVisibility(elements.liveTickerList, showLiveTicker);
   setInlineVisibility(elements.objectiveTimelineList, showObjectiveTimeline);
   setTargetVisibility(elements.playerDeltaWrap, showPlayerDelta);
   setTargetVisibility(elements.gameCommandWrap, showGameCommand);
@@ -5607,6 +5613,8 @@ function applyGamePanelVisibility(match) {
   setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
   setTargetVisibility(elements.pulseCard, showPulseCard);
   setInlineVisibility(elements.feedAlertsCluster, showLiveAlerts);
+  setInlineVisibility(elements.feedTickerCluster, showLiveTicker);
+  setInlineVisibility(elements.feedStoryCluster, showStorylines);
   setInlineVisibility(elements.timelineSignalsCluster, showSignals);
   setInlineVisibility(elements.timelineMilestonesCluster, showEconomyMilestones);
   setInlineVisibility(elements.timelineForecastCluster, showObjectiveForecast);
