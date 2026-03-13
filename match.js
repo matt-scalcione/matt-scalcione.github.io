@@ -10791,11 +10791,6 @@ function renderSeriesGames(match, apiBase) {
                 <p class="series-game-title">G${game.number}</p>
                 <span class="pill ${stateClass(game.state)}">${stateLabel(game.state)}</span>
               </div>
-              ${
-                game.selected
-                  ? `<span class="series-game-focused compact">Viewing</span>`
-                  : ""
-              }
             </div>
             <p class="series-game-compact-note">${escapeHtml(compactMeta[0] || statusNote)}</p>
             ${
