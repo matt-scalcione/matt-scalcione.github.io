@@ -16148,6 +16148,10 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     gap: 0.28rem;
   }
 
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .series-history-team-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   body.product-shell.match-page.mobile-series-mode .series-history-team.compact {
     gap: 0.38rem;
     padding: 0.56rem 0.6rem;
@@ -16305,14 +16309,14 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
   }
 
   body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .series-game-actions.compact {
-    gap: 0.22rem;
+    gap: 0.16rem;
   }
 
   body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .series-game-actions.compact .series-game-open,
   body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .series-game-actions.compact .series-game-vod,
   body.product-shell.match-page.mobile-series-mode #seriesGamesPanel .series-game-actions.compact .series-game-focused {
-    min-height: 1.52rem;
-    padding: 0.12rem 0.44rem;
+    min-height: 1.42rem;
+    padding: 0.1rem 0.38rem;
     font-size: 0.54rem;
   }
 

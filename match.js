@@ -8556,6 +8556,18 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
 
   const recentRows = Array.isArray(profile.recentMatches) ? profile.recentMatches.slice(0, compact ? 3 : 5) : [];
   const recentSummary = summarizeRecentMatchRows(recentRows);
+  const compactSummaryCards = [
+    seriesDeskMetricCard("WR", `${Number(profile.seriesWinRatePct || 0).toFixed(0)}%`, `${shortName} ${profile.wins ?? 0}-${profile.losses ?? 0}`, toneClass),
+    seriesDeskMetricCard("Form", recentSummary.formLabel, `Last ${recentRows.length || 0} ${recentSummary.recordLabel}`, toneClass)
+  ].join("");
+  const fullSummaryCards = [
+    seriesDeskMetricCard(compact ? "WR" : "Series", compact ? `${Number(profile.seriesWinRatePct || 0).toFixed(0)}%` : `${profile.wins ?? 0}-${profile.losses ?? 0}`, compact ? `${shortName} ${profile.wins ?? 0}-${profile.losses ?? 0}` : `${shortName} WR ${Number(profile.seriesWinRatePct || 0).toFixed(0)}%`, toneClass),
+    compact ? "" : seriesDeskMetricCard("Maps", `${profile.gameWins ?? 0}-${profile.gameLosses ?? 0}`, `Map WR ${Number(profile.gameWinRatePct || 0).toFixed(0)}%`, toneClass),
+    seriesDeskMetricCard("Form", recentSummary.formLabel, `Last ${recentRows.length || 0} ${recentSummary.recordLabel}`, toneClass),
+    compact ? "" : seriesDeskMetricCard("Streak", profile.streakLabel || "n/a", `${recentSummary.total || 0} recent result${recentSummary.total === 1 ? "" : "s"}`, toneClass)
+  ]
+    .filter(Boolean)
+    .join("");
   return `
     <article class="series-history-team ${toneClass}${compact ? " compact" : ""}">
       <div class="series-history-team-head">
@@ -8569,10 +8581,7 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
         ${teamLink && !compact ? `<a class="table-link" href="${teamLink}">Team page</a>` : ""}
       </div>
       <div class="series-history-team-summary">
-        ${seriesDeskMetricCard(compact ? "WR" : "Series", compact ? `${Number(profile.seriesWinRatePct || 0).toFixed(0)}%` : `${profile.wins ?? 0}-${profile.losses ?? 0}`, compact ? `${shortName} ${profile.wins ?? 0}-${profile.losses ?? 0}` : `${shortName} WR ${Number(profile.seriesWinRatePct || 0).toFixed(0)}%`, toneClass)}
-        ${compact ? "" : seriesDeskMetricCard("Maps", `${profile.gameWins ?? 0}-${profile.gameLosses ?? 0}`, `Map WR ${Number(profile.gameWinRatePct || 0).toFixed(0)}%`, toneClass)}
-        ${seriesDeskMetricCard("Form", recentSummary.formLabel, `Last ${recentRows.length || 0} ${recentSummary.recordLabel}`, toneClass)}
-        ${seriesDeskMetricCard("Streak", profile.streakLabel || "n/a", `${recentSummary.total || 0} recent result${recentSummary.total === 1 ? "" : "s"}`, toneClass)}
+        ${compact ? compactSummaryCards : fullSummaryCards}
       </div>
       <p class="series-history-team-list-head">${compact ? "Recent" : "Recent results"}</p>
       <ul class="mini-list form-list">
@@ -10400,13 +10409,14 @@ function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass =
   const gameKey = normalizeGameKey(match?.game);
   const normalizedRows = normalizeLineupRows(rows);
   const shortName = scoreboardTeamName(teamName, match?.game);
+  const cardTitle = compact ? shortName : displayTeamName(teamName, match?.game);
   return `
     <section class="series-lineup-card ${toneClass}${compact ? " compact" : ""}">
       <div class="series-lineup-head">
         <div class="series-lineup-ident">
           <span class="series-lineup-mark">${teamBadgeMarkup({ name: teamName }, match?.game)}</span>
           <div class="series-lineup-copyhead">
-            <h3>${escapeHtml(displayTeamName(teamName, match?.game))}</h3>
+            <h3>${escapeHtml(cardTitle)}</h3>
             ${compact ? "" : `<p class="meta-text">${normalizedRows.length} projected starter${normalizedRows.length === 1 ? "" : "s"}</p>`}
           </div>
         </div>
