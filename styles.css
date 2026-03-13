@@ -18786,6 +18786,7 @@ body.product-shell.match-page .mobile-tabbar {
 @media (max-width: 980px) {
   body.product-shell.match-page .layout.detail {
     grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   body.product-shell.match-page .layout.detail > .panel:not(#gameExplorerPanel):not(.hidden-panel),
@@ -19031,6 +19032,7 @@ body.product-shell.match-page .match-content-group > .panel {
   body.product-shell.match-page .layout.detail {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
   }
 
   body.product-shell.match-page .match-detail-rail,
@@ -19038,11 +19040,20 @@ body.product-shell.match-page .match-content-group > .panel {
     display: flex;
     flex-direction: column;
     gap: 0.56rem;
+    width: 100%;
+    align-self: stretch;
   }
 
   body.product-shell.match-page .match-content-groups,
   body.product-shell.match-page .match-content-group {
     display: contents;
+  }
+
+  body.product-shell.match-page .layout.detail > .panel,
+  body.product-shell.match-page .layout.detail > nav.match-quick-nav,
+  body.product-shell.match-page .match-content-group > .panel {
+    width: 100%;
+    align-self: stretch;
   }
 
   body.product-shell.match-page main section.panel {
