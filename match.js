@@ -4184,10 +4184,14 @@ function renderSeriesStatsSummary(match) {
           <p class="edge-score">${leftPct.toFixed(1)}%</p>
           <p class="edge-score">${rightPct.toFixed(1)}%</p>
         </div>
-        <div class="series-stats-center-strip">
+        ${
+          compact
+            ? ""
+            : `<div class="series-stats-center-strip">
           <span class="series-stats-h2h">${escapeHtml(h2hLabel)}</span>
-          ${compact ? "" : centerPills}
-        </div>
+          ${centerPills}
+        </div>`
+        }
         ${
           drivers.length
             ? `<ul class="series-stats-driver-list">${drivers.map((driver) => `<li>${escapeHtml(driver)}</li>`).join("")}</ul>`
@@ -8452,10 +8456,14 @@ function renderUpcomingForm(match) {
                 : "Read current momentum first, then scan the last five series for both sides."
             )}</p>
           </div>
-          <div class="form-summary-strip">
+          ${
+            compact
+              ? ""
+              : `<div class="form-summary-strip">
             <span class="form-summary-pill">${escapeHtml(leftShort)} ${leftRecent.recordLabel}</span>
             <span class="form-summary-pill">${escapeHtml(rightShort)} ${rightRecent.recordLabel}</span>
-          </div>
+          </div>`
+          }
         </div>
         <div class="series-history-metrics">
           ${seriesDeskMetricCard(compact ? leftShort : `${leftShort} last 5`, leftRecent.recordLabel, `Form ${leftRecent.formLabel}`, "left")}
@@ -8554,11 +8562,15 @@ function renderUpcomingHeadToHead(match) {
                 : lastMeeting ? `Latest meeting: ${dateTimeCompact(lastMeeting.startAt)} · ${lastMeeting.tournament || "Unknown tournament"}` : "Recent series history is available below."
             )}</p>
           </div>
-          <div class="form-summary-strip">
+          ${
+            compact
+              ? ""
+              : `<div class="form-summary-strip">
             <span class="form-summary-pill">${escapeHtml(leftShort)} ${leftWins}</span>
             <span class="form-summary-pill">${escapeHtml(rightShort)} ${rightWins}</span>
             ${draws ? `<span class="form-summary-pill">Draws ${draws}</span>` : ""}
-          </div>
+          </div>`
+          }
         </div>
         <div class="series-history-metrics">
           ${seriesDeskMetricCard("Record", `${leftWins}-${rightWins}${draws ? `-${draws}` : ""}`, `${leftShort} vs ${rightShort}`, winnerTone)}
@@ -10289,14 +10301,18 @@ function renderSeriesLineups(match) {
                 : "Use the series roster view for likely starters. Open a game tab for live per-map player stats and champion confirmation."
             )}</p>
           </div>
-          <div class="form-summary-strip">${sourcePills}</div>
+          ${compact ? "" : `<div class="form-summary-strip">${sourcePills}</div>`}
         </div>
-        <div class="series-lineups-metrics">
-          ${seriesDeskMetricCard(compact ? leftShort : `${leftShort} starters`, String(left.rows.length), compact ? compactLineupSourceLabel(left.source) : compactLineupSourceLabel(left.source), "left")}
-          ${seriesDeskMetricCard(compact ? rightShort : `${rightShort} starters`, String(right.rows.length), compact ? compactLineupSourceLabel(right.source) : compactLineupSourceLabel(right.source), "right")}
-          ${compact ? "" : seriesDeskMetricCard("Coverage", String(left.rows.length + right.rows.length), "Projected players on this series view", "neutral")}
-          ${compact ? "" : seriesDeskMetricCard("Source blend", sources.length ? sources.map((value) => compactLineupSourceLabel(value)).join(" · ") : "Unavailable", "Draft, live, or trend-derived roster seed", "neutral")}
-        </div>
+        ${
+          compact
+            ? ""
+            : `<div class="series-lineups-metrics">
+          ${seriesDeskMetricCard(`${leftShort} starters`, String(left.rows.length), compactLineupSourceLabel(left.source), "left")}
+          ${seriesDeskMetricCard(`${rightShort} starters`, String(right.rows.length), compactLineupSourceLabel(right.source), "right")}
+          ${seriesDeskMetricCard("Coverage", String(left.rows.length + right.rows.length), "Projected players on this series view", "neutral")}
+          ${seriesDeskMetricCard("Source blend", sources.length ? sources.map((value) => compactLineupSourceLabel(value)).join(" · ") : "Unavailable", "Draft, live, or trend-derived roster seed", "neutral")}
+        </div>`
+        }
       </article>
       <div class="series-lineup-grid">
         ${renderSeriesLineupTeamCard(match, {
@@ -11845,7 +11861,7 @@ function renderSeriesPlayerTrends(match) {
     return;
   }
 
-  const topRows = rows.slice(0, compact ? 6 : 16);
+  const topRows = rows.slice(0, compact ? 4 : 16);
   const tableRows = topRows
     .map((row) => {
       const teamName = row.team === "right" ? match.teams.right.name : match.teams.left.name;
