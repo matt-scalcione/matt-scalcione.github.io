@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260312az" />
+    <link rel="stylesheet" href="./styles.css?v=20260312ba" />
   </head>
   <body class="product-shell match-page">
     <div class="noise"></div>
@@ -245,7 +245,7 @@
       <section class="panel" id="liveFeedPanel" data-scope="game">
         <div class="section-head">
           <h2>Live Feed</h2>
-          <p class="meta-text">Current focus, event stream, and pressure changes.</p>
+          <p class="meta-text">Current focus, event stream, and live map alerts.</p>
         </div>
         <div id="gameFeedDeskWrap" class="game-feed-desk"></div>
         <div id="leadTrendWrap" class="trend-wrap"></div>
@@ -287,6 +287,14 @@
         </div>
         <div id="liveSummaryWrap" class="live-summary-strip"></div>
         <ul id="liveFeedList" class="moments live-feed-list"></ul>
+        <section id="feedAlertsCluster" class="match-subcluster" hidden>
+          <div class="match-subcluster-head">
+            <h3>Map Alerts</h3>
+            <p class="meta-text">Highest-risk map states worth reacting to right now.</p>
+          </div>
+          <div id="liveAlertsDeskWrap" class="game-alert-desk"></div>
+          <ul id="liveAlertsList" class="moments"></ul>
+        </section>
       </section>
 
       <section class="panel" id="gameTeamComparePanel" data-scope="game">
@@ -305,15 +313,6 @@
         <div id="pulseCard" class="pulse-card"></div>
       </section>
 
-      <section class="panel" id="gameAlertsPanel" data-scope="game">
-        <div class="section-head">
-          <h2>Alerts</h2>
-          <p class="meta-text">The highest-risk map states worth reacting to right now.</p>
-        </div>
-        <div id="liveAlertsDeskWrap" class="game-alert-desk"></div>
-        <ul id="liveAlertsList" class="moments"></ul>
-      </section>
-
       <section class="panel secondary-panel" id="gamePerformersPanel" data-scope="game">
         <div class="section-head">
           <h2>Performance Leaders</h2>
@@ -324,35 +323,39 @@
 
       <section class="panel secondary-panel" id="gameObjectiveTimelinePanel" data-scope="game">
         <div class="section-head">
-          <h2>Objective Timeline</h2>
-          <p class="meta-text">Dragons, barons, towers, inhibitors, and major objective timing.</p>
+          <h2>Timeline</h2>
+          <p class="meta-text">Objectives, key signals, economy milestones, forecast windows, and defining map moments.</p>
         </div>
         <div id="objectiveTimelineDeskWrap" class="timeline-desk"></div>
         <ul id="objectiveTimelineList" class="timeline"></ul>
-      </section>
-
-      <section class="panel secondary-panel" id="gameSignalsPanel" data-scope="game">
-        <div class="section-head">
-          <h2>Signals</h2>
-          <p class="meta-text">Fight spikes and economy checkpoints worth tracking.</p>
-        </div>
-        <ul id="combatBurstsList" class="moments"></ul>
-      </section>
-
-      <section class="panel secondary-panel" id="gameMilestonesPanel" data-scope="game">
-        <div class="section-head">
-          <h2>Economy Milestones</h2>
-          <p class="meta-text">Team economy threshold progression.</p>
-        </div>
-        <ul id="goldMilestonesList" class="moments"></ul>
-      </section>
-
-      <section class="panel secondary-panel" id="gameObjectiveForecastPanel" data-scope="game">
-        <div class="section-head">
-          <h2>Objective Forecast</h2>
-          <p class="meta-text">Estimated next major objective windows.</p>
-        </div>
-        <div id="objectiveForecastWrap" class="objective-forecast"></div>
+        <section id="timelineSignalsCluster" class="match-subcluster" hidden>
+          <div class="match-subcluster-head">
+            <h3>Signals</h3>
+            <p class="meta-text">Fight spikes and pressure swings worth tracking.</p>
+          </div>
+          <ul id="combatBurstsList" class="moments"></ul>
+        </section>
+        <section id="timelineMilestonesCluster" class="match-subcluster" hidden>
+          <div class="match-subcluster-head">
+            <h3>Economy Milestones</h3>
+            <p class="meta-text">Team economy threshold progression.</p>
+          </div>
+          <ul id="goldMilestonesList" class="moments"></ul>
+        </section>
+        <section id="timelineForecastCluster" class="match-subcluster" hidden>
+          <div class="match-subcluster-head">
+            <h3>Objective Forecast</h3>
+            <p class="meta-text">Estimated next major objective windows.</p>
+          </div>
+          <div id="objectiveForecastWrap" class="objective-forecast"></div>
+        </section>
+        <section id="timelineMomentsCluster" class="match-subcluster" hidden>
+          <div class="match-subcluster-head">
+            <h3>Key Moments</h3>
+            <p class="meta-text">The clearest map-defining swings from the current feed.</p>
+          </div>
+          <ul id="momentsList" class="moments"></ul>
+        </section>
       </section>
 
       <section class="panel" id="seriesProgressPanel" data-scope="series">
@@ -524,14 +527,6 @@
         <div id="playerDeltaWrap" class="delta-grid"></div>
       </section>
 
-      <section class="panel secondary-panel" id="gameMomentsPanel" data-scope="game">
-        <div class="section-head">
-          <h2>Key Moments</h2>
-          <p class="meta-text">Auto-refresh every 15 seconds.</p>
-        </div>
-        <ul id="momentsList" class="moments"></ul>
-      </section>
-
       <section class="panel" id="seriesTimelinePanel" data-scope="series">
         <div class="section-head">
           <h2>Timeline</h2>
@@ -558,6 +553,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./match.js?v=20260312ag"></script>
+    <script type="module" src="./match.js?v=20260312ah"></script>
   </body>
 </html>

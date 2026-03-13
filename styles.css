@@ -18798,36 +18798,16 @@ body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #
   order: 1;
 }
 
-body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameAlertsPanel {
+body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameTickerPanel {
   order: 2;
 }
 
-body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameTickerPanel {
-  order: 3;
-}
-
 body.product-shell.match-page .match-content-group[data-layout-group="feed"] > #gameStorylinesPanel {
-  order: 4;
+  order: 3;
 }
 
 body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameObjectiveTimelinePanel {
   order: 1;
-}
-
-body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameSignalsPanel {
-  order: 2;
-}
-
-body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameMilestonesPanel {
-  order: 3;
-}
-
-body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameObjectiveForecastPanel {
-  order: 4;
-}
-
-body.product-shell.match-page .match-content-group[data-layout-group="timeline"] > #gameMomentsPanel {
-  order: 5;
 }
 
 body.product-shell.match-page .match-content-group > .panel {
@@ -21412,6 +21392,36 @@ body.product-shell.match-page .timeline-desk:empty {
   display: none;
 }
 
+body.product-shell.match-page .match-subcluster {
+  display: grid;
+  gap: 0.46rem;
+  margin-top: 0.14rem;
+}
+
+body.product-shell.match-page .match-subcluster[hidden] {
+  display: none;
+}
+
+body.product-shell.match-page .match-subcluster-head {
+  display: grid;
+  gap: 0.12rem;
+}
+
+body.product-shell.match-page .match-subcluster-head h3 {
+  margin: 0;
+  color: #f2f6fb;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.14;
+}
+
+body.product-shell.match-page .match-subcluster-head .meta-text {
+  margin: 0;
+  color: #98a5b4;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
 body.product-shell.match-page .game-alert-desk-shell,
 body.product-shell.match-page .timeline-desk-shell,
 body.product-shell.match-page .match-desk-mini-grid {
@@ -21437,14 +21447,14 @@ body.product-shell.match-page .timeline-desk-hero,
 body.product-shell.match-page .match-desk-mini-card,
 body.product-shell.match-page #matchGroupFeed .live-summary-card,
 body.product-shell.match-page #matchGroupFeed .live-feed-list .live-feed-item,
-body.product-shell.match-page #gameAlertsPanel .live-alert-item,
+body.product-shell.match-page #feedAlertsCluster .live-alert-item,
 body.product-shell.match-page #gameStorylinesPanel .storyline-item,
 body.product-shell.match-page #gameTickerPanel .signal-log-item,
-body.product-shell.match-page #gameSignalsPanel .signal-log-item,
-body.product-shell.match-page #gameMilestonesPanel .signal-log-item,
+body.product-shell.match-page #timelineSignalsCluster .signal-log-item,
+body.product-shell.match-page #timelineMilestonesCluster .signal-log-item,
 body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item,
-body.product-shell.match-page #gameMomentsPanel .signal-log-item,
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card {
+body.product-shell.match-page #timelineMomentsCluster .signal-log-item,
+body.product-shell.match-page #timelineForecastCluster .forecast-card {
   border: 1px solid rgba(233, 239, 245, 0.06);
   border-radius: 0.94rem;
   background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
@@ -21704,31 +21714,31 @@ body.product-shell.match-page #matchGroupFeed .live-feed-item.compact .feed-game
   font-size: 0.72rem;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item {
+body.product-shell.match-page #feedAlertsCluster .live-alert-item {
   display: grid;
   gap: 0.34rem;
   padding: 0.68rem 0.72rem;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item.compact,
+body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact,
 body.product-shell.match-page .signal-log-item.compact,
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact {
+body.product-shell.match-page #timelineForecastCluster .forecast-card.compact {
   gap: 0.24rem;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item.importance-critical {
+body.product-shell.match-page #feedAlertsCluster .live-alert-item.importance-critical {
   border-color: rgba(199, 90, 90, 0.24);
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item.importance-high {
+body.product-shell.match-page #feedAlertsCluster .live-alert-item.importance-high {
   border-color: rgba(216, 138, 51, 0.18);
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item.importance-medium {
+body.product-shell.match-page #feedAlertsCluster .live-alert-item.importance-medium {
   border-color: rgba(108, 157, 204, 0.2);
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-top,
+body.product-shell.match-page #feedAlertsCluster .live-alert-top,
 body.product-shell.match-page .signal-log-top,
 body.product-shell.match-page .objective-timeline-top {
   display: flex;
@@ -21737,7 +21747,7 @@ body.product-shell.match-page .objective-timeline-top {
   gap: 0.56rem;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-headline,
+body.product-shell.match-page #feedAlertsCluster .live-alert-headline,
 body.product-shell.match-page .objective-timeline-headline {
   display: flex;
   align-items: center;
@@ -21745,12 +21755,12 @@ body.product-shell.match-page .objective-timeline-headline {
   min-width: 0;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item.compact .live-alert-headline,
+body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact .live-alert-headline,
 body.product-shell.match-page .signal-log-item.compact .signal-log-headline {
   gap: 0.28rem;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-headline strong,
+body.product-shell.match-page #feedAlertsCluster .live-alert-headline strong,
 body.product-shell.match-page .signal-log-headline strong,
 body.product-shell.match-page .objective-timeline-headline strong {
   color: #f2f6fb;
@@ -21758,7 +21768,7 @@ body.product-shell.match-page .objective-timeline-headline strong {
   line-height: 1.2;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-index,
+body.product-shell.match-page #feedAlertsCluster .live-alert-index,
 body.product-shell.match-page .signal-log-time,
 body.product-shell.match-page .objective-timeline-time {
   color: #9aa8b7;
@@ -21768,7 +21778,7 @@ body.product-shell.match-page .objective-timeline-time {
   white-space: nowrap;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-severity,
+body.product-shell.match-page #feedAlertsCluster .live-alert-severity,
 body.product-shell.match-page .signal-log-kind,
 body.product-shell.match-page .signal-log-pill,
 body.product-shell.match-page .objective-timeline-kind,
@@ -21790,14 +21800,14 @@ body.product-shell.match-page .forecast-pill {
   white-space: nowrap;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-severity.critical,
+body.product-shell.match-page #feedAlertsCluster .live-alert-severity.critical,
 body.product-shell.match-page .signal-log-pill.critical {
   border-color: rgba(199, 90, 90, 0.24);
   background: rgba(199, 90, 90, 0.12);
   color: #f3c1ba;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-severity.high,
+body.product-shell.match-page #feedAlertsCluster .live-alert-severity.high,
 body.product-shell.match-page .signal-log-kind.gold,
 body.product-shell.match-page .signal-log-pill.warn,
 body.product-shell.match-page .objective-timeline-kind.right,
@@ -21808,7 +21818,7 @@ body.product-shell.match-page .forecast-pill.countdown {
   color: #f4d8b3;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-severity.medium,
+body.product-shell.match-page #feedAlertsCluster .live-alert-severity.medium,
 body.product-shell.match-page .objective-timeline-kind.neutral,
 body.product-shell.match-page .objective-timeline-pill.neutral {
   border-color: rgba(108, 157, 204, 0.2);
@@ -21826,16 +21836,16 @@ body.product-shell.match-page .signal-log-pill.live {
   color: #bfe5cc;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item .meta-text,
+body.product-shell.match-page #feedAlertsCluster .live-alert-item .meta-text,
 body.product-shell.match-page .signal-log-item .meta-text {
   margin: 0;
   color: #aab6c4;
   line-height: 1.38;
 }
 
-body.product-shell.match-page #gameAlertsPanel .live-alert-item.compact .meta-text,
+body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact .meta-text,
 body.product-shell.match-page .signal-log-item.compact .meta-text,
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact .meta-text {
+body.product-shell.match-page #timelineForecastCluster .forecast-card.compact .meta-text {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -21909,8 +21919,8 @@ body.product-shell.match-page .forecast-top {
 }
 
 body.product-shell.match-page .signal-log-item.compact .signal-log-meta,
-body.product-shell.match-page #gameAlertsPanel .live-alert-item.compact .live-alert-top,
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact .forecast-top {
+body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact .live-alert-top,
+body.product-shell.match-page #timelineForecastCluster .forecast-card.compact .forecast-top {
   gap: 0.26rem;
 }
 
@@ -21948,45 +21958,45 @@ body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-it
   border-color: rgba(233, 239, 245, 0.06);
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card {
+body.product-shell.match-page #timelineForecastCluster .forecast-card {
   padding: 0.72rem 0.76rem;
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact {
+body.product-shell.match-page #timelineForecastCluster .forecast-card.compact {
   padding: 0.56rem 0.6rem;
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.available {
+body.product-shell.match-page #timelineForecastCluster .forecast-card.available {
   border-color: rgba(86, 160, 117, 0.18);
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.countdown {
+body.product-shell.match-page #timelineForecastCluster .forecast-card.countdown {
   border-color: rgba(216, 138, 51, 0.18);
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-title {
+body.product-shell.match-page #timelineForecastCluster .forecast-title {
   color: #f2f6fb;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact .forecast-title {
+body.product-shell.match-page #timelineForecastCluster .forecast-card.compact .forecast-title {
   font-size: 0.82rem;
   line-height: 1.14;
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-eta {
+body.product-shell.match-page #timelineForecastCluster .forecast-eta {
   color: #f1b25f;
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact .forecast-eta {
+body.product-shell.match-page #timelineForecastCluster .forecast-card.compact .forecast-eta {
   margin: 0;
   font-size: 0.94rem;
   line-height: 1.08;
 }
 
-body.product-shell.match-page #gameObjectiveForecastPanel .meta-text {
+body.product-shell.match-page #timelineForecastCluster .meta-text {
   margin: 0;
   color: #aab6c4;
 }
@@ -22345,29 +22355,20 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   }
 
   body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head,
-  body.product-shell.match-page.mobile-game-mode #gameAlertsPanel .section-head,
   body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head,
-  body.product-shell.match-page.mobile-game-mode #gameSignalsPanel .section-head,
-  body.product-shell.match-page.mobile-game-mode #gameMilestonesPanel .section-head,
-  body.product-shell.match-page.mobile-game-mode #gameObjectiveForecastPanel .section-head {
+  body.product-shell.match-page.mobile-game-mode .match-subcluster-head {
     margin-bottom: 0.28rem;
   }
 
   body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-game-mode #gameAlertsPanel .section-head .meta-text,
   body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-game-mode #gameSignalsPanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-game-mode #gameMilestonesPanel .section-head .meta-text,
-  body.product-shell.match-page.mobile-game-mode #gameObjectiveForecastPanel .section-head .meta-text {
+  body.product-shell.match-page.mobile-game-mode .match-subcluster-head .meta-text {
     display: none;
   }
 
   body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head h2,
-  body.product-shell.match-page.mobile-game-mode #gameAlertsPanel .section-head h2,
   body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head h2,
-  body.product-shell.match-page.mobile-game-mode #gameSignalsPanel .section-head h2,
-  body.product-shell.match-page.mobile-game-mode #gameMilestonesPanel .section-head h2,
-  body.product-shell.match-page.mobile-game-mode #gameObjectiveForecastPanel .section-head h2 {
+  body.product-shell.match-page.mobile-game-mode .match-subcluster-head h3 {
     font-size: 0.8rem;
     line-height: 1.08;
   }
@@ -22394,7 +22395,7 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   body.product-shell.match-page .game-feed-desk-note,
   body.product-shell.match-page .match-desk-mini-meta,
   body.product-shell.match-page .signal-log-item .meta-text,
-  body.product-shell.match-page #gameAlertsPanel .live-alert-item .meta-text {
+  body.product-shell.match-page #feedAlertsCluster .live-alert-item .meta-text {
     font-size: 0.7rem;
   }
 
@@ -22459,14 +22460,14 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   body.product-shell.match-page .game-alert-desk-hero,
   body.product-shell.match-page .timeline-desk-hero,
   body.product-shell.match-page .match-desk-mini-card,
-  body.product-shell.match-page #gameAlertsPanel .live-alert-item,
+  body.product-shell.match-page #feedAlertsCluster .live-alert-item,
   body.product-shell.match-page #gameStorylinesPanel .storyline-item,
   body.product-shell.match-page #gameTickerPanel .signal-log-item,
-  body.product-shell.match-page #gameSignalsPanel .signal-log-item,
-  body.product-shell.match-page #gameMilestonesPanel .signal-log-item,
+  body.product-shell.match-page #timelineSignalsCluster .signal-log-item,
+  body.product-shell.match-page #timelineMilestonesCluster .signal-log-item,
   body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-item,
-  body.product-shell.match-page #gameMomentsPanel .signal-log-item,
-  body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card {
+  body.product-shell.match-page #timelineMomentsCluster .signal-log-item,
+  body.product-shell.match-page #timelineForecastCluster .forecast-card {
     padding: 0.58rem 0.6rem;
   }
 
@@ -22476,9 +22477,9 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
     padding: 0.46rem 0.5rem;
   }
 
-  body.product-shell.match-page #gameAlertsPanel .live-alert-item.compact,
+  body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact,
   body.product-shell.match-page .signal-log-item.compact,
-  body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact {
+  body.product-shell.match-page #timelineForecastCluster .forecast-card.compact {
     padding: 0.5rem 0.54rem;
   }
 
@@ -22519,17 +22520,17 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
 
   body.product-shell.match-page .signal-log-top,
   body.product-shell.match-page .objective-timeline-top,
-  body.product-shell.match-page #gameAlertsPanel .live-alert-top {
+  body.product-shell.match-page #feedAlertsCluster .live-alert-top {
     gap: 0.32rem;
   }
 
   body.product-shell.match-page .signal-log-time,
   body.product-shell.match-page .objective-timeline-time,
-  body.product-shell.match-page #gameAlertsPanel .live-alert-index {
+  body.product-shell.match-page #feedAlertsCluster .live-alert-index {
     font-size: 0.62rem;
   }
 
-  body.product-shell.match-page #gameAlertsPanel .live-alert-item.compact .live-alert-index {
+  body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact .live-alert-index {
     display: none;
   }
 
@@ -22537,27 +22538,29 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
     gap: 0.26rem;
   }
 
-  body.product-shell.match-page #gameAlertsPanel .live-alert-item.compact .live-alert-headline strong,
+  body.product-shell.match-page #feedAlertsCluster .live-alert-item.compact .live-alert-headline strong,
   body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-headline strong,
   body.product-shell.match-page #gameTickerPanel .signal-log-headline strong,
-  body.product-shell.match-page #gameSignalsPanel .signal-log-headline strong,
-  body.product-shell.match-page #gameMomentsPanel .signal-log-headline strong {
+  body.product-shell.match-page #timelineSignalsCluster .signal-log-headline strong,
+  body.product-shell.match-page #timelineMomentsCluster .signal-log-headline strong,
+  body.product-shell.match-page #timelineMilestonesCluster .signal-log-headline strong {
     font-size: 0.8rem;
     line-height: 1.14;
   }
 
   body.product-shell.match-page #gameObjectiveTimelinePanel .objective-timeline-meta,
   body.product-shell.match-page #gameTickerPanel .signal-log-meta,
-  body.product-shell.match-page #gameSignalsPanel .signal-log-meta,
-  body.product-shell.match-page #gameMomentsPanel .signal-log-meta {
+  body.product-shell.match-page #timelineSignalsCluster .signal-log-meta,
+  body.product-shell.match-page #timelineMomentsCluster .signal-log-meta,
+  body.product-shell.match-page #timelineMilestonesCluster .signal-log-meta {
     gap: 0.24rem;
   }
 
-  body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact .forecast-title {
+  body.product-shell.match-page #timelineForecastCluster .forecast-card.compact .forecast-title {
     font-size: 0.78rem;
   }
 
-  body.product-shell.match-page #gameObjectiveForecastPanel .forecast-card.compact .forecast-eta {
+  body.product-shell.match-page #timelineForecastCluster .forecast-card.compact .forecast-eta {
     font-size: 0.88rem;
   }
 }

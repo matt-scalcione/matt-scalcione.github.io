@@ -541,6 +541,8 @@ const elements = {
   trackerSort: document.querySelector("#trackerSort"),
   trackerSortButtons: Array.from(document.querySelectorAll("#trackerSortButtons [data-sort]")),
   liveSummaryWrap: document.querySelector("#liveSummaryWrap"),
+  liveFeedPanel: document.querySelector("#liveFeedPanel"),
+  feedAlertsCluster: document.querySelector("#feedAlertsCluster"),
   liveAlertsDeskWrap: document.querySelector("#liveAlertsDeskWrap"),
   feedControlsToggle: document.querySelector("#feedControlsToggle"),
   feedControlsWrap: document.querySelector("#feedControlsWrap"),
@@ -549,7 +551,12 @@ const elements = {
   combatBurstsList: document.querySelector("#combatBurstsList"),
   goldMilestonesList: document.querySelector("#goldMilestonesList"),
   liveAlertsList: document.querySelector("#liveAlertsList"),
+  gameObjectiveTimelinePanel: document.querySelector("#gameObjectiveTimelinePanel"),
   objectiveTimelineDeskWrap: document.querySelector("#objectiveTimelineDeskWrap"),
+  timelineSignalsCluster: document.querySelector("#timelineSignalsCluster"),
+  timelineMilestonesCluster: document.querySelector("#timelineMilestonesCluster"),
+  timelineForecastCluster: document.querySelector("#timelineForecastCluster"),
+  timelineMomentsCluster: document.querySelector("#timelineMomentsCluster"),
   feedTypeFilter: document.querySelector("#feedTypeFilter"),
   feedTeamFilter: document.querySelector("#feedTeamFilter"),
   feedImportanceFilter: document.querySelector("#feedImportanceFilter"),
@@ -1523,7 +1530,7 @@ function applyGameStateSectionTitles(match) {
   setPanelHeadingTitleByTargetId("gameCommandWrap", "Map Desk");
   setPanelHeadingTitleByTargetId("teamCompareWrap", "Team Stats");
   setPanelHeadingTitleByTargetId("pulseCard", "Key Story");
-  setPanelHeadingTitleByTargetId("liveAlertsList", "Alerts");
+  setPanelHeadingTitleByTargetId("objectiveTimelineList", "Timeline");
 
   if (uiState.viewMode !== "game") {
     applyMobileSectionHeadings();
@@ -5412,6 +5419,12 @@ function applyGamePanelVisibility(match) {
     }
     setPanelVisibility(element.closest("section.panel"), visible);
   };
+  const setInlineVisibility = (element, visible) => {
+    if (!element) {
+      return;
+    }
+    element.hidden = !visible;
+  };
   const hasRows = (rows) => Array.isArray(rows) && rows.length > 0;
   const hasPlayerBoard =
     hasRows(match?.playerEconomy?.left) ||
@@ -5471,6 +5484,13 @@ function applyGamePanelVisibility(match) {
     hasRows(match?.goldMilestones);
   const showEconomyMilestones = hasRows(match?.goldMilestones);
   const showKeyMoments = hasRows(match?.keyMoments);
+  const showFeedPanel = hasLiveFeedPanel || showLiveAlerts;
+  const showTimelinePanel =
+    showObjectiveTimeline ||
+    showSignals ||
+    showEconomyMilestones ||
+    showObjectiveForecast ||
+    showKeyMoments;
 
   for (const panel of elements.gamePanels) {
     setPanelVisibility(panel, true);
@@ -5514,6 +5534,11 @@ function applyGamePanelVisibility(match) {
     }
     setTargetVisibility(elements.gameCommandWrap, showGameCommand);
     setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
+    setInlineVisibility(elements.feedAlertsCluster, false);
+    setInlineVisibility(elements.timelineSignalsCluster, false);
+    setInlineVisibility(elements.timelineMilestonesCluster, false);
+    setInlineVisibility(elements.timelineForecastCluster, false);
+    setInlineVisibility(elements.timelineMomentsCluster, false);
     return;
   }
 
@@ -5525,6 +5550,11 @@ function applyGamePanelVisibility(match) {
     setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
     setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
     setTargetVisibility(elements.pulseCard, false);
+    setInlineVisibility(elements.feedAlertsCluster, false);
+    setInlineVisibility(elements.timelineSignalsCluster, false);
+    setInlineVisibility(elements.timelineMilestonesCluster, false);
+    setInlineVisibility(elements.timelineForecastCluster, false);
+    setInlineVisibility(elements.timelineMomentsCluster, false);
     return;
   }
 
@@ -5533,14 +5563,21 @@ function applyGamePanelVisibility(match) {
       setPanelVisibility(panel, false);
     }
 
+    setPanelVisibility(elements.liveFeedPanel, showFeedPanel);
+    setPanelVisibility(elements.gameObjectiveTimelinePanel, showTimelinePanel);
     setTargetVisibility(elements.gameCommandWrap, showGameCommand);
     setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
     setTargetVisibility(elements.playerTrackerWrap, hasPlayerBoard);
-    setTargetVisibility(elements.liveFeedList, hasLiveFeedPanel);
+    setInlineVisibility(elements.liveFeedList, hasLiveFeedPanel);
     setTargetVisibility(elements.objectiveControlWrap, showObjectiveControl);
     setTargetVisibility(elements.pulseCard, showPulseCard);
     setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
-    setTargetVisibility(elements.liveAlertsList, showLiveAlerts);
+    setInlineVisibility(elements.objectiveTimelineList, showObjectiveTimeline);
+    setInlineVisibility(elements.feedAlertsCluster, showLiveAlerts);
+    setInlineVisibility(elements.timelineSignalsCluster, showSignals);
+    setInlineVisibility(elements.timelineMilestonesCluster, showEconomyMilestones);
+    setInlineVisibility(elements.timelineForecastCluster, showObjectiveForecast);
+    setInlineVisibility(elements.timelineMomentsCluster, showKeyMoments);
     return;
   }
 
@@ -5558,20 +5595,22 @@ function applyGamePanelVisibility(match) {
   setTargetVisibility(elements.roleDeltaWrap, showRoleDelta);
   setTargetVisibility(elements.objectiveRunsWrap, showObjectiveRuns);
   setTargetVisibility(elements.performersWrap, showPerformers);
+  setPanelVisibility(elements.liveFeedPanel, showFeedPanel);
+  setPanelVisibility(elements.gameObjectiveTimelinePanel, showTimelinePanel);
   setTargetVisibility(elements.liveTickerList, showLiveTicker);
-  setTargetVisibility(elements.objectiveTimelineList, showObjectiveTimeline);
-  setTargetVisibility(elements.objectiveForecastWrap, showObjectiveForecast);
+  setInlineVisibility(elements.objectiveTimelineList, showObjectiveTimeline);
   setTargetVisibility(elements.playerDeltaWrap, showPlayerDelta);
-  setTargetVisibility(elements.combatBurstsList, showSignals);
-  setTargetVisibility(elements.goldMilestonesList, showEconomyMilestones);
-  setTargetVisibility(elements.momentsList, showKeyMoments);
   setTargetVisibility(elements.gameCommandWrap, showGameCommand);
   setTargetVisibility(elements.selectedGameRecapWrap, showSelectedGameRecap);
   setTargetVisibility(elements.playerTrackerWrap, hasPlayerBoard);
-  setTargetVisibility(elements.liveFeedList, hasLiveFeedPanel);
+  setInlineVisibility(elements.liveFeedList, hasLiveFeedPanel);
   setTargetVisibility(elements.teamCompareWrap, showTeamCompare);
   setTargetVisibility(elements.pulseCard, showPulseCard);
-  setTargetVisibility(elements.liveAlertsList, showLiveAlerts);
+  setInlineVisibility(elements.feedAlertsCluster, showLiveAlerts);
+  setInlineVisibility(elements.timelineSignalsCluster, showSignals);
+  setInlineVisibility(elements.timelineMilestonesCluster, showEconomyMilestones);
+  setInlineVisibility(elements.timelineForecastCluster, showObjectiveForecast);
+  setInlineVisibility(elements.timelineMomentsCluster, showKeyMoments);
 }
 
 function applySeriesPanelVisibility(match = uiState.match) {
