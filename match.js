@@ -4136,7 +4136,7 @@ function renderSeriesStatsSummary(match) {
   const rightPct = prediction ? Math.max(0, Math.min(100, Number(prediction.rightWinPct || 0))) : 50;
   const favoriteTone =
     prediction?.favoriteTeamName === leftName ? "left" : prediction?.favoriteTeamName === rightName ? "right" : "neutral";
-  const drivers = Array.isArray(prediction?.drivers) ? prediction.drivers.slice(0, compact ? 2 : 3) : [];
+  const drivers = Array.isArray(prediction?.drivers) ? prediction.drivers.slice(0, compact ? 1 : 3) : [];
   const centerTitle = prediction?.favoriteTeamName
     ? `${scoreboardTeamName(prediction.favoriteTeamName, match?.game)} have the edge`
     : "Series looks level";
@@ -4159,14 +4159,18 @@ function renderSeriesStatsSummary(match) {
     .map((pill) => `<span class="form-summary-pill">${escapeHtml(pill)}</span>`)
     .join("");
 
-  elements.seriesStatsSummaryWrap.innerHTML = `
-    <div class="series-stats-shell ${favoriteTone}">
-      ${renderSeriesStatsTeamSummary(match, match.teams.left, leftProfile, "left")}
-      <article class="series-stats-center ${favoriteTone}">
+  const centerMarkup = `
+      <article class="series-stats-center ${favoriteTone}${compact ? " compact" : ""}">
         <div class="series-stats-center-head">
-          <p class="tempo-label">Matchup read</p>
+          <p class="tempo-label">${compact ? "Stats desk" : "Matchup read"}</p>
           <h3>${escapeHtml(centerTitle)}</h3>
-          <p class="series-stats-center-note">${escapeHtml(centerNote)}</p>
+          <p class="series-stats-center-note">${escapeHtml(
+            compact
+              ? prediction
+                ? `${h2hLabel} · ${String(prediction.confidence || "low").toUpperCase()} confidence`
+                : centerNote
+              : centerNote
+          )}</p>
         </div>
         <div class="edge-head">
           <p class="meta-text">${escapeHtml(scoreboardTeamName(leftName, match?.game))}</p>
@@ -4182,15 +4186,24 @@ function renderSeriesStatsSummary(match) {
         </div>
         <div class="series-stats-center-strip">
           <span class="series-stats-h2h">${escapeHtml(h2hLabel)}</span>
-          ${centerPills}
+          ${compact ? "" : centerPills}
         </div>
         ${
           drivers.length
             ? `<ul class="series-stats-driver-list">${drivers.map((driver) => `<li>${escapeHtml(driver)}</li>`).join("")}</ul>`
-            : `<p class="meta-text">Use the sample control below to widen or tighten the form window.</p>`
+            : compact
+              ? ""
+              : `<p class="meta-text">Use the sample control below to widen or tighten the form window.</p>`
         }
       </article>
-      ${renderSeriesStatsTeamSummary(match, match.teams.right, rightProfile, "right")}
+    `;
+
+  const leftMarkup = renderSeriesStatsTeamSummary(match, match.teams.left, leftProfile, "left");
+  const rightMarkup = renderSeriesStatsTeamSummary(match, match.teams.right, rightProfile, "right");
+
+  elements.seriesStatsSummaryWrap.innerHTML = `
+    <div class="series-stats-shell ${favoriteTone}${compact ? " compact" : ""}">
+      ${compact ? `${centerMarkup}${leftMarkup}${rightMarkup}` : `${leftMarkup}${centerMarkup}${rightMarkup}`}
     </div>
   `;
 }
@@ -8339,6 +8352,7 @@ function formatRecentFormRow(row, apiBase, { match = null, focalTeamId = null } 
 }
 
 function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, match }) {
+  const compact = isCompactUI();
   const selectedGameNumber = contextGameNumber();
   const teamLink = teamId
     ? teamDetailUrl(teamId, match?.game, uiState.apiBase, {
@@ -8370,10 +8384,10 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
     `;
   }
 
-  const recentRows = Array.isArray(profile.recentMatches) ? profile.recentMatches.slice(0, 5) : [];
+  const recentRows = Array.isArray(profile.recentMatches) ? profile.recentMatches.slice(0, compact ? 3 : 5) : [];
   const recentSummary = summarizeRecentMatchRows(recentRows);
   return `
-    <article class="series-history-team ${toneClass}">
+    <article class="series-history-team ${toneClass}${compact ? " compact" : ""}">
       <div class="series-history-team-head">
         <div class="series-history-team-ident">
           <span class="series-history-team-mark">${teamBadgeMarkup({ id: teamId, name: teamName }, match?.game)}</span>
@@ -8382,15 +8396,15 @@ function renderTeamFormCard({ teamName, teamId, opponentId, profile, toneClass, 
             <p class="meta-text">${escapeHtml(displayTeamName(teamName, match?.game))}</p>
           </div>
         </div>
-        ${teamLink ? `<a class="table-link" href="${teamLink}">Team page</a>` : ""}
+        ${teamLink && !compact ? `<a class="table-link" href="${teamLink}">Team page</a>` : ""}
       </div>
       <div class="series-history-team-summary">
-        ${seriesDeskMetricCard("Series", `${profile.wins ?? 0}-${profile.losses ?? 0}`, `${shortName} WR ${Number(profile.seriesWinRatePct || 0).toFixed(0)}%`, toneClass)}
-        ${seriesDeskMetricCard("Maps", `${profile.gameWins ?? 0}-${profile.gameLosses ?? 0}`, `Map WR ${Number(profile.gameWinRatePct || 0).toFixed(0)}%`, toneClass)}
-        ${seriesDeskMetricCard("Form", recentSummary.formLabel, `Last 5 ${recentSummary.recordLabel}`, toneClass)}
+        ${seriesDeskMetricCard(compact ? "WR" : "Series", compact ? `${Number(profile.seriesWinRatePct || 0).toFixed(0)}%` : `${profile.wins ?? 0}-${profile.losses ?? 0}`, compact ? `${shortName} ${profile.wins ?? 0}-${profile.losses ?? 0}` : `${shortName} WR ${Number(profile.seriesWinRatePct || 0).toFixed(0)}%`, toneClass)}
+        ${compact ? "" : seriesDeskMetricCard("Maps", `${profile.gameWins ?? 0}-${profile.gameLosses ?? 0}`, `Map WR ${Number(profile.gameWinRatePct || 0).toFixed(0)}%`, toneClass)}
+        ${seriesDeskMetricCard("Form", recentSummary.formLabel, `Last ${recentRows.length || 0} ${recentSummary.recordLabel}`, toneClass)}
         ${seriesDeskMetricCard("Streak", profile.streakLabel || "n/a", `${recentSummary.total || 0} recent result${recentSummary.total === 1 ? "" : "s"}`, toneClass)}
       </div>
-      <p class="series-history-team-list-head">Recent results</p>
+      <p class="series-history-team-list-head">${compact ? "Recent" : "Recent results"}</p>
       <ul class="mini-list form-list">
         ${recentRows.length
           ? recentRows
@@ -8413,6 +8427,7 @@ function renderUpcomingForm(match) {
     return;
   }
 
+  const compact = isCompactUI();
   const teamForm = resolvedUpcomingFormProfiles(match);
   const leftShort = scoreboardTeamName(match.teams.left.name, match?.game);
   const rightShort = scoreboardTeamName(match.teams.right.name, match?.game);
@@ -8425,13 +8440,17 @@ function renderUpcomingForm(match) {
   const leadTone =
     formLeader === match.teams.left.name ? "left" : formLeader === match.teams.right.name ? "right" : "neutral";
   elements.upcomingFormWrap.innerHTML = `
-    <div class="series-history-desk">
-      <article class="series-history-lead ${leadTone}">
+    <div class="series-history-desk${compact ? " compact" : ""}">
+      <article class="series-history-lead ${leadTone}${compact ? " compact" : ""}">
         <div class="series-history-head">
           <div>
             <p class="tempo-label">History desk</p>
-            <h3>Recent form and streak context</h3>
-            <p class="series-history-note">Read current momentum first, then scan the last five series for both sides.</p>
+            <h3>${compact ? "Recent form" : "Recent form and streak context"}</h3>
+            <p class="series-history-note">${escapeHtml(
+              compact
+                ? `${leftShort} ${leftRecent.recordLabel} · ${rightShort} ${rightRecent.recordLabel}`
+                : "Read current momentum first, then scan the last five series for both sides."
+            )}</p>
           </div>
           <div class="form-summary-strip">
             <span class="form-summary-pill">${escapeHtml(leftShort)} ${leftRecent.recordLabel}</span>
@@ -8439,10 +8458,10 @@ function renderUpcomingForm(match) {
           </div>
         </div>
         <div class="series-history-metrics">
-          ${seriesDeskMetricCard(`${leftShort} last 5`, leftRecent.recordLabel, `Form ${leftRecent.formLabel}`, "left")}
-          ${seriesDeskMetricCard(`${rightShort} last 5`, rightRecent.recordLabel, `Form ${rightRecent.formLabel}`, "right")}
+          ${seriesDeskMetricCard(compact ? leftShort : `${leftShort} last 5`, leftRecent.recordLabel, `Form ${leftRecent.formLabel}`, "left")}
+          ${seriesDeskMetricCard(compact ? rightShort : `${rightShort} last 5`, rightRecent.recordLabel, `Form ${rightRecent.formLabel}`, "right")}
           ${seriesDeskMetricCard("Form edge", formLeader ? scoreboardTeamName(formLeader, match?.game) : "Even", `${leftShort} ${leftSeriesWin.toFixed(0)}% · ${rightShort} ${rightSeriesWin.toFixed(0)}%`, leadTone)}
-          ${seriesDeskMetricCard("Streaks", `${teamForm.left?.streakLabel || "n/a"} / ${teamForm.right?.streakLabel || "n/a"}`, `${leftShort} vs ${rightShort}`, "neutral")}
+          ${compact ? "" : seriesDeskMetricCard("Streaks", `${teamForm.left?.streakLabel || "n/a"} / ${teamForm.right?.streakLabel || "n/a"}`, `${leftShort} vs ${rightShort}`, "neutral")}
         </div>
       </article>
       <div class="series-history-grid">
@@ -8473,6 +8492,7 @@ function renderUpcomingHeadToHead(match) {
     return;
   }
 
+  const compact = isCompactUI();
   const h2h = resolvedUpcomingHeadToHead(match);
   if (!h2h || !Array.isArray(h2h.lastMeetings) || !h2h.lastMeetings.length) {
     elements.upcomingH2hWrap.innerHTML = `<div class="empty">No recent direct meetings found.</div>`;
@@ -8480,6 +8500,7 @@ function renderUpcomingHeadToHead(match) {
   }
 
   const rows = h2h.lastMeetings
+    .slice(0, compact ? 3 : h2h.lastMeetings.length)
     .map((row) => {
       const winnerName = row.winnerName || winnerLabelForH2hRow(row, match);
       const winnerTone =
@@ -8521,13 +8542,17 @@ function renderUpcomingHeadToHead(match) {
     lastWinnerName === match.teams.left.name ? "left" : lastWinnerName === match.teams.right.name ? "right" : "neutral";
 
   elements.upcomingH2hWrap.innerHTML = `
-    <div class="series-h2h-desk">
-      <article class="series-h2h-lead ${winnerTone}">
+    <div class="series-h2h-desk${compact ? " compact" : ""}">
+      <article class="series-h2h-lead ${winnerTone}${compact ? " compact" : ""}">
         <div class="series-history-head">
           <div>
             <p class="tempo-label">History desk</p>
-            <h3>Direct meetings and latest results</h3>
-            <p class="series-history-note">${lastMeeting ? `Latest meeting: ${dateTimeCompact(lastMeeting.startAt)} · ${lastMeeting.tournament || "Unknown tournament"}` : "Recent series history is available below."}</p>
+            <h3>${compact ? "Head-to-head" : "Direct meetings and latest results"}</h3>
+            <p class="series-history-note">${escapeHtml(
+              compact
+                ? `${leftShort} ${leftWins}-${rightWins}${draws ? `-${draws}` : ""} ${rightShort}`
+                : lastMeeting ? `Latest meeting: ${dateTimeCompact(lastMeeting.startAt)} · ${lastMeeting.tournament || "Unknown tournament"}` : "Recent series history is available below."
+            )}</p>
           </div>
           <div class="form-summary-strip">
             <span class="form-summary-pill">${escapeHtml(leftShort)} ${leftWins}</span>
@@ -8539,7 +8564,7 @@ function renderUpcomingHeadToHead(match) {
           ${seriesDeskMetricCard("Record", `${leftWins}-${rightWins}${draws ? `-${draws}` : ""}`, `${leftShort} vs ${rightShort}`, winnerTone)}
           ${seriesDeskMetricCard("Meetings", String(totalMeetings), totalMeetings > h2h.lastMeetings.length ? `${h2h.lastMeetings.length} shown below` : "All sampled meetings shown", "neutral")}
           ${seriesDeskMetricCard("Last winner", lastWinnerName ? scoreboardTeamName(lastWinnerName, match?.game) : "TBD", lastMeeting?.scoreLabel || "Result pending", winnerTone)}
-          ${seriesDeskMetricCard("Last score", lastMeeting?.scoreLabel || "n/a", lastMeeting?.tournament || "Unknown", "neutral")}
+          ${compact ? "" : seriesDeskMetricCard("Last score", lastMeeting?.scoreLabel || "n/a", lastMeeting?.tournament || "Unknown", "neutral")}
         </div>
       </article>
       <div class="series-h2h-list upcoming-h2h-list">${rows}</div>

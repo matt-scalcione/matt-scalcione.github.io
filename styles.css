@@ -16029,6 +16029,123 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     font-size: 0.6rem;
   }
 
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact {
+    gap: 0.38rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-center {
+    order: -1;
+    padding: 0.58rem 0.62rem;
+    gap: 0.32rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-center-note {
+    font-size: 0.68rem;
+    line-height: 1.24;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-center-strip {
+    gap: 0.2rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-h2h {
+    min-height: 1.34rem;
+    padding: 0.1rem 0.42rem;
+    font-size: 0.56rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-driver-list {
+    font-size: 0.68rem;
+    gap: 0.14rem;
+    padding-left: 0.92rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-team {
+    padding: 0.54rem 0.58rem;
+    gap: 0.36rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-team-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-metric {
+    padding: 0.42rem 0.44rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-metric-value {
+    font-size: 0.78rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-desk.compact,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-desk.compact {
+    gap: 0.38rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-lead.compact,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-lead.compact {
+    gap: 0.34rem;
+    padding: 0.54rem 0.58rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-lead.compact .series-history-head,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-lead.compact .series-history-head {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-lead.compact .series-history-note,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-lead.compact .series-history-note {
+    font-size: 0.66rem;
+    line-height: 1.22;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-lead.compact .form-summary-strip,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-lead.compact .form-summary-strip {
+    gap: 0.18rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-lead.compact .series-history-metrics,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-lead.compact .series-history-metrics,
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .series-history-team-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact {
+    gap: 0.38rem;
+    padding: 0.56rem 0.6rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .series-history-team-head {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .series-history-team-list-head {
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .form-list,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-desk.compact .upcoming-h2h-list {
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .form-match-item,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-desk.compact .series-h2h-item {
+    padding: 0.42rem 0.46rem;
+    gap: 0.12rem;
+    border-radius: 0.8rem;
+  }
+
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .form-match-meta,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-desk.compact .form-match-meta,
+  body.product-shell.match-page.mobile-series-mode .series-history-team.compact .series-h2h-item .meta-text,
+  body.product-shell.match-page.mobile-series-mode .series-h2h-desk.compact .series-h2h-item .meta-text {
+    font-size: 0.62rem;
+    line-height: 1.22;
+  }
+
   body.product-shell.match-page.mobile-series-mode .series-games-lead {
     gap: 0.5rem;
   }
@@ -19247,6 +19364,10 @@ body.product-shell.match-page .series-stats-shell {
   gap: 0.68rem;
 }
 
+body.product-shell.match-page .series-stats-shell.compact {
+  gap: 0.5rem;
+}
+
 body.product-shell.match-page .series-stats-team,
 body.product-shell.match-page .series-stats-center,
 body.product-shell.match-page .series-games-lead-hero {
@@ -19260,6 +19381,11 @@ body.product-shell.match-page .series-stats-team {
   display: grid;
   gap: 0.68rem;
   padding: 0.78rem 0.82rem;
+}
+
+body.product-shell.match-page .series-stats-team.compact,
+body.product-shell.match-page .series-stats-shell.compact .series-stats-team {
+  gap: 0.48rem;
 }
 
 body.product-shell.match-page .series-stats-team.left {
@@ -19341,6 +19467,10 @@ body.product-shell.match-page .series-stats-center {
   display: grid;
   gap: 0.52rem;
   padding: 0.82rem 0.86rem;
+}
+
+body.product-shell.match-page .series-stats-center.compact {
+  gap: 0.38rem;
 }
 
 body.product-shell.match-page .series-stats-center.left {
@@ -19478,6 +19608,11 @@ body.product-shell.match-page .series-h2h-desk {
   gap: 0.68rem;
 }
 
+body.product-shell.match-page .series-history-desk.compact,
+body.product-shell.match-page .series-h2h-desk.compact {
+  gap: 0.48rem;
+}
+
 body.product-shell.match-page .series-matchup-lead,
 body.product-shell.match-page .series-matchup-team,
 body.product-shell.match-page .series-matchup-h2h-card,
@@ -19515,6 +19650,12 @@ body.product-shell.match-page .series-matchup-h2h-card {
   display: grid;
   gap: 0.62rem;
   padding: 0.78rem 0.82rem;
+}
+
+body.product-shell.match-page .series-history-lead.compact,
+body.product-shell.match-page .series-h2h-lead.compact,
+body.product-shell.match-page .series-history-team.compact {
+  gap: 0.46rem;
 }
 
 body.product-shell.match-page .series-matchup-lead-head,
