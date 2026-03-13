@@ -6420,6 +6420,7 @@ function comparisonRaceChip(match, row) {
 }
 
 function renderTeamComparison(match) {
+  const compact = isCompactUI();
   const rows = buildTeamComparisonRows(match);
   if (!rows) {
     elements.teamCompareWrap.innerHTML = `<div class="empty">Team comparison unavailable for this game.</div>`;
@@ -6436,22 +6437,26 @@ function renderTeamComparison(match) {
   const raceChips = rows
     .map((row) => comparisonRaceChip(match, row))
     .filter(Boolean)
-    .slice(0, 6);
+    .slice(0, compact ? 3 : 6);
   const topSummary = raceChips[0] || null;
 
   elements.teamCompareWrap.innerHTML = `
     <div class="game-team-compare-desk">
-      <article class="game-team-compare-hero">
+      <article class="game-team-compare-hero${compact ? " compact" : ""}">
         <div class="game-team-compare-head">
           <div>
             <p class="tempo-label">Team desk</p>
             <h3>${escapeHtml(topSummary?.label || "Map-wide team comparison")}</h3>
-            <p class="game-team-compare-note">${escapeHtml(`${leftShort} vs ${rightShort} across the latest tracked map totals.`)}</p>
+            <p class="game-team-compare-note">${escapeHtml(
+              compact
+                ? `${leftShort} vs ${rightShort} across the latest map totals.`
+                : `${leftShort} vs ${rightShort} across the latest tracked map totals.`
+            )}</p>
           </div>
-          <div class="form-summary-strip">
+          ${compact ? "" : `<div class="form-summary-strip">
             <span class="form-summary-pill">${escapeHtml(leftShort)}</span>
             <span class="form-summary-pill">${escapeHtml(rightShort)}</span>
-          </div>
+          </div>`}
         </div>
         ${
           raceChips.length
@@ -6570,11 +6575,12 @@ function gamePlayerMetricCard(label, value, note = null, tone = "neutral") {
 }
 
 function renderGamePlayerSpotlight(match, row, toneClass = "left") {
+  const compact = isCompactUI();
   const teamName = row?.team === "right" ? match?.teams?.right?.name : match?.teams?.left?.name;
   const teamShort = scoreboardTeamName(teamName, match?.game);
   if (!row || !teamName) {
     return `
-      <article class="game-player-spotlight ${toneClass}">
+      <article class="game-player-spotlight ${toneClass}${compact ? " compact" : ""}">
         <p class="tempo-label">${toneClass === "right" ? "Right side" : "Left side"}</p>
         <p class="meta-text">Waiting for player telemetry.</p>
       </article>
@@ -6588,7 +6594,7 @@ function renderGamePlayerSpotlight(match, row, toneClass = "left") {
   const impactLabel = Number.isFinite(row.impact) ? `Impact ${row.impact.toFixed(1)}` : "Impact n/a";
 
   return `
-    <article class="game-player-spotlight ${toneClass}">
+    <article class="game-player-spotlight ${toneClass}${compact ? " compact" : ""}">
       <div class="game-player-spotlight-head">
         <span class="game-player-spotlight-tag">${escapeHtml(teamShort)}</span>
         <span class="form-summary-pill">${escapeHtml(role.short)}</span>
@@ -6597,15 +6603,23 @@ function renderGamePlayerSpotlight(match, row, toneClass = "left") {
         <span class="game-player-spotlight-avatar">${heroIconMarkup(match, row)}</span>
         <div class="game-player-spotlight-copy">
           <h3>${escapeHtml(playerName)}</h3>
-          <p class="meta-text">${escapeHtml(heroName)} · ${escapeHtml(role.label)}</p>
+          <p class="meta-text">${escapeHtml(compact ? heroName : `${heroName} · ${role.label}`)}</p>
         </div>
       </div>
-      <div class="form-summary-strip">
+      ${
+        compact
+          ? ""
+          : `<div class="form-summary-strip">
         <span class="form-summary-pill">Gold ${formatNumber(row.goldEarned || 0)}</span>
         <span class="form-summary-pill">${kpLabel}</span>
         <span class="form-summary-pill">${impactLabel}</span>
-      </div>
-      <p class="meta-text">KDA ${row.kills || 0}/${row.deaths || 0}/${row.assists || 0} · Share ${toPercent(row.goldShare)}</p>
+      </div>`
+      }
+      <p class="meta-text">${
+        compact
+          ? `KDA ${row.kills || 0}/${row.deaths || 0}/${row.assists || 0} · Gold ${formatNumber(row.goldEarned || 0)} · ${kpLabel}`
+          : `KDA ${row.kills || 0}/${row.deaths || 0}/${row.assists || 0} · Share ${toPercent(row.goldShare)}`
+      }</p>
     </article>
   `;
 }
@@ -6629,29 +6643,33 @@ function renderGamePlayerSummary(match) {
   const kpLeader = pickBestPlayerRow(rows, (row) => Number.isFinite(row?.kp) ? row.kp : -1);
   const impactLeader = pickBestPlayerRow(rows, (row) => Number.isFinite(row?.impact) ? row.impact : -1);
   const selectedState = String(match?.selectedGame?.state || "");
+  const compact = isCompactUI();
+  const centerMetrics = [
+    gamePlayerMetricCard(
+      "Richest",
+      richest ? displayPlayerHandle(richest.name, teamNameBySide(match, richest.team)) : "n/a",
+      richest ? `${scoreboardTeamName(teamNameBySide(match, richest.team), match?.game)} · ${formatNumber(richest.goldEarned || 0)} gold` : "Waiting for player totals.",
+      richest?.team || "neutral"
+    ),
+    gamePlayerMetricCard(
+      "Best KP",
+      kpLeader && Number.isFinite(kpLeader.kp) ? `${kpLeader.kp.toFixed(1)}%` : "n/a",
+      kpLeader ? `${displayPlayerHandle(kpLeader.name, teamNameBySide(match, kpLeader.team))} · ${scoreboardTeamName(teamNameBySide(match, kpLeader.team), match?.game)}` : "Kill participation appears once team kills land.",
+      kpLeader?.team || "neutral"
+    ),
+    gamePlayerMetricCard(
+      "Impact",
+      impactLeader && Number.isFinite(impactLeader.impact) ? impactLeader.impact.toFixed(1) : "n/a",
+      impactLeader ? `${displayPlayerHandle(impactLeader.name, teamNameBySide(match, impactLeader.team))} · ${trackerHeroName(impactLeader)}` : selectedState === "inProgress" ? "Impact score building from live events." : "Impact score unavailable.",
+      impactLeader?.team || "neutral"
+    )
+  ].filter((_, index) => !compact || index !== 1);
 
   elements.gamePlayerSummaryWrap.innerHTML = `
     <div class="game-player-summary-shell">
       ${renderGamePlayerSpotlight(match, leftStandout, "left")}
-      <div class="game-player-summary-center">
-        ${gamePlayerMetricCard(
-          "Richest",
-          richest ? displayPlayerHandle(richest.name, teamNameBySide(match, richest.team)) : "n/a",
-          richest ? `${scoreboardTeamName(teamNameBySide(match, richest.team), match?.game)} · ${formatNumber(richest.goldEarned || 0)} gold` : "Waiting for player totals.",
-          richest?.team || "neutral"
-        )}
-        ${gamePlayerMetricCard(
-          "Best KP",
-          kpLeader && Number.isFinite(kpLeader.kp) ? `${kpLeader.kp.toFixed(1)}%` : "n/a",
-          kpLeader ? `${displayPlayerHandle(kpLeader.name, teamNameBySide(match, kpLeader.team))} · ${scoreboardTeamName(teamNameBySide(match, kpLeader.team), match?.game)}` : "Kill participation appears once team kills land.",
-          kpLeader?.team || "neutral"
-        )}
-        ${gamePlayerMetricCard(
-          "Impact",
-          impactLeader && Number.isFinite(impactLeader.impact) ? impactLeader.impact.toFixed(1) : "n/a",
-          impactLeader ? `${displayPlayerHandle(impactLeader.name, teamNameBySide(match, impactLeader.team))} · ${trackerHeroName(impactLeader)}` : selectedState === "inProgress" ? "Impact score building from live events." : "Impact score unavailable.",
-          impactLeader?.team || "neutral"
-        )}
+      <div class="game-player-summary-center${compact ? " compact" : ""}">
+        ${centerMetrics.join("")}
       </div>
       ${renderGamePlayerSpotlight(match, rightStandout, "right")}
     </div>
@@ -10060,26 +10078,29 @@ function renderObjectiveControl(match) {
     return;
   }
 
+  const compact = isCompactUI();
   const leftPct = Math.max(0, Math.min(100, Number(control.left?.controlPct || 0)));
   const rightPct = Math.max(0, Math.min(100, Number(control.right?.controlPct || 0)));
 
   const metrics = objectiveMetricDefinitions(match);
+  const leftShort = scoreboardTeamName(match.teams.left.name, match?.game);
+  const rightShort = scoreboardTeamName(match.teams.right.name, match?.game);
 
   elements.objectiveControlWrap.innerHTML = `
-    <article class="control-card">
+    <article class="control-card${compact ? " compact" : ""}">
       <div class="control-bar">
         <div class="left" style="width:${leftPct}%"></div>
         <div class="right" style="width:${rightPct}%"></div>
       </div>
-      <p class="meta-text">${match.teams.left.name} ${leftPct.toFixed(1)}% · ${rightPct.toFixed(1)}% ${match.teams.right.name}</p>
-      <div class="control-rows">
+      <p class="meta-text">${compact ? `${leftShort} ${leftPct.toFixed(1)}% · ${rightPct.toFixed(1)}% ${rightShort}` : `${match.teams.left.name} ${leftPct.toFixed(1)}% · ${rightPct.toFixed(1)}% ${match.teams.right.name}`}</p>
+      ${compact ? "" : `<div class="control-rows">
         ${metrics
           .map(
             (metric) =>
               `<p class="meta-text">${metric.label} ${control.left?.[metric.key] ?? 0} - ${control.right?.[metric.key] ?? 0}</p>`
           )
           .join("")}
-      </div>
+      </div>`}
     </article>
   `;
 }
@@ -10346,17 +10367,22 @@ function renderDraftBoard(match) {
 }
 
 function renderEconomyTeam(title, rows) {
+  const compact = isCompactUI();
   return `
-    <section class="economy-team">
+    <section class="economy-team${compact ? " compact" : ""}">
       <h3>${title}</h3>
       ${rows.length
         ? rows
             .map(
               (row) => `
-                <article class="economy-row">
+                <article class="economy-row${compact ? " compact" : ""}">
                   <p class="name">${row.name} · ${row.champion}</p>
-                  <p class="meta-text">${String(row.role || "flex").toUpperCase()} · KDA ${row.kills}/${row.deaths}/${row.assists} · CS ${row.cs}</p>
-                  <p class="meta-text">Gold ${formatNumber(row.goldEarned)} · GPM ${formatNumber(row.gpm)} · Items ${row.itemCount}</p>
+                  <p class="meta-text">${
+                    compact
+                      ? `${String(row.role || "flex").toUpperCase()} · KDA ${row.kills}/${row.deaths}/${row.assists} · GPM ${formatNumber(row.gpm)}`
+                      : `${String(row.role || "flex").toUpperCase()} · KDA ${row.kills}/${row.deaths}/${row.assists} · CS ${row.cs}`
+                  }</p>
+                  ${compact ? "" : `<p class="meta-text">Gold ${formatNumber(row.goldEarned)} · GPM ${formatNumber(row.gpm)} · Items ${row.itemCount}</p>`}
                 </article>
               `
             )
@@ -10369,19 +10395,20 @@ function renderEconomyTeam(title, rows) {
 function renderEconomyBoard(match) {
   const economy = match.playerEconomy;
   const totals = match.teamEconomyTotals;
+  const compact = isCompactUI();
   if (!economy) {
     elements.economyBoardWrap.innerHTML = `<div class="empty">Economy board available during active/recent games.</div>`;
     return;
   }
 
   elements.economyBoardWrap.innerHTML = `
-    ${totals ? `<article class="totals-strip">
+    ${totals && !compact ? `<article class="totals-strip">
       <p class="meta-text">${match.teams.left.name}: Gold ${formatNumber(totals.left.totalGold)} · Avg GPM ${formatNumber(totals.left.avgGpm)}</p>
       <p class="meta-text">${match.teams.right.name}: Gold ${formatNumber(totals.right.totalGold)} · Avg GPM ${formatNumber(totals.right.avgGpm)}</p>
     </article>` : ""}
     ${renderEconomyTeam(match.teams.left.name, economy.left || [])}
     ${renderEconomyTeam(match.teams.right.name, economy.right || [])}
-    <p class="meta-text">Window ${shortDuration(economy.elapsedSeconds)} · Updated ${dateTimeLabel(economy.updatedAt)}</p>
+    ${compact ? "" : `<p class="meta-text">Window ${shortDuration(economy.elapsedSeconds)} · Updated ${dateTimeLabel(economy.updatedAt)}</p>`}
   `;
 }
 
