@@ -10435,7 +10435,7 @@ function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass =
             ${compact ? "" : `<p class="meta-text">${normalizedRows.length} projected starter${normalizedRows.length === 1 ? "" : "s"}</p>`}
           </div>
         </div>
-        <span class="form-summary-pill">${compactLineupSourceLabel(source)}</span>
+        ${compact ? "" : `<span class="form-summary-pill">${compactLineupSourceLabel(source)}</span>`}
       </div>
       ${
         compact
@@ -10458,9 +10458,7 @@ function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass =
                     <p class="series-lineup-player">${escapeHtml(displayPlayerHandle(row.name, teamName))}</p>
                     ${
                       compact
-                        ? row.champion
-                          ? `<p class="meta-text">${escapeHtml(row.champion)}</p>`
-                          : ""
+                        ? ""
                         : `<p class="meta-text">${escapeHtml(`${row.champion || "Unknown"} · ${roleMeta(row.role, gameKey).label}`)}</p>`
                     }
                   </div>
@@ -10785,6 +10783,7 @@ function renderSeriesGames(match, apiBase) {
       ].filter(Boolean);
 
       if (compact) {
+        const compactAction = game.selected ? vodAction : openAction;
         return `
           <article class="series-game-card compact-card ${game.selected ? "selected" : ""} state-${stateClass(game.state)}">
             <div class="series-game-topline compact">
@@ -10807,10 +10806,7 @@ function renderSeriesGames(match, apiBase) {
                     .join("")}</div>`
                 : ""
             }
-            <div class="series-game-actions compact">
-              ${game.selected ? `<a class="series-game-open" href="${detailUrlForGame(match.id, apiBase, null)}">Series</a>` : openAction}
-              ${vodAction}
-            </div>
+            ${compactAction ? `<div class="series-game-actions compact">${compactAction}</div>` : ""}
           </article>
         `;
       }
