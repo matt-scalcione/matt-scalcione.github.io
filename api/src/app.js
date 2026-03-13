@@ -1,7 +1,6 @@
 import { readJsonBody, getUserId, truthy } from "./http/request.js";
 import { applyCorsHeaders, sendJson } from "./http/response.js";
 import { summarizeSourceUsage } from "./domain/sourcePolicy.js";
-import { primeCanonicalStore } from "./storage/canonicalStore.js";
 import {
   acknowledgeAlertOutboxItems,
   addFollow,
@@ -25,8 +24,6 @@ const slowRouteMs = Number.parseInt(process.env.API_SLOW_ROUTE_MS || "750", 10);
 const logAllRequests = String(process.env.API_LOG_REQUESTS || "").trim() === "1";
 const requestHistoryLimit = Number.parseInt(process.env.API_REQUEST_HISTORY_LIMIT || "80", 10);
 const requestHistory = [];
-
-void primeCanonicalStore();
 
 function splitPath(pathname) {
   return pathname.split("/").filter(Boolean);
