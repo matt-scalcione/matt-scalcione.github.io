@@ -154,6 +154,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Pre-Match Planner": { icon: "PM", short: "Planner" },
   "Series Story": { icon: "SR", short: "Story" },
   "Series Desk": { icon: "SD", short: "Desk" },
+  "Desk Notes": { icon: "NT", short: "Notes" },
   "Game Overview": { icon: "RC", short: "Overview" },
   "Final Game": { icon: "RC", short: "Final" },
   "Live Snapshot": { icon: "CC", short: "Snapshot" },
@@ -177,6 +178,7 @@ const MOBILE_SECTION_HEADINGS = {
   "Alerts": { icon: "AL", short: "Alerts" },
   "Risk Watch": { icon: "AL", short: "Alerts" },
   "Live Alerts": { icon: "AL", short: "Alerts" },
+  "Map Alerts": { icon: "AL", short: "Alerts" },
   "Signal Log": { icon: "SG", short: "Signals" },
   "Signals": { icon: "SG", short: "Signals" },
   "Economy Milestones": { icon: "EC", short: "Economy" },
@@ -201,6 +203,8 @@ const MOBILE_SECTION_HEADINGS = {
   "Draft Delta": { icon: "DD", short: "Draft" },
   "Lane Matchups": { icon: "LN", short: "Lanes" },
   "Role Delta": { icon: "RD", short: "Roles" },
+  "Role Matchup Deltas": { icon: "RD", short: "Roles" },
+  "Key Moments": { icon: "KM", short: "Moments" },
   "Player Delta": { icon: "PD", short: "Delta" },
   "Player Delta Panel": { icon: "PD", short: "Delta" },
   "Timeline": { icon: "TL", short: "Timeline" }
@@ -1505,7 +1509,7 @@ function applyMobileSectionHeadings() {
     elements.backLink.textContent = isCompactUI() ? "Live Desk" : "Back to Live Desk";
   }
 
-  const headings = Array.from(document.querySelectorAll(".match-page .section-head h2"));
+  const headings = Array.from(document.querySelectorAll(".match-page .section-head h2, .match-page .match-subcluster-head h3"));
   for (const heading of headings) {
     const full = heading.dataset.fullTitle || heading.textContent.trim();
     if (!heading.dataset.fullTitle) {
