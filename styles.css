@@ -16148,6 +16148,7 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     gap: 0.28rem;
   }
 
+  body.product-shell.match-page.mobile-series-mode .series-h2h-lead.compact .series-history-metrics,
   body.product-shell.match-page.mobile-series-mode .series-history-team.compact .series-history-team-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

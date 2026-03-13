@@ -8686,6 +8686,12 @@ function renderUpcomingHeadToHead(match) {
     .slice(0, compact ? 3 : h2h.lastMeetings.length)
     .map((row) => {
       const winnerName = row.winnerName || winnerLabelForH2hRow(row, match);
+      const compactWinnerLabel =
+        winnerName === match?.teams?.left?.name
+          ? scoreboardTeamName(match.teams.left.name)
+          : winnerName === match?.teams?.right?.name
+            ? scoreboardTeamName(match.teams.right.name)
+            : "TBD";
       const winnerTone =
         winnerName === match?.teams?.left?.name
           ? "win-left"
@@ -8694,6 +8700,11 @@ function renderUpcomingHeadToHead(match) {
             : "even";
       const detailId = row.detailMatchId || row.matchId || row.id || null;
       const detailLink = detailId ? `<a class="table-link" href="${detailUrlForGame(detailId, uiState.apiBase)}">Open</a>` : "";
+      const opponentLine = compact ? (row.tournament || "Meeting") : `${winnerName || "TBD"} won`;
+      const metaLine = compact
+        ? detailLink
+        : `${`<span>${row.tournament || "Unknown"}</span>`}
+            ${detailLink || `<span class="meta-text">-</span>`}`;
       return `
         <article class="series-h2h-item upcoming-h2h-card">
           <div class="series-h2h-top">
@@ -8701,13 +8712,10 @@ function renderUpcomingHeadToHead(match) {
             <span class="form-match-score">${row.scoreLabel || "n/a"}</span>
           </div>
           <div class="form-match-top">
-            <span class="series-h2h-result ${winnerTone}">${winnerName === match?.teams?.left?.name ? scoreboardTeamName(match.teams.left.name) : winnerName === match?.teams?.right?.name ? scoreboardTeamName(match.teams.right.name) : "TBD"}</span>
-            <span class="form-match-opponent">${winnerName || "TBD"} won</span>
+            <span class="series-h2h-result ${winnerTone}">${compactWinnerLabel}</span>
+            <span class="form-match-opponent">${opponentLine}</span>
           </div>
-          <div class="form-match-meta">
-            <span>${row.tournament || "Unknown"}</span>
-            ${detailLink || `<span class="meta-text">-</span>`}
-          </div>
+          ${metaLine ? `<div class="form-match-meta">${metaLine}</div>` : ""}
         </article>
       `;
     })
@@ -8751,7 +8759,7 @@ function renderUpcomingHeadToHead(match) {
         </div>
         <div class="series-history-metrics">
           ${seriesDeskMetricCard("Record", `${leftWins}-${rightWins}${draws ? `-${draws}` : ""}`, `${leftShort} vs ${rightShort}`, winnerTone)}
-          ${seriesDeskMetricCard("Meetings", String(totalMeetings), totalMeetings > h2h.lastMeetings.length ? `${h2h.lastMeetings.length} shown below` : "All sampled meetings shown", "neutral")}
+          ${compact ? "" : seriesDeskMetricCard("Meetings", String(totalMeetings), totalMeetings > h2h.lastMeetings.length ? `${h2h.lastMeetings.length} shown below` : "All sampled meetings shown", "neutral")}
           ${seriesDeskMetricCard("Last winner", lastWinnerName ? scoreboardTeamName(lastWinnerName, match?.game) : "TBD", lastMeeting?.scoreLabel || "Result pending", winnerTone)}
           ${compact ? "" : seriesDeskMetricCard("Last score", lastMeeting?.scoreLabel || "n/a", lastMeeting?.tournament || "Unknown", "neutral")}
         </div>
@@ -10441,11 +10449,13 @@ function renderSeriesLineupTeamCard(match, { teamName, rows, source, toneClass =
                   </div>
                   <div class="series-lineup-copy">
                     <p class="series-lineup-player">${escapeHtml(displayPlayerHandle(row.name, teamName))}</p>
-                    <p class="meta-text">${escapeHtml(
+                    ${
                       compact
-                        ? row.champion || roleMeta(row.role, gameKey).label
-                        : `${row.champion || "Unknown"} · ${roleMeta(row.role, gameKey).label}`
-                    )}</p>
+                        ? row.champion
+                          ? `<p class="meta-text">${escapeHtml(row.champion)}</p>`
+                          : ""
+                        : `<p class="meta-text">${escapeHtml(`${row.champion || "Unknown"} · ${roleMeta(row.role, gameKey).label}`)}</p>`
+                    }
                   </div>
                   <span class="series-lineup-role-tag">${escapeHtml(roleMeta(row.role, gameKey).short)}</span>
                 </article>
@@ -10753,7 +10763,9 @@ function renderSeriesGames(match, apiBase) {
             : `<a class="series-game-open" href="${openGameHref}">${compact ? "Open" : "Open Game"}</a>`;
       const vodAction = game.watchUrl
         ? `<a class="series-game-vod" href="${game.watchUrl}" target="_blank" rel="noreferrer">${compact ? "VOD" : "Watch VOD"}</a>`
-        : `<span class="series-game-vod disabled">No VOD</span>`;
+        : compact
+          ? ""
+          : `<span class="series-game-vod disabled">No VOD</span>`;
       const compactMeta = [
         winnerName
           ? scoreboardTeamName(winnerName, match?.game)
