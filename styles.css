@@ -15689,6 +15689,7 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
   body.product-shell.match-page .layout.detail {
     display: flex;
     flex-direction: column;
+    gap: 0.28rem;
   }
 
   body.product-shell.match-page main > .panel {
@@ -15723,18 +15724,23 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
   }
 
   body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed {
-    padding: 0.62rem 0.68rem;
-    border-radius: 0.88rem;
+    padding: 0.52rem 0.58rem;
+    border-radius: 0.8rem;
   }
 
   body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed::before {
-    left: 0.68rem;
-    right: 0.68rem;
-    opacity: 0.52;
+    left: 0.58rem;
+    right: 0.58rem;
+    opacity: 0.42;
+  }
+
+  body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed .section-head {
+    gap: 0.44rem;
+    align-items: center;
   }
 
   body.product-shell.match-page .panel.mobile-collapsible.mobile-panel-collapsed .section-head h2 {
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     line-height: 1.04;
   }
 
