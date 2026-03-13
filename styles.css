@@ -22838,18 +22838,21 @@ body.product-shell.match-page #matchGroupStats .draft-delta-summary.compact {
 
   body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head,
   body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head,
+  body.product-shell.match-page.mobile-game-mode .panel.secondary-panel[data-scope="game"] .section-head,
   body.product-shell.match-page.mobile-game-mode .match-subcluster-head {
     margin-bottom: 0.28rem;
   }
 
   body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head .meta-text,
   body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head .meta-text,
+  body.product-shell.match-page.mobile-game-mode .panel.secondary-panel[data-scope="game"] .section-head .meta-text,
   body.product-shell.match-page.mobile-game-mode .match-subcluster-head .meta-text {
     display: none;
   }
 
   body.product-shell.match-page.mobile-game-mode #liveFeedPanel .section-head h2,
   body.product-shell.match-page.mobile-game-mode #gameObjectiveTimelinePanel .section-head h2,
+  body.product-shell.match-page.mobile-game-mode .panel.secondary-panel[data-scope="game"] .section-head h2,
   body.product-shell.match-page.mobile-game-mode .match-subcluster-head h3 {
     font-size: 0.8rem;
     line-height: 1.08;

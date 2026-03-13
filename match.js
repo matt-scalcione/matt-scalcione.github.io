@@ -193,6 +193,12 @@ const MOBILE_SECTION_HEADINGS = {
   "Closing Stats": { icon: "ST", short: "Stats" },
   "Performance Leaders": { icon: "PL", short: "Leaders" },
   "Objective Forecast": { icon: "OF", short: "Forecast" },
+  "Objective Breakdown": { icon: "OB", short: "Breakdown" },
+  "Objective Runs": { icon: "OR", short: "Runs" },
+  "Draft Board": { icon: "DB", short: "Draft" },
+  "Draft Delta": { icon: "DD", short: "Draft" },
+  "Lane Matchups": { icon: "LN", short: "Lanes" },
+  "Role Delta": { icon: "RD", short: "Roles" },
   "Player Delta": { icon: "PD", short: "Delta" },
   "Player Delta Panel": { icon: "PD", short: "Delta" },
   "Timeline": { icon: "TL", short: "Timeline" }
@@ -1533,6 +1539,20 @@ function applyGameStateSectionTitles(match) {
   setPanelHeadingTitleByTargetId("teamCompareWrap", "Team Stats");
   setPanelHeadingTitleByTargetId("pulseCard", "Key Story");
   setPanelHeadingTitleByTargetId("objectiveTimelineList", "Timeline");
+  setPanelHeadingTitleByTargetId("performersWrap", "Performance Leaders");
+  setPanelHeadingTitleByTargetId("objectiveControlWrap", "Objective Control");
+  setPanelHeadingTitleByTargetId("objectiveBreakdownWrap", "Objective Breakdown");
+  setPanelHeadingTitleByTargetId("draftBoardWrap", "Draft Board");
+  setPanelHeadingTitleByTargetId("draftDeltaWrap", "Draft Delta");
+  setPanelHeadingTitleByTargetId("economyBoardWrap", "Economy");
+  setPanelHeadingTitleByTargetId("laneMatchupsWrap", "Lane Matchups");
+  setPanelHeadingTitleByTargetId("roleDeltaWrap", "Role Delta");
+  setPanelHeadingTitleByTargetId("objectiveRunsWrap", "Objective Runs");
+  setPanelHeadingTitleByTargetId("dataConfidenceWrap", "Coverage");
+  setPanelHeadingTitleByTargetId("edgeMeterWrap", "Analysis");
+  setPanelHeadingTitleByTargetId("tempoSnapshotWrap", "Pace");
+  setPanelHeadingTitleByTargetId("tacticalChecklistWrap", "Keys to Win");
+  setPanelHeadingTitleByTargetId("playerDeltaWrap", "Player Delta");
 
   if (uiState.viewMode !== "game") {
     applyMobileSectionHeadings();
