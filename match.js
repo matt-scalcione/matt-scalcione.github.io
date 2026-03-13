@@ -10746,7 +10746,7 @@ function renderSeriesGames(match, apiBase) {
         : `<span class="series-game-vod disabled">No VOD</span>`;
       const compactMeta = [
         winnerName
-          ? `Winner ${scoreboardTeamName(winnerName, match?.game)}`
+          ? scoreboardTeamName(winnerName, match?.game)
           : game.state === "completed"
             ? "Result confirmed"
             : statusNote,
@@ -10772,7 +10772,7 @@ function renderSeriesGames(match, apiBase) {
             ${
               compactMeta.length > 1
                 ? `<div class="series-game-compact-facts">${compactMeta
-                    .slice(1)
+                    .slice(1, 2)
                     .map((entry) => `<span class="series-game-compact-chip">${escapeHtml(entry)}</span>`)
                     .join("")}</div>`
                 : ""
@@ -10781,11 +10781,6 @@ function renderSeriesGames(match, apiBase) {
               ${game.selected ? `<a class="series-game-open" href="${detailUrlForGame(match.id, apiBase, null)}">Series</a>` : openAction}
               ${vodAction}
             </div>
-            ${
-              game.state === "completed" && !winnerMeta
-                ? `<p class="series-game-provider-note compact">Winner label unavailable on the series payload.</p>`
-                : ""
-            }
           </article>
         `;
       }

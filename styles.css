@@ -16101,6 +16101,11 @@ body.product-shell.match-page .panel.secondary-panel .section-head .meta-text {
     gap: 0.36rem;
   }
 
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-team-copy .meta-text,
+  body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-metric .meta-text {
+    display: none;
+  }
+
   body.product-shell.match-page.mobile-series-mode .series-stats-shell.compact .series-stats-team-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.28rem;
