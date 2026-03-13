@@ -22599,6 +22599,11 @@ body.product-shell.match-page .performer-card {
   padding: 0.74rem 0.78rem;
 }
 
+body.product-shell.match-page .performer-card.compact {
+  gap: 0.36rem;
+  padding: 0.58rem 0.62rem;
+}
+
 body.product-shell.match-page .performer-card.left {
   border-color: rgba(86, 160, 117, 0.18);
 }
@@ -22659,6 +22664,11 @@ body.product-shell.match-page #matchGroupPlayers .delta-team {
   padding: 0.72rem 0.76rem;
 }
 
+body.product-shell.match-page #matchGroupPlayers .delta-team.compact {
+  gap: 0.4rem;
+  padding: 0.58rem 0.62rem;
+}
+
 body.product-shell.match-page #matchGroupPlayers .delta-team.left {
   border-color: rgba(86, 160, 117, 0.18);
 }
@@ -22673,6 +22683,11 @@ body.product-shell.match-page #matchGroupPlayers .delta-player {
   padding: 0.58rem 0.62rem;
 }
 
+body.product-shell.match-page #matchGroupPlayers .delta-player.compact {
+  gap: 0.22rem;
+  padding: 0.48rem 0.52rem;
+}
+
 body.product-shell.match-page #matchGroupPlayers .delta-player.left {
   border-color: rgba(86, 160, 117, 0.1);
 }
@@ -22685,6 +22700,11 @@ body.product-shell.match-page #matchGroupPlayers .delta-sub,
 body.product-shell.match-page #matchGroupPlayers .delta-now,
 body.product-shell.match-page #matchGroupPlayers .delta-shift {
   color: #aab6c4;
+}
+
+body.product-shell.match-page #matchGroupStats .draft-delta-summary.compact {
+  gap: 0.16rem;
+  padding: 0.54rem 0.58rem;
 }
 
 @media (max-width: 980px) {
@@ -22724,6 +22744,11 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
 
   body.product-shell.match-page .performer-grid {
     grid-template-columns: 1fr;
+  }
+
+  body.product-shell.match-page .performer-card.compact .tempo-label,
+  body.product-shell.match-page #matchGroupPlayers .delta-team.compact .tempo-label {
+    display: none;
   }
 
   body.product-shell.match-page .game-feed-desk-grid {
@@ -22863,6 +22888,14 @@ body.product-shell.match-page #matchGroupPlayers .delta-shift {
   body.product-shell.match-page #gameSnapshotPanel .command-card.compact .meta-text,
   body.product-shell.match-page .game-feed-desk-card.compact .meta-text,
   body.product-shell.match-page .match-desk-mini-card.compact .match-desk-mini-meta {
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+
+  body.product-shell.match-page .performer-card.compact .meta-text,
+  body.product-shell.match-page #matchGroupPlayers .delta-player.compact .delta-now,
+  body.product-shell.match-page #matchGroupPlayers .delta-player.compact .delta-shift,
+  body.product-shell.match-page #matchGroupStats .draft-delta-summary.compact .meta-text {
     font-size: 0.66rem;
     line-height: 1.2;
   }

@@ -6989,7 +6989,7 @@ function renderPlayerTracker(match) {
                 const hpCompactLabel = isLiveMap ? (Number.isFinite(hpPct) ? `${Math.round(hpPct)}%` : "n/a") : "N/A";
                 const compactMetricValue = compactTrackerUsesGpm ? formatNumber(row.gpm || 0) : hpCompactLabel;
                 const compactSubline = isDota
-                  ? `<span class="tracker-player-inline-sub" title="LH/DN ${row.cs ?? 0}/${row.denies ?? 0} · XPM ${formatNumber(row.xpm || 0)}">LH/DN ${row.cs ?? 0}/${row.denies ?? 0} · XPM ${formatNumber(row.xpm || 0)}</span>`
+                  ? `<span class="tracker-player-inline-sub" title="LH/DN ${row.cs ?? 0}/${row.denies ?? 0}">LH/DN ${row.cs ?? 0}/${row.denies ?? 0}</span>`
                   : "";
                 const respawnAtTs = isDead ? respawnTargetMsForRow(row, renderNowMs) : null;
                 const respawnLabel = isLiveMap && isDead ? formatRespawnLabel(row, isDead, renderNowMs, respawnAtTs) : "";
@@ -11824,8 +11824,33 @@ function renderDraftDelta(match) {
     return;
   }
 
+  const compact = isCompactUI();
   const leftName = match.teams.left.name;
   const rightName = match.teams.right.name;
+  const leftShort = scoreboardTeamName(leftName, match?.game);
+  const rightShort = scoreboardTeamName(rightName, match?.game);
+  const changedRows = delta.rows.filter((row) => row.leftChanged || row.rightChanged);
+  if (compact) {
+    const roleSummary = changedRows.length
+      ? changedRows
+          .slice(0, 2)
+          .map((row) => String(row.role || "flex").toUpperCase())
+          .join(" · ")
+      : "No major role swaps";
+    elements.draftDeltaWrap.innerHTML = `
+      <article class="draft-delta-summary compact">
+        <p class="meta-text">Game ${delta.selectedGameNumber} vs Game ${delta.referenceGameNumber}</p>
+        <p class="meta-text">${leftShort} ${delta.leftChanges} · ${rightShort} ${delta.rightChanges} · Total ${delta.totalChanges}</p>
+      </article>
+      <div class="match-desk-mini-grid compact">
+        ${metricDeskCard(leftShort, String(delta.leftChanges), "Champion swaps", delta.leftChanges ? "left" : "neutral", { compact })}
+        ${metricDeskCard(rightShort, String(delta.rightChanges), "Champion swaps", delta.rightChanges ? "right" : "neutral", { compact })}
+        ${metricDeskCard("Biggest shift", roleSummary, changedRows.length ? `${changedRows.length} role lanes changed` : "Reference draft stayed stable", "warn", { compact })}
+      </div>
+    `;
+    return;
+  }
+
   const rows = delta.rows
     .map((row) => {
       const leftChange = row.leftChanged ? "changed" : "same";
@@ -12012,7 +12037,7 @@ function renderTopPerformers(match) {
   }
 
   const compact = isCompactUI();
-  const topRows = rows.slice(0, compact ? 4 : 6);
+  const topRows = rows.slice(0, compact ? 2 : 6);
   elements.performersWrap.innerHTML = `
     <div class="performer-grid">
       ${topRows
@@ -12025,7 +12050,7 @@ function renderTopPerformers(match) {
           const impactLabel =
             typeof player.impactScore === "number" ? `Impact ${player.impactScore.toFixed(1)}` : "Impact n/a";
           return `
-            <article class="performer-card ${escapeHtml(player.team || "neutral")}">
+            <article class="performer-card ${escapeHtml(player.team || "neutral")}${compact ? " compact" : ""}">
               <div class="performer-card-head">
                 <span class="game-player-spotlight-tag">${escapeHtml(teamShort)}</span>
                 <span class="form-summary-pill">${escapeHtml(role.short)}</span>
@@ -12034,15 +12059,23 @@ function renderTopPerformers(match) {
                 <span class="performer-card-avatar">${heroIconMarkup(match, player)}</span>
                 <div class="performer-card-copy">
                   <h3>${escapeHtml(displayPlayerHandle(player.name, teamName))}</h3>
-                  <p class="meta-text">${escapeHtml(player.champion || "Unknown")} · ${escapeHtml(role.label)}</p>
+                  <p class="meta-text">${escapeHtml(compact ? player.champion || "Unknown" : `${player.champion || "Unknown"} · ${role.label}`)}</p>
                 </div>
               </div>
-              <div class="form-summary-strip">
+              ${
+                compact
+                  ? ""
+                  : `<div class="form-summary-strip">
                 <span class="form-summary-pill">Gold ${formatNumber(player.goldEarned)}</span>
                 <span class="form-summary-pill">${kpLabel}</span>
                 <span class="form-summary-pill">${impactLabel}</span>
-              </div>
-              <p class="meta-text">KDA ${player.kills}/${player.deaths}/${player.assists} · CS ${player.cs} · ${escapeHtml(teamName)}</p>
+              </div>`
+              }
+              <p class="meta-text">${
+                compact
+                  ? `KDA ${player.kills}/${player.deaths}/${player.assists} · ${kpLabel}`
+                  : `KDA ${player.kills}/${player.deaths}/${player.assists} · CS ${player.cs} · ${escapeHtml(teamName)}`
+              }</p>
             </article>
           `;
         })
@@ -12573,6 +12606,31 @@ function renderRoleMatchupDeltas(match) {
     return;
   }
 
+  const compact = isCompactUI();
+  if (compact) {
+    const summaryRows = [...rows]
+      .sort((left, right) => Math.abs(Number(right.selectedDiff || 0)) - Math.abs(Number(left.selectedDiff || 0)))
+      .slice(0, 3);
+    elements.roleDeltaWrap.innerHTML = `
+      <div class="match-desk-mini-grid compact">
+        ${summaryRows
+          .map((row) =>
+            metricDeskCard(
+              String(row.role || "flex").toUpperCase(),
+              Number.isFinite(row.selectedDiff) ? signed(Math.round(row.selectedDiff)) : "n/a",
+              `${Number.isFinite(row.leadConversionPct) ? `${row.leadConversionPct.toFixed(1)}%` : "n/a"} conv · avg ${
+                Number.isFinite(row.avgDiff) ? signed(Math.round(row.avgDiff)) : "n/a"
+              }`,
+              roleDiffClass(row.selectedDiff) === "win-left" ? "left" : roleDiffClass(row.selectedDiff) === "win-right" ? "right" : "neutral",
+              { compact }
+            )
+          )
+          .join("")}
+      </div>
+    `;
+    return;
+  }
+
   const renderedRows = rows
     .map((row) => {
       const selectedDiff = Number.isFinite(row.selectedDiff) ? signed(Math.round(row.selectedDiff)) : "n/a";
@@ -12621,6 +12679,7 @@ function kdaLabel(now) {
 }
 
 function renderPlayerDeltaPanel(panel, match) {
+  const compact = isCompactUI();
   if (!panel || !Array.isArray(panel.players) || !panel.players.length) {
     elements.deltaWindowText.textContent =
       match.status === "live" ? "Collecting enough frames for deltas..." : "Recent deltas unavailable.";
@@ -12630,25 +12689,25 @@ function renderPlayerDeltaPanel(panel, match) {
 
   const windowSeconds = Number(panel.windowSeconds || 0);
   const windowLabel = windowSeconds < 60 ? `${windowSeconds}s` : shortDuration(windowSeconds);
-  elements.deltaWindowText.textContent = `Last ${windowLabel} · Updated ${dateTimeLabel(panel.updatedAt)}`;
+  elements.deltaWindowText.textContent = compact ? `Last ${windowLabel}` : `Last ${windowLabel} · Updated ${dateTimeLabel(panel.updatedAt)}`;
 
-  const leftPlayers = panel.players.filter((player) => player.team === "left");
-  const rightPlayers = panel.players.filter((player) => player.team === "right");
+  const leftPlayers = panel.players.filter((player) => player.team === "left").slice(0, compact ? 2 : panel.players.length);
+  const rightPlayers = panel.players.filter((player) => player.team === "right").slice(0, compact ? 2 : panel.players.length);
 
   const renderTeam = (title, rows, toneClass) => `
-    <section class="delta-team ${toneClass}">
+    <section class="delta-team ${toneClass}${compact ? " compact" : ""}">
       <div class="delta-team-head">
         <div>
           <p class="tempo-label">Player deltas</p>
           <h3>${escapeHtml(title)}</h3>
         </div>
-        <span class="form-summary-pill">${rows.length} tracked</span>
+        ${compact ? "" : `<span class="form-summary-pill">${rows.length} tracked</span>`}
       </div>
       ${rows.length
         ? rows
             .map(
               (player) => `
-                <article class="delta-player ${toneClass}">
+                <article class="delta-player ${toneClass}${compact ? " compact" : ""}">
                   <div class="delta-player-head">
                     <span class="performer-card-avatar">${heroIconMarkup(match, player)}</span>
                     <div class="delta-player-copy">
@@ -12656,13 +12715,21 @@ function renderPlayerDeltaPanel(panel, match) {
                       <p class="delta-sub">${escapeHtml(roleMeta(player.role, normalizeGameKey(match?.game)).short)} · ${escapeHtml(player.champion || "Unknown")}</p>
                     </div>
                   </div>
-                  <div class="form-summary-strip">
+                  ${
+                    compact
+                      ? ""
+                      : `<div class="form-summary-strip">
                     <span class="form-summary-pill">Gold ${signed(player.delta.goldEarned)}</span>
                     <span class="form-summary-pill">CS ${signed(player.delta.cs)}</span>
                     <span class="form-summary-pill">Lvl ${signed(player.delta.level)}</span>
                     <span class="form-summary-pill">Items ${signed(player.delta.itemCount)}</span>
-                  </div>
-                  <p class="delta-now">Now: KDA ${kdaLabel(player.now)} · L${player.now.level} · CS ${player.now.cs} · Gold ${formatNumber(player.now.goldEarned)}</p>
+                  </div>`
+                  }
+                  <p class="delta-now">${
+                    compact
+                      ? `Gold ${signed(player.delta.goldEarned)} · CS ${signed(player.delta.cs)} · Lvl ${signed(player.delta.level)}`
+                      : `Now: KDA ${kdaLabel(player.now)} · L${player.now.level} · CS ${player.now.cs} · Gold ${formatNumber(player.now.goldEarned)}`
+                  }</p>
                   <p class="delta-shift">Combat Δ K ${signed(player.delta.kills)} · D ${signed(player.delta.deaths)} · A ${signed(player.delta.assists)}</p>
                 </article>
               `
