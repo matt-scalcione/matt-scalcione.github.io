@@ -6439,6 +6439,20 @@ function renderTeamComparison(match) {
     .filter(Boolean)
     .slice(0, compact ? 3 : 6);
   const topSummary = raceChips[0] || null;
+  const compactCards = rows
+    .slice(0, 4)
+    .map((row) => {
+      const diff = row.diff === null ? "n/a" : signed(Math.round(row.diff));
+      const tone = row.diff === null ? "neutral" : row.diff > 0 ? "left" : row.diff < 0 ? "right" : "neutral";
+      return metricDeskCard(
+        row.label,
+        diff,
+        `${leftShort} ${formatMetricValue(row.key, row.left)} · ${rightShort} ${formatMetricValue(row.key, row.right)}`,
+        tone,
+        { compact }
+      );
+    })
+    .join("");
 
   elements.teamCompareWrap.innerHTML = `
     <div class="game-team-compare-desk">
@@ -6466,7 +6480,10 @@ function renderTeamComparison(match) {
             : ""
         }
       </article>
-      <div class="lane-table-wrap">
+      ${
+        compact
+          ? `<div class="match-desk-mini-grid compact">${compactCards}</div>`
+          : `<div class="lane-table-wrap">
       <table class="lane-table compare-table">
         <thead>
           <tr>
@@ -6493,7 +6510,8 @@ function renderTeamComparison(match) {
             .join("")}
         </tbody>
       </table>
-      </div>
+      </div>`
+      }
     </div>
   `;
 }
@@ -10413,9 +10431,40 @@ function renderEconomyBoard(match) {
 }
 
 function renderLaneMatchups(match) {
+  const compact = isCompactUI();
   const rows = Array.isArray(match.laneMatchups) ? match.laneMatchups : [];
   if (!rows.length) {
     elements.laneMatchupsWrap.innerHTML = `<div class="empty">Lane matchup data requires draft + economy feeds.</div>`;
+    return;
+  }
+
+  if (compact) {
+    elements.laneMatchupsWrap.innerHTML = `
+      <div class="lane-matchup-cards">
+        ${rows
+          .map((row) => {
+            const diff = signed(row.goldDiff);
+            const tone = Number(row.goldDiff || 0) > 0 ? "left" : Number(row.goldDiff || 0) < 0 ? "right" : "neutral";
+            return `
+              <article class="lane-matchup-card ${tone}">
+                <div class="lane-matchup-head">
+                  <p class="lane-matchup-role">${escapeHtml(String(row.role || "flex").toUpperCase())}</p>
+                  <span class="lane-matchup-diff ${tone}">${escapeHtml(diff)}</span>
+                </div>
+                <div class="lane-matchup-team left">
+                  <strong>${escapeHtml(row.left.player || "Player")}</strong>
+                  <p class="meta-text">${escapeHtml(`${row.left.champion || "Unknown"} · ${row.left.kda || "n/a"} · CS ${row.left.cs ?? "n/a"}`)}</p>
+                </div>
+                <div class="lane-matchup-team right">
+                  <strong>${escapeHtml(row.right.player || "Player")}</strong>
+                  <p class="meta-text">${escapeHtml(`${row.right.champion || "Unknown"} · ${row.right.kda || "n/a"} · CS ${row.right.cs ?? "n/a"}`)}</p>
+                </div>
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
     return;
   }
 

@@ -22498,6 +22498,86 @@ body.product-shell.match-page .game-team-compare-chip.warn {
   border-color: rgba(216, 138, 51, 0.18);
 }
 
+body.product-shell.match-page .lane-matchup-cards {
+  display: grid;
+  gap: 0.34rem;
+}
+
+body.product-shell.match-page .lane-matchup-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.58rem 0.62rem;
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  border-radius: 0.9rem;
+  background: linear-gradient(180deg, rgba(46, 54, 64, 0.95), rgba(37, 44, 53, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.product-shell.match-page .lane-matchup-card.left {
+  border-color: rgba(86, 160, 117, 0.16);
+}
+
+body.product-shell.match-page .lane-matchup-card.right {
+  border-color: rgba(216, 138, 51, 0.18);
+}
+
+body.product-shell.match-page .lane-matchup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.34rem;
+}
+
+body.product-shell.match-page .lane-matchup-role,
+body.product-shell.match-page .lane-matchup-team strong {
+  margin: 0;
+  color: #f2f6fb;
+}
+
+body.product-shell.match-page .lane-matchup-role {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .lane-matchup-diff {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.34rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 239, 245, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e7eef6;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .lane-matchup-diff.left {
+  border-color: rgba(86, 160, 117, 0.18);
+  color: #7bd2a0;
+}
+
+body.product-shell.match-page .lane-matchup-diff.right {
+  border-color: rgba(216, 138, 51, 0.18);
+  color: #f2bf77;
+}
+
+body.product-shell.match-page .lane-matchup-team {
+  display: grid;
+  gap: 0.08rem;
+}
+
+body.product-shell.match-page .lane-matchup-team .meta-text {
+  margin: 0;
+  color: #aab6c4;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
 body.product-shell.match-page #gameTeamComparePanel .compare-table,
 body.product-shell.match-page #matchGroupStats .lane-table,
 body.product-shell.match-page #matchGroupStats .draft-delta-table,
@@ -22924,6 +23004,15 @@ body.product-shell.match-page #matchGroupStats .draft-delta-summary.compact {
   body.product-shell.match-page #matchGroupStats .economy-row.compact .meta-text {
     font-size: 0.66rem;
     line-height: 1.2;
+  }
+
+  body.product-shell.match-page .lane-matchup-card {
+    gap: 0.24rem;
+    padding: 0.52rem 0.56rem;
+  }
+
+  body.product-shell.match-page .lane-matchup-role {
+    font-size: 0.66rem;
   }
 
   body.product-shell.match-page .trend-headline {
