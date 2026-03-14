@@ -747,18 +747,40 @@ function setDetailCacheEntry(targetMap, cacheKey, detail) {
   tryPersistProviderCacheSnapshot();
 }
 
+export function stabilizePersistedMatchDetail(previousDetail, incomingDetail) {
+  if (!incomingDetail) {
+    return previousDetail || incomingDetail;
+  }
+
+  if (!previousDetail) {
+    return incomingDetail;
+  }
+
+  const gameKey = String(incomingDetail?.game || previousDetail?.game || "").trim().toLowerCase();
+  if (gameKey !== "dota2") {
+    return incomingDetail;
+  }
+
+  const preferredDetail = preferDotaDetail(incomingDetail, previousDetail);
+  const supportingDetail = preferredDetail === incomingDetail ? previousDetail : incomingDetail;
+  return mergeDotaDetailContexts(preferredDetail, supportingDetail);
+}
+
 async function cacheAndPersistMatchDetail(targetMap, cacheKey, detail, { matchId = null, options = null } = {}) {
   if (!detail) {
     return detail;
   }
 
-  setDetailCacheEntry(targetMap, cacheKey, detail);
+  const previousDetail = targetMap.get(cacheKey)?.detail || null;
+  const stableDetail = stabilizePersistedMatchDetail(previousDetail, detail);
+
+  setDetailCacheEntry(targetMap, cacheKey, stableDetail);
   await persistCanonicalMatchDetail({
     matchId,
     options,
-    detail
+    detail: stableDetail
   });
-  return detail;
+  return stableDetail;
 }
 
 function trimProfileCacheMap(targetMap) {
@@ -4916,7 +4938,7 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
       telemetry: status === "live" ? "live_status_only" : "fallback",
       notes: [
         status === "live"
-          ? "Live status confirmed, but map telemetry is not available from the current Dota source."
+          ? "Live status confirmed, but full game detail is not available right now."
           : "OpenDota match detail unavailable; fallback summary applied."
       ]
     },
@@ -4925,8 +4947,8 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
       title: status === "live" ? "Live status confirmed" : "Fallback Summary",
       summary:
         status === "live"
-          ? "Series is live, but full Dota map telemetry is not available from the current provider."
-          : "Detailed telemetry is temporarily unavailable for this map."
+          ? "Series is live, but full game detail is not available right now."
+          : "Detailed game information is temporarily unavailable for this map."
     },
     edgeMeter: {
       left: { team: match?.teams?.left?.name || "Radiant", score: 50, drivers: ["Detailed signal unavailable"] },
@@ -4945,8 +4967,8 @@ function buildFallbackDotaDetailFromSummary(match, options = {}) {
     tacticalChecklist: [
       {
         tone: "neutral",
-        title: "Telemetry degraded",
-        detail: "Provider detail is currently unavailable for this map."
+        title: "Coverage limited",
+        detail: "Detailed game information is currently unavailable for this map."
       }
     ],
     storylines: [],
@@ -5266,7 +5288,7 @@ function buildFallbackLolDetailFromSummary(match, options = {}) {
       telemetry: status === "live" ? "summary_only" : "fallback",
       notes: [
         status === "live"
-          ? "Live series summary is available, but detailed game telemetry is currently unavailable."
+          ? "Live series summary is available, but detailed game information is currently unavailable."
           : "Riot detail is temporarily unavailable; fallback summary applied."
       ]
     },
@@ -5275,10 +5297,10 @@ function buildFallbackLolDetailFromSummary(match, options = {}) {
       title: status === "live" ? "Live summary only" : "Fallback Summary",
       summary:
         status === "live"
-          ? "Series state is live, but full per-game telemetry is temporarily unavailable."
+          ? "Series state is live, but full per-game detail is temporarily unavailable."
           : status === "completed"
-            ? "Series final is available while detailed telemetry refreshes."
-            : "Upcoming series summary is available while detailed data refreshes."
+            ? "Series final is available while detailed game information refreshes."
+            : "Upcoming series summary is available while detailed game information refreshes."
     },
     edgeMeter: {
       left: { team: match?.teams?.left?.name || "Blue side", score: 50, drivers: ["Detailed signal unavailable"] },
@@ -5288,8 +5310,8 @@ function buildFallbackLolDetailFromSummary(match, options = {}) {
     tacticalChecklist: [
       {
         tone: "neutral",
-        title: "Telemetry degraded",
-        detail: "Provider detail is currently unavailable for this series."
+        title: "Coverage limited",
+        detail: "Detailed game information is currently unavailable for this series."
       }
     ],
     storylines: [],
@@ -5329,8 +5351,8 @@ function buildFallbackLolDetailFromSummary(match, options = {}) {
       snapshot: selectedSnapshot,
       tips: [
         status === "live"
-          ? "Series state is live, but detailed map telemetry is currently unavailable."
-          : "No in-game telemetry yet for this map."
+          ? "Series state is live, but detailed map information is currently unavailable."
+          : "No in-game detail yet for this map."
       ],
       durationMinutes: selectedGame?.durationMinutes || null,
       requestedMissing: requestedGameNumber !== null && selectedGameNumber !== requestedGameNumber,

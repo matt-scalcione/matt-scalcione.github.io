@@ -5417,10 +5417,10 @@ function renderGameExplorer(match, apiBase) {
     if (compact) {
       navTitle =
         selected?.state === "inProgress"
-          ? `G${activeGameNumber} Live`
+          ? `Game ${activeGameNumber} Live`
           : selected?.state === "completed"
-            ? `G${activeGameNumber} Final`
-            : `G${activeGameNumber}`;
+            ? `Game ${activeGameNumber} Final`
+            : `Game ${activeGameNumber}`;
       navEyebrow =
         selected?.state === "inProgress"
           ? "Live map"
@@ -5442,9 +5442,6 @@ function renderGameExplorer(match, apiBase) {
       navTags.push(seriesScoreLabel, selected?.state === "completed" ? "Final" : selected?.state === "inProgress" ? "Live" : `BO${bestOf}`);
     } else {
       navTags.push(`Series ${seriesScoreLabel}`, `BO${bestOf}`);
-    }
-    if (!compact && selected?.telemetryStatus) {
-      navTags.push(compact ? String(selected.telemetryStatus).toUpperCase() : `${String(selected.telemetryStatus).toUpperCase()} telemetry`);
     }
     if (!compact && selected?.startedAt) {
       navTags.push(`Started ${compact ? dateTimeCompact(selected.startedAt) : dateTimeLabel(selected.startedAt)}`);
@@ -5940,7 +5937,6 @@ function renderGameExplorer(match, apiBase) {
   const draftPreview = inferDraftPreview(match);
   const compactStateSummary = compact && selected.state !== "inProgress";
   const selectedGameTitle = compact ? `Game ${selected.number}` : `Game ${selected.number} command`;
-  const telemetryCountsLine = `Ticker ${selected.telemetryCounts?.tickerEvents || 0} · Objective ${selected.telemetryCounts?.objectiveEvents || 0} · Bursts ${selected.telemetryCounts?.combatBursts || 0} · Milestones ${selected.telemetryCounts?.goldMilestones || 0}`;
   const startedLabel = selected.startedAt
     ? compact
       ? dateTimeCompact(selected.startedAt)
@@ -5954,8 +5950,7 @@ function renderGameExplorer(match, apiBase) {
       gameContextInfoCard("Map", `Game ${selected.number}`),
       gameContextInfoCard("Phase", draftPreview.label),
       gameContextInfoCard("Started", startedLabel),
-      gameContextInfoCard("Sides", sideLabel),
-      gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine)
+      gameContextInfoCard("Sides", sideLabel)
     ];
 
     if (selected.watchUrl) {
@@ -6023,7 +6018,7 @@ function renderGameExplorer(match, apiBase) {
     const objectives = objectiveSummary.primary.replace(/ · /g, " · ");
     const completedStory = buildCompletedGameStory(match);
     const topRows = Array.isArray(match.topPerformers) ? match.topPerformers.slice(0, compact ? 2 : 3) : [];
-    const completedResultTitle = compact ? `${winnerShort} won G${selected.number}` : `${winnerShort} won Game ${selected.number}`;
+    const completedResultTitle = `${winnerShort} won Game ${selected.number}`;
     const completedResultMeta = compact
       ? [finalKills, duration !== "n/a" ? duration : null, `Series ${match?.seriesScore?.left ?? 0}-${match?.seriesScore?.right ?? 0}`]
           .filter(Boolean)
@@ -6072,7 +6067,6 @@ function renderGameExplorer(match, apiBase) {
     ];
     if (!compact) {
       infoCards.push(gameContextInfoCard("Started", startedLabel));
-      infoCards.push(gameContextInfoCard("Telemetry", String(selected.telemetryStatus || "none").toUpperCase(), telemetryCountsLine));
     }
 
     elements.gameContextWrap.innerHTML = `
@@ -6124,7 +6118,7 @@ function renderGameExplorer(match, apiBase) {
           : `
             <div class="game-context-top">
               <p class="game-context-title">${selectedGameTitle}</p>
-              <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
+              <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${stateLabel(selected.state)}</span>
             </div>
           `
       }
@@ -6143,7 +6137,6 @@ function renderGameExplorer(match, apiBase) {
         : ""}
       ${selected.startedAt ? `<p class="meta-text">Started: ${dateTimeLabel(selected.startedAt)}</p>` : ""}
       ${sideSummary.length ? `<p class="meta-text">${sideSummary.join(" · ")}</p>` : ""}
-      ${compactStateSummary ? "" : `<p class="meta-text">${telemetryCountsLine}</p>`}
       ${selected.watchUrl ? `<a class="table-link" href="${selected.watchUrl}" target="_blank" rel="noreferrer">${compactStateSummary ? "Watch" : "Primary VOD"}</a>` : `<span class="meta-text">${compactStateSummary ? "No watch link." : "No primary VOD link."}</span>`}
       ${watchOptions.length
         ? `<div class="vod-options">${watchOptions
@@ -6849,7 +6842,7 @@ function renderGameCommandCenter(match) {
     const liveConfirmedLabel = telemetryMode === "pending" ? "Feed warming up" : "Live confirmed";
     const coverageHint = tickerEvents > 0
       ? `${tickerEvents} live signal${tickerEvents === 1 ? "" : "s"} captured so far`
-      : "Source confirms the series is live, but full map telemetry is not exposed yet.";
+      : "Source confirms the series is live, but full live map detail is not available yet.";
     const watchLabel = selected.watchUrl
       ? String(watchGuide.streamLabel || "Open stream")
       : "Watch pending";
@@ -6903,7 +6896,7 @@ function renderGameCommandCenter(match) {
         markup: createCommandCard(
           compact ? "State" : "Current State",
           liveConfirmedLabel,
-          compact ? `G${selected.number} · ${mapStateLabel}` : `Game ${selected.number} · ${mapStateLabel} · ${telemetryMode.toUpperCase()} telemetry`,
+          compact ? `Game ${selected.number} · ${mapStateLabel}` : `Game ${selected.number} · ${mapStateLabel}`,
           {
             tone: "live",
             featured: true
@@ -6993,8 +6986,8 @@ function renderGameCommandCenter(match) {
     {
       key: "state",
       markup: createCommandCard(compact ? "State" : "Map State", mapStateLabel, compact
-        ? `G${selected.number} · ${selected.telemetryStatus || "none"}`
-        : `Game ${selected.number} · ${selected.telemetryStatus || "none"} telemetry`, {
+        ? `Game ${selected.number}`
+        : `Game ${selected.number} live detail`, {
         tone: selected.state === "inProgress" ? "live" : selected.state === "completed" ? "neutral" : "warn"
       })
     },
@@ -11915,7 +11908,6 @@ function renderGameOverviewDesk(match) {
     : "TBD";
   const sideSummary = Array.isArray(selectedGame.sideSummary) ? selectedGame.sideSummary.filter(Boolean) : [];
   const sideSummaryLabel = sideSummary.length ? sideSummary.join(" · ") : "Sides pending";
-  const telemetryLabel = String(selectedGame.telemetryStatus || "none").toUpperCase();
   const focusedContext = focusedLiveEventContext(match);
   const focusedRow = focusedContext.row || focusedContext.latestRow;
   const genericFocusedRow = focusedRow && isGenericLiveStateTitle(focusedRow.title, selectedGame.number);
@@ -11988,7 +11980,6 @@ function renderGameOverviewDesk(match) {
   const heroPillValues = [
     `Game ${selectedGame.number}`,
     compact ? null : `Series ${seriesScoreLabel}`,
-    compact ? null : telemetryLabel,
     normalizeGameKey(match?.game) === "dota2" ? null : match?.patch ? `Patch ${match.patch}` : null
   ].filter(Boolean);
   const heroPills = heroPillValues
@@ -11998,7 +11989,7 @@ function renderGameOverviewDesk(match) {
 
   const facts = [];
   if (!compact) {
-    facts.push(gameOverviewFactCard("State", statusLabelText, `Telemetry ${telemetryLabel}`, toneClass));
+    facts.push(gameOverviewFactCard("State", statusLabelText, `Series ${seriesScoreLabel}`, toneClass));
   }
 
   if (status === "completed") {
@@ -12094,7 +12085,7 @@ function renderGameOverviewDesk(match) {
   const visibleFacts = compact ? facts.slice(0, 4) : facts;
   const headlineText =
     compact && status === "completed" && winnerName
-      ? `${scoreboardTeamName(winnerName, match?.game)} won G${selectedGame.number}`
+      ? `${scoreboardTeamName(winnerName, match?.game)} won Game ${selectedGame.number}`
       : headline;
   const noteText = compact ? clampSummaryText(note, 96) : note;
   const scorecardMarkup = compact
@@ -13722,12 +13713,193 @@ async function fetchMatchSnapshot({ matchId, requestedGameNumber, apiBase }) {
   return payload.data;
 }
 
+function hasMeaningfulSelectedSnapshot(snapshot) {
+  const leftKills = Number(snapshot?.left?.kills);
+  const rightKills = Number(snapshot?.right?.kills);
+  const leftGold = Number(snapshot?.left?.gold);
+  const rightGold = Number(snapshot?.right?.gold);
+
+  if (Number.isFinite(leftKills) && Number.isFinite(rightKills) && (leftKills !== 0 || rightKills !== 0)) {
+    return true;
+  }
+
+  return (
+    (Number.isFinite(leftGold) && leftGold > 0) ||
+    (Number.isFinite(rightGold) && rightGold > 0)
+  );
+}
+
+function selectedGameStabilityScore(match) {
+  const selected = match?.selectedGame;
+  if (!selected) {
+    return 0;
+  }
+
+  let score = 0;
+  if (selected.winnerTeamId) score += 10;
+  if (selected.sourceMatchId) score += 8;
+  if (Number(selected.durationMinutes || 0) > 0) score += 5;
+  if (hasMeaningfulSelectedSnapshot(selected.snapshot)) score += 6;
+  if (Array.isArray(selected.sideSummary) && selected.sideSummary.length) score += 2;
+  if (Array.isArray(selected.tips) && selected.tips.length) score += 1;
+  if (String(selected.telemetryStatus || "").toLowerCase() === "rich") score += 4;
+  if (String(selected.telemetryStatus || "").toLowerCase() === "basic") score += 2;
+  if (Array.isArray(match?.topPerformers) && match.topPerformers.length) score += 3;
+  if (Array.isArray(match?.objectiveTimeline) && match.objectiveTimeline.length) score += 2;
+  if (Array.isArray(match?.combatBursts) && match.combatBursts.length) score += 2;
+  if (Array.isArray(match?.goldMilestones) && match.goldMilestones.length) score += 1;
+  if (match?.pulseCard?.title && !/temporarily unavailable|not available right now/i.test(String(match.pulseCard.title))) score += 1;
+  return score;
+}
+
+function preserveCompletedSeriesGames(previousMatch, incomingMatch) {
+  const previousByNumber = new Map(
+    (Array.isArray(previousMatch?.seriesGames) ? previousMatch.seriesGames : [])
+      .map((game) => [Number(game?.number || 0), game])
+      .filter(([number]) => number > 0)
+  );
+
+  return (Array.isArray(incomingMatch?.seriesGames) ? incomingMatch.seriesGames : []).map((game) => {
+    const previousGame = previousByNumber.get(Number(game?.number || 0));
+    if (!previousGame || String(previousGame?.state || "") !== "completed" || String(game?.state || "") !== "completed") {
+      return game;
+    }
+
+    return {
+      ...game,
+      winnerTeamId: game?.winnerTeamId || previousGame?.winnerTeamId || null,
+      sourceMatchId: game?.sourceMatchId || previousGame?.sourceMatchId || null,
+      durationMinutes: game?.durationMinutes ?? previousGame?.durationMinutes ?? null,
+      startedAt: game?.startedAt || previousGame?.startedAt || null,
+      watchUrl: game?.watchUrl || previousGame?.watchUrl || null,
+      watchOptions:
+        Array.isArray(game?.watchOptions) && game.watchOptions.length
+          ? game.watchOptions
+          : Array.isArray(previousGame?.watchOptions)
+            ? previousGame.watchOptions
+            : []
+    };
+  });
+}
+
+function stabilizeIncomingMatchPayload(previousMatch, incomingMatch) {
+  if (!previousMatch || !incomingMatch) {
+    return incomingMatch;
+  }
+
+  if (String(previousMatch?.id || "") !== String(incomingMatch?.id || "")) {
+    return incomingMatch;
+  }
+
+  if (normalizeGameKey(incomingMatch?.game) !== "dota2") {
+    return incomingMatch;
+  }
+
+  const previousSelected = previousMatch?.selectedGame;
+  const incomingSelected = incomingMatch?.selectedGame;
+  if (
+    !previousSelected ||
+    !incomingSelected ||
+    String(previousSelected?.state || "") !== "completed" ||
+    String(incomingSelected?.state || "") !== "completed" ||
+    Number(previousSelected?.number || 0) !== Number(incomingSelected?.number || 0)
+  ) {
+    return incomingMatch;
+  }
+
+  const previousScore = selectedGameStabilityScore(previousMatch);
+  const incomingScore = selectedGameStabilityScore(incomingMatch);
+  if (previousScore <= incomingScore) {
+    return incomingMatch;
+  }
+
+  const stableSeriesGames = preserveCompletedSeriesGames(previousMatch, incomingMatch);
+  const stableSeriesGame =
+    stableSeriesGames.find((game) => Number(game?.number || 0) === Number(incomingSelected?.number || 0)) || null;
+  const stableSelectedGame = {
+    ...incomingSelected,
+    winnerTeamId: incomingSelected?.winnerTeamId || previousSelected?.winnerTeamId || stableSeriesGame?.winnerTeamId || null,
+    sourceMatchId: incomingSelected?.sourceMatchId || previousSelected?.sourceMatchId || stableSeriesGame?.sourceMatchId || null,
+    durationMinutes:
+      incomingSelected?.durationMinutes ??
+      previousSelected?.durationMinutes ??
+      stableSeriesGame?.durationMinutes ??
+      null,
+    startedAt: incomingSelected?.startedAt || previousSelected?.startedAt || stableSeriesGame?.startedAt || null,
+    snapshot: hasMeaningfulSelectedSnapshot(incomingSelected?.snapshot) ? incomingSelected.snapshot : previousSelected?.snapshot,
+    watchUrl: incomingSelected?.watchUrl || previousSelected?.watchUrl || null,
+    watchOptions:
+      Array.isArray(incomingSelected?.watchOptions) && incomingSelected.watchOptions.length
+        ? incomingSelected.watchOptions
+        : Array.isArray(previousSelected?.watchOptions)
+          ? previousSelected.watchOptions
+          : [],
+    sideSummary:
+      Array.isArray(incomingSelected?.sideSummary) && incomingSelected.sideSummary.length
+        ? incomingSelected.sideSummary
+        : Array.isArray(previousSelected?.sideSummary)
+          ? previousSelected.sideSummary
+          : [],
+    tips:
+      Array.isArray(incomingSelected?.tips) && incomingSelected.tips.length
+        ? incomingSelected.tips
+        : Array.isArray(previousSelected?.tips)
+          ? previousSelected.tips
+          : [],
+    telemetryStatus:
+      String(incomingSelected?.telemetryStatus || "").toLowerCase() !== "none"
+        ? incomingSelected.telemetryStatus
+        : previousSelected?.telemetryStatus || incomingSelected?.telemetryStatus || "none",
+    telemetryCounts:
+      Object.values(incomingSelected?.telemetryCounts || {}).some((value) => Number(value || 0) > 0)
+        ? incomingSelected.telemetryCounts
+        : previousSelected?.telemetryCounts || incomingSelected?.telemetryCounts
+  };
+
+  const stableMatch = {
+    ...incomingMatch,
+    seriesGames: stableSeriesGames,
+    selectedGame: stableSelectedGame
+  };
+
+  for (const key of [
+    "topPerformers",
+    "objectiveTimeline",
+    "objectiveControl",
+    "objectiveBreakdown",
+    "goldLeadSeries",
+    "leadTrend",
+    "playerEconomy",
+    "teamEconomyTotals",
+    "momentum",
+    "edgeMeter",
+    "tempoSnapshot",
+    "tacticalChecklist",
+    "liveTicker",
+    "combatBursts",
+    "goldMilestones",
+    "playerDeltaPanel",
+    "keyMoments",
+    "timeline",
+    "pulseCard",
+    "dataConfidence",
+    "storylines"
+  ]) {
+    stableMatch[key] = previousMatch[key] ?? stableMatch[key];
+  }
+
+  return stableMatch;
+}
+
 function renderMatchPayload(match, apiBase, source = "polling") {
-  if (uiState.match?.id && uiState.match.id !== match.id) {
+  const previousMatch = uiState.match;
+  if (previousMatch?.id && previousMatch.id !== match.id) {
     uiState.leadTrendScaleByContext = {};
     uiState.mapPulseByContext = {};
     uiState.storyFocusEventId = null;
     uiState.storyFocusUserSet = false;
+  } else {
+    match = stabilizeIncomingMatchPayload(previousMatch, match);
   }
 
   uiState.match = match;

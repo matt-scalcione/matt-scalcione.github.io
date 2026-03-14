@@ -6,7 +6,8 @@ import {
   mergeDotaDetailWithFallbackContext,
   mergeDotaDetailContexts,
   mergeDotaRowsForSurface,
-  sameDotaSeriesForAlias
+  sameDotaSeriesForAlias,
+  stabilizePersistedMatchDetail
 } from "../src/data/mockStore.js";
 
 describe("dota alias matching", () => {
@@ -427,5 +428,107 @@ describe("dota alias matching", () => {
 
     assert.strictEqual(merged, baseDetail);
     assert.ok(Date.now() - startedAt < 100);
+  });
+
+  it("preserves completed-game winners when a later live refresh is weaker", () => {
+    const previousDetail = {
+      id: "dota_od_series_1074484",
+      game: "dota2",
+      tournament: "PGL Wallachia S7 - Playoffs",
+      status: "live",
+      bestOf: 3,
+      startAt: "2026-03-14T15:00:00.000Z",
+      teams: {
+        left: { id: "7119388", name: "Team Spirit" },
+        right: { id: "2163", name: "Team Liquid" }
+      },
+      seriesScore: { left: 1, right: 1 },
+      selectedGame: {
+        number: 2,
+        state: "completed",
+        winnerTeamId: "7119388",
+        sourceMatchId: "987654321",
+        durationMinutes: 43,
+        snapshot: {
+          left: { kills: 39, gold: 122199 },
+          right: { kills: 13, gold: 71168 }
+        }
+      },
+      seriesGames: [
+        {
+          number: 1,
+          state: "completed",
+          winnerTeamId: "2163",
+          sourceMatchId: "987654320",
+          durationMinutes: 40
+        },
+        {
+          number: 2,
+          state: "completed",
+          winnerTeamId: "7119388",
+          sourceMatchId: "987654321",
+          durationMinutes: 43
+        },
+        {
+          number: 3,
+          state: "inProgress",
+          sourceMatchId: "987654322"
+        }
+      ],
+      topPerformers: [{ name: "mitaka" }]
+    };
+
+    const weakerRefresh = {
+      id: "dota_od_series_1074484",
+      game: "dota2",
+      tournament: "PGL Wallachia S7 - Playoffs",
+      status: "live",
+      bestOf: 3,
+      startAt: "2026-03-14T15:00:00.000Z",
+      teams: {
+        left: { id: "7119388", name: "Team Spirit" },
+        right: { id: "2163", name: "Team Liquid" }
+      },
+      seriesScore: { left: 1, right: 1 },
+      selectedGame: {
+        number: 2,
+        state: "completed",
+        snapshot: {
+          left: { kills: 0, gold: null },
+          right: { kills: 0, gold: null }
+        }
+      },
+      seriesGames: [
+        {
+          number: 1,
+          state: "completed",
+          winnerTeamId: "2163"
+        },
+        {
+          number: 2,
+          state: "completed"
+        },
+        {
+          number: 3,
+          state: "inProgress"
+        }
+      ],
+      topPerformers: []
+    };
+
+    const stabilized = stabilizePersistedMatchDetail(previousDetail, weakerRefresh);
+
+    assert.equal(stabilized.selectedGame?.winnerTeamId, "7119388");
+    assert.equal(stabilized.selectedGame?.sourceMatchId, "987654321");
+    assert.equal(stabilized.selectedGame?.durationMinutes, 43);
+    assert.deepEqual(stabilized.selectedGame?.snapshot, previousDetail.selectedGame.snapshot);
+    assert.equal(
+      stabilized.seriesGames?.find((game) => Number(game?.number) === 2)?.winnerTeamId,
+      "7119388"
+    );
+    assert.equal(
+      stabilized.seriesGames?.find((game) => Number(game?.number) === 2)?.sourceMatchId,
+      "987654321"
+    );
   });
 });
