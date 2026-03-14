@@ -86,15 +86,15 @@ const canonicalPrewarmTeamLimit = Math.max(
 const canonicalBackfillEnabled = String(process.env.CANONICAL_BACKFILL_ENABLED || "1").trim() !== "0";
 const canonicalBackfillMatchLimit = Math.max(
   0,
-  Number.parseInt(process.env.CANONICAL_BACKFILL_MATCH_LIMIT || "18", 10) || 18
+  Number.parseInt(process.env.CANONICAL_BACKFILL_MATCH_LIMIT || "12", 10) || 12
 );
 const canonicalBackfillTeamLimit = Math.max(
   0,
-  Number.parseInt(process.env.CANONICAL_BACKFILL_TEAM_LIMIT || "24", 10) || 24
+  Number.parseInt(process.env.CANONICAL_BACKFILL_TEAM_LIMIT || "14", 10) || 14
 );
 const canonicalBackfillConcurrency = Math.max(
   1,
-  Number.parseInt(process.env.CANONICAL_BACKFILL_CONCURRENCY || "2", 10) || 2
+  Number.parseInt(process.env.CANONICAL_BACKFILL_CONCURRENCY || "3", 10) || 3
 );
 const canonicalBackfillScheduleLookbackMs = Math.max(
   0,
