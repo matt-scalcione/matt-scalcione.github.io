@@ -85,11 +85,15 @@ const elements = {
   scheduleFilterToggle: document.querySelector("#scheduleFilterToggle"),
   scheduleFilterSummary: document.querySelector("#scheduleFilterSummary"),
   scheduleGameChips: Array.from(document.querySelectorAll("[data-game]")),
+  scheduleViewChips: Array.from(document.querySelectorAll("[data-view]")),
+  scheduleGroupChips: Array.from(document.querySelectorAll("[data-group]")),
   scheduleCustomDates: document.querySelector("#scheduleCustomDates"),
   scheduleCustomDatesToggle: document.querySelector("#scheduleCustomDatesToggle"),
   apiBaseInput: document.querySelector("#apiBaseInput"),
   slateSearchInput: document.querySelector("#slateSearchInput"),
   gameSelect: document.querySelector("#gameSelect"),
+  viewSelect: document.querySelector("#viewSelect"),
+  groupBySelect: document.querySelector("#groupBySelect"),
   dateFromInput: document.querySelector("#dateFromInput"),
   dateToInput: document.querySelector("#dateToInput"),
   scheduleRangePresets: Array.from(document.querySelectorAll("#scheduleRangePresets [data-range]")),
@@ -120,11 +124,15 @@ const scheduleDiscoveryState = {
 };
 const scheduleUiState = {
   filtersCollapsed: true,
-  customDatesExpanded: false
+  customDatesExpanded: false,
+  viewMode: "both",
+  groupBy: "tournament"
 };
 let activeLoadRequestId = 0;
 let resultsRetryHandle = null;
 const SCHEDULE_FILTER_COLLAPSE_KEY = "pulseboard.schedule.filtersCollapsed";
+const SCHEDULE_VIEW_MODES = new Set(["both", "schedule", "results"]);
+const SCHEDULE_GROUP_MODES = new Set(["tournament", "date"]);
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -638,6 +646,21 @@ function scheduleFilterGameSummary() {
   return "All games";
 }
 
+function selectedScheduleViewMode() {
+  return SCHEDULE_VIEW_MODES.has(scheduleUiState.viewMode) ? scheduleUiState.viewMode : "both";
+}
+
+function selectedScheduleGroupMode() {
+  return SCHEDULE_GROUP_MODES.has(scheduleUiState.groupBy) ? scheduleUiState.groupBy : "tournament";
+}
+
+function scheduleFilterViewSummary() {
+  const viewMode = selectedScheduleViewMode();
+  if (viewMode === "schedule") return "Schedule";
+  if (viewMode === "results") return "Results";
+  return "Both";
+}
+
 function syncScheduleGameChipState() {
   if (!Array.isArray(elements.scheduleGameChips)) {
     return;
@@ -651,11 +674,47 @@ function syncScheduleGameChipState() {
   }
 }
 
+function syncScheduleViewChipState() {
+  if (!Array.isArray(elements.scheduleViewChips)) {
+    return;
+  }
+
+  const selectedView = selectedScheduleViewMode();
+  for (const button of elements.scheduleViewChips) {
+    const buttonView = String(button.getAttribute("data-view") || "both").toLowerCase();
+    const active = buttonView === selectedView;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+
+  if (elements.viewSelect) {
+    elements.viewSelect.value = selectedView;
+  }
+}
+
+function syncScheduleGroupChipState() {
+  if (!Array.isArray(elements.scheduleGroupChips)) {
+    return;
+  }
+
+  const selectedGroup = selectedScheduleGroupMode();
+  for (const button of elements.scheduleGroupChips) {
+    const buttonGroup = String(button.getAttribute("data-group") || "tournament").toLowerCase();
+    const active = buttonGroup === selectedGroup;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+
+  if (elements.groupBySelect) {
+    elements.groupBySelect.value = selectedGroup;
+  }
+}
+
 function syncScheduleFilterSummary() {
   if (!elements.scheduleFilterSummary) {
     return;
   }
-  elements.scheduleFilterSummary.textContent = `${scheduleFilterGameSummary()} · ${scheduleFilterRangeSummary()}`;
+  elements.scheduleFilterSummary.textContent = `${scheduleFilterGameSummary()} · ${scheduleFilterRangeSummary()} · ${scheduleFilterViewSummary()}`;
 }
 
 function shouldShowCustomDates() {
@@ -755,6 +814,8 @@ function applyScheduleFilterCollapsed(collapsed, { persist = true } = {}) {
 
 function syncScheduleFilterChrome({ persist = false } = {}) {
   syncScheduleGameChipState();
+  syncScheduleViewChipState();
+  syncScheduleGroupChipState();
   syncScheduleFilterSummary();
   syncScheduleCustomDatesState();
   if (!isCompactViewport()) {
@@ -976,6 +1037,23 @@ function renderScheduleBoardRow(row, type) {
 }
 
 function renderGroupedScheduleMarkup(rows, type) {
+  if (selectedScheduleGroupMode() === "date") {
+    return groupRowsByDay(rows)
+      .map((dayGroup) => {
+        const rowsMarkup = dayGroup.rows.map((row) => renderScheduleBoardRow(row, type)).join("");
+        return `
+          <section class="schedule-day-group">
+            <div class="schedule-day-label">
+              <span>${dayGroup.label}</span>
+              <span class="schedule-day-count">${dayGroup.rows.length}</span>
+            </div>
+            <div class="schedule-day-list">${rowsMarkup}</div>
+          </section>
+        `;
+      })
+      .join("");
+  }
+
   return groupRowsByDay(rows)
     .map((dayGroup) => {
       const eventGroups = groupRowsByTournament(dayGroup.rows)
@@ -1051,12 +1129,16 @@ function renderCollectionsFromState() {
     elements.resultsTableWrap.dataset.loaded = "1";
   }
 
+  const viewMode = selectedScheduleViewMode();
+  const showSchedule = viewMode !== "results";
+  const showResults = viewMode !== "schedule";
+
   if (elements.scheduleSection) {
-    elements.scheduleSection.hidden = false;
+    elements.scheduleSection.hidden = !showSchedule;
   }
   if (elements.resultsSection) {
-    elements.resultsSection.hidden = false;
-    elements.resultsSection.classList.add("top-space");
+    elements.resultsSection.hidden = !showResults;
+    elements.resultsSection.classList.toggle("top-space", showSchedule && showResults);
   }
 }
 
@@ -1267,6 +1349,36 @@ function installEvents() {
         syncScheduleGameChipState();
         syncScheduleFilterSummary();
         loadCollections();
+      });
+    }
+  }
+  elements.viewSelect?.addEventListener("change", () => {
+    scheduleUiState.viewMode = String(elements.viewSelect.value || "both").toLowerCase();
+    syncScheduleViewChipState();
+    syncScheduleFilterSummary();
+    renderCollectionsFromState();
+  });
+  if (Array.isArray(elements.scheduleViewChips)) {
+    for (const button of elements.scheduleViewChips) {
+      button.addEventListener("click", () => {
+        scheduleUiState.viewMode = String(button.getAttribute("data-view") || "both").toLowerCase();
+        syncScheduleViewChipState();
+        syncScheduleFilterSummary();
+        renderCollectionsFromState();
+      });
+    }
+  }
+  elements.groupBySelect?.addEventListener("change", () => {
+    scheduleUiState.groupBy = String(elements.groupBySelect.value || "tournament").toLowerCase();
+    syncScheduleGroupChipState();
+    renderCollectionsFromState();
+  });
+  if (Array.isArray(elements.scheduleGroupChips)) {
+    for (const button of elements.scheduleGroupChips) {
+      button.addEventListener("click", () => {
+        scheduleUiState.groupBy = String(button.getAttribute("data-group") || "tournament").toLowerCase();
+        syncScheduleGroupChipState();
+        renderCollectionsFromState();
       });
     }
   }
