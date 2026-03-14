@@ -24690,3 +24690,411 @@ body.product-shell.match-page .series-games-race-strip.status-completed {
   border-color: rgba(216, 138, 51, 0.18);
   background: linear-gradient(180deg, rgba(53, 45, 34, 0.96), rgba(34, 29, 23, 0.99));
 }
+
+/* Match shell control refinement */
+body.product-shell.match-page .match-watch-rail {
+  gap: 0.34rem;
+}
+
+body.product-shell.match-page .match-watch-grid {
+  gap: 0.3rem;
+}
+
+body.product-shell.match-page .match-watch-chip {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.72rem;
+  padding: 0.34rem 0.42rem;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(33, 40, 49, 0.97), rgba(23, 29, 36, 0.99));
+  color: #edf2f7;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.42rem;
+  text-align: left;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 20px rgba(4, 8, 13, 0.12);
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+body.product-shell.match-page .match-watch-chip:hover {
+  border-color: rgba(216, 138, 51, 0.18);
+  transform: translateY(-1px);
+}
+
+body.product-shell.match-page .match-watch-chip.is-active {
+  border-color: rgba(84, 168, 118, 0.22);
+  background: linear-gradient(180deg, rgba(26, 51, 40, 0.97), rgba(18, 35, 28, 0.99));
+  color: #e8f7ee;
+}
+
+body.product-shell.match-page .match-watch-chip.is-pending {
+  opacity: 0.7;
+}
+
+body.product-shell.match-page .match-watch-chip-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.product-shell.match-page .match-watch-chip .team-badge {
+  width: 1.52rem;
+  height: 1.52rem;
+  border-radius: 0.48rem;
+  box-shadow: none;
+}
+
+body.product-shell.match-page .match-watch-chip-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.08rem;
+}
+
+body.product-shell.match-page .match-watch-chip-name {
+  color: inherit;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.02;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.product-shell.match-page .match-watch-chip-state {
+  color: rgba(213, 223, 232, 0.74);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.44rem;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .match-watch-chip.is-active .match-watch-chip-state {
+  color: #c7f2d3;
+}
+
+body.product-shell.match-page .match-watch-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.34rem;
+}
+
+body.product-shell.match-page .match-watchlist-link {
+  width: auto;
+  min-height: 1.78rem;
+  padding: 0.14rem 0.18rem 0.14rem 0.56rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: linear-gradient(180deg, rgba(42, 49, 59, 0.96), rgba(30, 36, 44, 0.99));
+  border-color: rgba(226, 233, 241, 0.08);
+  color: #edf2f8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .match-watchlist-link:hover {
+  border-color: rgba(216, 138, 51, 0.18);
+  background: linear-gradient(180deg, rgba(63, 55, 43, 0.96), rgba(42, 36, 29, 0.99));
+  color: #f4d8b3;
+}
+
+body.product-shell.match-page .match-watchlist-link-label {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .match-watchlist-link-count {
+  min-width: 1.18rem;
+  height: 1.18rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  color: #f3d7ad;
+  font-size: 0.54rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+body.product-shell.match-page .match-watchlist-meta {
+  color: rgba(174, 184, 197, 0.74);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+body.product-shell.match-page .match-watch-feedback {
+  padding: 0.54rem 0.68rem;
+  border-radius: 14px;
+  font-size: 0.7rem;
+  line-height: 1.32;
+}
+
+body.product-shell.match-page .game-nav-control-shell,
+body.product-shell.match-page .game-nav-control-shell.compact {
+  padding: 0.28rem;
+  border-radius: 18px;
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(12, 16, 22, 0.98), rgba(8, 11, 16, 0.99));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 24px rgba(4, 8, 13, 0.16);
+}
+
+body.product-shell.match-page .game-nav-stepper {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+  align-items: stretch;
+  gap: 0.18rem;
+}
+
+body.product-shell.match-page .game-pill-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.18rem;
+}
+
+body.product-shell.match-page .game-pill {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 1.76rem;
+  padding: 0.18rem 0.32rem;
+  border-radius: 13px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(36, 43, 53, 0.97), rgba(24, 30, 38, 0.99));
+  color: #d3dce7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .game-pill .game-pill-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.product-shell.match-page .game-pill.state-skip,
+body.product-shell.match-page .game-pill.is-disabled {
+  border-color: rgba(226, 233, 241, 0.05);
+  background: linear-gradient(180deg, rgba(24, 29, 36, 0.96), rgba(17, 21, 27, 0.98));
+  color: rgba(145, 157, 170, 0.62);
+}
+
+body.product-shell.match-page .game-pill.is-selected {
+  border-color: rgba(179, 193, 210, 0.28);
+  background: linear-gradient(180deg, rgba(63, 73, 87, 0.98), rgba(45, 54, 66, 0.99));
+  color: #f6f8fb;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 18px rgba(4, 8, 13, 0.14);
+}
+
+body.product-shell.match-page .game-pill.is-live {
+  border-color: rgba(236, 116, 99, 0.34);
+  background: linear-gradient(180deg, rgba(92, 45, 42, 0.36), rgba(60, 31, 29, 0.48));
+  color: #ffe4dd;
+}
+
+body.product-shell.match-page .game-pill.is-selected.is-live {
+  border-color: rgba(236, 116, 99, 0.42);
+  background: linear-gradient(180deg, rgba(63, 73, 87, 0.98), rgba(45, 54, 66, 0.99));
+  color: #fff4f1;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 116, 99, 0.24),
+    0 8px 18px rgba(4, 8, 13, 0.16);
+}
+
+body.product-shell.match-page .game-pill-live-indicator {
+  width: 0.92rem;
+  height: 0.92rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(236, 116, 99, 0.26);
+  background: rgba(96, 39, 36, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  flex: 0 0 auto;
+}
+
+body.product-shell.match-page .game-pill-live-dot {
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 999px;
+  background: #ffb6a7;
+  box-shadow: 0 0 0 0.12rem rgba(236, 116, 99, 0.16);
+}
+
+body.product-shell.match-page .game-step-control {
+  width: 2rem;
+  min-width: 2rem;
+  min-height: 1.76rem;
+  padding: 0;
+  border-radius: 13px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(36, 43, 53, 0.97), rgba(24, 30, 38, 0.99));
+  color: #f1cb8e;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .game-step-control:hover {
+  border-color: rgba(216, 138, 51, 0.18);
+  background: linear-gradient(180deg, rgba(65, 55, 41, 0.97), rgba(45, 38, 29, 0.99));
+}
+
+body.product-shell.match-page .game-step-control.disabled {
+  border-color: rgba(226, 233, 241, 0.05);
+  background: linear-gradient(180deg, rgba(23, 28, 35, 0.96), rgba(16, 20, 26, 0.98));
+  color: rgba(149, 161, 174, 0.46);
+}
+
+body.product-shell.match-page .game-step-control-icon {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 1.04rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateY(-0.02rem);
+}
+
+@media (max-width: 760px) {
+  body.product-shell.match-page .match-watch-rail {
+    gap: 0.28rem;
+  }
+
+  body.product-shell.match-page .match-watch-grid {
+    gap: 0.24rem;
+  }
+
+  body.product-shell.match-page .match-watch-chip {
+    min-height: 2.22rem;
+    padding: 0.3rem 0.34rem;
+    border-radius: 13px;
+    gap: 0.3rem;
+  }
+
+  body.product-shell.match-page .match-watch-chip .team-badge {
+    width: 1.34rem;
+    height: 1.34rem;
+    border-radius: 0.42rem;
+  }
+
+  body.product-shell.match-page .match-watch-chip-name {
+    font-size: 0.68rem;
+  }
+
+  body.product-shell.match-page .match-watch-chip-state {
+    font-size: 0.4rem;
+    letter-spacing: 0.12em;
+  }
+
+  body.product-shell.match-page .match-watch-tools {
+    gap: 0.26rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-link {
+    min-height: 1.58rem;
+    padding: 0.12rem 0.16rem 0.12rem 0.48rem;
+    gap: 0.32rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-link-label {
+    font-size: 0.5rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-link-count {
+    min-width: 1.02rem;
+    height: 1.02rem;
+    font-size: 0.48rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-meta {
+    display: none;
+  }
+
+  body.product-shell.match-page .match-watch-feedback {
+    padding: 0.44rem 0.54rem;
+    font-size: 0.62rem;
+  }
+
+  body.product-shell.match-page .game-nav-control-shell,
+  body.product-shell.match-page .game-nav-control-shell.compact {
+    padding: 0.22rem;
+    border-radius: 16px;
+  }
+
+  body.product-shell.match-page .game-nav-stepper {
+    grid-template-columns: 1.78rem minmax(0, 1fr) 1.78rem;
+    gap: 0.12rem;
+  }
+
+  body.product-shell.match-page .game-pill-row {
+    gap: 0.12rem;
+  }
+
+  body.product-shell.match-page .game-pill {
+    min-height: 1.56rem;
+    padding: 0.14rem 0.16rem;
+    border-radius: 12px;
+    font-size: 0.6rem;
+  }
+
+  body.product-shell.match-page .game-pill-live-indicator {
+    width: 0.84rem;
+    height: 0.84rem;
+  }
+
+  body.product-shell.match-page .game-pill-live-dot {
+    width: 0.3rem;
+    height: 0.3rem;
+  }
+
+  body.product-shell.match-page .game-step-control {
+    width: 1.78rem;
+    min-width: 1.78rem;
+    min-height: 1.56rem;
+    border-radius: 12px;
+  }
+
+  body.product-shell.match-page .game-step-control-icon {
+    font-size: 1rem;
+    transform: translateY(-0.04rem);
+  }
+}
+
+@media (max-width: 430px) {
+  body.product-shell.match-page .match-watch-chip-name {
+    font-size: 0.64rem;
+  }
+
+  body.product-shell.match-page .game-pill {
+    font-size: 0.56rem;
+  }
+}

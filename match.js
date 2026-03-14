@@ -2708,36 +2708,48 @@ function matchTeamWatchReference(match, side) {
   };
 }
 
-function watchlistTeamCountLabel(rows = []) {
-  const count = (Array.isArray(rows) ? rows : []).filter((row) => row?.entityType === "team").length;
-  if (!count) {
-    return "No teams saved";
-  }
-  return `${count} saved`;
+function watchlistTeamCount(rows = []) {
+  return (Array.isArray(rows) ? rows : []).filter((row) => row?.entityType === "team").length;
 }
 
-function buildMatchWatchControl({ side, reference, active = false, pending = false }) {
-  const eyebrow = pending ? "Updating" : active ? "Watching" : "Watch team";
+function watchlistTeamCountLabel(rows = []) {
+  const count = watchlistTeamCount(rows);
+  return count ? `${count} saved` : "No teams saved";
+}
+
+function buildMatchWatchControl({ side, reference, gameKey = "", active = false, pending = false }) {
+  const stateLabel = pending ? "Saving" : active ? "Watching" : "Watch";
   const title = escapeHtml(reference?.name || "Team");
   const fullName = escapeHtml(reference?.fullName || reference?.name || "Team");
+  const badgeMarkup = teamBadgeMarkup(
+    {
+      id: reference?.id || null,
+      name: reference?.fullName || reference?.name || "Team"
+    },
+    gameKey
+  );
   return `
     <button
       type="button"
-      class="match-watch-card${active ? " is-active" : ""}${pending ? " is-pending" : ""}"
+      class="match-watch-chip${active ? " is-active" : ""}${pending ? " is-pending" : ""}"
       data-follow-side="${escapeHtml(side)}"
       data-watch-side="${escapeHtml(side)}"
       aria-pressed="${active ? "true" : "false"}"
       aria-label="${active ? "Remove" : "Add"} ${fullName} ${active ? "from" : "to"} watchlist"
       ${pending ? "disabled" : ""}
     >
-      <span class="match-watch-card-eyebrow">${eyebrow}</span>
-      <span class="match-watch-card-title" title="${fullName}">${title}</span>
+      <span class="match-watch-chip-mark" aria-hidden="true">${badgeMarkup}</span>
+      <span class="match-watch-chip-copy">
+        <span class="match-watch-chip-name" title="${fullName}">${title}</span>
+        <span class="match-watch-chip-state">${stateLabel}</span>
+      </span>
     </button>
   `;
 }
 
 function matchWatchlistOpenControl(workspaceHref) {
   const disabled = Boolean(uiState.watchlistBusySide);
+  const count = watchlistTeamCount(uiState.watchlistRows);
   return `
     <button
       type="button"
@@ -2745,7 +2757,10 @@ function matchWatchlistOpenControl(workspaceHref) {
       data-open-watchlist="true"
       data-watchlist-href="${workspaceHref}"
       ${disabled ? "disabled" : ""}
-    >${disabled ? "Updating..." : "Open watchlist"}</button>
+    >
+      <span class="match-watchlist-link-label">${disabled ? "Updating" : "Watchlist"}</span>
+      <span class="match-watchlist-link-count">${count}</span>
+    </button>
   `;
 }
 
@@ -2820,7 +2835,6 @@ function renderMatchActionRow(match) {
       <div class="match-watch-rail single-action">
         <div class="match-watch-tools">
           ${matchWatchlistOpenControl(workspaceHref)}
-          <span class="match-watchlist-meta">${escapeHtml(watchlistTeamCountLabel(uiState.watchlistRows))}</span>
         </div>
         ${matchActionMessageMarkup()}
       </div>
@@ -2842,19 +2856,23 @@ function renderMatchActionRow(match) {
         ${buildMatchWatchControl({
           side: "left",
           reference: leftReference,
+          gameKey: match?.game || "",
           active: Boolean(leftFollow),
           pending: uiState.watchlistBusySide === "left"
         })}
         ${buildMatchWatchControl({
           side: "right",
           reference: rightReference,
+          gameKey: match?.game || "",
           active: Boolean(rightFollow),
           pending: uiState.watchlistBusySide === "right"
         })}
       </div>
       <div class="match-watch-tools">
         ${matchWatchlistOpenControl(workspaceHref)}
-        <span class="match-watchlist-meta">${escapeHtml(watchlistTeamCountLabel(uiState.watchlistRows))}</span>
+        <span class="match-watchlist-meta" title="${escapeHtml(watchlistTeamCountLabel(uiState.watchlistRows))}">
+          ${escapeHtml(watchlistTeamCountLabel(uiState.watchlistRows))}
+        </span>
       </div>
       ${matchActionMessageMarkup()}
     </div>
@@ -5299,15 +5317,22 @@ function seriesNavPillState(match) {
 }
 
 function buildGameNavPill({ href, label, state = "complete", selected = false, currentLive = false, disabled = false }) {
-  const classes = ["game-pill", gameNavPillClass(state, selected)];
+  const stateClass = gameNavPillClass(state, false);
+  const classes = ["game-pill", `state-${stateClass}`];
+  if (selected) {
+    classes.push("is-selected");
+  }
   if (currentLive) {
-    classes.push("current-live");
+    classes.push("is-live");
   }
   if (disabled) {
-    classes.push("disabled");
+    classes.push("is-disabled");
   }
 
-  const content = `${escapeHtml(label)}${currentLive ? `<span class="game-pill-live-dot" aria-hidden="true"></span>` : ""}`;
+  const content = `
+    <span class="game-pill-label">${escapeHtml(label)}</span>
+    ${currentLive ? `<span class="game-pill-live-indicator" aria-hidden="true"><span class="game-pill-live-dot"></span></span>` : ""}
+  `;
   if (disabled || !href) {
     return `<span class="${classes.join(" ")}" aria-disabled="true">${content}</span>`;
   }
