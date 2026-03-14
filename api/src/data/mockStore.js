@@ -1966,7 +1966,8 @@ async function mapWithConcurrency(items, concurrency, mapper) {
 
 async function hydrateCanonicalTargets({
   targets = {},
-  concurrency = 1
+  concurrency = 1,
+  teamProfileOptions = null
 } = {}) {
   const normalizedTargets = {
     matchTargets: Array.isArray(targets?.matchTargets) ? targets.matchTargets : [],
@@ -1991,7 +1992,10 @@ async function hydrateCanonicalTargets({
 
   const teamResults = await mapWithConcurrency(normalizedTargets.teamTargets, concurrency, async (target) => {
     try {
-      const profile = await getTeamProfile(target.teamId, target.options);
+      const profile = await getTeamProfile(target.teamId, {
+        ...(target.options || {}),
+        ...(teamProfileOptions || {})
+      });
       return {
         teamId: target.teamId,
         ok: Boolean(profile)
@@ -5094,7 +5098,14 @@ async function prewarmCanonicalEntities({ reason = "manual", providerKeys = [] }
   });
   const hydration = await hydrateCanonicalTargets({
     targets,
-    concurrency: 1
+    concurrency: 1,
+    teamProfileOptions: {
+      prefetchedCollections: {
+        liveRows,
+        scheduleRows,
+        resultsRows: resultRows
+      }
+    }
   });
 
   return {
@@ -5183,7 +5194,14 @@ export async function runCanonicalBackfill({ reason = "scheduled" } = {}) {
     });
     const hydration = await hydrateCanonicalTargets({
       targets,
-      concurrency: canonicalBackfillConcurrency
+      concurrency: canonicalBackfillConcurrency,
+      teamProfileOptions: {
+        prefetchedCollections: {
+          liveRows,
+          scheduleRows,
+          resultsRows: resultRows
+        }
+      }
     });
     const durationMs = performance.now() - startedAt;
 
@@ -5291,7 +5309,8 @@ async function buildTeamProfile(teamId, {
   opponentId,
   limit = 5,
   seedMatchId,
-  teamNameHint
+  teamNameHint,
+  prefetchedCollections = null
 } = {}) {
   const normalizedTeamId = String(teamId || "").trim();
   if (!normalizedTeamId) {
@@ -5304,29 +5323,41 @@ async function buildTeamProfile(teamId, {
   const shouldFetchExtendedLolHistory = !game || game === "lol";
   const shouldFetchExtendedDotaHistory = !game || game === "dota2";
 
-  const [baseResultsRows, scheduleRows, liveRows] = await Promise.all([
-    listResults({
-      game,
-      region: undefined,
-      dateFrom: undefined,
-      dateTo: undefined,
-      dotaTiers: undefined
-    }),
-    listSchedule({
-      game,
-      region: undefined,
-      dateFrom: undefined,
-      dateTo: undefined,
-      dotaTiers: undefined
-    }),
-    listLiveMatches({
-      game,
-      region: undefined,
-      followedOnly: false,
-      userId: null,
-      dotaTiers: undefined
-    })
-  ]);
+  const prefetchedResultsRows = Array.isArray(prefetchedCollections?.resultsRows)
+    ? prefetchedCollections.resultsRows.slice()
+    : null;
+  const prefetchedScheduleRows = Array.isArray(prefetchedCollections?.scheduleRows)
+    ? prefetchedCollections.scheduleRows.slice()
+    : null;
+  const prefetchedLiveRows = Array.isArray(prefetchedCollections?.liveRows)
+    ? prefetchedCollections.liveRows.slice()
+    : null;
+  const [baseResultsRows, scheduleRows, liveRows] =
+    prefetchedResultsRows && prefetchedScheduleRows && prefetchedLiveRows
+      ? [prefetchedResultsRows, prefetchedScheduleRows, prefetchedLiveRows]
+      : await Promise.all([
+          listResults({
+            game,
+            region: undefined,
+            dateFrom: undefined,
+            dateTo: undefined,
+            dotaTiers: undefined
+          }),
+          listSchedule({
+            game,
+            region: undefined,
+            dateFrom: undefined,
+            dateTo: undefined,
+            dotaTiers: undefined
+          }),
+          listLiveMatches({
+            game,
+            region: undefined,
+            followedOnly: false,
+            userId: null,
+            dotaTiers: undefined
+          })
+        ]);
 
   let resultsRows = baseResultsRows.slice();
   if (isProviderModeEnabled() && shouldFetchExtendedLolHistory) {
