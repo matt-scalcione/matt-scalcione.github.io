@@ -1240,8 +1240,80 @@ function sortByDateDescending(rows, key) {
   return rows.slice().sort((a, b) => Date.parse(b[key]) - Date.parse(a[key]));
 }
 
-function belongsToFollowedTeam(match, followedTeamIds) {
-  return followedTeamIds.has(match.teams.left.id) || followedTeamIds.has(match.teams.right.id);
+export function resolveCanonicalFollowTeamId(entityId, { rows = [] } = {}) {
+  const normalizedEntityId = String(entityId || "").trim();
+  if (!normalizedEntityId) {
+    return null;
+  }
+
+  if (/^(lol|dota2|unknown):(?:id|name):/i.test(normalizedEntityId)) {
+    return normalizedEntityId;
+  }
+
+  let game = /^\d+$/.test(normalizedEntityId)
+    ? "dota2"
+    : /^lol_/i.test(normalizedEntityId)
+      ? "lol"
+      : null;
+  let teamName = null;
+  const candidateRows = []
+    .concat(Array.isArray(rows) ? rows : [])
+    .concat(liveMatches, scheduleMatches, completedMatches);
+
+  for (const row of candidateRows) {
+    for (const side of ["left", "right"]) {
+      const team = row?.teams?.[side];
+      if (String(team?.id || "").trim() !== normalizedEntityId) {
+        continue;
+      }
+
+      game = game || String(row?.game || "").trim().toLowerCase() || null;
+      teamName = team?.name || teamName;
+      break;
+    }
+
+    if (teamName) {
+      break;
+    }
+  }
+
+  return canonicalTeamEntityId(normalizedEntityId, {
+    game,
+    teamNameHint: teamName
+  });
+}
+
+function hydrateFollow(follow, { rows = [] } = {}) {
+  if (!follow || follow.entityType !== "team") {
+    return follow;
+  }
+
+  return {
+    ...follow,
+    canonicalEntityId:
+      follow.canonicalEntityId ||
+      resolveCanonicalFollowTeamId(follow.entityId, {
+        rows
+      })
+  };
+}
+
+function belongsToFollowedTeam(match, followedTeamIds, followedCanonicalTeamIds = new Set()) {
+  const leftId = String(match?.teams?.left?.id || "").trim();
+  const rightId = String(match?.teams?.right?.id || "").trim();
+  const leftCanonical =
+    String(match?.identity?.teams?.left || "").trim() ||
+    canonicalMatchTeamEntityId(String(match?.game || "").trim().toLowerCase(), match?.teams?.left);
+  const rightCanonical =
+    String(match?.identity?.teams?.right || "").trim() ||
+    canonicalMatchTeamEntityId(String(match?.game || "").trim().toLowerCase(), match?.teams?.right);
+
+  return (
+    followedTeamIds.has(leftId) ||
+    followedTeamIds.has(rightId) ||
+    (leftCanonical && followedCanonicalTeamIds.has(leftCanonical)) ||
+    (rightCanonical && followedCanonicalTeamIds.has(rightCanonical))
+  );
 }
 
 function isProviderModeEnabled() {
@@ -5402,8 +5474,12 @@ export async function listLiveMatches({
     const userFollows = follows.filter(
       (follow) => follow.userId === userId && follow.entityType === "team"
     );
-    const followedTeamIds = new Set(userFollows.map((follow) => follow.entityId));
-    rows = rows.filter((match) => belongsToFollowedTeam(match, followedTeamIds));
+    const hydratedFollows = userFollows.map((follow) => hydrateFollow(follow, { rows }));
+    const followedTeamIds = new Set(hydratedFollows.map((follow) => String(follow.entityId || "").trim()).filter(Boolean));
+    const followedCanonicalTeamIds = new Set(
+      hydratedFollows.map((follow) => String(follow.canonicalEntityId || "").trim()).filter(Boolean)
+    );
+    rows = rows.filter((match) => belongsToFollowedTeam(match, followedTeamIds, followedCanonicalTeamIds));
   }
 
   return annotateRowsWithQuality(rows);
@@ -6422,19 +6498,33 @@ export async function refreshProviderCaches(providerKeys = []) {
 }
 
 export function listFollows(userId) {
-  return follows.filter((follow) => follow.userId === userId);
+  return follows
+    .filter((follow) => follow.userId === userId)
+    .map((follow) => hydrateFollow(follow));
 }
 
 export function addFollow({ userId, entityType, entityId }) {
+  const canonicalEntityId =
+    entityType === "team"
+      ? resolveCanonicalFollowTeamId(entityId)
+      : null;
   const existing = follows.find(
     (follow) =>
       follow.userId === userId &&
       follow.entityType === entityType &&
-      follow.entityId === entityId
+      (
+        follow.entityId === entityId ||
+        (entityType === "team" &&
+          canonicalEntityId &&
+          hydrateFollow(follow).canonicalEntityId === canonicalEntityId)
+      )
   );
 
   if (existing) {
-    return existing;
+    if (entityType === "team" && canonicalEntityId && !existing.canonicalEntityId) {
+      existing.canonicalEntityId = canonicalEntityId;
+    }
+    return hydrateFollow(existing);
   }
 
   const follow = {
@@ -6442,11 +6532,12 @@ export function addFollow({ userId, entityType, entityId }) {
     userId,
     entityType,
     entityId,
+    canonicalEntityId,
     createdAt: new Date().toISOString()
   };
 
   follows.push(follow);
-  return follow;
+  return hydrateFollow(follow);
 }
 
 export function deleteFollowById(followId, userId) {
@@ -6542,13 +6633,29 @@ function syncAlertOutbox(userId, alerts = [], preferences = {}) {
   return next;
 }
 
-function matchTeamFollowAgainstRow(follow, row) {
+export function matchTeamFollowAgainstRow(follow, row) {
   if (!follow || follow.entityType !== "team") {
     return false;
   }
+  const hydratedFollow = hydrateFollow(follow, {
+    rows: [row]
+  });
+  const rawEntityId = String(hydratedFollow.entityId || "").trim();
+  const canonicalEntityId = String(hydratedFollow.canonicalEntityId || "").trim();
+  const leftId = String(row?.teams?.left?.id || "").trim();
+  const rightId = String(row?.teams?.right?.id || "").trim();
+  const leftCanonical =
+    String(row?.identity?.teams?.left || "").trim() ||
+    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.left);
+  const rightCanonical =
+    String(row?.identity?.teams?.right || "").trim() ||
+    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.right);
+
   return (
-    String(row?.teams?.left?.id || "") === String(follow.entityId) ||
-    String(row?.teams?.right?.id || "") === String(follow.entityId)
+    leftId === rawEntityId ||
+    rightId === rawEntityId ||
+    (canonicalEntityId && leftCanonical === canonicalEntityId) ||
+    (canonicalEntityId && rightCanonical === canonicalEntityId)
   );
 }
 
