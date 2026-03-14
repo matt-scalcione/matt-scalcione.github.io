@@ -19362,6 +19362,26 @@ body.product-shell.match-page .series-overview-panel .meta-text {
   color: #aab6c4;
 }
 
+body.product-shell.match-page #upcomingWatchWrap .watch-row {
+  border: 1px solid rgba(233, 239, 245, 0.06);
+  border-radius: 0.94rem;
+  background: linear-gradient(180deg, rgba(53, 62, 73, 0.94), rgba(43, 51, 60, 0.96));
+  padding: 0.66rem 0.68rem;
+  gap: 0.18rem;
+}
+
+body.product-shell.match-page #upcomingWatchWrap .watch-row .table-link {
+  color: #f2f6fb;
+}
+
+body.product-shell.match-page #upcomingWatchWrap .watch-row .table-link:hover {
+  color: #f4d8b3;
+}
+
+body.product-shell.match-page #upcomingWatchWrap .watch-row .meta-text {
+  color: #aab6c4;
+}
+
 body.product-shell.match-page #seriesStoryPanel .series-header {
   display: grid;
   gap: 0.56rem;
@@ -19481,6 +19501,10 @@ body.product-shell.match-page #seriesDeskPanel .snapshot-value {
   body.product-shell.match-page .series-overview-grid .upcoming-card,
   body.product-shell.match-page .series-overview-grid .series-info-card {
     padding: 0.66rem 0.68rem;
+  }
+
+  body.product-shell.match-page #upcomingWatchWrap .watch-row {
+    padding: 0.54rem 0.58rem;
   }
 
   body.product-shell.match-page .series-overview-grid.compact .series-info-card {
