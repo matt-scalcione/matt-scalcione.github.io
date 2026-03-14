@@ -2301,6 +2301,29 @@ export function deriveTeamProfileSeedContext(teamId, {
   scheduleRows = [],
   liveRows = []
 } = {}) {
+  const context = deriveTeamProfileIdentityContext(teamId, {
+    game,
+    seedMatchId,
+    teamNameHint,
+    resultsRows,
+    scheduleRows,
+    liveRows
+  });
+
+  return {
+    teamName: context.teamName,
+    seedMatchId: context.seedMatchId
+  };
+}
+
+export function deriveTeamProfileIdentityContext(teamId, {
+  game,
+  seedMatchId,
+  teamNameHint,
+  resultsRows = [],
+  scheduleRows = [],
+  liveRows = []
+} = {}) {
   const normalizedTeamId = String(teamId || "").trim();
   const explicitSeedMatchId = String(seedMatchId || "").trim();
   const explicitTeamName = String(teamNameHint || "").trim();
@@ -2313,6 +2336,7 @@ export function deriveTeamProfileSeedContext(teamId, {
   }
 
   const discoveredNames = new Map();
+  const discoveredIds = new Set(normalizedTeamId ? [normalizedTeamId] : []);
   let discoveredSeedMatchId = "";
   const rows = dedupeRowsById(
     []
@@ -2323,23 +2347,44 @@ export function deriveTeamProfileSeedContext(teamId, {
     .slice()
     .sort((left, right) => rowRecencyMs(right) - rowRecencyMs(left));
 
-  for (const row of rows) {
-    for (const side of ["left", "right"]) {
-      const team = row?.teams?.[side];
-      if (String(team?.id || "").trim() !== normalizedTeamId) {
-        continue;
-      }
+  if (explicitTeamName) {
+    const explicitNormalizedName = normalizeTeamName(explicitTeamName);
+    if (explicitNormalizedName) {
+      discoveredNames.set(explicitNormalizedName, explicitTeamName);
+    }
+  }
 
-      const teamName = String(team?.name || "").trim();
-      if (teamName) {
-        const normalizedName = normalizeTeamName(teamName);
-        if (normalizedName && !discoveredNames.has(normalizedName)) {
-          discoveredNames.set(normalizedName, teamName);
+  let changed = true;
+  while (changed) {
+    changed = false;
+
+    for (const row of rows) {
+      for (const side of ["left", "right"]) {
+        const team = row?.teams?.[side];
+        const candidateId = String(team?.id || "").trim();
+        const candidateName = String(team?.name || "").trim();
+        const candidateNormalizedName = normalizeTeamName(candidateName);
+        const matchesAlias =
+          (candidateId && discoveredIds.has(candidateId)) ||
+          (candidateNormalizedName && discoveredNames.has(candidateNormalizedName));
+
+        if (!matchesAlias) {
+          continue;
         }
-      }
 
-      if (!discoveredSeedMatchId) {
-        discoveredSeedMatchId = String(row?.id || "").trim();
+        if (candidateId && !discoveredIds.has(candidateId)) {
+          discoveredIds.add(candidateId);
+          changed = true;
+        }
+
+        if (candidateNormalizedName && !discoveredNames.has(candidateNormalizedName)) {
+          discoveredNames.set(candidateNormalizedName, candidateName);
+          changed = true;
+        }
+
+        if (!discoveredSeedMatchId) {
+          discoveredSeedMatchId = String(row?.id || "").trim();
+        }
       }
     }
   }
@@ -2347,7 +2392,9 @@ export function deriveTeamProfileSeedContext(teamId, {
   return {
     teamName: explicitTeamName || discoveredNames.values().next().value || null,
     seedMatchId:
-      explicitSeedMatchId || discoveredSeedMatchId || inferSeedMatchIdFromTeamId(normalizedTeamId, { game }) || null
+      explicitSeedMatchId || discoveredSeedMatchId || inferSeedMatchIdFromTeamId(normalizedTeamId, { game }) || null,
+    teamIds: Array.from(discoveredIds.values()),
+    teamNames: Array.from(discoveredNames.values())
   };
 }
 
@@ -2953,34 +3000,44 @@ async function hydrateDotaScheduleRowsWithResolvedTeams(rows = []) {
   );
 }
 
-function teamSideInMatch(match, { teamId, teamName } = {}) {
-  const normalizedTeamId = String(teamId || "").trim();
-  if (normalizedTeamId && String(match?.teams?.left?.id || "") === normalizedTeamId) {
+function teamSideInMatch(match, { teamId, teamName, teamIds = [], teamNames = [] } = {}) {
+  const candidateIds = new Set(
+    [teamId]
+      .concat(Array.isArray(teamIds) ? teamIds : [])
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+  );
+  if (candidateIds.size > 0 && candidateIds.has(String(match?.teams?.left?.id || "").trim())) {
     return "left";
   }
 
-  if (normalizedTeamId && String(match?.teams?.right?.id || "") === normalizedTeamId) {
+  if (candidateIds.size > 0 && candidateIds.has(String(match?.teams?.right?.id || "").trim())) {
     return "right";
   }
 
-  const normalizedTeamName = normalizeTeamName(teamName);
-  if (!normalizedTeamName) {
+  const candidateNames = new Set(
+    [teamName]
+      .concat(Array.isArray(teamNames) ? teamNames : [])
+      .map((value) => normalizeTeamName(value))
+      .filter(Boolean)
+  );
+  if (candidateNames.size === 0) {
     return null;
   }
 
-  if (normalizeTeamName(match?.teams?.left?.name) === normalizedTeamName) {
+  if (candidateNames.has(normalizeTeamName(match?.teams?.left?.name))) {
     return "left";
   }
 
-  if (normalizeTeamName(match?.teams?.right?.name) === normalizedTeamName) {
+  if (candidateNames.has(normalizeTeamName(match?.teams?.right?.name))) {
     return "right";
   }
 
   return null;
 }
 
-function perspectiveForTeam(match, { teamId, teamName } = {}) {
-  const side = teamSideInMatch(match, { teamId, teamName });
+function perspectiveForTeam(match, { teamId, teamName, teamIds = [], teamNames = [] } = {}) {
+  const side = teamSideInMatch(match, { teamId, teamName, teamIds, teamNames });
   if (!side) {
     return null;
   }
@@ -5674,7 +5731,7 @@ async function buildTeamProfile(teamId, {
   }
 
   const scheduleUnion = [...scheduleRows, ...liveRows];
-  const seedContext = deriveTeamProfileSeedContext(normalizedTeamId, {
+  const identityContext = deriveTeamProfileIdentityContext(normalizedTeamId, {
     game,
     seedMatchId,
     teamNameHint,
@@ -5682,14 +5739,34 @@ async function buildTeamProfile(teamId, {
     scheduleRows,
     liveRows
   });
-  const resolvedSeedMatchId = String(seedContext.seedMatchId || "").trim() || null;
-  const resolvedTeamNameHint = String(seedContext.teamName || "").trim() || null;
+  const resolvedSeedMatchId = String(identityContext.seedMatchId || "").trim() || null;
+  const resolvedTeamNameHint = String(identityContext.teamName || "").trim() || null;
+  let resolvedTeamIdAliases = Array.isArray(identityContext.teamIds)
+    ? identityContext.teamIds.slice()
+    : [normalizedTeamId];
+  let resolvedTeamNameAliases = Array.isArray(identityContext.teamNames)
+    ? identityContext.teamNames.slice()
+    : [];
+  const ensureTeamNameAlias = (value) => {
+    const normalizedValue = normalizeTeamName(value);
+    if (!normalizedValue) {
+      return;
+    }
+
+    const hasAlias = resolvedTeamNameAliases.some((candidate) => normalizeTeamName(candidate) === normalizedValue);
+    if (!hasAlias) {
+      resolvedTeamNameAliases.push(String(value).trim());
+    }
+  };
+  ensureTeamNameAlias(resolvedTeamNameHint);
   const mapTeamResults = ({ teamName } = {}) =>
     resultsRows
       .map((row) =>
         perspectiveForTeam(row, {
           teamId: normalizedTeamId,
-          teamName
+          teamName,
+          teamIds: resolvedTeamIdAliases,
+          teamNames: resolvedTeamNameAliases
         })
       )
       .filter(Boolean)
@@ -5700,7 +5777,9 @@ async function buildTeamProfile(teamId, {
       .map((row) =>
         perspectiveForTeam(row, {
           teamId: normalizedTeamId,
-          teamName
+          teamName,
+          teamIds: resolvedTeamIdAliases,
+          teamNames: resolvedTeamNameAliases
         })
       )
       .filter(Boolean)
@@ -5716,16 +5795,20 @@ async function buildTeamProfile(teamId, {
 
   let teamName =
     resolvedTeamNameHint || teamResults[0]?.ownTeamName || upcoming[0]?.ownTeamName || null;
+  ensureTeamNameAlias(teamName);
 
   if (!teamName && resolvedSeedMatchId) {
     try {
       const seed = await getMatchDetail(resolvedSeedMatchId);
       const seedPerspective = perspectiveForTeam(seed, {
         teamId: normalizedTeamId,
-        teamName: resolvedTeamNameHint
+        teamName: resolvedTeamNameHint,
+        teamIds: resolvedTeamIdAliases,
+        teamNames: resolvedTeamNameAliases
       });
       if (seedPerspective?.ownTeamName) {
         teamName = seedPerspective.ownTeamName;
+        ensureTeamNameAlias(teamName);
       }
     } catch {
       // Ignore seed lookup errors and continue.
@@ -5758,11 +5841,14 @@ async function buildTeamProfile(teamId, {
       if (seed) {
         const seedPerspective = perspectiveForTeam(seed, {
           teamId: normalizedTeamId,
-          teamName: teamName || resolvedTeamNameHint
+          teamName: teamName || resolvedTeamNameHint,
+          teamIds: resolvedTeamIdAliases,
+          teamNames: resolvedTeamNameAliases
         });
         if (seedPerspective) {
           if (!teamName) {
             teamName = seedPerspective.ownTeamName || null;
+            ensureTeamNameAlias(teamName);
           }
           if (!requestedOpponentName) {
             requestedOpponentName = seedPerspective.opponentName || null;
