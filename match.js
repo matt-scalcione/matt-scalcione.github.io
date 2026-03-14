@@ -2616,10 +2616,12 @@ function followsWorkspaceUrl(apiBase) {
 
 function matchTeamWatchReference(match, side) {
   const team = match?.teams?.[side];
+  const fullName = String(team?.name || "").trim() || (side === "left" ? "Left team" : "Right team");
   return {
     id: String(team?.id || "").trim(),
     canonicalId: String(match?.identity?.teams?.[side] || "").trim(),
-    name: scoreboardTeamName(team?.name || (side === "left" ? "Left" : "Right"), match?.game)
+    name: scoreboardTeamName(fullName, match?.game),
+    fullName
   };
 }
 
@@ -2765,11 +2767,11 @@ async function addMatchTeamToWorkspace(side) {
       });
       uiState.watchlistRows = uiState.watchlistRows.filter((row) => row?.id !== existing.id);
       rememberRecentWatchlistAction("removed", existing);
-      setMatchWatchlistMessage(`Removed ${reference.name} from your watchlist.`, "neutral");
+      setMatchWatchlistMessage(`Removed ${reference.fullName || reference.name} from your watchlist.`, "neutral");
     } else {
       const savedFollow = await addTeamToWatchlist(uiState.apiBase, reference.id, {
         userId: resolveWatchlistUserId(),
-        displayName: reference.name,
+        displayName: reference.fullName || reference.name,
         game: match?.game || ""
       });
       if (savedFollow?.id) {
@@ -2780,11 +2782,11 @@ async function addMatchTeamToWorkspace(side) {
       rememberRecentWatchlistAction("added", savedFollow || {
         entityId: reference.id,
         canonicalEntityId: reference.canonicalId,
-        displayName: reference.name,
+        displayName: reference.fullName || reference.name,
         game: match?.game || ""
       });
       setMatchWatchlistMessage(
-        summarizeWatchlistFollow(savedFollow, { fallbackName: reference.name }),
+        summarizeWatchlistFollow(savedFollow, { fallbackName: reference.fullName || reference.name }),
         "success"
       );
     }
