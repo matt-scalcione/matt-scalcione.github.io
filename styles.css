@@ -27,6 +27,369 @@
   --focus-ring: 0 0 0 3px rgba(22, 108, 255, 0.14);
 }
 
+/* Final match-page mobile-first control overrides */
+body.product-shell.match-page .match-shell-actions {
+  width: 100%;
+  display: grid;
+  gap: 0.54rem;
+}
+
+body.product-shell.match-page .match-watch-rail {
+  width: 100%;
+  display: grid;
+  gap: 0.52rem;
+}
+
+body.product-shell.match-page .match-watch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.46rem;
+}
+
+body.product-shell.match-page .match-watch-card {
+  width: 100%;
+  min-width: 0;
+  min-height: 4rem;
+  padding: 0.72rem 0.82rem;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(40, 49, 58, 0.96), rgba(29, 36, 44, 0.98));
+  color: #eef3f7;
+  display: grid;
+  gap: 0.18rem;
+  text-align: left;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 24px rgba(4, 8, 13, 0.16);
+}
+
+body.product-shell.match-page .match-watch-card.is-active {
+  border-color: rgba(103, 191, 120, 0.22);
+  background: linear-gradient(180deg, rgba(31, 58, 44, 0.98), rgba(21, 43, 33, 0.99));
+  color: #e5f6e8;
+}
+
+body.product-shell.match-page .match-watch-card.is-pending {
+  opacity: 0.74;
+}
+
+body.product-shell.match-page .match-watch-card-eyebrow {
+  color: rgba(207, 217, 227, 0.72);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+body.product-shell.match-page .match-watch-card-title {
+  color: inherit;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.08;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+body.product-shell.match-page .match-watch-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.46rem;
+}
+
+body.product-shell.match-page .match-watchlist-link {
+  width: 100%;
+  justify-content: center;
+  min-height: 2.06rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(226, 233, 241, 0.08);
+  color: #edf2f8;
+}
+
+body.product-shell.match-page .match-watchlist-meta {
+  color: #aeb8c5;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+  white-space: nowrap;
+}
+
+body.product-shell.match-page .watchlist-action-note.match-watch-feedback {
+  display: block;
+  width: 100%;
+  min-height: auto;
+  padding: 0.74rem 0.9rem;
+  border-radius: 18px;
+  line-height: 1.35;
+}
+
+body.product-shell.match-page .game-nav-control-shell {
+  padding: 0.44rem;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(17, 22, 30, 0.96), rgba(11, 15, 21, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 14px 28px rgba(4, 8, 13, 0.18);
+}
+
+body.product-shell.match-page .game-nav-control-shell.compact {
+  padding: 0.36rem;
+}
+
+body.product-shell.match-page .match-detail-rail,
+body.product-shell.match-page #gameExplorerPanel,
+body.product-shell.match-page .game-nav,
+body.product-shell.match-page .game-context {
+  width: 100%;
+}
+
+body.product-shell.match-page .game-pill-row {
+  align-items: stretch;
+}
+
+body.product-shell.match-page .game-pill,
+body.product-shell.match-page .game-step-control {
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(39, 47, 58, 0.96), rgba(28, 35, 44, 0.98));
+  color: #d7e0ea;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .game-pill {
+  border-radius: 14px;
+}
+
+body.product-shell.match-page .game-step-control {
+  border-radius: 14px;
+  color: #f1c98d;
+}
+
+body.product-shell.match-page .game-step-control-icon {
+  font-size: 1.08rem;
+  line-height: 1;
+}
+
+body.product-shell.match-page .game-step-control.disabled {
+  border-color: rgba(226, 233, 241, 0.06);
+  background: linear-gradient(180deg, rgba(28, 34, 42, 0.96), rgba(20, 25, 32, 0.98));
+  color: rgba(157, 170, 184, 0.42);
+}
+
+body.product-shell.match-page .game-pill.complete,
+body.product-shell.match-page .game-pill.upcoming {
+  color: #d7e0ea;
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(39, 47, 58, 0.96), rgba(28, 35, 44, 0.98));
+}
+
+body.product-shell.match-page .game-pill.live,
+body.product-shell.match-page .game-pill.current-live {
+  border-color: rgba(245, 107, 68, 0.34);
+  background: linear-gradient(180deg, rgba(78, 33, 28, 0.98), rgba(57, 23, 20, 0.99));
+  color: #ffd3c8;
+}
+
+body.product-shell.match-page .game-pill.selected {
+  border-color: rgba(236, 198, 136, 0.38);
+  background: linear-gradient(180deg, rgba(242, 236, 226, 0.98), rgba(225, 214, 196, 0.98));
+  color: #243140;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    0 10px 18px rgba(5, 8, 12, 0.16);
+}
+
+body.product-shell.match-page .game-pill.selected.current-live,
+body.product-shell.match-page .game-pill.selected.live {
+  border-color: rgba(245, 107, 68, 0.38);
+  background: linear-gradient(180deg, rgba(104, 41, 33, 0.98), rgba(78, 30, 25, 0.99));
+  color: #fff0eb;
+}
+
+body.product-shell.match-page .game-pill.skip,
+body.product-shell.match-page .game-pill.disabled {
+  color: #8e9baa;
+  border-color: rgba(226, 233, 241, 0.06);
+  background: linear-gradient(180deg, rgba(29, 35, 42, 0.96), rgba(21, 26, 32, 0.98));
+}
+
+body.product-shell.match-page .game-context-info-card,
+body.product-shell.match-page .completed-result-banner,
+body.product-shell.match-page .completed-story-card,
+body.product-shell.match-page .completed-spotlight-card,
+body.product-shell.match-page .recap-note,
+body.product-shell.match-page .series-info-card {
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(19, 24, 31, 0.96), rgba(13, 18, 24, 0.98));
+}
+
+body.product-shell.match-page .series-context-hero {
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(24, 31, 39, 0.98), rgba(16, 21, 28, 0.99));
+}
+
+body.product-shell.match-page .series-context-hero.live {
+  border-color: rgba(245, 107, 68, 0.18);
+  background:
+    radial-gradient(circle at 85% 18%, rgba(245, 107, 68, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(24, 31, 39, 0.98), rgba(16, 21, 28, 0.99));
+}
+
+body.product-shell.match-page .series-context-hero.result {
+  border-color: rgba(226, 233, 241, 0.08);
+  background:
+    radial-gradient(circle at 14% 18%, rgba(236, 198, 136, 0.1), transparent 32%),
+    linear-gradient(180deg, rgba(24, 31, 39, 0.98), rgba(16, 21, 28, 0.99));
+}
+
+body.product-shell.match-page .series-context-team,
+body.product-shell.match-page .series-context-vs,
+body.product-shell.match-page .series-context-fullname,
+body.product-shell.match-page .series-context-kicker,
+body.product-shell.match-page .series-context-countdown,
+body.product-shell.match-page .series-info-card .tempo-value {
+  color: #eef3f7;
+}
+
+body.product-shell.match-page .draft-phase-banner {
+  border-color: rgba(216, 138, 51, 0.18);
+  background: linear-gradient(180deg, rgba(58, 43, 24, 0.96), rgba(39, 30, 18, 0.98));
+}
+
+body.product-shell.match-page .draft-phase-banner.pending {
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(31, 37, 45, 0.96), rgba(22, 27, 34, 0.98));
+}
+
+body.product-shell.match-page .game-context-card .game-context-title,
+body.product-shell.match-page .draft-phase-title,
+body.product-shell.match-page .completed-result-title,
+body.product-shell.match-page .completed-story-title {
+  color: #eef3f7;
+}
+
+body.product-shell.match-page .draft-phase-kicker,
+body.product-shell.match-page .completed-result-kicker {
+  color: #f5d19f;
+}
+
+body.product-shell.match-page .draft-phase-banner.pending .draft-phase-kicker {
+  color: #b7c1cc;
+}
+
+body.product-shell.match-page .draft-phase-detail,
+body.product-shell.match-page .game-context-card .meta-text,
+body.product-shell.match-page .completed-result-banner .meta-text,
+body.product-shell.match-page .completed-story-card .meta-text,
+body.product-shell.match-page .recap-note .meta-text {
+  color: #b7c1cc;
+}
+
+@media (max-width: 760px) {
+  body.product-shell.match-page .match-detail-rail,
+  body.product-shell.match-page .match-detail-content,
+  body.product-shell.match-page #gameExplorerPanel {
+    width: 100%;
+    max-width: none;
+  }
+
+  body.product-shell.match-page .match-shell-actions {
+    gap: 0.42rem;
+  }
+
+  body.product-shell.match-page .match-watch-grid {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page .match-watch-card {
+    min-height: 3.26rem;
+    padding: 0.58rem 0.62rem;
+    border-radius: 14px;
+  }
+
+  body.product-shell.match-page .match-watch-card-eyebrow {
+    font-size: 0.48rem;
+    letter-spacing: 0.14em;
+  }
+
+  body.product-shell.match-page .match-watch-card-title {
+    font-size: 0.8rem;
+    line-height: 1.08;
+  }
+
+  body.product-shell.match-page .match-watch-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-link {
+    min-height: 1.82rem;
+    padding-inline: 0.48rem;
+    border-radius: 12px;
+    font-size: 0.58rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-meta {
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page .watchlist-action-note.match-watch-feedback {
+    padding: 0.56rem 0.64rem;
+    border-radius: 14px;
+    font-size: 0.68rem;
+  }
+
+  body.product-shell.match-page .game-nav-control-shell {
+    padding: 0.28rem;
+    border-radius: 16px;
+  }
+
+  body.product-shell.match-page .game-nav-control-shell.compact {
+    padding: 0.24rem;
+  }
+
+  body.product-shell.match-page .game-nav-stepper {
+    gap: 0.16rem;
+  }
+
+  body.product-shell.match-page .game-nav-stepper .game-pill-row {
+    gap: 0.16rem;
+  }
+
+  body.product-shell.match-page .game-pill,
+  body.product-shell.match-page .game-step-control {
+    min-height: 1.6rem;
+    border-radius: 12px;
+  }
+
+  body.product-shell.match-page .game-pill {
+    padding: 0.18rem 0.16rem;
+    font-size: 0.62rem;
+  }
+
+  body.product-shell.match-page .game-step-control {
+    min-width: 1.9rem;
+  }
+
+  body.product-shell.match-page .game-step-control-icon {
+    font-size: 0.96rem;
+  }
+}
+
+@media (max-width: 430px) {
+  body.product-shell.match-page .match-watch-card-title {
+    font-size: 0.74rem;
+  }
+}
+
 *,
 *::before,
 *::after {
@@ -3711,6 +4074,13 @@ button.ghost,
   flex-wrap: wrap;
 }
 
+.game-nav-control-shell {
+  padding: 0.42rem;
+  border: 1px solid rgba(18, 48, 70, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
 .game-pill {
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -3753,6 +4123,11 @@ button.ghost,
   background: rgba(255, 255, 255, 0.9);
   color: var(--accent-strong);
   font-family: "Archivo Black", "Impact", sans-serif;
+}
+
+.game-step-control-icon {
+  font-size: 1.08rem;
+  line-height: 1;
 }
 
 .game-step-control.disabled {
@@ -12118,6 +12493,229 @@ body.product-shell .match-quick-nav {
   }
 }
 
+/* Match center control-system pass */
+body.product-shell.match-page .game-nav-control-shell {
+  padding: 0.44rem;
+  border-color: rgba(226, 233, 241, 0.08);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(17, 22, 30, 0.96), rgba(11, 15, 21, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 14px 28px rgba(4, 8, 13, 0.18);
+}
+
+body.product-shell.match-page .game-nav-control-shell.compact {
+  padding: 0.36rem;
+}
+
+body.product-shell.match-page .game-pill-row {
+  align-items: stretch;
+}
+
+body.product-shell.match-page .game-pill,
+body.product-shell.match-page .game-step-control {
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(39, 47, 58, 0.96), rgba(28, 35, 44, 0.98));
+  color: #d7e0ea;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body.product-shell.match-page .game-pill {
+  border-radius: 14px;
+  padding: 0.28rem 0.74rem;
+}
+
+body.product-shell.match-page .game-step-control {
+  border-radius: 14px;
+  color: #f1c98d;
+}
+
+body.product-shell.match-page .game-step-control.disabled {
+  border-color: rgba(226, 233, 241, 0.06);
+  background: linear-gradient(180deg, rgba(28, 34, 42, 0.96), rgba(20, 25, 32, 0.98));
+  color: rgba(157, 170, 184, 0.42);
+}
+
+body.product-shell.match-page .game-pill.complete,
+body.product-shell.match-page .game-pill.upcoming {
+  color: #d7e0ea;
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(39, 47, 58, 0.96), rgba(28, 35, 44, 0.98));
+}
+
+body.product-shell.match-page .game-pill.live,
+body.product-shell.match-page .game-pill.current-live {
+  border-color: rgba(245, 107, 68, 0.34);
+  background: linear-gradient(180deg, rgba(78, 33, 28, 0.98), rgba(57, 23, 20, 0.99));
+  color: #ffd3c8;
+}
+
+body.product-shell.match-page .game-pill.selected {
+  border-color: rgba(236, 198, 136, 0.38);
+  background: linear-gradient(180deg, rgba(242, 236, 226, 0.98), rgba(225, 214, 196, 0.98));
+  color: #243140;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    0 10px 18px rgba(5, 8, 12, 0.16);
+}
+
+body.product-shell.match-page .game-pill.selected.current-live,
+body.product-shell.match-page .game-pill.selected.live {
+  border-color: rgba(245, 107, 68, 0.38);
+  background: linear-gradient(180deg, rgba(104, 41, 33, 0.98), rgba(78, 30, 25, 0.99));
+  color: #fff0eb;
+}
+
+body.product-shell.match-page .game-pill.skip,
+body.product-shell.match-page .game-pill.disabled {
+  color: #8e9baa;
+  border-color: rgba(226, 233, 241, 0.06);
+  background: linear-gradient(180deg, rgba(29, 35, 42, 0.96), rgba(21, 26, 32, 0.98));
+}
+
+body.product-shell.match-page .game-context-card .game-context-title,
+body.product-shell.match-page .draft-phase-title,
+body.product-shell.match-page .completed-result-title,
+body.product-shell.match-page .completed-story-title,
+body.product-shell.match-page .series-final-side-name,
+body.product-shell.match-page .series-final-center-meta {
+  color: #eef3f7;
+}
+
+body.product-shell.match-page .game-context-info-card,
+body.product-shell.match-page .completed-result-banner,
+body.product-shell.match-page .completed-story-card,
+body.product-shell.match-page .completed-spotlight-card,
+body.product-shell.match-page .recap-note {
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(19, 24, 31, 0.96), rgba(13, 18, 24, 0.98));
+}
+
+body.product-shell.match-page .draft-phase-banner {
+  border-color: rgba(216, 138, 51, 0.18);
+  background: linear-gradient(180deg, rgba(58, 43, 24, 0.96), rgba(39, 30, 18, 0.98));
+}
+
+body.product-shell.match-page .draft-phase-banner.pending {
+  border-color: rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(31, 37, 45, 0.96), rgba(22, 27, 34, 0.98));
+}
+
+body.product-shell.match-page .draft-phase-kicker,
+body.product-shell.match-page .completed-result-kicker {
+  color: #f5d19f;
+}
+
+body.product-shell.match-page .draft-phase-banner.pending .draft-phase-kicker {
+  color: #b7c1cc;
+}
+
+body.product-shell.match-page .draft-phase-detail,
+body.product-shell.match-page .game-context-card .meta-text,
+body.product-shell.match-page .completed-result-banner .meta-text,
+body.product-shell.match-page .completed-story-card .meta-text,
+body.product-shell.match-page .recap-note .meta-text {
+  color: #b7c1cc;
+}
+
+@media (max-width: 760px) {
+  body.product-shell.match-page .match-shell-actions {
+    gap: 0.42rem;
+  }
+
+  body.product-shell.match-page .match-watch-grid {
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page .match-watch-card {
+    min-height: 3.26rem;
+    padding: 0.58rem 0.62rem;
+    border-radius: 14px;
+  }
+
+  body.product-shell.match-page .match-watch-card-eyebrow {
+    font-size: 0.48rem;
+    letter-spacing: 0.14em;
+  }
+
+  body.product-shell.match-page .match-watch-card-title {
+    font-size: 0.8rem;
+    line-height: 1.08;
+  }
+
+  body.product-shell.match-page .match-watch-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.34rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-link {
+    min-height: 1.82rem;
+    padding-inline: 0.48rem;
+    border-radius: 12px;
+    font-size: 0.58rem;
+  }
+
+  body.product-shell.match-page .match-watchlist-meta {
+    font-size: 0.54rem;
+  }
+
+  body.product-shell.match-page .match-watch-feedback {
+    padding: 0.56rem 0.64rem;
+    border-radius: 14px;
+    font-size: 0.68rem;
+  }
+
+  body.product-shell.match-page .game-nav-control-shell {
+    padding: 0.28rem;
+    border-radius: 16px;
+  }
+
+  body.product-shell.match-page .game-nav-control-shell.compact {
+    padding: 0.24rem;
+  }
+
+  body.product-shell.match-page .game-nav-stepper {
+    gap: 0.16rem;
+  }
+
+  body.product-shell.match-page .game-nav-stepper .game-pill-row {
+    gap: 0.16rem;
+  }
+
+  body.product-shell.match-page .game-nav-stepper .game-pill {
+    border-radius: 12px;
+  }
+
+  body.product-shell.match-page .game-pill,
+  body.product-shell.match-page .game-step-control {
+    min-height: 1.6rem;
+    border-radius: 12px;
+  }
+
+  body.product-shell.match-page .game-pill {
+    padding: 0.18rem 0.16rem;
+    font-size: 0.62rem;
+  }
+
+  body.product-shell.match-page .game-step-control {
+    min-width: 1.9rem;
+  }
+
+  body.product-shell.match-page .game-step-control-icon {
+    font-size: 0.96rem;
+  }
+}
+
+@media (max-width: 430px) {
+  body.product-shell.match-page .match-watch-tools {
+    grid-template-columns: 1fr auto;
+  }
+
+  body.product-shell.match-page .match-watch-card-title {
+    font-size: 0.74rem;
+  }
+}
+
 @keyframes reveal {
   from {
     opacity: 0;
@@ -17955,6 +18553,125 @@ body.product-shell.team-page #teamQuickJump {
   flex-wrap: wrap;
   gap: 0.46rem;
   margin-top: 0.78rem;
+}
+
+body.product-shell.match-page .match-shell-actions {
+  width: 100%;
+  display: grid;
+  gap: 0.54rem;
+}
+
+body.product-shell.match-page .match-watch-rail {
+  width: 100%;
+  display: grid;
+  gap: 0.52rem;
+}
+
+body.product-shell.match-page .match-watch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.46rem;
+}
+
+body.product-shell.match-page .match-watch-card {
+  width: 100%;
+  min-width: 0;
+  min-height: 4rem;
+  padding: 0.72rem 0.82rem;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: linear-gradient(180deg, rgba(40, 49, 58, 0.96), rgba(29, 36, 44, 0.98));
+  color: #eef3f7;
+  display: grid;
+  gap: 0.18rem;
+  text-align: left;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 24px rgba(4, 8, 13, 0.16);
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+
+body.product-shell.match-page .match-watch-card:hover {
+  border-color: rgba(216, 138, 51, 0.18);
+  transform: translateY(-1px);
+}
+
+body.product-shell.match-page .match-watch-card.is-active {
+  border-color: rgba(103, 191, 120, 0.22);
+  background: linear-gradient(180deg, rgba(31, 58, 44, 0.98), rgba(21, 43, 33, 0.99));
+  color: #e5f6e8;
+}
+
+body.product-shell.match-page .match-watch-card.is-pending {
+  opacity: 0.74;
+}
+
+body.product-shell.match-page .match-watch-card-eyebrow {
+  color: rgba(207, 217, 227, 0.72);
+  font-family: "Archivo Black", "Impact", sans-serif;
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+body.product-shell.match-page .match-watch-card-title {
+  color: inherit;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.08;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+body.product-shell.match-page .match-watch-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.46rem;
+}
+
+body.product-shell.match-page .match-watchlist-link {
+  width: 100%;
+  justify-content: center;
+  min-height: 2.06rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(226, 233, 241, 0.08);
+  color: #edf2f8;
+}
+
+body.product-shell.match-page .match-watchlist-link:hover {
+  border-color: rgba(216, 138, 51, 0.2);
+  background: rgba(216, 138, 51, 0.08);
+}
+
+body.product-shell.match-page .match-watchlist-meta {
+  color: #aeb8c5;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+  white-space: nowrap;
+}
+
+body.product-shell.match-page .match-watch-feedback {
+  display: block;
+  width: 100%;
+  min-height: auto;
+  padding: 0.74rem 0.9rem;
+  border-radius: 18px;
+  line-height: 1.35;
 }
 
 .match-shell-trust {

@@ -2708,9 +2708,32 @@ function matchTeamWatchReference(match, side) {
   };
 }
 
-function matchWatchButtonLabel(reference, active) {
-  const label = escapeHtml(reference.name || "Team");
-  return active ? `Watching ${label}` : `Watch ${label}`;
+function watchlistTeamCountLabel(rows = []) {
+  const count = (Array.isArray(rows) ? rows : []).filter((row) => row?.entityType === "team").length;
+  if (!count) {
+    return "No teams saved";
+  }
+  return `${count} saved`;
+}
+
+function buildMatchWatchControl({ side, reference, active = false, pending = false }) {
+  const eyebrow = pending ? "Updating" : active ? "Watching" : "Watch team";
+  const title = escapeHtml(reference?.name || "Team");
+  const fullName = escapeHtml(reference?.fullName || reference?.name || "Team");
+  return `
+    <button
+      type="button"
+      class="match-watch-card${active ? " is-active" : ""}${pending ? " is-pending" : ""}"
+      data-follow-side="${escapeHtml(side)}"
+      data-watch-side="${escapeHtml(side)}"
+      aria-pressed="${active ? "true" : "false"}"
+      aria-label="${active ? "Remove" : "Add"} ${fullName} ${active ? "from" : "to"} watchlist"
+      ${pending ? "disabled" : ""}
+    >
+      <span class="match-watch-card-eyebrow">${eyebrow}</span>
+      <span class="match-watch-card-title" title="${fullName}">${title}</span>
+    </button>
+  `;
 }
 
 function matchWatchlistOpenControl(workspaceHref) {
@@ -2718,7 +2741,7 @@ function matchWatchlistOpenControl(workspaceHref) {
   return `
     <button
       type="button"
-      class="link-btn ghost"
+      class="link-btn ghost match-watchlist-link"
       data-open-watchlist="true"
       data-watchlist-href="${workspaceHref}"
       ${disabled ? "disabled" : ""}
@@ -2732,7 +2755,7 @@ function matchActionMessageMarkup() {
   }
 
   return `
-    <span class="watchlist-action-note tone-${escapeHtml(uiState.watchlistMessage.tone || "neutral")}">
+    <span class="watchlist-action-note match-watch-feedback tone-${escapeHtml(uiState.watchlistMessage.tone || "neutral")}">
       ${escapeHtml(uiState.watchlistMessage.text)}
     </span>
   `;
@@ -2794,8 +2817,13 @@ function renderMatchActionRow(match) {
 
   if (!leftReference.id || !rightReference.id) {
     elements.matchActionRow.innerHTML = `
-      ${matchWatchlistOpenControl(workspaceHref)}
-      ${matchActionMessageMarkup()}
+      <div class="match-watch-rail single-action">
+        <div class="match-watch-tools">
+          ${matchWatchlistOpenControl(workspaceHref)}
+          <span class="match-watchlist-meta">${escapeHtml(watchlistTeamCountLabel(uiState.watchlistRows))}</span>
+        </div>
+        ${matchActionMessageMarkup()}
+      </div>
     `;
     return;
   }
@@ -2809,22 +2837,27 @@ function renderMatchActionRow(match) {
     canonicalTeamId: rightReference.canonicalId
   });
   elements.matchActionRow.innerHTML = `
-    <button
-      type="button"
-      class="link-btn ghost watch-toggle${leftFollow ? " is-active" : ""}${uiState.watchlistBusySide === "left" ? " is-pending" : ""}"
-      data-follow-side="left"
-      aria-pressed="${leftFollow ? "true" : "false"}"
-      ${uiState.watchlistBusySide === "left" ? "disabled" : ""}
-    >${matchWatchButtonLabel(leftReference, Boolean(leftFollow))}</button>
-    <button
-      type="button"
-      class="link-btn ghost watch-toggle${rightFollow ? " is-active" : ""}${uiState.watchlistBusySide === "right" ? " is-pending" : ""}"
-      data-follow-side="right"
-      aria-pressed="${rightFollow ? "true" : "false"}"
-      ${uiState.watchlistBusySide === "right" ? "disabled" : ""}
-    >${matchWatchButtonLabel(rightReference, Boolean(rightFollow))}</button>
-    ${matchWatchlistOpenControl(workspaceHref)}
-    ${matchActionMessageMarkup()}
+    <div class="match-watch-rail">
+      <div class="match-watch-grid">
+        ${buildMatchWatchControl({
+          side: "left",
+          reference: leftReference,
+          active: Boolean(leftFollow),
+          pending: uiState.watchlistBusySide === "left"
+        })}
+        ${buildMatchWatchControl({
+          side: "right",
+          reference: rightReference,
+          active: Boolean(rightFollow),
+          pending: uiState.watchlistBusySide === "right"
+        })}
+      </div>
+      <div class="match-watch-tools">
+        ${matchWatchlistOpenControl(workspaceHref)}
+        <span class="match-watchlist-meta">${escapeHtml(watchlistTeamCountLabel(uiState.watchlistRows))}</span>
+      </div>
+      ${matchActionMessageMarkup()}
+    </div>
   `;
 }
 
@@ -5276,12 +5309,12 @@ function buildGameNavPill({ href, label, state = "complete", selected = false, c
 }
 
 function buildGameStepControl({ href = "", direction = "prev", disabled = false }) {
-  const label = direction === "prev" ? "&lt;&lt;" : "&gt;&gt;";
+  const icon = direction === "prev" ? "‹" : "›";
   const ariaLabel = direction === "prev" ? "Previous view" : "Next view";
   if (disabled || !href) {
-    return `<span class="game-step-control ${direction} disabled" aria-hidden="true">${label}</span>`;
+    return `<span class="game-step-control ${direction} disabled" aria-hidden="true"><span class="game-step-control-icon">${icon}</span></span>`;
   }
-  return `<a class="game-step-control ${direction}" href="${href}" aria-label="${ariaLabel}">${label}</a>`;
+  return `<a class="game-step-control ${direction}" href="${href}" aria-label="${ariaLabel}"><span class="game-step-control-icon" aria-hidden="true">${icon}</span></a>`;
 }
 
 function renderGameExplorer(match, apiBase) {
@@ -5491,10 +5524,12 @@ function renderGameExplorer(match, apiBase) {
 
   const compactStepper = compact
     ? `
-      <div class="game-nav-stepper">
-        ${buildGameStepControl({ href: previousFocus?.href || "", direction: "prev", disabled: !previousFocus })}
-        <div class="game-pill-row">${compactNavPills}</div>
-        ${buildGameStepControl({ href: nextFocus?.href || "", direction: "next", disabled: !nextFocus })}
+      <div class="game-nav-control-shell compact">
+        <div class="game-nav-stepper">
+          ${buildGameStepControl({ href: previousFocus?.href || "", direction: "prev", disabled: !previousFocus })}
+          <div class="game-pill-row">${compactNavPills}</div>
+          ${buildGameStepControl({ href: nextFocus?.href || "", direction: "next", disabled: !nextFocus })}
+        </div>
       </div>
     `
     : "";
@@ -5521,7 +5556,13 @@ function renderGameExplorer(match, apiBase) {
         : ""
     }
     ${nav.requestedMissing ? `<p class="game-nav-note">Requested Game ${nav.requestedGameNumber} not found.</p>` : ""}
-    ${compact ? compactStepper : desktopNavPills ? `<div class="game-pill-row">${desktopNavPills}</div>` : ""}
+    ${
+      compact
+        ? compactStepper
+        : desktopNavPills
+          ? `<div class="game-nav-control-shell"><div class="game-pill-row">${desktopNavPills}</div></div>`
+          : ""
+    }
   `;
 
   if (elements.feedTeamFilter) {
