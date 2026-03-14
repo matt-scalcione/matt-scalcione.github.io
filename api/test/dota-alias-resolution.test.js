@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   dotaAliasCandidateScore,
+  enrichDotaDetailWithStratz,
+  mergeDotaDetailWithFallbackContext,
   mergeDotaDetailContexts,
   mergeDotaRowsForSurface,
   sameDotaSeriesForAlias
@@ -326,5 +328,104 @@ describe("dota alias matching", () => {
     assert.equal(merged.teamForm.left.recentMatches.length, 1);
     assert.equal(merged.headToHead.total, 2);
     assert.equal(merged.prediction.confidence, "medium");
+  });
+
+  it("uses a fast non-enriched fallback merge for direct detail support", async () => {
+    const baseDetail = {
+      id: "dota_od_series_1074484",
+      game: "dota2",
+      tournament: "League 19435",
+      status: "live",
+      bestOf: 1,
+      teams: {
+        left: { id: "7119388", name: "BetBoom Team" },
+        right: { id: "10000001", name: "Team Yandex" }
+      }
+    };
+    let receivedOptions = null;
+
+    const merged = await mergeDotaDetailWithFallbackContext(baseDetail, baseDetail.id, {
+      fallbackContextTimeoutMs: 50,
+      fallbackLoader: async (_matchId, loaderOptions) => {
+        receivedOptions = loaderOptions;
+        return {
+          ...baseDetail,
+          tournament: "PGL Wallachia S7 - Playoffs",
+          bestOf: 3
+        };
+      }
+    });
+
+    assert.equal(receivedOptions?.skipEnrichment, true);
+    assert.equal(merged.bestOf, 3);
+    assert.equal(merged.tournament, "PGL Wallachia S7 - Playoffs");
+  });
+
+  it("does not block direct detail on a slow fallback support loader", async () => {
+    const baseDetail = {
+      id: "dota_od_series_1074484",
+      game: "dota2",
+      tournament: "League 19435",
+      status: "live",
+      teams: {
+        left: { id: "7119388", name: "BetBoom Team" },
+        right: { id: "10000001", name: "Team Yandex" }
+      }
+    };
+    const startedAt = Date.now();
+
+    const merged = await mergeDotaDetailWithFallbackContext(baseDetail, baseDetail.id, {
+      fallbackContextTimeoutMs: 20,
+      fallbackLoader: async () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ...baseDetail,
+              tournament: "Slow fallback tournament"
+            });
+          }, 120);
+        })
+    });
+
+    assert.strictEqual(merged, baseDetail);
+    assert.ok(Date.now() - startedAt < 100);
+  });
+
+  it("does not block OpenDota detail on slow telemetry enrichment", async () => {
+    const baseDetail = {
+      id: "dota_od_series_1074484",
+      game: "dota2",
+      tournament: "PGL Wallachia S7 - Playoffs",
+      status: "live",
+      sourceMatchId: "8729999999",
+      teams: {
+        left: { id: "7119388", name: "BetBoom Team" },
+        right: { id: "10000001", name: "Team Yandex" }
+      },
+      selectedGame: {
+        number: 2,
+        state: "inProgress",
+        sourceMatchId: "8729999999"
+      }
+    };
+    const startedAt = Date.now();
+
+    const merged = await enrichDotaDetailWithStratz(baseDetail, {
+      telemetryTimeoutMs: 20,
+      telemetryLoader: async () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ...baseDetail,
+              pulseCard: {
+                title: "slow telemetry"
+              }
+            });
+          }, 120);
+        })
+    });
+
+    assert.strictEqual(merged, baseDetail);
+    assert.ok(Date.now() - startedAt < 100);
   });
 });

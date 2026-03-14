@@ -86,6 +86,13 @@ const teamProfileProviderTaskTimeoutMs = Math.max(
     10
   ) || Math.max(1000, Math.min(providerTimeoutMs, 2000))
 );
+const dotaDetailSupportTaskTimeoutMs = Math.max(
+  1000,
+  Number.parseInt(
+    process.env.DOTA_DETAIL_SUPPORT_TASK_TIMEOUT_MS || String(Math.max(1000, Math.min(providerTimeoutMs, 4000))),
+    10
+  ) || Math.max(1000, Math.min(providerTimeoutMs, 4000))
+);
 const canonicalPrewarmEnabled = String(process.env.CANONICAL_PREWARM_ENABLED || "1").trim() !== "0";
 const canonicalPrewarmMatchLimit = Math.max(
   0,
@@ -2516,6 +2523,34 @@ async function runWithTaskTimeout(runTask, timeoutMs, label) {
   }
 }
 
+function resolveDotaDetailSupportTaskTimeoutMs(options = {}) {
+  const explicitTimeout = Number(
+    options?.dotaDetailSupportTaskTimeoutMs ?? options?.fallbackContextTimeoutMs ?? options?.telemetryTimeoutMs
+  );
+  return Number.isFinite(explicitTimeout) && explicitTimeout > 0
+    ? explicitTimeout
+    : dotaDetailSupportTaskTimeoutMs;
+}
+
+async function loadBestEffortDotaFallbackContext(matchId, options = {}) {
+  const fallbackLoader =
+    typeof options?.fallbackLoader === "function" ? options.fallbackLoader : fallbackProviderDotaDetail;
+
+  try {
+    return await runWithTaskTimeout(
+      () =>
+        fallbackLoader(matchId, {
+          ...options,
+          skipEnrichment: true
+        }),
+      resolveDotaDetailSupportTaskTimeoutMs(options),
+      `dota detail support ${matchId}`
+    );
+  } catch {
+    return null;
+  }
+}
+
 async function hydrateCanonicalTargets({
   targets = {},
   concurrency = 1,
@@ -3567,12 +3602,14 @@ export function mergeDotaDetailContexts(primaryDetail, secondaryDetail) {
   };
 }
 
-async function mergeDotaDetailWithFallbackContext(detail, matchId, options = {}) {
+export async function mergeDotaDetailWithFallbackContext(detail, matchId, options = {}) {
   if (!detail) {
-    return fallbackProviderDotaDetail(matchId, options);
+    const fallbackLoader =
+      typeof options?.fallbackLoader === "function" ? options.fallbackLoader : fallbackProviderDotaDetail;
+    return fallbackLoader(matchId, options);
   }
 
-  const fallbackDetail = await fallbackProviderDotaDetail(matchId, options);
+  const fallbackDetail = await loadBestEffortDotaFallbackContext(matchId, options);
   if (!fallbackDetail) {
     return detail;
   }
@@ -5368,28 +5405,30 @@ async function fallbackProviderDotaDetail(matchId, options = {}) {
   }
 
   let enrichment = {};
-  try {
-    const [leftProfile, rightProfile] = await Promise.all([
-      match?.teams?.left?.id
-        ? getTeamProfile(match.teams.left.id, {
-            game: "dota2",
-            opponentId: match?.teams?.right?.id || null,
-            teamNameHint: match?.teams?.left?.name || null,
-            limit: 5
-          })
-        : null,
-      match?.teams?.right?.id
-        ? getTeamProfile(match.teams.right.id, {
-            game: "dota2",
-            opponentId: match?.teams?.left?.id || null,
-            teamNameHint: match?.teams?.right?.name || null,
-            limit: 5
-          })
-        : null
-    ]);
-    enrichment = { leftProfile, rightProfile };
-  } catch {
-    enrichment = {};
+  if (!options?.skipEnrichment) {
+    try {
+      const [leftProfile, rightProfile] = await Promise.all([
+        match?.teams?.left?.id
+          ? getTeamProfile(match.teams.left.id, {
+              game: "dota2",
+              opponentId: match?.teams?.right?.id || null,
+              teamNameHint: match?.teams?.left?.name || null,
+              limit: 5
+            })
+          : null,
+        match?.teams?.right?.id
+          ? getTeamProfile(match.teams.right.id, {
+              game: "dota2",
+              opponentId: match?.teams?.left?.id || null,
+              teamNameHint: match?.teams?.right?.name || null,
+              limit: 5
+            })
+          : null
+      ]);
+      enrichment = { leftProfile, rightProfile };
+    } catch {
+      enrichment = {};
+    }
   }
 
   const relatedRows = [...liveRows, ...scheduleRows, ...resultRows].filter(
@@ -5794,16 +5833,26 @@ function mergeDotaTelemetryDetail(baseDetail, telemetryDetail) {
   };
 }
 
-async function enrichDotaDetailWithStratz(detail, options = {}) {
+export async function enrichDotaDetailWithStratz(detail, options = {}) {
   const sourceMatchId = resolveDotaTelemetryMatchId(detail);
   if (!sourceMatchId) {
     return detail;
   }
 
+  const telemetryLoader =
+    typeof options?.telemetryLoader === "function"
+      ? options.telemetryLoader
+      : (telemetryMatchId, telemetryOptions) => stratzProvider.fetchMatchDetail(telemetryMatchId, telemetryOptions);
+
   try {
-    const telemetryDetail = await stratzProvider.fetchMatchDetail(sourceMatchId, {
-      gameNumber: detail?.selectedGame?.number || options?.gameNumber
-    });
+    const telemetryDetail = await runWithTaskTimeout(
+      () =>
+        telemetryLoader(sourceMatchId, {
+          gameNumber: detail?.selectedGame?.number || options?.gameNumber
+        }),
+      resolveDotaDetailSupportTaskTimeoutMs(options),
+      `dota telemetry ${sourceMatchId}`
+    );
     return mergeDotaTelemetryDetail(detail, telemetryDetail);
   } catch {
     return detail;
@@ -5891,7 +5940,7 @@ async function loadProviderMatchDetail(matchId, options = {}) {
     if (aliasMatchId) {
       const aliasDetail = await loadProviderMatchDetail(aliasMatchId, options);
       if (aliasDetail) {
-        const referenceFallback = await fallbackProviderDotaDetail(matchId, options);
+        const referenceFallback = await loadBestEffortDotaFallbackContext(matchId, options);
         const preferredDetail = preferDotaDetail(aliasDetail, referenceFallback);
         const supportingDetail = preferredDetail === aliasDetail ? referenceFallback : aliasDetail;
         const mergedDetail = mergeDotaDetailContexts(preferredDetail, supportingDetail);
@@ -7115,6 +7164,7 @@ export function getProviderDiagnostics() {
     canonicalBackfillConcurrency,
     canonicalBackfillTaskTimeoutMs,
     teamProfileProviderTaskTimeoutMs,
+    dotaDetailSupportTaskTimeoutMs,
     canonicalBackfillScheduleLookbackMs,
     canonicalBackfillScheduleLookaheadMs,
     canonicalBackfillResultsLookbackMs,
