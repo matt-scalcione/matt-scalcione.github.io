@@ -67,6 +67,19 @@ describe("follow identity", () => {
     assert.ok(rows[0].signalAt);
   });
 
+  it("returns immediate signal context when a watched team already has schedule coverage", () => {
+    const follow = addFollow({
+      userId: `test-follow-immediate-${Date.now()}`,
+      entityType: "team",
+      entityId: "team_t1"
+    });
+
+    assert.equal(follow.displayName, "T1");
+    assert.equal(follow.signalState, "upcoming");
+    assert.equal(follow.nextMatchId, "lol_lck_2026_w2_t1_gen");
+    assert.equal(follow.signalOpponentName, "Gen.G");
+  });
+
   it("keeps saved display hints when no live context exists yet", () => {
     const userId = `test-follow-hint-${Date.now()}`;
     addFollow({

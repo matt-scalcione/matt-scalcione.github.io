@@ -16,9 +16,11 @@ import {
   addTeamToWatchlist,
   fetchWatchlistRows,
   findTeamFollow,
+  rememberRecentWatchlistAction,
   removeWatchlistFollow,
-  resolveWatchlistUserId
-} from "./watchlist-client.js";
+  resolveWatchlistUserId,
+  summarizeWatchlistFollow
+} from "./watchlist-client.js?v=20260314e";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_API_TIMEOUT_MS = 8000;
@@ -581,7 +583,7 @@ function setTeamWatchlistMessage(message, tone = "neutral") {
     state.watchlistMessageTone = "neutral";
     renderTeamHeroActions(state.profile, elements.apiBaseInput.value.trim() || DEFAULT_API_BASE);
     renderTeamMobileOverview(state.profile);
-  }, 2200);
+  }, 4200);
 }
 
 async function refreshTeamWatchlistState(profile = state.profile, { force = false } = {}) {
@@ -635,6 +637,18 @@ function teamFollowMarkup(profile) {
   `;
 }
 
+function teamWatchlistOpenControl(workspaceHref) {
+  return `
+    <button
+      type="button"
+      class="link-btn ghost"
+      data-open-watchlist="true"
+      data-watchlist-href="${workspaceHref}"
+      ${state.watchlistBusy ? "disabled" : ""}
+    >${state.watchlistBusy ? "Updating..." : "Open watchlist"}</button>
+  `;
+}
+
 function renderTeamHeroActions(profile, apiBase) {
   if (!elements.teamHeroActions) {
     return;
@@ -642,13 +656,13 @@ function renderTeamHeroActions(profile, apiBase) {
 
   const workspaceHref = followsWorkspaceUrl(apiBase);
   if (!profile?.id) {
-    elements.teamHeroActions.innerHTML = `<a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>`;
+    elements.teamHeroActions.innerHTML = teamWatchlistOpenControl(workspaceHref);
     return;
   }
 
   elements.teamHeroActions.innerHTML = `
     ${teamFollowMarkup(profile)}
-    <a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>
+    ${teamWatchlistOpenControl(workspaceHref)}
     ${
       state.watchlistMessage
         ? `<span class="watchlist-action-note tone-${escapeHtml(state.watchlistMessageTone)}">${escapeHtml(state.watchlistMessage)}</span>`
@@ -681,17 +695,31 @@ async function addTeamToWorkspace() {
       await removeWatchlistFollow(apiBase, existing.id, {
         userId: resolveWatchlistUserId()
       });
+      state.watchlistRows = state.watchlistRows.filter((row) => row?.id !== existing.id);
+      rememberRecentWatchlistAction("removed", existing);
       setTeamWatchlistMessage(`Removed ${reference.name} from your watchlist.`, "neutral");
       setStatus(`Removed ${reference.name} from your watchlist.`, "success");
     } else {
       setStatus("Saving team to watchlist...", "loading");
-      await addTeamToWatchlist(apiBase, reference.id, {
+      const savedFollow = await addTeamToWatchlist(apiBase, reference.id, {
         userId: resolveWatchlistUserId(),
         displayName: reference.name,
         game: profile?.game || elements.gameSelect?.value || ""
       });
-      setTeamWatchlistMessage(`Watching ${reference.name}.`, "success");
-      setStatus(`Watching ${reference.name}.`, "success");
+      if (savedFollow?.id) {
+        state.watchlistRows = [savedFollow].concat(
+          state.watchlistRows.filter((row) => row?.id !== savedFollow.id)
+        );
+      }
+      rememberRecentWatchlistAction("added", savedFollow || {
+        entityId: reference.id,
+        canonicalEntityId: reference.canonicalId,
+        displayName: reference.name,
+        game: profile?.game || elements.gameSelect?.value || ""
+      });
+      const message = summarizeWatchlistFollow(savedFollow, { fallbackName: reference.name });
+      setTeamWatchlistMessage(message, "success");
+      setStatus(message, "success");
     }
 
     await refreshTeamWatchlistState(profile, { force: true });
@@ -1644,7 +1672,7 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
         : ""}
       <div class="mobile-glance-actions">
         ${teamFollowMarkup(profile)}
-        <a class="link-btn ghost" href="${followsWorkspaceUrl(apiBase)}">Open watchlist</a>
+        ${teamWatchlistOpenControl(followsWorkspaceUrl(apiBase))}
         ${
           state.watchlistMessage
             ? `<span class="watchlist-action-note tone-${escapeHtml(state.watchlistMessageTone)}">${escapeHtml(state.watchlistMessage)}</span>`
@@ -2233,6 +2261,14 @@ function installEvents() {
       if (!(target instanceof Element)) {
         return;
       }
+      const watchlistButton = target.closest("[data-open-watchlist]");
+      if (watchlistButton) {
+        const href = String(watchlistButton.getAttribute("data-watchlist-href") || "").trim();
+        if (href) {
+          window.location.href = href;
+        }
+        return;
+      }
       const button = target.closest("[data-team-follow]");
       if (!button) {
         return;
@@ -2244,6 +2280,14 @@ function installEvents() {
     elements.teamMobileOverview.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) {
+        return;
+      }
+      const watchlistButton = target.closest("[data-open-watchlist]");
+      if (watchlistButton) {
+        const href = String(watchlistButton.getAttribute("data-watchlist-href") || "").trim();
+        if (href) {
+          window.location.href = href;
+        }
         return;
       }
       const button = target.closest("[data-team-follow]");

@@ -3,10 +3,12 @@ import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20
 import { applySeo, inferRobotsDirective, setJsonLd } from "./seo.js";
 import { productEmptyMarkup } from "./loading.js";
 import {
+  clearRecentWatchlistAction,
   fetchWatchlistRows,
+  readRecentWatchlistAction,
   removeWatchlistFollow,
   resolveWatchlistUserId
-} from "./watchlist-client.js";
+} from "./watchlist-client.js?v=20260314e";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_API_TIMEOUT_MS = 8000;
@@ -46,6 +48,7 @@ const elements = {
   heroContextChips: document.querySelector("#heroContextChips"),
   heroActionRow: document.querySelector("#heroActionRow"),
   quickJump: document.querySelector("#followsQuickJump"),
+  watchlistRecentActionBanner: document.querySelector("#watchlistRecentActionBanner"),
   followsSummaryWrap: document.querySelector("#followsSummaryWrap"),
   watchlistLivePanel: document.querySelector("#watchlistLivePanel"),
   watchlistLiveMeta: document.querySelector("#watchlistLiveMeta"),
@@ -399,6 +402,95 @@ function followTeamHref(row) {
   });
 }
 
+function matchRecentActionRow(rows, recentAction) {
+  if (!recentAction || !Array.isArray(rows) || !rows.length) {
+    return null;
+  }
+
+  const canonicalId = String(recentAction.canonicalEntityId || "").trim().toLowerCase();
+  const entityId = String(recentAction.entityId || "").trim();
+  return rows.find((row) => {
+    if (canonicalId && String(row?.canonicalEntityId || "").trim().toLowerCase() === canonicalId) {
+      return true;
+    }
+    return entityId && String(row?.entityId || "").trim() === entityId;
+  }) || null;
+}
+
+function renderRecentActionBanner(rows = []) {
+  if (!elements.watchlistRecentActionBanner) {
+    return;
+  }
+
+  const recentAction = readRecentWatchlistAction();
+  const actionType = String(recentAction?.action || "").trim().toLowerCase();
+  if (actionType !== "added") {
+    elements.watchlistRecentActionBanner.hidden = true;
+    elements.watchlistRecentActionBanner.innerHTML = "";
+    return;
+  }
+
+  const resolvedRow = matchRecentActionRow(rows, recentAction) || recentAction;
+  const title = escapeHtml(
+    String(
+      resolvedRow?.displayName ||
+      recentAction?.displayName ||
+      resolvedRow?.entityId ||
+      recentAction?.entityId ||
+      "Team"
+    ).trim() || "Team"
+  );
+  const contextLine = escapeHtml(buildFollowContextLine(resolvedRow) || "Saved to your watchlist.");
+  const metaLine = escapeHtml(buildFollowMetaLine(resolvedRow));
+  const signalTone = followSignalTone(resolvedRow?.signalState);
+  const recentActionRow = {
+    entityType: resolvedRow?.entityType || recentAction?.entityType || "team",
+    entityId: resolvedRow?.entityId || recentAction?.entityId || "",
+    game: resolvedRow?.game || recentAction?.game || "",
+    displayName: resolvedRow?.displayName || recentAction?.displayName || "",
+    liveMatchId: resolvedRow?.liveMatchId || recentAction?.liveMatchId || null,
+    nextMatchId: resolvedRow?.nextMatchId || recentAction?.nextMatchId || null,
+    recentMatchId: resolvedRow?.recentMatchId || recentAction?.recentMatchId || null
+  };
+  const primaryHref =
+    recentActionRow.liveMatchId || recentActionRow.nextMatchId || recentActionRow.recentMatchId
+      ? followPrimaryHref(recentActionRow)
+      : "";
+  const teamHref = recentActionRow.entityId ? followTeamHref(recentActionRow) : "";
+
+  elements.watchlistRecentActionBanner.hidden = false;
+  elements.watchlistRecentActionBanner.innerHTML = `
+    <article class="overview-featured static watchlist-recent-banner">
+      <div class="overview-featured-top">
+        <span class="pill ${signalTone}">Just added</span>
+        <span class="overview-featured-meta">Saved on this device</span>
+      </div>
+      <p class="overview-featured-match">${title} is now on your watchlist.</p>
+      <p class="overview-note">${contextLine}${metaLine ? ` ${metaLine}` : ""}</p>
+      <div class="follow-actions">
+        ${primaryHref ? `<a class="link-btn" href="${primaryHref}">${followPrimaryLabel(recentActionRow)}</a>` : ""}
+        ${teamHref ? `<a class="link-btn ghost" href="${teamHref}">Open team</a>` : ""}
+        <button type="button" class="ghost" data-dismiss-watch-action="true">Dismiss</button>
+      </div>
+    </article>
+  `;
+}
+
+function syncWatchlistPanels() {
+  const hasRows = Array.isArray(followsState.rows) && followsState.rows.length > 0;
+  if (elements.prefsPanel) {
+    elements.prefsPanel.hidden = !hasRows;
+  }
+  if (!hasRows) {
+    if (elements.alertsPanel) {
+      elements.alertsPanel.hidden = true;
+    }
+    if (elements.outboxPanel) {
+      elements.outboxPanel.hidden = true;
+    }
+  }
+}
+
 function renderFollowCard(row, { compact = false } = {}) {
   const title = escapeHtml(row.displayName || row.entityId);
   const contextLine = escapeHtml(buildFollowContextLine(row) || "Waiting for the next series.");
@@ -498,9 +590,13 @@ function renderSummaryHero() {
       <p class="overview-note">Watched teams with a scheduled next series.</p>
     </article>
     <article class="overview-card">
-      <p class="overview-label">Rules on</p>
-      <p class="overview-value">${activeRules}</p>
-      <p class="overview-note">Enabled alert categories for this watchlist.</p>
+      <p class="overview-label">${rows.length ? "Rules on" : "Alerts"}</p>
+      <p class="overview-value">${rows.length ? activeRules : "Ready"}</p>
+      <p class="overview-note">${
+        rows.length
+          ? "Enabled alert categories for this watchlist."
+          : "Rules stay local and wake up once you save your first team."
+      }</p>
     </article>
     <article class="overview-featured static watchlist-overview-featured">
       <div class="overview-featured-top">
@@ -560,11 +656,16 @@ function renderStatePanel(panel, meta, list, rows, emptyCopy) {
 function renderFollows(rows) {
   followsState.rows = rows;
   renderSummaryHero();
+  syncWatchlistPanels();
 
   const sortedRows = sortFollows(rows);
+  renderRecentActionBanner(sortedRows);
   const liveRows = sortedRows.filter((row) => row.signalState === "live");
   const upcomingRows = sortedRows.filter((row) => row.signalState === "upcoming");
   const recentRows = sortedRows.filter((row) => row.signalState === "recent");
+
+  renderAlertPreview(followsState.alertPreview);
+  renderAlertOutbox(followsState.alertOutbox);
 
   renderStatePanel(
     elements.watchlistLivePanel,
@@ -610,6 +711,7 @@ function renderFollows(rows) {
 function renderPreferences(pref) {
   followsState.preferences = pref;
   renderSummaryHero();
+  syncWatchlistPanels();
   elements.webPushInput.checked = Boolean(pref.webPush);
   elements.emailDigestInput.checked = Boolean(pref.emailDigest);
   elements.swingAlertsInput.checked = Boolean(pref.swingAlerts);
@@ -622,6 +724,13 @@ function renderAlertPreview(payload) {
   renderSummaryHero();
 
   if (!elements.alertsPanel || !elements.alertsMeta || !elements.alertsPreviewWrap) {
+    return;
+  }
+
+  if (!followsState.rows.length) {
+    elements.alertsPanel.hidden = true;
+    elements.alertsPreviewWrap.innerHTML = "";
+    elements.alertsMeta.textContent = "No current alert candidates.";
     return;
   }
 
@@ -664,6 +773,13 @@ function renderAlertOutbox(payload) {
   renderSummaryHero();
 
   if (!elements.outboxPanel || !elements.alertOutboxMeta || !elements.alertOutboxWrap) {
+    return;
+  }
+
+  if (!followsState.rows.length) {
+    elements.outboxPanel.hidden = true;
+    elements.alertOutboxWrap.innerHTML = "";
+    elements.alertOutboxMeta.textContent = "No recent notifications.";
     return;
   }
 
@@ -885,6 +1001,20 @@ function installEvents() {
         return;
       }
       removeFollow(button.getAttribute("data-follow-id") || "");
+    });
+  }
+  if (elements.watchlistRecentActionBanner) {
+    elements.watchlistRecentActionBanner.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const dismiss = target.closest("[data-dismiss-watch-action]");
+      if (!dismiss) {
+        return;
+      }
+      clearRecentWatchlistAction();
+      renderRecentActionBanner(followsState.rows);
     });
   }
   if (elements.watchlistLiveList) {

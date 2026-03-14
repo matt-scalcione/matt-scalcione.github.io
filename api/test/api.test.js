@@ -362,6 +362,8 @@ describe("follows", () => {
 
     assert.equal(createResult.statusCode, 201);
     assert.ok(createResult.payload.data.id);
+    assert.equal(createResult.payload.data.signalState, "upcoming");
+    assert.equal(createResult.payload.data.signalOpponentName, "T1");
 
     const followId = createResult.payload.data.id;
 

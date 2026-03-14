@@ -11204,6 +11204,19 @@ body.product-shell .skeleton-list-copy {
   margin: 0 0 0.7rem;
 }
 
+#watchlistRecentActionBanner {
+  margin-bottom: 0.85rem;
+}
+
+.watchlist-recent-banner {
+  gap: 0.8rem;
+}
+
+.watchlist-recent-banner .follow-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
 .watch-toggle.is-active {
   border-color: rgba(216, 138, 51, 0.24);
   background: rgba(216, 138, 51, 0.14);
@@ -13708,6 +13721,13 @@ body.product-shell button.ghost:hover,
 body.product-shell .link-btn.ghost:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #f0f4f8;
+}
+
+body.product-shell button[disabled],
+body.product-shell .link-btn[disabled] {
+  cursor: default;
+  opacity: 0.62;
+  pointer-events: none;
 }
 
 body.product-shell .status-text,

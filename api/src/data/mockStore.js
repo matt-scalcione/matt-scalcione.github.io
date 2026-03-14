@@ -7166,9 +7166,11 @@ export function listFollows(userId) {
 export function addFollow({ userId, entityType, entityId, displayName = null, game = null }) {
   const displayNameHint = String(displayName || "").trim() || null;
   const gameHint = String(game || "").trim().toLowerCase() || null;
+  const rows = collectFollowCandidateRows();
   const canonicalEntityId =
     entityType === "team"
       ? resolveCanonicalFollowTeamId(entityId, {
+          rows,
           gameHint,
           teamNameHint: displayNameHint
         })
@@ -7181,7 +7183,7 @@ export function addFollow({ userId, entityType, entityId, displayName = null, ga
         follow.entityId === entityId ||
         (entityType === "team" &&
           canonicalEntityId &&
-          hydrateFollow(follow).canonicalEntityId === canonicalEntityId)
+          hydrateFollow(follow, { rows }).canonicalEntityId === canonicalEntityId)
       )
   );
 
@@ -7195,7 +7197,7 @@ export function addFollow({ userId, entityType, entityId, displayName = null, ga
     if (gameHint && !existing.gameHint) {
       existing.gameHint = gameHint;
     }
-    return hydrateFollow(existing);
+    return hydrateFollow(existing, { rows });
   }
 
   const follow = {
@@ -7210,7 +7212,7 @@ export function addFollow({ userId, entityType, entityId, displayName = null, ga
   };
 
   follows.push(follow);
-  return hydrateFollow(follow);
+  return hydrateFollow(follow, { rows });
 }
 
 export function deleteFollowById(followId, userId) {

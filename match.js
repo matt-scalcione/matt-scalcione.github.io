@@ -15,11 +15,13 @@ import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from
 import { loadRuntimeStatusInline } from "./runtime-status.js";
 import {
   addTeamToWatchlist,
+  rememberRecentWatchlistAction,
   fetchWatchlistRows,
   findTeamFollow,
   removeWatchlistFollow,
-  resolveWatchlistUserId
-} from "./watchlist-client.js";
+  resolveWatchlistUserId,
+  summarizeWatchlistFollow
+} from "./watchlist-client.js?v=20260314e";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
@@ -2626,6 +2628,19 @@ function matchWatchButtonLabel(reference, active) {
   return active ? `Watching ${label}` : `Watch ${label}`;
 }
 
+function matchWatchlistOpenControl(workspaceHref) {
+  const disabled = Boolean(uiState.watchlistBusySide);
+  return `
+    <button
+      type="button"
+      class="link-btn ghost"
+      data-open-watchlist="true"
+      data-watchlist-href="${workspaceHref}"
+      ${disabled ? "disabled" : ""}
+    >${disabled ? "Updating..." : "Open watchlist"}</button>
+  `;
+}
+
 function matchActionMessageMarkup() {
   if (!uiState.watchlistMessage.text) {
     return "";
@@ -2651,7 +2666,7 @@ function setMatchWatchlistMessage(message, tone = "neutral") {
   uiState.watchlistMessageTimer = window.setTimeout(() => {
     uiState.watchlistMessage = { text: "", tone: "neutral" };
     renderMatchActionRow(uiState.match);
-  }, 2200);
+  }, 4200);
 }
 
 async function refreshMatchWatchlistState(match = uiState.match, { force = false } = {}) {
@@ -2694,7 +2709,7 @@ function renderMatchActionRow(match) {
 
   if (!leftReference.id || !rightReference.id) {
     elements.matchActionRow.innerHTML = `
-      <a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>
+      ${matchWatchlistOpenControl(workspaceHref)}
       ${matchActionMessageMarkup()}
     `;
     return;
@@ -2723,7 +2738,7 @@ function renderMatchActionRow(match) {
       aria-pressed="${rightFollow ? "true" : "false"}"
       ${uiState.watchlistBusySide === "right" ? "disabled" : ""}
     >${matchWatchButtonLabel(rightReference, Boolean(rightFollow))}</button>
-    <a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>
+    ${matchWatchlistOpenControl(workspaceHref)}
     ${matchActionMessageMarkup()}
   `;
 }
@@ -2748,14 +2763,30 @@ async function addMatchTeamToWorkspace(side) {
       await removeWatchlistFollow(uiState.apiBase, existing.id, {
         userId: resolveWatchlistUserId()
       });
+      uiState.watchlistRows = uiState.watchlistRows.filter((row) => row?.id !== existing.id);
+      rememberRecentWatchlistAction("removed", existing);
       setMatchWatchlistMessage(`Removed ${reference.name} from your watchlist.`, "neutral");
     } else {
-      await addTeamToWatchlist(uiState.apiBase, reference.id, {
+      const savedFollow = await addTeamToWatchlist(uiState.apiBase, reference.id, {
         userId: resolveWatchlistUserId(),
         displayName: reference.name,
         game: match?.game || ""
       });
-      setMatchWatchlistMessage(`Watching ${reference.name}.`, "success");
+      if (savedFollow?.id) {
+        uiState.watchlistRows = [savedFollow].concat(
+          uiState.watchlistRows.filter((row) => row?.id !== savedFollow.id)
+        );
+      }
+      rememberRecentWatchlistAction("added", savedFollow || {
+        entityId: reference.id,
+        canonicalEntityId: reference.canonicalId,
+        displayName: reference.name,
+        game: match?.game || ""
+      });
+      setMatchWatchlistMessage(
+        summarizeWatchlistFollow(savedFollow, { fallbackName: reference.name }),
+        "success"
+      );
     }
 
     await refreshMatchWatchlistState(match, { force: true });
@@ -13817,6 +13848,14 @@ if (elements.matchActionRow) {
   elements.matchActionRow.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) {
+      return;
+    }
+    const watchlistButton = target.closest("[data-open-watchlist]");
+    if (watchlistButton) {
+      const href = String(watchlistButton.getAttribute("data-watchlist-href") || "").trim();
+      if (href) {
+        window.location.href = href;
+      }
       return;
     }
     const button = target.closest("[data-follow-side]");
