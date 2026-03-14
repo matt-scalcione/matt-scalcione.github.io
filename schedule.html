@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260313d" />
+    <link rel="stylesheet" href="./styles.css?v=20260313e" />
   </head>
   <body class="product-shell schedule-page">
     <div class="noise"></div>
@@ -74,6 +74,11 @@
           </button>
           <p id="statusText" class="status-text schedule-filter-status" aria-live="polite">Ready.</p>
         </div>
+        <div class="schedule-primary-toolbar" role="group" aria-label="Schedule and results view">
+          <button type="button" class="schedule-primary-button" data-primary-view="schedule">Schedule</button>
+          <button type="button" class="schedule-primary-button" data-primary-view="results">Results</button>
+          <button type="button" class="schedule-primary-button active" data-primary-view="both">Both</button>
+        </div>
         <div id="scheduleFilterBody" class="schedule-filter-body">
           <div class="schedule-filter-grid">
             <section class="schedule-filter-segment schedule-filter-segment-game" aria-label="Game filter">
@@ -82,14 +87,6 @@
                 <button type="button" class="schedule-filter-chip active" data-game="">All</button>
                 <button type="button" class="schedule-filter-chip" data-game="lol">LoL</button>
                 <button type="button" class="schedule-filter-chip" data-game="dota2">Dota 2</button>
-              </div>
-            </section>
-            <section class="schedule-filter-segment schedule-filter-segment-view" aria-label="View filter">
-              <span class="schedule-filter-label">View</span>
-              <div class="schedule-filter-chip-row schedule-filter-view-row" role="group" aria-label="View">
-                <button type="button" class="schedule-filter-chip active" data-view="both">Both</button>
-                <button type="button" class="schedule-filter-chip" data-view="schedule">Schedule</button>
-                <button type="button" class="schedule-filter-chip" data-view="results">Results</button>
               </div>
             </section>
             <section class="schedule-filter-segment schedule-filter-segment-group" aria-label="Group by filter">
@@ -105,14 +102,6 @@
                 <option value="">All games</option>
                 <option value="lol">League of Legends</option>
                 <option value="dota2">Dota 2</option>
-              </select>
-            </label>
-            <label class="schedule-filter-field schedule-filter-field-view schedule-filter-field-select">
-              <span class="schedule-filter-label">View</span>
-              <select id="viewSelect">
-                <option value="both">Both</option>
-                <option value="schedule">Schedule only</option>
-                <option value="results">Results only</option>
               </select>
             </label>
             <label class="schedule-filter-field schedule-filter-field-group schedule-filter-field-select">
@@ -195,6 +184,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./schedule.js?v=20260313a"></script>
+    <script type="module" src="./schedule.js?v=20260313b"></script>
   </body>
 </html>

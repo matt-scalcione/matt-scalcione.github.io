@@ -14030,6 +14030,36 @@ body.product-shell.schedule-page .schedule-filter-status {
   letter-spacing: 0.04em;
 }
 
+body.product-shell.schedule-page .schedule-primary-toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+
+body.product-shell.schedule-page .schedule-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.96rem;
+  padding: 0.14rem 0.54rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 225, 235, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d5dee8;
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+body.product-shell.schedule-page .schedule-primary-button.active,
+body.product-shell.schedule-page .schedule-primary-button[aria-pressed="true"] {
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.14);
+  color: #f7d8aa;
+}
+
 body.product-shell.schedule-page .schedule-filter-body {
   display: grid;
 }
@@ -14175,8 +14205,12 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
     display: none;
   }
 
+  body.product-shell.schedule-page .schedule-primary-toolbar {
+    max-width: 22rem;
+  }
+
   body.product-shell.schedule-page .schedule-filter-grid {
-    grid-template-columns: repeat(3, minmax(160px, 210px));
+    grid-template-columns: repeat(2, minmax(180px, 220px));
     align-items: start;
   }
 
@@ -14211,6 +14245,17 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
 
   body.product-shell.schedule-page .schedule-filter-status {
     display: none;
+  }
+
+  body.product-shell.schedule-page .schedule-primary-toolbar {
+    gap: 0.24rem;
+  }
+
+  body.product-shell.schedule-page .schedule-primary-button {
+    min-height: 1.72rem;
+    padding: 0.1rem 0.34rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.06em;
   }
 
   body.product-shell.schedule-page .schedule-filter-shell.is-collapsed .schedule-filter-body,
@@ -14593,6 +14638,14 @@ body.product-shell.schedule-page .schedule-board-note {
   margin: 0;
   color: #c2ccd7;
   font-size: 0.72rem;
+  line-height: 1.28;
+}
+
+body.product-shell.schedule-page .schedule-board-tournament {
+  margin: 0.18rem 0 0;
+  color: #97a5b8;
+  font-size: 0.64rem;
+  font-weight: 600;
   line-height: 1.28;
 }
 
