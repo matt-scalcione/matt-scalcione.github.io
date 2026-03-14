@@ -3460,6 +3460,11 @@ function detailUrlForGame(matchId, _apiBase, gameNumber = null) {
   });
 }
 
+function requestedGameNumberFromUrl(urlLike = window.location.href) {
+  const url = urlLike instanceof URL ? urlLike : new URL(String(urlLike), window.location.origin);
+  return parseRequestedGameNumber(url.searchParams.get("game_number")) || parseRequestedGameNumber(url.searchParams.get("game"));
+}
+
 function teamDetailUrl(
   teamId,
   game,
@@ -3482,7 +3487,7 @@ function canonicalMatchPath(matchId, gameNumber = null) {
     params.set("id", String(matchId));
   }
   if (Number.isInteger(gameNumber) && gameNumber > 0) {
-    params.set("game", String(gameNumber));
+    params.set("game_number", String(gameNumber));
   }
   const query = params.toString();
   return `/match.html${query ? `?${query}` : ""}`;
@@ -3503,7 +3508,7 @@ function refreshMatchSeo(match = null) {
   const pageUrl = new URL(window.location.href);
   const route = parseMatchRoute(pageUrl.toString());
   const matchId = String(match?.id || route.id || "").trim();
-  const requestedGame = Number.isInteger(route.gameNumber) ? route.gameNumber : parseRequestedGameNumber(pageUrl.searchParams.get("game"));
+  const requestedGame = Number.isInteger(route.gameNumber) ? route.gameNumber : requestedGameNumberFromUrl(pageUrl);
   const selectedGame = contextGameNumber();
   const gameNumber = Number.isInteger(selectedGame) ? selectedGame : requestedGame;
   const seoGameKey = normalizeSeoGameKey(match?.game || pageUrl.searchParams.get("title") || pageUrl.searchParams.get("game"));
@@ -3543,8 +3548,9 @@ function refreshMatchSeo(match = null) {
     }
   }
 
-  const allowedQueryParams = Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game" ? ["id", "game"] : ["id"];
-  const canonicalPath = canonicalMatchPath(matchId, allowedQueryParams.includes("game") ? gameNumber : null);
+  const allowedQueryParams =
+    Number.isInteger(gameNumber) && gameNumber > 0 && uiState.viewMode === "game" ? ["id", "game_number"] : ["id"];
+  const canonicalPath = canonicalMatchPath(matchId, allowedQueryParams.includes("game_number") ? gameNumber : null);
   const indexDetailPages =
     window.PULSEBOARD_CONFIG?.indexDetailPages === true ||
     window.PULSEBOARD_INDEX_DETAIL_PAGES === true;
@@ -13908,7 +13914,7 @@ async function loadMatch() {
   const matchId = route.id;
   const requestedGameNumber = Number.isInteger(route.gameNumber)
     ? route.gameNumber
-    : parseRequestedGameNumber(url.searchParams.get("game"));
+    : requestedGameNumberFromUrl(url);
   const requestedH2hLimit = normalizeMatchupLimit(url.searchParams.get("h2h_limit"));
   const apiBase = normalizeApiBase(url.searchParams.get("api") || localStorage.getItem("pulseboard.apiBase") || DEFAULT_API_BASE);
   const streamEnabled = url.searchParams.get("stream") !== "0";

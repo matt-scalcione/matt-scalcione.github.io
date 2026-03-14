@@ -97,7 +97,7 @@ export function buildMatchUrl({ matchId, gameNumber = null } = {}) {
   const url = new URL("./match.html", window.location.href);
   url.searchParams.set("id", id);
   if (game) {
-    url.searchParams.set("game", String(game));
+    url.searchParams.set("game_number", String(game));
   }
   return applyRouteContext(url).toString();
 }
@@ -138,8 +138,11 @@ export function buildTeamUrl({
 
 export function parseMatchRoute(urlLike = window.location.href) {
   const url = new URL(String(urlLike), window.location.origin);
-  let id = String(url.searchParams.get("id") || "").trim();
-  let gameNumber = parsePositiveInt(url.searchParams.get("game"));
+  let id = String(url.searchParams.get("id") || url.searchParams.get("match") || "").trim();
+  let gameNumber = parsePositiveInt(url.searchParams.get("game_number"));
+  if (!gameNumber) {
+    gameNumber = parsePositiveInt(url.searchParams.get("game"));
+  }
 
   if (!id) {
     const matched = String(url.pathname || "").match(/\/match\/([^/]+)(?:\/game\/(\d+))?\/?$/i);
