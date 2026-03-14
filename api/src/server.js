@@ -41,6 +41,8 @@ async function runWarmCycle(reason = "interval") {
 
 async function runBackfillCycle(reason = "interval") {
   try {
+    // eslint-disable-next-line no-console
+    console.log(`[backfill] ${reason} started`);
     const result = await runCanonicalBackfill({
       reason
     });

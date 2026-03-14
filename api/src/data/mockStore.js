@@ -1973,41 +1973,57 @@ async function hydrateCanonicalTargets({
     matchTargets: Array.isArray(targets?.matchTargets) ? targets.matchTargets : [],
     teamTargets: Array.isArray(targets?.teamTargets) ? targets.teamTargets : []
   };
-
-  const matchResults = await mapWithConcurrency(normalizedTargets.matchTargets, concurrency, async (target) => {
-    try {
-      const detail = await getMatchDetail(target.matchId);
-      return {
-        matchId: target.matchId,
-        ok: Boolean(detail)
-      };
-    } catch (error) {
-      return {
-        matchId: target.matchId,
-        ok: false,
-        error: error?.message || String(error)
-      };
+  const taskPlan = normalizedTargets.matchTargets
+    .map((target) => ({
+      type: "match",
+      target
+    }))
+    .concat(
+      normalizedTargets.teamTargets.map((target) => ({
+        type: "team",
+        target
+      }))
+    );
+  const taskResults = await mapWithConcurrency(taskPlan, concurrency, async (task) => {
+    if (task.type === "match") {
+      try {
+        const detail = await getMatchDetail(task.target.matchId);
+        return {
+          type: "match",
+          matchId: task.target.matchId,
+          ok: Boolean(detail)
+        };
+      } catch (error) {
+        return {
+          type: "match",
+          matchId: task.target.matchId,
+          ok: false,
+          error: error?.message || String(error)
+        };
+      }
     }
-  });
 
-  const teamResults = await mapWithConcurrency(normalizedTargets.teamTargets, concurrency, async (target) => {
     try {
-      const profile = await getTeamProfile(target.teamId, {
-        ...(target.options || {}),
+      const profile = await getTeamProfile(task.target.teamId, {
+        ...(task.target.options || {}),
         ...(teamProfileOptions || {})
       });
       return {
-        teamId: target.teamId,
+        type: "team",
+        teamId: task.target.teamId,
         ok: Boolean(profile)
       };
     } catch (error) {
       return {
-        teamId: target.teamId,
+        type: "team",
+        teamId: task.target.teamId,
         ok: false,
         error: error?.message || String(error)
       };
     }
   });
+  const matchResults = taskResults.filter((row) => row?.type === "match");
+  const teamResults = taskResults.filter((row) => row?.type === "team");
 
   return {
     selectedMatches: normalizedTargets.matchTargets.map((target) => target.matchId),
