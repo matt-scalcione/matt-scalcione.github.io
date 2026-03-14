@@ -277,6 +277,15 @@ describe("provider diagnostics", () => {
     assert.equal(typeof result.payload.data.canonicalPrewarmEnabled, "boolean");
     assert.equal(typeof result.payload.data.canonicalPrewarmMatchLimit, "number");
     assert.equal(typeof result.payload.data.canonicalPrewarmTeamLimit, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillEnabled, "boolean");
+    assert.equal(typeof result.payload.data.canonicalBackfillMatchLimit, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillTeamLimit, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillConcurrency, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillScheduleLookbackMs, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillScheduleLookaheadMs, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillResultsLookbackMs, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillResultsLookaheadMs, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillRunning, "boolean");
     assert.equal(typeof result.payload.data.canonicalStore.enabled, "boolean");
     assert.equal(typeof result.payload.data.canonicalStore.backend, "string");
     assert.equal(typeof result.payload.data.canonicalStore.pruneEnabled, "boolean");
@@ -290,6 +299,7 @@ describe("provider diagnostics", () => {
     assert.equal(Array.isArray(result.payload.data.canonicalStore.lastPruneResults), true);
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedDetails), true);
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedProfiles), true);
+    assert.equal(Array.isArray(result.payload.data.recentBackfills), true);
   });
 });
 

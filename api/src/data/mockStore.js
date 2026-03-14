@@ -83,6 +83,37 @@ const canonicalPrewarmTeamLimit = Math.max(
   0,
   Number.parseInt(process.env.CANONICAL_PREWARM_TEAM_LIMIT || "10", 10) || 10
 );
+const canonicalBackfillEnabled = String(process.env.CANONICAL_BACKFILL_ENABLED || "1").trim() !== "0";
+const canonicalBackfillMatchLimit = Math.max(
+  0,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_MATCH_LIMIT || "18", 10) || 18
+);
+const canonicalBackfillTeamLimit = Math.max(
+  0,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_TEAM_LIMIT || "24", 10) || 24
+);
+const canonicalBackfillConcurrency = Math.max(
+  1,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_CONCURRENCY || "2", 10) || 2
+);
+const canonicalBackfillScheduleLookbackMs = Math.max(
+  0,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_SCHEDULE_LOOKBACK_MS || String(6 * oneHour), 10) || 6 * oneHour
+);
+const canonicalBackfillScheduleLookaheadMs = Math.max(
+  oneHour,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_SCHEDULE_LOOKAHEAD_MS || String(48 * oneHour), 10) ||
+    48 * oneHour
+);
+const canonicalBackfillResultsLookbackMs = Math.max(
+  oneHour,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_RESULTS_LOOKBACK_MS || String(96 * oneHour), 10) ||
+    96 * oneHour
+);
+const canonicalBackfillResultsLookaheadMs = Math.max(
+  0,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_RESULTS_LOOKAHEAD_MS || String(3 * oneHour), 10) || 3 * oneHour
+);
 const providerRateLimitCooldownMs = Math.max(
   providerCacheMs,
   Number.parseInt(process.env.PROVIDER_RATE_LIMIT_COOLDOWN_MS || String(5 * oneMinute), 10)
@@ -194,6 +225,8 @@ const providerState = {
 };
 const providerRefreshHistory = [];
 const providerWarmHistory = [];
+const canonicalBackfillHistory = [];
+let canonicalBackfillPromise = null;
 const providerSnapshotMeta = {
   path: PROVIDER_CACHE_FILE_PATH,
   loadedAt: null,
@@ -1883,6 +1916,119 @@ export function buildCanonicalPrewarmTargets({
       status: row?.status || null
     })),
     teamTargets
+  };
+}
+
+export function buildCanonicalBackfillTargets({
+  liveRows = [],
+  scheduleRows = [],
+  resultRows = [],
+  matchLimit = canonicalBackfillMatchLimit,
+  teamLimit = canonicalBackfillTeamLimit,
+  nowMs = Date.now()
+} = {}) {
+  return buildCanonicalPrewarmTargets({
+    liveRows,
+    scheduleRows,
+    resultRows,
+    matchLimit,
+    teamLimit,
+    nowMs
+  });
+}
+
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  if (normalizedItems.length === 0) {
+    return [];
+  }
+
+  const results = new Array(normalizedItems.length);
+  let nextIndex = 0;
+  const workerCount = Math.max(1, Math.min(normalizedItems.length, Number(concurrency) || 1));
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const index = nextIndex;
+        nextIndex += 1;
+        if (index >= normalizedItems.length) {
+          return;
+        }
+
+        results[index] = await mapper(normalizedItems[index], index);
+      }
+    })
+  );
+
+  return results;
+}
+
+async function hydrateCanonicalTargets({
+  targets = {},
+  concurrency = 1
+} = {}) {
+  const normalizedTargets = {
+    matchTargets: Array.isArray(targets?.matchTargets) ? targets.matchTargets : [],
+    teamTargets: Array.isArray(targets?.teamTargets) ? targets.teamTargets : []
+  };
+
+  const matchResults = await mapWithConcurrency(normalizedTargets.matchTargets, concurrency, async (target) => {
+    try {
+      const detail = await getMatchDetail(target.matchId);
+      return {
+        matchId: target.matchId,
+        ok: Boolean(detail)
+      };
+    } catch (error) {
+      return {
+        matchId: target.matchId,
+        ok: false,
+        error: error?.message || String(error)
+      };
+    }
+  });
+
+  const teamResults = await mapWithConcurrency(normalizedTargets.teamTargets, concurrency, async (target) => {
+    try {
+      const profile = await getTeamProfile(target.teamId, target.options);
+      return {
+        teamId: target.teamId,
+        ok: Boolean(profile)
+      };
+    } catch (error) {
+      return {
+        teamId: target.teamId,
+        ok: false,
+        error: error?.message || String(error)
+      };
+    }
+  });
+
+  return {
+    selectedMatches: normalizedTargets.matchTargets.map((target) => target.matchId),
+    selectedTeams: normalizedTargets.teamTargets.map((target) => target.teamId),
+    matchAttempts: matchResults.length,
+    matchHits: matchResults.filter((row) => row.ok).length,
+    teamAttempts: teamResults.length,
+    teamHits: teamResults.filter((row) => row.ok).length,
+    failures: matchResults
+      .filter((row) => !row.ok)
+      .map((row) => ({
+        type: "match",
+        id: row.matchId,
+        error: row.error || "unknown"
+      }))
+      .concat(
+        teamResults
+          .filter((row) => !row.ok)
+          .map((row) => ({
+            type: "team",
+            id: row.teamId,
+            error: row.error || "unknown"
+          }))
+      )
+      .slice(0, 8)
   };
 }
 
@@ -4946,70 +5092,132 @@ async function prewarmCanonicalEntities({ reason = "manual", providerKeys = [] }
     teamLimit: canonicalPrewarmTeamLimit,
     nowMs
   });
-
-  const matchResults = [];
-  for (const target of targets.matchTargets) {
-    try {
-      const detail = await getMatchDetail(target.matchId);
-      matchResults.push({
-        matchId: target.matchId,
-        ok: Boolean(detail)
-      });
-    } catch (error) {
-      matchResults.push({
-        matchId: target.matchId,
-        ok: false,
-        error: error?.message || String(error)
-      });
-    }
-  }
-
-  const teamResults = [];
-  for (const target of targets.teamTargets) {
-    try {
-      const profile = await getTeamProfile(target.teamId, target.options);
-      teamResults.push({
-        teamId: target.teamId,
-        ok: Boolean(profile)
-      });
-    } catch (error) {
-      teamResults.push({
-        teamId: target.teamId,
-        ok: false,
-        error: error?.message || String(error)
-      });
-    }
-  }
+  const hydration = await hydrateCanonicalTargets({
+    targets,
+    concurrency: 1
+  });
 
   return {
     enabled: true,
     skipped: false,
     reason,
     providerKeys: Array.isArray(providerKeys) ? providerKeys : [],
-    selectedMatches: targets.matchTargets.map((target) => target.matchId),
-    selectedTeams: targets.teamTargets.map((target) => target.teamId),
-    matchAttempts: matchResults.length,
-    matchHits: matchResults.filter((row) => row.ok).length,
-    teamAttempts: teamResults.length,
-    teamHits: teamResults.filter((row) => row.ok).length,
-    failures: matchResults
-      .filter((row) => !row.ok)
-      .map((row) => ({
-        type: "match",
-        id: row.matchId,
-        error: row.error || "unknown"
-      }))
-      .concat(
-        teamResults
-          .filter((row) => !row.ok)
-          .map((row) => ({
-            type: "team",
-            id: row.teamId,
-            error: row.error || "unknown"
-          }))
-      )
-      .slice(0, 8)
+    ...hydration
   };
+}
+
+export async function runCanonicalBackfill({ reason = "scheduled" } = {}) {
+  if (canonicalBackfillPromise) {
+    return canonicalBackfillPromise;
+  }
+
+  canonicalBackfillPromise = (async () => {
+    const startedAt = performance.now();
+    const diagnostics = getCanonicalStoreDiagnostics();
+
+    if (!canonicalBackfillEnabled) {
+      return {
+        enabled: false,
+        skipped: true,
+        reason: "disabled",
+        durationMs: 0
+      };
+    }
+
+    if (!diagnostics.enabled) {
+      return {
+        enabled: false,
+        skipped: true,
+        reason: "canonical_store_disabled",
+        durationMs: 0
+      };
+    }
+
+    if (canonicalBackfillMatchLimit <= 0 && canonicalBackfillTeamLimit <= 0) {
+      return {
+        enabled: true,
+        skipped: true,
+        reason: "limits_zero",
+        durationMs: 0
+      };
+    }
+
+    const nowMs = Date.now();
+    const [liveRows, scheduleRows, resultRows] = await Promise.all([
+      listLiveMatches({
+        game: undefined,
+        region: undefined,
+        followedOnly: false,
+        userId: null,
+        dotaTiers: undefined,
+        lolTiers: undefined,
+        useCanonicalFallback: true
+      }),
+      listSchedule({
+        game: undefined,
+        region: undefined,
+        dateFrom: nowMs - canonicalBackfillScheduleLookbackMs,
+        dateTo: nowMs + canonicalBackfillScheduleLookaheadMs,
+        dotaTiers: undefined,
+        lolTiers: undefined,
+        useCanonicalFallback: true
+      }),
+      listResults({
+        game: undefined,
+        region: undefined,
+        dateFrom: nowMs - canonicalBackfillResultsLookbackMs,
+        dateTo: nowMs + canonicalBackfillResultsLookaheadMs,
+        dotaTiers: undefined,
+        lolTiers: undefined,
+        useCanonicalFallback: true
+      })
+    ]);
+
+    const targets = buildCanonicalBackfillTargets({
+      liveRows,
+      scheduleRows,
+      resultRows,
+      matchLimit: canonicalBackfillMatchLimit,
+      teamLimit: canonicalBackfillTeamLimit,
+      nowMs
+    });
+    const hydration = await hydrateCanonicalTargets({
+      targets,
+      concurrency: canonicalBackfillConcurrency
+    });
+    const durationMs = performance.now() - startedAt;
+
+    return {
+      enabled: true,
+      skipped: false,
+      reason,
+      durationMs,
+      rowCounts: {
+        live: liveRows.length,
+        schedule: scheduleRows.length,
+        results: resultRows.length
+      },
+      windows: {
+        scheduleLookbackMs: canonicalBackfillScheduleLookbackMs,
+        scheduleLookaheadMs: canonicalBackfillScheduleLookaheadMs,
+        resultsLookbackMs: canonicalBackfillResultsLookbackMs,
+        resultsLookaheadMs: canonicalBackfillResultsLookaheadMs
+      },
+      concurrency: canonicalBackfillConcurrency,
+      ...hydration
+    };
+  })();
+
+  try {
+    const result = await canonicalBackfillPromise;
+    pushBounded(canonicalBackfillHistory, {
+      timestamp: new Date().toISOString(),
+      ...result
+    });
+    return result;
+  } finally {
+    canonicalBackfillPromise = null;
+  }
 }
 
 function findMatchSummary(matchId) {
@@ -5471,6 +5679,15 @@ export function getProviderDiagnostics() {
     canonicalPrewarmEnabled,
     canonicalPrewarmMatchLimit,
     canonicalPrewarmTeamLimit,
+    canonicalBackfillEnabled,
+    canonicalBackfillMatchLimit,
+    canonicalBackfillTeamLimit,
+    canonicalBackfillConcurrency,
+    canonicalBackfillScheduleLookbackMs,
+    canonicalBackfillScheduleLookaheadMs,
+    canonicalBackfillResultsLookbackMs,
+    canonicalBackfillResultsLookaheadMs,
+    canonicalBackfillRunning: Boolean(canonicalBackfillPromise),
     providerTimeoutMs,
     providerSlowMs,
     diagnosticsHistoryLimit,
@@ -5485,7 +5702,8 @@ export function getProviderDiagnostics() {
     teamProfileCacheEntries: providerState.teamProfileByKey.size,
     providers: providerSnapshotKeys.map((stateKey) => providerDiagnosticsRow(stateKey)),
     recentRefreshes: providerRefreshHistory.slice().reverse(),
-    recentWarmRuns: providerWarmHistory.slice().reverse()
+    recentWarmRuns: providerWarmHistory.slice().reverse(),
+    recentBackfills: canonicalBackfillHistory.slice().reverse()
   };
 }
 
