@@ -2351,7 +2351,10 @@ function refreshTeamProfile(cacheKey, buildProfile, { teamId = null, options = n
 
   const refreshPromise = (async () => {
     try {
-      const profile = await buildProfile();
+      const profile = annotateTeamProfileIdentity(await buildProfile(), {
+        teamId,
+        options
+      });
       if (profile) {
         setTeamProfileCacheEntry(cacheKey, profile);
         await persistCanonicalTeamProfile({
@@ -2389,6 +2392,70 @@ function normalizeTeamName(value) {
 function rowRecencyMs(row) {
   const parsed = Date.parse(String(row?.updatedAt || row?.endAt || row?.startAt || ""));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function annotateTeamPerspectiveIdentity(row) {
+  if (!row || typeof row !== "object") {
+    return row;
+  }
+
+  return {
+    ...annotateEntityQuality(row),
+    ownCanonicalTeamId:
+      row?.ownCanonicalTeamId ||
+      canonicalTeamEntityId(String(row?.ownTeamId || "").trim(), {
+        game: row?.game,
+        teamNameHint: row?.ownTeamName
+      }),
+    opponentCanonicalTeamId:
+      row?.opponentCanonicalTeamId ||
+      canonicalTeamEntityId(String(row?.opponentId || "").trim(), {
+        game: row?.game,
+        teamNameHint: row?.opponentName
+      })
+  };
+}
+
+function annotateTeamProfileIdentity(profile, { teamId = null, options = null } = {}) {
+  if (!profile || typeof profile !== "object") {
+    return profile;
+  }
+
+  const normalizedGame = String(profile?.game || options?.game || "").trim().toLowerCase();
+  const normalizedTeamId = String(teamId || profile?.id || "").trim();
+  const normalizedTeamName = String(profile?.name || "").trim();
+  const canonicalTeamId =
+    profile?.canonicalTeamId ||
+    canonicalTeamEntityId(normalizedTeamId, {
+      game: normalizedGame,
+      teamNameHint: normalizedTeamName,
+      payload: profile
+    });
+  const existingIds = Array.isArray(profile?.teamAliases?.ids) ? profile.teamAliases.ids : [];
+  const existingNames = Array.isArray(profile?.teamAliases?.names) ? profile.teamAliases.names : [];
+
+  return {
+    ...profile,
+    canonicalTeamId,
+    teamAliases: {
+      ids: Array.from(new Set([normalizedTeamId].concat(existingIds).filter(Boolean))),
+      names: Array.from(new Set([normalizedTeamName].concat(existingNames).filter(Boolean)))
+    },
+    recentMatches: Array.isArray(profile?.recentMatches)
+      ? profile.recentMatches.map((row) => annotateTeamPerspectiveIdentity(row))
+      : [],
+    upcomingMatches: Array.isArray(profile?.upcomingMatches)
+      ? profile.upcomingMatches.map((row) => annotateTeamPerspectiveIdentity(row))
+      : [],
+    headToHead: profile?.headToHead
+      ? {
+          ...profile.headToHead,
+          recentMatches: Array.isArray(profile?.headToHead?.recentMatches)
+            ? profile.headToHead.recentMatches.map((row) => annotateTeamPerspectiveIdentity(row))
+            : []
+        }
+      : profile?.headToHead || null
+  };
 }
 
 function inferSeedMatchIdFromTeamId(teamId, { game } = {}) {
@@ -6144,7 +6211,10 @@ export async function getTeamProfile(teamId, options = {}) {
   const cacheKey = teamProfileCacheKey(normalizedTeamId, options);
   const cached = providerState.teamProfileByKey.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt <= providerCacheMs) {
-    return cached.detail;
+    return annotateTeamProfileIdentity(cached.detail, {
+      teamId: normalizedTeamId,
+      options
+    });
   }
 
   if (cached?.detail) {
@@ -6152,7 +6222,10 @@ export async function getTeamProfile(teamId, options = {}) {
       teamId: normalizedTeamId,
       options
     });
-    return cached.detail;
+    return annotateTeamProfileIdentity(cached.detail, {
+      teamId: normalizedTeamId,
+      options
+    });
   }
 
   const canonicalProfile = await loadCanonicalTeamProfile({
@@ -6160,12 +6233,16 @@ export async function getTeamProfile(teamId, options = {}) {
     options
   });
   if (canonicalProfile) {
-    setTeamProfileCacheEntry(cacheKey, canonicalProfile);
+    const hydratedCanonicalProfile = annotateTeamProfileIdentity(canonicalProfile, {
+      teamId: normalizedTeamId,
+      options
+    });
+    setTeamProfileCacheEntry(cacheKey, hydratedCanonicalProfile);
     void refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options), {
       teamId: normalizedTeamId,
       options
     });
-    return canonicalProfile;
+    return hydratedCanonicalProfile;
   }
 
   return refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options), {
