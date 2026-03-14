@@ -661,6 +661,10 @@ function scheduleFilterViewSummary() {
   return "Both";
 }
 
+function scheduleFilterGroupSummary() {
+  return selectedScheduleGroupMode() === "date" ? "By date" : "By tournament";
+}
+
 function syncScheduleGameChipState() {
   if (!Array.isArray(elements.scheduleGameChips)) {
     return;
@@ -714,7 +718,14 @@ function syncScheduleFilterSummary() {
   if (!elements.scheduleFilterSummary) {
     return;
   }
-  elements.scheduleFilterSummary.textContent = `${scheduleFilterGameSummary()} · ${scheduleFilterRangeSummary()} · ${scheduleFilterViewSummary()}`;
+  const parts = [scheduleFilterGameSummary(), scheduleFilterRangeSummary()];
+  if (selectedScheduleViewMode() !== "both") {
+    parts.push(scheduleFilterViewSummary());
+  }
+  if (selectedScheduleGroupMode() !== "tournament") {
+    parts.push(scheduleFilterGroupSummary());
+  }
+  elements.scheduleFilterSummary.textContent = parts.join(" · ");
 }
 
 function shouldShowCustomDates() {
