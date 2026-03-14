@@ -105,6 +105,8 @@ const elements = {
   mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
   mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
   statusText: document.querySelector("#statusText"),
+  scheduleSectionTitle: document.querySelector("#scheduleSectionTitle"),
+  resultsSectionTitle: document.querySelector("#resultsSectionTitle"),
   scheduleMeta: document.querySelector("#scheduleMeta"),
   resultsMeta: document.querySelector("#resultsMeta"),
   scheduleSection: document.querySelector("#scheduleSection"),
@@ -1189,6 +1191,13 @@ function renderCollectionsFromState() {
   const viewMode = selectedScheduleViewMode();
   const showSchedule = viewMode !== "results";
   const showResults = viewMode !== "schedule";
+
+  if (elements.scheduleSectionTitle) {
+    elements.scheduleSectionTitle.textContent = showResults && showSchedule ? "Upcoming" : "Upcoming";
+  }
+  if (elements.resultsSectionTitle) {
+    elements.resultsSectionTitle.textContent = "Results";
+  }
 
   if (elements.scheduleSection) {
     elements.scheduleSection.hidden = !showSchedule;

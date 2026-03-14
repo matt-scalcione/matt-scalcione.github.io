@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260313e" />
+    <link rel="stylesheet" href="./styles.css?v=20260313f" />
   </head>
   <body class="product-shell schedule-page">
     <div class="noise"></div>
@@ -74,10 +74,10 @@
           </button>
           <p id="statusText" class="status-text schedule-filter-status" aria-live="polite">Ready.</p>
         </div>
-        <div class="schedule-primary-toolbar" role="group" aria-label="Schedule and results view">
-          <button type="button" class="schedule-primary-button" data-primary-view="schedule">Schedule</button>
+        <div class="schedule-primary-toolbar" role="group" aria-label="Upcoming and results view">
+          <button type="button" class="schedule-primary-button" data-primary-view="schedule">Upcoming</button>
           <button type="button" class="schedule-primary-button" data-primary-view="results">Results</button>
-          <button type="button" class="schedule-primary-button active" data-primary-view="both">Both</button>
+          <button type="button" class="schedule-primary-button active" data-primary-view="both">All</button>
         </div>
         <div id="scheduleFilterBody" class="schedule-filter-body">
           <div class="schedule-filter-grid">
@@ -151,7 +151,7 @@
       <section class="panel">
         <div id="scheduleSection">
           <div class="section-head">
-            <h2>Schedule</h2>
+            <h2 id="scheduleSectionTitle">Upcoming</h2>
             <p id="scheduleMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
           </div>
           <div id="scheduleTableWrap" class="table-wrap"></div>
@@ -159,7 +159,7 @@
 
         <div id="resultsSection" class="top-space">
           <div class="section-head">
-            <h2>Results</h2>
+            <h2 id="resultsSectionTitle">Results</h2>
             <p id="resultsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
           </div>
           <div id="resultsTableWrap" class="table-wrap"></div>
@@ -184,6 +184,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./schedule.js?v=20260313b"></script>
+    <script type="module" src="./schedule.js?v=20260313c"></script>
   </body>
 </html>
