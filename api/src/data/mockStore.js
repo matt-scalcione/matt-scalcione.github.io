@@ -5031,8 +5031,10 @@ export async function listLiveMatches({
   rows = replaceFallbackRowsForGame(rows, "lol", providerLolLiveState, {
     strictNoFallback: shouldHideFallbackLolRows()
   });
-  const providerLolLiveHealth = assessProviderStateHealth(providerLolLiveState);
-  if (providerLolScheduleState.status === "success" && providerLolLiveHealth.fallbackRecommended) {
+  if (
+    providerLolLiveState.status === "success" ||
+    providerLolScheduleState.status === "success"
+  ) {
     const inferredLolLiveRows = canonicalizeLolScheduleRowsForLive(providerLolScheduleState.rows, {
       liveRows: providerLolLiveState.rows,
       resultRows: providerLolResultsState.rows
