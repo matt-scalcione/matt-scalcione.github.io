@@ -33,7 +33,7 @@ describe("live canonical fallback decision", () => {
     assert.equal(result, false);
   });
 
-  it("does not use canonical Dota live fallback while schedule is healthy", () => {
+  it("uses canonical Dota live fallback when live providers are degraded and merged live rows are empty", () => {
     const result = shouldUseCanonicalLiveFallbackForGame({
       targetGame: "dota2",
       rows: [],
@@ -50,10 +50,9 @@ describe("live canonical fallback decision", () => {
       scheduleState: {
         status: "success",
         rows: []
-      },
-      requireScheduleFailure: true
+      }
     });
 
-    assert.equal(result, false);
+    assert.equal(result, true);
   });
 });

@@ -1768,8 +1768,7 @@ export function shouldUseCanonicalLiveFallbackForGame({
   targetGame,
   rows = [],
   providerStates = [],
-  scheduleState = null,
-  requireScheduleFailure = false
+  scheduleState = null
 } = {}) {
   const normalizedGame = String(targetGame || "").trim();
   if (!normalizedGame) {
@@ -1787,10 +1786,6 @@ export function shouldUseCanonicalLiveFallbackForGame({
   }
 
   if (!normalizedProviderStates.some((state) => state?.status !== "success")) {
-    return false;
-  }
-
-  if (requireScheduleFailure && scheduleState?.status === "success") {
     return false;
   }
 
@@ -4648,8 +4643,7 @@ export async function listLiveMatches({
       targetGame: "dota2",
       rows,
       providerStates: [providerStratzLiveState, providerDotaLiveState, providerSteamLiveState],
-      scheduleState: providerDotaScheduleState,
-      requireScheduleFailure: true
+      scheduleState: providerDotaScheduleState
     });
   if (useCanonicalFallback) {
     rows = await mergeCanonicalFallbackRows(rows, {
