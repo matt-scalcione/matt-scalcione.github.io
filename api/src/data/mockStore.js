@@ -78,6 +78,13 @@ const providerTeamProfileCacheLimit = Number.parseInt(
   process.env.PROVIDER_TEAM_PROFILE_CACHE_LIMIT || "120",
   10
 );
+const teamProfileProviderTaskTimeoutMs = Math.max(
+  1000,
+  Number.parseInt(
+    process.env.TEAM_PROFILE_PROVIDER_TASK_TIMEOUT_MS || String(Math.max(1000, Math.min(providerTimeoutMs, 2000))),
+    10
+  ) || Math.max(1000, Math.min(providerTimeoutMs, 2000))
+);
 const canonicalPrewarmEnabled = String(process.env.CANONICAL_PREWARM_ENABLED || "1").trim() !== "0";
 const canonicalPrewarmMatchLimit = Math.max(
   0,
@@ -5708,10 +5715,15 @@ async function buildTeamProfile(teamId, {
   let resultsRows = baseResultsRows.slice();
   if (isProviderModeEnabled() && shouldFetchExtendedLolHistory) {
     try {
-      const extendedLolResults = await lolEsportsProvider.getCachedRecentResults({
-        maxRows: 220,
-        maxPages: 8
-      });
+      const extendedLolResults = await runWithTaskTimeout(
+        () =>
+          lolEsportsProvider.getCachedRecentResults({
+            maxRows: 220,
+            maxPages: 8
+          }),
+        teamProfileProviderTaskTimeoutMs,
+        `team profile lol history ${normalizedTeamId}`
+      );
       resultsRows = mergeUniqueMatches(resultsRows, extendedLolResults);
     } catch {
       // Keep base rows when extended provider history fails.
@@ -5720,10 +5732,15 @@ async function buildTeamProfile(teamId, {
 
   if (isProviderModeEnabled() && shouldFetchExtendedDotaHistory) {
     try {
-      const extendedDotaResults = await openDotaProvider.fetchRecentResults({
-        maxRows: 220,
-        allowedTiers: defaultDotaTiers
-      });
+      const extendedDotaResults = await runWithTaskTimeout(
+        () =>
+          openDotaProvider.fetchRecentResults({
+            maxRows: 220,
+            allowedTiers: defaultDotaTiers
+          }),
+        teamProfileProviderTaskTimeoutMs,
+        `team profile dota history ${normalizedTeamId}`
+      );
       resultsRows = mergeUniqueMatches(resultsRows, extendedDotaResults);
     } catch {
       // Keep base rows when extended provider history fails.
@@ -5799,7 +5816,11 @@ async function buildTeamProfile(teamId, {
 
   if (!teamName && resolvedSeedMatchId) {
     try {
-      const seed = await getMatchDetail(resolvedSeedMatchId);
+      const seed = await runWithTaskTimeout(
+        () => getMatchDetail(resolvedSeedMatchId),
+        teamProfileProviderTaskTimeoutMs,
+        `team profile seed ${resolvedSeedMatchId}`
+      );
       const seedPerspective = perspectiveForTeam(seed, {
         teamId: normalizedTeamId,
         teamName: resolvedTeamNameHint,
@@ -5837,7 +5858,11 @@ async function buildTeamProfile(teamId, {
 
   if (resolvedSeedMatchId) {
     try {
-      const seed = await getMatchDetail(resolvedSeedMatchId);
+      const seed = await runWithTaskTimeout(
+        () => getMatchDetail(resolvedSeedMatchId),
+        teamProfileProviderTaskTimeoutMs,
+        `team profile seed ${resolvedSeedMatchId}`
+      );
       if (seed) {
         const seedPerspective = perspectiveForTeam(seed, {
           teamId: normalizedTeamId,
@@ -5870,18 +5895,27 @@ async function buildTeamProfile(teamId, {
 
   if (shouldFetchExtendedDotaHistory && (teamResults.length < safeLimit || requestedOpponentId) && teamName) {
     try {
-      const resolvedDotaTeam =
-        /^\d+$/.test(normalizedTeamId)
-          ? {
-              id: normalizedTeamId,
-              name: teamName
-            }
-          : await openDotaProvider.resolveTeamIdentityByName(teamName);
+      const resolvedDotaTeam = await runWithTaskTimeout(
+        async () =>
+          /^\d+$/.test(normalizedTeamId)
+            ? {
+                id: normalizedTeamId,
+                name: teamName
+              }
+            : openDotaProvider.resolveTeamIdentityByName(teamName),
+        teamProfileProviderTaskTimeoutMs,
+        `team profile dota identity ${normalizedTeamId}`
+      );
 
       if (resolvedDotaTeam?.id) {
-        const providerTeamMatches = await openDotaProvider.fetchTeamMatchHistory(resolvedDotaTeam.id, {
-          maxRows: 60
-        });
+        const providerTeamMatches = await runWithTaskTimeout(
+          () =>
+            openDotaProvider.fetchTeamMatchHistory(resolvedDotaTeam.id, {
+              maxRows: 60
+            }),
+          teamProfileProviderTaskTimeoutMs,
+          `team profile dota matches ${resolvedDotaTeam.id}`
+        );
         const providerPerspectives = buildDotaSeriesPerspectivesFromTeamMatches(providerTeamMatches, {
           teamId: resolvedDotaTeam.id,
           teamName: resolvedDotaTeam.name || teamName
@@ -6090,6 +6124,7 @@ export function getProviderDiagnostics() {
     canonicalBackfillTeamLimit,
     canonicalBackfillConcurrency,
     canonicalBackfillTaskTimeoutMs,
+    teamProfileProviderTaskTimeoutMs,
     canonicalBackfillScheduleLookbackMs,
     canonicalBackfillScheduleLookaheadMs,
     canonicalBackfillResultsLookbackMs,
