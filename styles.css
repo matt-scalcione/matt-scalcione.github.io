@@ -14190,19 +14190,6 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
     gap: 0.78rem;
   }
 
-  body.product-shell.schedule-page .runtime-trust-panel {
-    gap: 0.72rem;
-    padding: 0.84rem 0.92rem;
-  }
-
-  body.product-shell.schedule-page .runtime-panel-note {
-    max-width: 62ch;
-  }
-
-  body.product-shell.schedule-page .runtime-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   body.product-shell.schedule-page .schedule-filter-shell {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
@@ -14285,22 +14272,6 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
   }
 
   body.product-shell.schedule-page .schedule-filter-date-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 980px) {
-  body.product-shell.schedule-page .runtime-trust-panel {
-    grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
-    align-items: start;
-    gap: 0.96rem;
-  }
-
-  body.product-shell.schedule-page .runtime-panel-head {
-    align-content: start;
-  }
-
-  body.product-shell.schedule-page .runtime-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
