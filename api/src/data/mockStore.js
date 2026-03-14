@@ -1138,6 +1138,106 @@ function providerRowsSnapshot(stateKey) {
   };
 }
 
+export function assessProviderStateHealth(state, {
+  nowMs = Date.now(),
+  cacheMs = providerCacheMs
+} = {}) {
+  const current = state && typeof state === "object" ? state : {};
+  const rowCount = Array.isArray(current.rows) ? current.rows.length : 0;
+  const fetchedAtMs = Number.parseInt(String(current.fetchedAt || 0), 10) || 0;
+  const ageMs = fetchedAtMs ? Math.max(0, nowMs - fetchedAtMs) : null;
+  const cooldownRemainingMs =
+    current.rateLimitedUntil && current.rateLimitedUntil > nowMs ? current.rateLimitedUntil - nowMs : 0;
+  const staleThresholdMs = Math.max(cacheMs * 4, 2 * oneMinute);
+
+  if (current.status === "disabled") {
+    return {
+      level: "disabled",
+      reason: "disabled",
+      rowCount,
+      ageMs,
+      usable: false,
+      empty: true
+    };
+  }
+
+  if (current.status === "warming" && !fetchedAtMs) {
+    return {
+      level: "warming",
+      reason: "warming",
+      rowCount,
+      ageMs,
+      usable: rowCount > 0,
+      empty: rowCount === 0
+    };
+  }
+
+  if (cooldownRemainingMs > 0) {
+    return {
+      level: rowCount > 0 ? "degraded" : "down",
+      reason: rowCount > 0 ? "rate_limited_cache" : "rate_limited",
+      rowCount,
+      ageMs,
+      usable: rowCount > 0,
+      empty: rowCount === 0,
+      cooldownRemainingMs
+    };
+  }
+
+  if (current.status === "error" || current.lastOutcome === "error") {
+    return {
+      level: "down",
+      reason: "error",
+      rowCount,
+      ageMs,
+      usable: false,
+      empty: rowCount === 0
+    };
+  }
+
+  if (current.lastOutcome === "fallback-cache" || current.lastOutcome === "rate-limited-cache") {
+    return {
+      level: "degraded",
+      reason: current.lastOutcome === "fallback-cache" ? "fallback_cache" : "rate_limited_cache",
+      rowCount,
+      ageMs,
+      usable: rowCount > 0,
+      empty: rowCount === 0
+    };
+  }
+
+  if (Number.isFinite(ageMs) && ageMs > staleThresholdMs) {
+    return {
+      level: rowCount > 0 ? "degraded" : "down",
+      reason: rowCount > 0 ? "stale_cache" : "stale_empty",
+      rowCount,
+      ageMs,
+      usable: rowCount > 0,
+      empty: rowCount === 0
+    };
+  }
+
+  if (current.status === "success" && rowCount === 0) {
+    return {
+      level: "healthy",
+      reason: "empty_success",
+      rowCount,
+      ageMs,
+      usable: false,
+      empty: true
+    };
+  }
+
+  return {
+    level: "healthy",
+    reason: "ok",
+    rowCount,
+    ageMs,
+    usable: rowCount > 0,
+    empty: rowCount === 0
+  };
+}
+
 function providerLogLabel(stateKey) {
   if (stateKey === "live") return "dota live";
   if (stateKey === "stratzLive") return "dota stratz live";
@@ -1422,6 +1522,7 @@ async function loadProviderLolResults() {
 
 function providerDiagnosticsRow(stateKey) {
   const current = providerState[stateKey];
+  const health = assessProviderStateHealth(current);
   return {
     key: stateKey,
     label: providerLogLabel(stateKey),
@@ -1437,7 +1538,8 @@ function providerDiagnosticsRow(stateKey) {
     cooldownRemainingMs:
       current.rateLimitedUntil && current.rateLimitedUntil > Date.now()
         ? current.rateLimitedUntil - Date.now()
-        : 0
+        : 0,
+    health
   };
 }
 
@@ -1797,8 +1899,18 @@ export function filterCanonicalFallbackRowsBySurface(rows, {
   });
 }
 
-function providerStateHasLiveRows(state) {
-  return Array.isArray(state?.rows) && state.rows.length > 0;
+function summarizeProviderHealthGroup(states = []) {
+  const healths = (Array.isArray(states) ? states : []).map((state) => assessProviderStateHealth(state));
+  const usable = healths.some((health) => health.usable);
+  const degraded = healths.some((health) => ["warming", "degraded", "down"].includes(health.level));
+  const empty = healths.every((health) => health.empty || health.level === "disabled");
+
+  return {
+    level: usable ? "healthy" : degraded ? "degraded" : empty ? "empty" : "down",
+    fallbackRecommended: !usable && degraded,
+    usableProviders: healths.filter((health) => health.usable).length,
+    providers: healths
+  };
 }
 
 export function shouldUseCanonicalLiveFallbackForGame({
@@ -1818,11 +1930,12 @@ export function shouldUseCanonicalLiveFallbackForGame({
   }
 
   const normalizedProviderStates = Array.isArray(providerStates) ? providerStates : [];
-  if (normalizedProviderStates.some((state) => state?.status === "success" && providerStateHasLiveRows(state))) {
+  const providerHealths = normalizedProviderStates.map((state) => assessProviderStateHealth(state));
+  if (providerHealths.some((health) => health.usable)) {
     return false;
   }
 
-  if (!normalizedProviderStates.some((state) => state?.status !== "success")) {
+  if (!providerHealths.some((health) => ["warming", "degraded", "down"].includes(health.level))) {
     return false;
   }
 
@@ -5785,6 +5898,10 @@ export function getProviderDiagnostics() {
     detailCacheEntries: providerState.detailById.size,
     lolDetailCacheEntries: providerState.lolDetailById.size,
     teamProfileCacheEntries: providerState.teamProfileByKey.size,
+    liveHealth: {
+      lol: summarizeProviderHealthGroup([providerState.lolLive]),
+      dota: summarizeProviderHealthGroup([providerState.stratzLive, providerState.live, providerState.steamLive])
+    },
     providers: providerSnapshotKeys.map((stateKey) => providerDiagnosticsRow(stateKey)),
     recentRefreshes: providerRefreshHistory.slice().reverse(),
     recentWarmRuns: providerWarmHistory.slice().reverse(),

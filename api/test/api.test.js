@@ -292,6 +292,10 @@ describe("provider diagnostics", () => {
     assert.equal(typeof result.payload.data.canonicalStore.pruneEnabled, "boolean");
     assert.equal(typeof result.payload.data.canonicalStore.retentionDays, "number");
     assert.equal(typeof result.payload.data.canonicalStore.pruneIntervalMs, "number");
+    assert.equal(typeof result.payload.data.liveHealth.lol.level, "string");
+    assert.equal(typeof result.payload.data.liveHealth.lol.fallbackRecommended, "boolean");
+    assert.equal(typeof result.payload.data.liveHealth.dota.level, "string");
+    assert.equal(typeof result.payload.data.liveHealth.dota.fallbackRecommended, "boolean");
     assert.equal(
       result.payload.data.canonicalStore.lastPruneAt === null ||
         typeof result.payload.data.canonicalStore.lastPruneAt === "string",
@@ -301,6 +305,8 @@ describe("provider diagnostics", () => {
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedDetails), true);
     assert.equal(Array.isArray(result.payload.data.canonicalStore.trackedProfiles), true);
     assert.equal(Array.isArray(result.payload.data.recentBackfills), true);
+    assert.equal(typeof result.payload.data.providers[0].health.level, "string");
+    assert.equal(typeof result.payload.data.providers[0].health.reason, "string");
   });
 });
 
