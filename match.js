@@ -5461,10 +5461,16 @@ function renderGameExplorer(match, apiBase) {
 
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card ${selected.telemetryStatus || "none"} draft-context-card">
-        <div class="game-context-top">
-          <p class="game-context-title">${selectedGameTitle}</p>
-          <span class="pill live">${draftPreview.badge}</span>
-        </div>
+        ${
+          compact
+            ? ""
+            : `
+              <div class="game-context-top">
+                <p class="game-context-title">${selectedGameTitle}</p>
+                <span class="pill live">${draftPreview.badge}</span>
+              </div>
+            `
+        }
         <article class="draft-phase-banner ${draftPreview.tone}">
           <div class="draft-phase-copy">
             <p class="draft-phase-kicker">${draftPreview.badge}</p>
@@ -5568,10 +5574,16 @@ function renderGameExplorer(match, apiBase) {
 
     elements.gameContextWrap.innerHTML = `
       <article class="game-context-card ${selected.telemetryStatus || "none"} completed-context-card${compact ? " compact" : ""}">
-        <div class="game-context-top">
-          <p class="game-context-title">${selectedGameTitle}</p>
-          <span class="pill complete">Complete</span>
-        </div>
+        ${
+          compact
+            ? ""
+            : `
+              <div class="game-context-top">
+                <p class="game-context-title">${selectedGameTitle}</p>
+                <span class="pill complete">Complete</span>
+              </div>
+            `
+        }
         <article class="completed-result-banner ${winnerTone}${compact ? " compact" : ""}">
           <div class="completed-result-copy">
             <p class="completed-result-kicker">Result</p>
@@ -5603,10 +5615,16 @@ function renderGameExplorer(match, apiBase) {
 
   elements.gameContextWrap.innerHTML = `
     <article class="game-context-card ${selected.telemetryStatus || "none"}">
-      <div class="game-context-top">
-        <p class="game-context-title">${selectedGameTitle}</p>
-        <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
-      </div>
+      ${
+        compactStateSummary
+          ? ""
+          : `
+            <div class="game-context-top">
+              <p class="game-context-title">${selectedGameTitle}</p>
+              <span class="pill ${selected.state === "inProgress" ? "live" : selected.state === "completed" ? "complete" : selected.state === "unneeded" ? "skip" : "upcoming"}">${selected.telemetryStatus || "none"} telemetry</span>
+            </div>
+          `
+      }
       <p class="meta-text">${selected.label || "No game label."}</p>
       ${draftPreview
         ? `
