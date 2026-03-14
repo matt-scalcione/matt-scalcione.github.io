@@ -137,6 +137,12 @@ function addTeamEntries(entries, siteOrigin, rows) {
       if (game) {
         params.set("game", game);
       }
+      if (row?.id) {
+        params.set("match", String(row.id));
+      }
+      if (team?.name) {
+        params.set("team_name", String(team.name));
+      }
       const loc = `${siteOrigin}/team.html?${params.toString()}`;
       if (seen.has(loc)) {
         continue;

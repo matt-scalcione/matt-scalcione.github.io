@@ -1958,6 +1958,86 @@ function normalizeTeamName(value) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+function rowRecencyMs(row) {
+  const parsed = Date.parse(String(row?.updatedAt || row?.endAt || row?.startAt || ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function inferSeedMatchIdFromTeamId(teamId, { game } = {}) {
+  const normalizedTeamId = String(teamId || "").trim();
+  const normalizedGame = String(game || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    (!normalizedGame || normalizedGame === "lol") &&
+    /^lol_(?:left|right)_[0-9a-z_]+$/i.test(normalizedTeamId)
+  ) {
+    const matchSuffix = normalizedTeamId.replace(/^lol_(?:left|right)_/i, "");
+    return matchSuffix ? `lol_riot_${matchSuffix}` : null;
+  }
+
+  return null;
+}
+
+export function deriveTeamProfileSeedContext(teamId, {
+  game,
+  seedMatchId,
+  teamNameHint,
+  resultsRows = [],
+  scheduleRows = [],
+  liveRows = []
+} = {}) {
+  const normalizedTeamId = String(teamId || "").trim();
+  const explicitSeedMatchId = String(seedMatchId || "").trim();
+  const explicitTeamName = String(teamNameHint || "").trim();
+
+  if (!normalizedTeamId) {
+    return {
+      teamName: explicitTeamName || null,
+      seedMatchId: explicitSeedMatchId || null
+    };
+  }
+
+  const discoveredNames = new Map();
+  let discoveredSeedMatchId = "";
+  const rows = dedupeRowsById(
+    []
+      .concat(Array.isArray(liveRows) ? liveRows : [])
+      .concat(Array.isArray(scheduleRows) ? scheduleRows : [])
+      .concat(Array.isArray(resultsRows) ? resultsRows : [])
+  )
+    .slice()
+    .sort((left, right) => rowRecencyMs(right) - rowRecencyMs(left));
+
+  for (const row of rows) {
+    for (const side of ["left", "right"]) {
+      const team = row?.teams?.[side];
+      if (String(team?.id || "").trim() !== normalizedTeamId) {
+        continue;
+      }
+
+      const teamName = String(team?.name || "").trim();
+      if (teamName) {
+        const normalizedName = normalizeTeamName(teamName);
+        if (normalizedName && !discoveredNames.has(normalizedName)) {
+          discoveredNames.set(normalizedName, teamName);
+        }
+      }
+
+      if (!discoveredSeedMatchId) {
+        discoveredSeedMatchId = String(row?.id || "").trim();
+      }
+    }
+  }
+
+  return {
+    teamName: explicitTeamName || discoveredNames.values().next().value || null,
+    seedMatchId:
+      explicitSeedMatchId || discoveredSeedMatchId || inferSeedMatchIdFromTeamId(normalizedTeamId, { game }) || null
+  };
+}
+
 function dedupeRowsById(rows = []) {
   const rowsById = new Map();
   for (const row of Array.isArray(rows) ? rows : []) {
@@ -5072,6 +5152,16 @@ async function buildTeamProfile(teamId, {
   }
 
   const scheduleUnion = [...scheduleRows, ...liveRows];
+  const seedContext = deriveTeamProfileSeedContext(normalizedTeamId, {
+    game,
+    seedMatchId,
+    teamNameHint,
+    resultsRows,
+    scheduleRows,
+    liveRows
+  });
+  const resolvedSeedMatchId = String(seedContext.seedMatchId || "").trim() || null;
+  const resolvedTeamNameHint = String(seedContext.teamName || "").trim() || null;
   const mapTeamResults = ({ teamName } = {}) =>
     resultsRows
       .map((row) =>
@@ -5096,20 +5186,21 @@ async function buildTeamProfile(teamId, {
       .slice(0, 8);
 
   let teamResults = mapTeamResults({
-    teamName: teamNameHint
+    teamName: resolvedTeamNameHint
   });
   let upcoming = mapUpcoming({
-    teamName: teamNameHint
+    teamName: resolvedTeamNameHint
   });
 
-  let teamName = String(teamNameHint || "").trim() || teamResults[0]?.ownTeamName || upcoming[0]?.ownTeamName || null;
+  let teamName =
+    resolvedTeamNameHint || teamResults[0]?.ownTeamName || upcoming[0]?.ownTeamName || null;
 
-  if (!teamName && seedMatchId) {
+  if (!teamName && resolvedSeedMatchId) {
     try {
-      const seed = await getMatchDetail(seedMatchId);
+      const seed = await getMatchDetail(resolvedSeedMatchId);
       const seedPerspective = perspectiveForTeam(seed, {
         teamId: normalizedTeamId,
-        teamName: teamNameHint
+        teamName: resolvedTeamNameHint
       });
       if (seedPerspective?.ownTeamName) {
         teamName = seedPerspective.ownTeamName;
@@ -5127,8 +5218,8 @@ async function buildTeamProfile(teamId, {
     upcoming = mapUpcoming({ teamName });
   }
 
-  if (teamNameHint && !teamName) {
-    teamName = String(teamNameHint).trim();
+  if (resolvedTeamNameHint && !teamName) {
+    teamName = resolvedTeamNameHint;
   }
 
   if (!teamName && teamResults.length > 0) {
@@ -5139,13 +5230,13 @@ async function buildTeamProfile(teamId, {
     teamName = upcoming[0].ownTeamName || null;
   }
 
-  if (seedMatchId) {
+  if (resolvedSeedMatchId) {
     try {
-      const seed = await getMatchDetail(seedMatchId);
+      const seed = await getMatchDetail(resolvedSeedMatchId);
       if (seed) {
         const seedPerspective = perspectiveForTeam(seed, {
           teamId: normalizedTeamId,
-          teamName: teamName || teamNameHint
+          teamName: teamName || resolvedTeamNameHint
         });
         if (seedPerspective) {
           if (!teamName) {
