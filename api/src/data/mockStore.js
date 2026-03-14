@@ -2557,17 +2557,44 @@ function resolveDotaDetailSupportTaskTimeoutMs(options = {}) {
 async function loadBestEffortDotaFallbackContext(matchId, options = {}) {
   const fallbackLoader =
     typeof options?.fallbackLoader === "function" ? options.fallbackLoader : fallbackProviderDotaDetail;
+  const aliasResolver =
+    typeof options?.aliasResolver === "function" ? options.aliasResolver : resolveDotaAliasMatchId;
+  const timeoutMs = resolveDotaDetailSupportTaskTimeoutMs(options);
 
-  try {
-    return await runWithTaskTimeout(
+  const loadFallbackDetail = async (targetMatchId) =>
+    runWithTaskTimeout(
       () =>
-        fallbackLoader(matchId, {
+        fallbackLoader(targetMatchId, {
           ...options,
           skipEnrichment: true
         }),
-      resolveDotaDetailSupportTaskTimeoutMs(options),
-      `dota detail support ${matchId}`
+      timeoutMs,
+      `dota detail support ${targetMatchId}`
     );
+
+  try {
+    const baseFallbackDetail = await loadFallbackDetail(matchId);
+    if (!baseFallbackDetail) {
+      return null;
+    }
+
+    const aliasMatchId = await runWithTaskTimeout(
+      () => aliasResolver(matchId, baseFallbackDetail),
+      timeoutMs,
+      `dota detail alias ${matchId}`
+    ).catch(() => null);
+    if (!aliasMatchId || String(aliasMatchId) === String(matchId)) {
+      return baseFallbackDetail;
+    }
+
+    const aliasFallbackDetail = await loadFallbackDetail(aliasMatchId).catch(() => null);
+    if (!aliasFallbackDetail) {
+      return baseFallbackDetail;
+    }
+
+    const preferredDetail = preferDotaDetail(aliasFallbackDetail, baseFallbackDetail);
+    const supportingDetail = preferredDetail === aliasFallbackDetail ? baseFallbackDetail : aliasFallbackDetail;
+    return mergeDotaDetailContexts(preferredDetail, supportingDetail);
   } catch {
     return null;
   }

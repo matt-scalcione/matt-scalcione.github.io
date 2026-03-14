@@ -362,6 +362,48 @@ describe("dota alias matching", () => {
     assert.equal(merged.tournament, "PGL Wallachia S7 - Playoffs");
   });
 
+  it("merges richer alias fallback context into a weaker direct Dota detail", async () => {
+    const baseDetail = {
+      id: "dota_od_series_1074484",
+      game: "dota2",
+      tournament: "League 19435",
+      status: "live",
+      bestOf: 1,
+      seriesScore: { left: 0, right: 0 },
+      teams: {
+        left: { id: "2163", name: "Team Liquid" },
+        right: { id: "7119388", name: "Team Spirit" }
+      }
+    };
+
+    const merged = await mergeDotaDetailWithFallbackContext(baseDetail, baseDetail.id, {
+      fallbackContextTimeoutMs: 50,
+      aliasResolver: async () => "dota_lp_sched_e9d74c65ae84",
+      fallbackLoader: async (matchId, loaderOptions) => {
+        assert.equal(loaderOptions?.skipEnrichment, true);
+        if (matchId === "dota_lp_sched_e9d74c65ae84") {
+          return {
+            ...baseDetail,
+            id: matchId,
+            tournament: "PGL Wallachia S7 - Playoffs",
+            bestOf: 3,
+            seriesScore: { left: 1, right: 1 },
+            watchUrl: "https://www.twitch.tv/pgl_dota2"
+          };
+        }
+        return {
+          ...baseDetail,
+          id: matchId
+        };
+      }
+    });
+
+    assert.equal(merged.bestOf, 3);
+    assert.equal(merged.tournament, "PGL Wallachia S7 - Playoffs");
+    assert.deepEqual(merged.seriesScore, { left: 1, right: 1 });
+    assert.equal(merged.watchUrl, "https://www.twitch.tv/pgl_dota2");
+  });
+
   it("does not block direct detail on a slow fallback support loader", async () => {
     const baseDetail = {
       id: "dota_od_series_1074484",
