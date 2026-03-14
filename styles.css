@@ -14185,16 +14185,66 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
 }
 
 @media (min-width: 761px) {
+  body.product-shell.schedule-page .layout {
+    grid-template-columns: 1fr;
+    gap: 0.78rem;
+  }
+
+  body.product-shell.schedule-page .runtime-trust-panel {
+    gap: 0.72rem;
+    padding: 0.84rem 0.92rem;
+  }
+
+  body.product-shell.schedule-page .runtime-panel-note {
+    max-width: 62ch;
+  }
+
+  body.product-shell.schedule-page .runtime-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body.product-shell.schedule-page .schedule-filter-shell {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "toolbar primary"
+      "filters filters";
+    align-items: start;
+    gap: 0.72rem;
+    padding: 0.92rem 0.98rem;
+  }
+
   body.product-shell.schedule-page .schedule-filter-toolbar {
-    grid-template-columns: minmax(280px, 0.9fr) auto;
+    grid-area: toolbar;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: 0.58rem;
   }
 
   body.product-shell.schedule-page .schedule-filter-toggle {
     display: none;
   }
 
+  body.product-shell.schedule-page .schedule-filter-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: stretch;
+    min-width: 9.5rem;
+    padding-inline: 0.74rem;
+    text-align: center;
+  }
+
+  body.product-shell.schedule-page .schedule-primary-toolbar {
+    grid-area: primary;
+    width: min(100%, 21rem);
+    min-width: 19rem;
+    max-width: none;
+    align-self: stretch;
+  }
+
   body.product-shell.schedule-page .schedule-filter-body {
     display: grid !important;
+    grid-area: filters;
   }
 
   body.product-shell.schedule-page .schedule-filter-segment {
@@ -14205,13 +14255,10 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
     display: none;
   }
 
-  body.product-shell.schedule-page .schedule-primary-toolbar {
-    max-width: 22rem;
-  }
-
   body.product-shell.schedule-page .schedule-filter-grid {
-    grid-template-columns: repeat(2, minmax(180px, 220px));
+    grid-template-columns: minmax(220px, 0.84fr) minmax(220px, 0.84fr) minmax(420px, 1.32fr);
     align-items: start;
+    gap: 0.72rem;
   }
 
   body.product-shell.schedule-page .schedule-filter-window-head {
@@ -14221,14 +14268,39 @@ body.product-shell.schedule-page .schedule-range-chip[aria-pressed="true"] {
   }
 
   body.product-shell.schedule-page .schedule-filter-window {
-    grid-column: 1 / -1;
+    grid-column: 3;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-field,
+  body.product-shell.schedule-page .schedule-filter-window {
+    padding: 0.72rem;
+  }
+
+  body.product-shell.schedule-page .schedule-filter-field select {
+    min-height: 2.64rem;
   }
 
   body.product-shell.schedule-page .schedule-range-row {
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
 
   body.product-shell.schedule-page .schedule-filter-date-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 980px) {
+  body.product-shell.schedule-page .runtime-trust-panel {
+    grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
+    align-items: start;
+    gap: 0.96rem;
+  }
+
+  body.product-shell.schedule-page .runtime-panel-head {
+    align-content: start;
+  }
+
+  body.product-shell.schedule-page .runtime-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
