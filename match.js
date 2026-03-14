@@ -652,6 +652,9 @@ const uiState = {
     tone: "neutral"
   }
 };
+
+const MATCH_STABLE_DETAIL_STORAGE_KEY = "pulseboard.matchStableDetail.v1";
+const MATCH_STABLE_DETAIL_LIMIT = 12;
 const heroIconCatalog = {
   lol: {
     status: "idle",
@@ -13752,6 +13755,85 @@ function selectedGameStabilityScore(match) {
   return score;
 }
 
+function stableMatchSnapshotStorageKey(match) {
+  const matchId = String(match?.id || "").trim();
+  const gameNumber = Number(match?.selectedGame?.number || 0);
+  if (!matchId || gameNumber <= 0) {
+    return "";
+  }
+  return `${matchId}::${gameNumber}`;
+}
+
+function readStableMatchSnapshotStore() {
+  try {
+    const raw = window.localStorage.getItem(MATCH_STABLE_DETAIL_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStableMatchSnapshotStore(store) {
+  try {
+    window.localStorage.setItem(MATCH_STABLE_DETAIL_STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // Ignore storage write failures and continue with live data.
+  }
+}
+
+function loadPersistedStableMatchSnapshot(match) {
+  const storageKey = stableMatchSnapshotStorageKey(match);
+  if (!storageKey) {
+    return null;
+  }
+
+  const store = readStableMatchSnapshotStore();
+  const entry = store?.[storageKey];
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  const savedAt = Number(entry?.savedAt || 0);
+  if (savedAt > 0 && Date.now() - savedAt > 36 * oneHour) {
+    delete store[storageKey];
+    writeStableMatchSnapshotStore(store);
+    return null;
+  }
+
+  return entry?.match || null;
+}
+
+function persistStableMatchSnapshot(match) {
+  if (normalizeGameKey(match?.game) !== "dota2") {
+    return;
+  }
+
+  if (String(match?.selectedGame?.state || "") !== "completed") {
+    return;
+  }
+
+  if (selectedGameStabilityScore(match) < 12) {
+    return;
+  }
+
+  const storageKey = stableMatchSnapshotStorageKey(match);
+  if (!storageKey) {
+    return;
+  }
+
+  const store = readStableMatchSnapshotStore();
+  store[storageKey] = {
+    savedAt: Date.now(),
+    match
+  };
+
+  const orderedEntries = Object.entries(store)
+    .sort((left, right) => Number(right?.[1]?.savedAt || 0) - Number(left?.[1]?.savedAt || 0))
+    .slice(0, MATCH_STABLE_DETAIL_LIMIT);
+  writeStableMatchSnapshotStore(Object.fromEntries(orderedEntries));
+}
+
 function preserveCompletedSeriesGames(previousMatch, incomingMatch) {
   const previousByNumber = new Map(
     (Array.isArray(previousMatch?.seriesGames) ? previousMatch.seriesGames : [])
@@ -13783,11 +13865,20 @@ function preserveCompletedSeriesGames(previousMatch, incomingMatch) {
 }
 
 function stabilizeIncomingMatchPayload(previousMatch, incomingMatch) {
-  if (!previousMatch || !incomingMatch) {
+  if (!incomingMatch) {
     return incomingMatch;
   }
 
-  if (String(previousMatch?.id || "") !== String(incomingMatch?.id || "")) {
+  const referenceMatch =
+    previousMatch && String(previousMatch?.id || "") === String(incomingMatch?.id || "")
+      ? previousMatch
+      : loadPersistedStableMatchSnapshot(incomingMatch);
+
+  if (!referenceMatch) {
+    return incomingMatch;
+  }
+
+  if (String(referenceMatch?.id || "") !== String(incomingMatch?.id || "")) {
     return incomingMatch;
   }
 
@@ -13795,7 +13886,7 @@ function stabilizeIncomingMatchPayload(previousMatch, incomingMatch) {
     return incomingMatch;
   }
 
-  const previousSelected = previousMatch?.selectedGame;
+  const previousSelected = referenceMatch?.selectedGame;
   const incomingSelected = incomingMatch?.selectedGame;
   if (
     !previousSelected ||
@@ -13807,13 +13898,13 @@ function stabilizeIncomingMatchPayload(previousMatch, incomingMatch) {
     return incomingMatch;
   }
 
-  const previousScore = selectedGameStabilityScore(previousMatch);
+  const previousScore = selectedGameStabilityScore(referenceMatch);
   const incomingScore = selectedGameStabilityScore(incomingMatch);
   if (previousScore <= incomingScore) {
     return incomingMatch;
   }
 
-  const stableSeriesGames = preserveCompletedSeriesGames(previousMatch, incomingMatch);
+  const stableSeriesGames = preserveCompletedSeriesGames(referenceMatch, incomingMatch);
   const stableSeriesGame =
     stableSeriesGames.find((game) => Number(game?.number || 0) === Number(incomingSelected?.number || 0)) || null;
   const stableSelectedGame = {
@@ -13885,7 +13976,7 @@ function stabilizeIncomingMatchPayload(previousMatch, incomingMatch) {
     "dataConfidence",
     "storylines"
   ]) {
-    stableMatch[key] = previousMatch[key] ?? stableMatch[key];
+    stableMatch[key] = referenceMatch[key] ?? stableMatch[key];
   }
 
   return stableMatch;
@@ -13903,6 +13994,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   }
 
   uiState.match = match;
+  persistStableMatchSnapshot(match);
   uiState.stream.lastSnapshotAt = Date.now();
   const focus = resolveMatchFocus(match);
   uiState.viewMode = focus.viewMode;
