@@ -45,7 +45,7 @@ const publicFiles = [
   "workspace-user.js"
 ];
 
-const publicDirectories = ["assets"];
+const publicDirectories = ["assets", "whoa"];
 
 const referencedAssetPattern = /(?:src|href)=["'](\.\/[^"']+)["']/g;
 const referencedImportPattern =
