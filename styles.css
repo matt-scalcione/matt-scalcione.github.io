@@ -17960,7 +17960,12 @@ body.product-shell.team-page #teamQuickJump {
 .match-shell-trust {
   display: grid;
   gap: 0.42rem;
-  margin-top: 0.72rem;
+  margin-top: 0.48rem;
+}
+
+.match-shell-trust:empty,
+.match-shell-trust[hidden] {
+  display: none;
 }
 
 .match-inline-status-local,
@@ -17974,6 +17979,7 @@ body.product-shell.team-page #teamQuickJump {
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
+  max-width: 100%;
   min-height: 2rem;
   padding: 0.34rem 0.62rem;
   border-radius: 999px;
@@ -17988,6 +17994,11 @@ body.product-shell.team-page #teamQuickJump {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(226, 233, 241, 0.56);
+  flex: 0 0 auto;
+}
+
+.match-inline-status span:last-child {
+  min-width: 0;
 }
 
 .match-inline-status.tone-live {
@@ -18075,6 +18086,16 @@ body.product-shell.match-page .match-shell-actions {
     min-height: 1.86rem;
     padding: 0.28rem 0.54rem;
     font-size: 0.74rem;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.56rem;
+  }
+
+  .match-inline-status span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
   }
 
   body.product-shell.team-page .hero-action-row {
@@ -19898,6 +19919,7 @@ body.product-shell.match-page #seriesDeskPanel .snapshot-value {
   }
 
   body.product-shell.match-page .series-overview-hero.compact {
+    grid-template-columns: 1fr;
     gap: 0.42rem;
     padding: 0.58rem 0.6rem;
   }
@@ -19970,6 +19992,10 @@ body.product-shell.match-page #seriesDeskPanel .snapshot-value {
 
   body.product-shell.match-page .series-overview-grid.compact .series-info-card {
     padding: 0.54rem 0.58rem;
+  }
+
+  body.product-shell.match-page .series-overview-hero.compact .series-overview-topline {
+    gap: 0.24rem;
   }
 
   body.product-shell.match-page #seriesDeskPanel .snapshot-grid {
@@ -22067,6 +22093,7 @@ body.product-shell.match-page #gameSnapshotPanel .command-card.compact .meta-tex
   }
 
   body.product-shell.match-page .game-overview-hero.compact {
+    grid-template-columns: 1fr;
     gap: 0.4rem;
     padding: 0.58rem 0.6rem;
   }
@@ -22134,6 +22161,10 @@ body.product-shell.match-page #gameSnapshotPanel .command-card.compact .meta-tex
 
   body.product-shell.match-page .game-overview-grid.compact .game-overview-fact {
     padding: 0.46rem 0.48rem;
+  }
+
+  body.product-shell.match-page .game-overview-shell.compact .game-overview-topline {
+    gap: 0.24rem;
   }
 
   body.product-shell.match-page .overview-support-panel {

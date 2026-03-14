@@ -12,7 +12,6 @@ import {
 } from "./seo.js";
 import { DOTA_HERO_MANIFEST, resolveLocalDotaHeroMeta } from "./dota-heroes.js";
 import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
-import { loadRuntimeStatusInline } from "./runtime-status.js";
 import {
   addTeamToWatchlist,
   rememberRecentWatchlistAction,
@@ -90,58 +89,47 @@ const TEAM_LOGO_BY_KEY = {
 };
 const MOBILE_GAME_JUMP_TARGETS = [
   { id: "gameOverviewDeskWrap", label: "Overview" },
-  { id: "gameCommandWrap", label: "Desk" },
+  { id: "liveFeedPanel", label: "Feed" },
+  { id: "objectiveTimelineList", label: "Timeline" },
   { id: "playerTrackerWrap", label: "Players" },
-  { id: "liveFeedList", label: "Feed" },
   { id: "teamCompareWrap", label: "Stats" }
 ];
 const MOBILE_SERIES_JUMP_TARGETS = [
   { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
-  { id: "matchupConsoleWrap", label: "Stats" },
-  { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "upcomingFormWrap", label: "Past" }
+  { id: "matchupConsoleWrap", label: "Stats" }
 ];
 const MOBILE_LIVE_SERIES_JUMP_TARGETS = [
   { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
-  { id: "matchupConsoleWrap", label: "Stats" },
-  { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "upcomingFormWrap", label: "Past" }
+  { id: "matchupConsoleWrap", label: "Stats" }
 ];
 const MOBILE_COMPLETED_SERIES_JUMP_TARGETS = [
   { id: "seriesOverviewWrap", label: "Overview" },
   { id: "gameContextWrap", label: "Games" },
-  { id: "matchupConsoleWrap", label: "Stats" },
-  { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "upcomingFormWrap", label: "Past" }
+  { id: "matchupConsoleWrap", label: "Stats" }
 ];
 const MOBILE_UPCOMING_JUMP_TARGETS = [
-  { id: "gameContextWrap", label: "Overview" },
+  { id: "seriesOverviewWrap", label: "Overview" },
   { id: "upcomingWatchWrap", label: "Watch" },
-  { id: "upcomingPredictionWrap", label: "Predict" },
-  { id: "matchupConsoleWrap", label: "Stats" },
-  { id: "seriesLineupsWrap", label: "Lineups" },
-  { id: "upcomingFormWrap", label: "Past" }
+  { id: "matchupConsoleWrap", label: "Stats" }
 ];
 const MOBILE_CORE_GAME_PANEL_TARGETS_BY_STATE = {
   inProgress: [
-    "selectedGameRecapWrap",
-    "gameCommandWrap",
+    "gameOverviewDeskWrap",
+    "liveFeedPanel",
+    "objectiveTimelineList",
     "playerTrackerWrap",
-    "liveFeedList",
-    "teamCompareWrap",
-    "pulseCard"
-  ],
-  completed: [
-    "selectedGameRecapWrap",
-    "gameCommandWrap",
-    "playerTrackerWrap",
-    "liveFeedList",
     "teamCompareWrap"
   ],
-  unstarted: ["selectedGameRecapWrap", "gameCommandWrap"],
-  unneeded: ["selectedGameRecapWrap", "gameCommandWrap"]
+  completed: [
+    "gameOverviewDeskWrap",
+    "objectiveTimelineList",
+    "playerTrackerWrap",
+    "teamCompareWrap"
+  ],
+  unstarted: ["gameOverviewDeskWrap", "gameCommandWrap"],
+  unneeded: ["gameOverviewDeskWrap", "gameCommandWrap"]
 };
 const MOBILE_SECTION_HEADINGS = {
   "Series Command": { icon: "ST", short: "State" },
@@ -221,14 +209,39 @@ const MOBILE_SECTION_HEADINGS = {
 };
 const MOBILE_MATCH_PANELS_ALWAYS_OPEN = new Set(["Series Command", "Current State"]);
 const MOBILE_MATCH_PANELS_DEFAULT_OPEN = {
-  seriesLive: new Set(["Overview", "Games", "Game Results", "Statistics"]),
-  seriesCompleted: new Set(["Overview", "Games", "Game Results", "Statistics"]),
-  series: new Set(["Overview", "Games", "Statistics"]),
-  upcoming: new Set(["Overview", "Games", "Watch", "Prediction"]),
-  game: new Set(["Games", "Game Overview", "Final Game", "Map Overview", "Final Map", "Selected Game Recap", "Map Desk", "Live Snapshot", "Players", "Live Feed", "Map Feed"])
+  live_rich_game: new Set(["Games", "Game Overview", "Live Feed", "Timeline", "Players"]),
+  upcoming_game: new Set(["Games", "Game Overview"]),
+  completed_game: new Set(["Games", "Final Game", "Timeline", "Players"]),
+  live_series_degraded: new Set(["Overview", "Games", "Statistics"]),
+  upcoming_series: new Set(["Overview", "Watch"]),
+  completed_series: new Set(["Overview", "Games", "Statistics"])
 };
 const MOBILE_PANEL_ORDER_BY_MODE = {
-  seriesLive: [
+  live_rich_game: [
+    "gameExplorerPanel",
+    "gameOverviewDeskWrap",
+    "liveFeedPanel",
+    "gameObjectiveTimelinePanel",
+    "playerTrackerPanel",
+    "teamCompareWrap",
+    "gameSnapshotPanel"
+  ],
+  upcoming_game: [
+    "gameExplorerPanel",
+    "gameOverviewDeskWrap",
+    "gameSnapshotPanel",
+    "playerTrackerPanel"
+  ],
+  completed_game: [
+    "gameExplorerPanel",
+    "gameOverviewDeskWrap",
+    "gameObjectiveTimelinePanel",
+    "playerTrackerPanel",
+    "teamCompareWrap",
+    "liveFeedPanel",
+    "gameSnapshotPanel"
+  ],
+  live_series_degraded: [
     "seriesOverviewWrap",
     "gameExplorerPanel",
     "seriesGamesWrap",
@@ -241,76 +254,27 @@ const MOBILE_PANEL_ORDER_BY_MODE = {
     "seriesMomentsList",
     "seriesPlayerTrendsWrap"
   ],
-  seriesCompleted: [
+  completed_series: [
     "seriesOverviewWrap",
     "gameExplorerPanel",
     "seriesGamesWrap",
     "matchupConsoleWrap",
-    "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",
+    "seriesLineupsWrap",
     "seriesCompareWrap",
     "seriesPlayerTrendsWrap",
     "seriesMomentsList"
   ],
-  series: [
+  upcoming_series: [
     "seriesOverviewWrap",
     "gameExplorerPanel",
+    "upcomingWatchWrap",
     "matchupConsoleWrap",
     "seriesLineupsWrap",
     "upcomingFormWrap",
     "upcomingH2hWrap",
-    "seriesGamesWrap",
-    "seriesProgressWrap"
-  ],
-  upcoming: [
-    "seriesOverviewWrap",
-    "gameExplorerPanel",
-    "upcomingEssentialsWrap",
-    "upcomingWatchWrap",
-    "upcomingPredictionWrap",
-    "preMatchPlanner",
-    "matchupConsoleWrap",
-    "seriesLineupsWrap",
-    "upcomingFormWrap",
-    "upcomingH2hWrap"
-  ],
-  gameLive: [
-    "gameExplorerPanel",
-    "selectedGameRecapWrap",
-    "gameCommandWrap",
-    "playerTrackerWrap",
-    "liveFeedList",
-    "teamCompareWrap",
-    "pulseCard",
-    "liveAlertsList",
-    "matchupConsoleWrap",
-    "seriesGamesWrap",
-    "seriesProgressWrap",
-    "upcomingFormWrap",
-    "upcomingH2hWrap"
-  ],
-  gameCompleted: [
-    "gameExplorerPanel",
-    "selectedGameRecapWrap",
-    "gameCommandWrap",
-    "teamCompareWrap",
-    "playerTrackerWrap",
-    "pulseCard",
-    "seriesGamesWrap",
-    "seriesCompareWrap",
-    "matchupConsoleWrap",
-    "upcomingFormWrap",
-    "upcomingH2hWrap"
-  ],
-  gameUpcoming: [
-    "gameExplorerPanel",
-    "selectedGameRecapWrap",
-    "gameCommandWrap",
-    "matchupConsoleWrap",
-    "seriesLineupsWrap",
-    "upcomingFormWrap",
-    "upcomingH2hWrap"
+    "upcomingPredictionWrap"
   ]
 };
 const MATCH_PANEL_GROUP_BY_TARGET_ID = {
@@ -809,15 +773,7 @@ function shouldMatchPanelBeOpenByDefault(headingTitle, match) {
     return true;
   }
 
-  const mode = uiState.viewMode === "game"
-    ? "game"
-    : match?.status === "upcoming"
-      ? "upcoming"
-      : match?.status === "completed"
-        ? "seriesCompleted"
-        : match?.status === "live"
-          ? "seriesLive"
-          : "series";
+  const mode = matchProductMode(match);
   return MOBILE_MATCH_PANELS_DEFAULT_OPEN[mode]?.has(headingTitle) || false;
 }
 
@@ -839,30 +795,7 @@ function panelElementForPriorityTarget(targetId) {
 }
 
 function mobilePanelPriorityMode(match) {
-  if (uiState.viewMode === "game") {
-    const selectedState = String(match?.selectedGame?.state || "inProgress");
-    if (selectedState === "completed") {
-      return "gameCompleted";
-    }
-    if (selectedState === "unstarted" || selectedState === "unneeded") {
-      return "gameUpcoming";
-    }
-    return "gameLive";
-  }
-
-  if (match?.status === "upcoming") {
-    return "upcoming";
-  }
-
-  if (match?.status === "completed") {
-    return "seriesCompleted";
-  }
-
-  if (match?.status === "live") {
-    return "seriesLive";
-  }
-
-  return "series";
+  return matchProductMode(match);
 }
 
 function applyMobilePanelPriorities(match = uiState.match) {
@@ -937,7 +870,8 @@ function applyMatchMobilePanelCollapseState(match = uiState.match) {
 
     const hiddenByScope = panelElement.classList.contains("hidden-panel");
     const hiddenAsAdvanced = panelElement.classList.contains("mobile-advanced-collapsed");
-    const shouldHideControl = !compact || hiddenByScope || hiddenAsAdvanced;
+    const hideForPriority = compact && panelElement.classList.contains("mobile-priority-panel");
+    const shouldHideControl = !compact || hiddenByScope || hiddenAsAdvanced || hideForPriority;
     if (shouldHideControl) {
       panelElement.classList.remove("mobile-collapsible", "mobile-panel-collapsed");
       toggleButton.hidden = true;
@@ -1564,7 +1498,7 @@ function applyMobileSectionHeadings() {
 
     const mapping = MOBILE_SECTION_HEADINGS[full];
     if (isCompactUI() && mapping) {
-      heading.innerHTML = `<span class="section-mini-icon" aria-hidden="true">${mapping.icon}</span>${mapping.short}`;
+      heading.textContent = mapping.short;
       heading.classList.add("mobile-short");
     } else {
       heading.textContent = full;
@@ -1654,6 +1588,152 @@ function matchLayoutMode(match = uiState.match) {
   if (match?.status === "completed") return "seriesCompleted";
   if (match?.status === "live") return "seriesLive";
   return "series";
+}
+
+function matchHasLiveMapTelemetry(match = uiState.match) {
+  const telemetryStatus = liveTelemetryStatus(match);
+  return telemetryStatus === "rich" || telemetryStatus === "basic";
+}
+
+function matchHasRichLiveMapTelemetry(match = uiState.match) {
+  return liveTelemetryStatus(match) === "rich";
+}
+
+function matchProductMode(match = uiState.match) {
+  if (uiState.viewMode === "game") {
+    const selectedState = String(match?.selectedGame?.state || "inProgress");
+    if (selectedState === "completed") {
+      return "completed_game";
+    }
+    if (selectedState === "unstarted" || selectedState === "unneeded") {
+      return "upcoming_game";
+    }
+    return "live_rich_game";
+  }
+
+  if (match?.status === "upcoming") {
+    return "upcoming_series";
+  }
+  if (match?.status === "completed") {
+    return "completed_series";
+  }
+  return "live_series_degraded";
+}
+
+function seriesCoverageMode(match = uiState.match) {
+  if (uiState.viewMode === "game") {
+    return matchHasLiveMapTelemetry(match) ? "map" : "series";
+  }
+  if (String(match?.status || "").toLowerCase() !== "live") {
+    return "series";
+  }
+  return matchHasRichLiveMapTelemetry(match) ? "map" : "series";
+}
+
+function seriesPredictionGap(match = uiState.match) {
+  const prediction = resolvedSeriesPrediction(match);
+  if (!prediction) {
+    return 0;
+  }
+  const leftPct = Number(prediction.leftWinPct || 0);
+  const rightPct = Number(prediction.rightWinPct || 0);
+  return Math.abs(leftPct - rightPct);
+}
+
+function seriesPredictionIsMeaningful(match = uiState.match) {
+  const prediction = resolvedSeriesPrediction(match);
+  if (!prediction) {
+    return false;
+  }
+  const confidence = String(prediction.confidence || "").toLowerCase();
+  return confidence === "high" || seriesPredictionGap(match) >= 8;
+}
+
+function headToHeadSampleSize(match = uiState.match) {
+  const h2h = resolvedUpcomingHeadToHead(match);
+  const rows = Array.isArray(h2h?.lastMeetings) ? h2h.lastMeetings.length : 0;
+  const total = Number(h2h?.total ?? h2h?.matches ?? rows ?? 0);
+  return { total, rows };
+}
+
+function headToHeadIsMeaningful(match = uiState.match) {
+  const sample = headToHeadSampleSize(match);
+  return sample.total >= 2 || sample.rows >= 2;
+}
+
+function formReadSignal(match = uiState.match) {
+  const profiles = resolvedUpcomingFormProfiles(match);
+  const leftRecent = Array.isArray(profiles.left?.recentMatches) ? profiles.left.recentMatches.length : 0;
+  const rightRecent = Array.isArray(profiles.right?.recentMatches) ? profiles.right.recentMatches.length : 0;
+  const leftSeriesWin = Number(profiles.left?.seriesWinRatePct || 0);
+  const rightSeriesWin = Number(profiles.right?.seriesWinRatePct || 0);
+  return {
+    leftRecent,
+    rightRecent,
+    gap: Math.abs(leftSeriesWin - rightSeriesWin)
+  };
+}
+
+function formReadIsMeaningful(match = uiState.match) {
+  const signal = formReadSignal(match);
+  return signal.leftRecent >= 2 || signal.rightRecent >= 2 || signal.gap >= 7;
+}
+
+function lineupReadIsMeaningful(match = uiState.match) {
+  const left = resolveSeriesLineup(match, "left");
+  const right = resolveSeriesLineup(match, "right");
+  return Boolean((left?.rows?.length || 0) + (right?.rows?.length || 0));
+}
+
+function seriesStatsShouldPromote(match = uiState.match) {
+  if (!match) {
+    return false;
+  }
+  if (seriesPredictionIsMeaningful(match)) {
+    return true;
+  }
+  if (String(match?.status || "").toLowerCase() === "live" && seriesCoverageMode(match) === "series") {
+    return false;
+  }
+  return headToHeadIsMeaningful(match) || formReadIsMeaningful(match);
+}
+
+function seriesHistoryShouldPromote(match = uiState.match) {
+  return headToHeadIsMeaningful(match) || formReadIsMeaningful(match);
+}
+
+function seriesEvidenceNote(match = uiState.match) {
+  if (!match) {
+    return "";
+  }
+  const status = String(match?.status || "").toLowerCase();
+  if (status === "live" && seriesCoverageMode(match) === "series") {
+    return "Provider has series status, but not reliable live map telemetry yet.";
+  }
+  if (!seriesStatsShouldPromote(match) && !seriesHistoryShouldPromote(match)) {
+    return "History sample is too thin to separate these teams yet.";
+  }
+  if (status === "upcoming" && !seriesPredictionIsMeaningful(match)) {
+    return "Setup is clear, but the pre-match sample is still too thin for a strong edge read.";
+  }
+  return "";
+}
+
+function gameCoverageNote(match = uiState.match) {
+  const selectedState = String(match?.selectedGame?.state || "").toLowerCase();
+  const telemetryStatus = liveTelemetryStatus(match);
+  if (selectedState === "inprogress") {
+    if (telemetryStatus === "none") {
+      return "No reliable live map telemetry yet.";
+    }
+    if (telemetryStatus === "basic") {
+      return "Live map detail is partial right now.";
+    }
+  }
+  if (selectedState === "unstarted" || selectedState === "unneeded") {
+    return "Detailed map context appears once draft or live coverage publishes.";
+  }
+  return "";
 }
 
 function matchContentGroupMap() {
@@ -1747,12 +1827,15 @@ function activeMatchLayoutTab(match = uiState.match) {
 }
 
 function compactSeriesVisibleGroups(match = uiState.match) {
-  const status = String(match?.status || "");
+  const mode = matchProductMode(match);
   const primaryGroups =
-    status === "upcoming"
-      ? ["overview", "stats"]
-      : ["overview", "games", "stats"];
-  const extraGroups = ["history", "lineups"];
+    mode === "upcoming_series"
+      ? ["overview", ...(seriesStatsShouldPromote(match) ? ["stats"] : [])]
+      : ["overview", "games", ...(seriesStatsShouldPromote(match) ? ["stats"] : [])];
+  const extraGroups = [
+    ...(seriesHistoryShouldPromote(match) ? ["history"] : []),
+    ...(lineupReadIsMeaningful(match) ? ["lineups"] : [])
+  ];
   return new Set([
     ...primaryGroups,
     ...(mobileAdvancedExpanded("series") ? extraGroups : [])
@@ -2002,7 +2085,7 @@ function renderMobileModeToolbar(match, { advancedVisibleCount = 0 } = {}) {
 
   const advancedButton =
     advancedVisibleCount > 0
-      ? `<button type="button" class="mobile-advanced-toggle${seriesAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${seriesAdvancedExpanded ? "Hide extras" : `More (${advancedVisibleCount})`}</button>`
+      ? `<button type="button" class="mobile-advanced-toggle${seriesAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${seriesAdvancedExpanded ? "Hide extras" : "More"}</button>`
       : "";
 
   if (!jumpButtons && !advancedButton) {
@@ -2040,7 +2123,7 @@ function renderMobileGameToolbar({ compactGameMode, advancedVisibleCount }) {
 
   const advancedButton =
     advancedVisibleCount > 0
-      ? `<button type="button" class="mobile-advanced-toggle${gameAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${gameAdvancedExpanded ? "Hide extras" : `More (${advancedVisibleCount})`}</button>`
+      ? `<button type="button" class="mobile-advanced-toggle${gameAdvancedExpanded ? " open" : ""}" data-advanced-toggle="1">${gameAdvancedExpanded ? "Hide extras" : "More"}</button>`
       : "";
 
   if (!jumpButtons && !advancedButton) {
@@ -2806,34 +2889,53 @@ function renderMatchTrustInline(match) {
     return;
   }
 
-  const watchlistUser = resolveWatchlistUserId();
+  if (isCompactUI()) {
+    elements.matchTrustInline.hidden = true;
+    elements.matchTrustInline.innerHTML = "";
+    return;
+  }
+
   const provenance = buildRowDataProvenance(match, {
     fallbackTimestamp: match?.updatedAt || match?.startAt || null
   });
   const qualityNotice = buildRowQualityNotice(match);
+  const productMode = matchProductMode(match);
+  const coverageNote = uiState.viewMode === "game" ? gameCoverageNote(match) : seriesEvidenceNote(match);
   const localItems = [];
-  if (qualityNotice.text) {
+
+  if (coverageNote) {
     localItems.push({
       label: "Coverage",
-      value: qualityNotice.text,
-      tone: qualityNotice.tone === "degraded" ? "degraded" : "warming"
+      value: coverageNote,
+      tone: productMode === "live_series_degraded" ? "warming" : "neutral"
     });
-  } else if (provenance.text) {
+  }
+
+  if (qualityNotice.text && qualityNotice.tone === "degraded") {
+    localItems.push({
+      label: "Source",
+      value: qualityNotice.text,
+      tone: "degraded"
+    });
+  } else if (provenance.text && (provenance.tone === "snapshot" || provenance.tone === "warming")) {
     localItems.push({
       label: "Source",
       value: provenance.label || provenance.text,
       tone: provenance.tone === "snapshot" ? "warming" : "neutral"
     });
   }
-  localItems.push({
-    label: "Watchlist",
-    value: watchlistUser ? "Saved on this device" : "Unavailable",
-    tone: watchlistUser ? "neutral" : "warming"
-  });
 
+  if (!localItems.length) {
+    elements.matchTrustInline.hidden = true;
+    elements.matchTrustInline.innerHTML = "";
+    return;
+  }
+
+  elements.matchTrustInline.hidden = false;
   elements.matchTrustInline.innerHTML = `
     <div class="match-inline-status-local">
       ${localItems
+        .slice(0, 2)
         .map(
           (item) => `
             <span class="match-inline-status tone-${item.tone}" title="${escapeHtml(item.value)}">
@@ -2845,11 +2947,6 @@ function renderMatchTrustInline(match) {
         .join("")}
     </div>
   `;
-
-  const runtimeHost = document.createElement("div");
-  runtimeHost.className = "match-inline-status-runtime";
-  elements.matchTrustInline.appendChild(runtimeHost);
-  loadRuntimeStatusInline(runtimeHost, uiState.apiBase);
 }
 
 function renderScoreboard(match) {
@@ -3168,6 +3265,11 @@ function renderStreamStatus(match) {
   }
 
   const compact = isCompactUI();
+  const productMode = matchProductMode(match);
+  if (compact && productMode !== "live_rich_game") {
+    elements.streamStatusWrap.innerHTML = "";
+    return;
+  }
   const lastErrorAt = Number(uiState.stream.lastErrorAt || 0);
   const errorSeconds = lastErrorAt ? Math.max(0, Math.round((Date.now() - lastErrorAt) / 1000)) : null;
   const badge = streamBadge(uiState.stream.connected ? "connected" : uiState.stream.source === "sse" ? "reconnecting" : "polling");
@@ -4244,6 +4346,8 @@ function renderSeriesOverview(match) {
 
   const compact = isCompactUI();
   const status = String(match?.status || "live").toLowerCase();
+  const productMode = matchProductMode(match);
+  const coverageMode = seriesCoverageMode(match);
   const bestOf = Math.max(1, Number(match?.bestOf || match?.seriesProgress?.bestOf || 1));
   const formatLabel = `BO${bestOf}`;
   const leftName = match.teams.left.name || "Left Team";
@@ -4273,10 +4377,19 @@ function renderSeriesOverview(match) {
   const leaderName = currentSeriesLeader(match);
   const winnerName = winnerTeamName(match);
   const prediction = resolvedSeriesPrediction(match);
+  const promoteStats = seriesStatsShouldPromote(match);
+  const evidenceNote = seriesEvidenceNote(match);
   const watchOptions = Array.isArray(upcomingIntel(match)?.watchOptions) ? upcomingIntel(match).watchOptions.slice(0, 4) : [];
   const formProfiles = resolvedUpcomingFormProfiles(match);
   const heroTags = [stageLabel, tournamentName, formatLabel, match.patch ? `Patch ${match.patch}` : null, regionLabel].filter(Boolean);
-  const visibleHeroTags = compact ? [formatLabel, stageLabel || regionLabel].filter(Boolean) : heroTags;
+  const visibleHeroTags = compact ? [stageLabel || tournamentName].filter(Boolean) : heroTags;
+  const favoriteTeamShort = prediction?.favoriteTeamName ? scoreboardTeamName(prediction.favoriteTeamName, match?.game) : "Even";
+  const favoritePct =
+    prediction?.favoriteTeamName === leftName
+      ? Number(prediction?.leftWinPct || 0)
+      : prediction?.favoriteTeamName === rightName
+        ? Number(prediction?.rightWinPct || 0)
+        : null;
 
   let title = "Series overview";
   let note = `${startLabel} · ${formatLabel}`;
@@ -4304,11 +4417,15 @@ function renderSeriesOverview(match) {
 
   if (compact) {
     if (status === "upcoming") {
-      note = `Starts in ${countdownLabel}`;
+      note = evidenceNote || `Starts in ${countdownLabel}`;
     } else if (status === "completed") {
-      note = `${seriesScoreLabel} final`;
+      note = evidenceNote || `${completedMaps} map${completedMaps === 1 ? "" : "s"} complete`;
     } else {
-      note = Number.isInteger(liveGameNumber) ? `G${liveGameNumber} live` : "Series live";
+      note = productMode === "live_series_degraded"
+        ? evidenceNote || "Live status is available, but map detail is still thin."
+        : Number.isInteger(liveGameNumber)
+          ? `G${liveGameNumber} live`
+          : "Series live";
     }
   }
 
@@ -4349,12 +4466,6 @@ function renderSeriesOverview(match) {
       ? (() => {
           const nextMapLabel = completedMaps > 0 ? `G${Math.min(bestOf, completedMaps + 1)} next` : "G1 next";
           const featuredWatch = watchOptions[0] || null;
-          const favoritePct =
-            prediction?.favoriteTeamName === leftName
-              ? Number(prediction?.leftWinPct || 0)
-              : prediction?.favoriteTeamName === rightName
-                ? Number(prediction?.rightWinPct || 0)
-                : null;
           return [
             {
               label: "Next",
@@ -4367,36 +4478,76 @@ function renderSeriesOverview(match) {
               note: watchOptions.length ? featuredWatch?.label || "Official links ready" : "Broadcast links pending"
             },
             {
-              label: "Edge",
-              value: prediction?.favoriteTeamName ? scoreboardTeamName(prediction.favoriteTeamName, match?.game) : "Even",
+              label: promoteStats ? "Edge" : "Read",
+              value: promoteStats ? favoriteTeamShort : "Thin sample",
               note: Number.isFinite(favoritePct)
                 ? `${Math.round(favoritePct)}% win · ${String(prediction?.confidence || "low").toUpperCase()}`
-                : "Read still building"
+                : evidenceNote || "Read still building"
             }
           ];
         })()
       : status === "completed"
         ? [
+            { label: "Event", value: stageLabel || tournamentName },
+            { label: "Maps", value: String(completedMaps) },
             { label: "Started", value: startLabel },
-            { label: "Final", value: seriesScoreLabel },
-            { label: "Winner", value: winnerName ? scoreboardTeamName(winnerName) : "TBD" },
-            { label: "Maps", value: String(completedMaps) }
-          ]
-        : [
-            { label: "Game", value: Number.isInteger(liveGameNumber) ? `G${liveGameNumber}` : "Live" },
-            { label: "Score", value: seriesScoreLabel },
             {
-              label: "Maps",
-              value: `${completedMaps} done`,
-              note: completedMaps < bestOf ? `${Math.max(0, bestOf - completedMaps)} left` : "Series at limit"
-            },
-            Number.isInteger(liveGameNumber)
-              ? { label: "State", value: `G${liveGameNumber} live` }
-              : { label: "State", value: "Series live" }
+              label: promoteStats ? "Read" : "Focus",
+              value: promoteStats ? "Stats ready" : "Recap first",
+              note: promoteStats ? "History and stats continue below." : "Lower sections stay secondary on mobile."
+            }
           ]
+        : coverageMode === "series"
+          ? [
+              {
+                label: "Live",
+                value: Number.isInteger(liveGameNumber) ? `G${liveGameNumber}` : "Series",
+                note: `Series ${seriesScoreLabel}`
+              },
+              {
+                label: "Coverage",
+                value: "Series only",
+                note: evidenceNote || "Map-level telemetry is still building."
+              },
+              {
+                label: "Maps",
+                value: `${completedMaps} done`,
+                note: completedMaps < bestOf ? `${Math.max(0, bestOf - completedMaps)} left` : "Series at limit"
+              },
+              promoteStats
+                ? {
+                    label: "Edge",
+                    value: favoriteTeamShort,
+                    note: Number.isFinite(favoritePct) ? `${Math.round(favoritePct)}% win` : "Projected edge"
+                  }
+                : {
+                    label: "Read",
+                    value: "Thin sample",
+                    note: "History is too light to push a hard favorite."
+                  }
+            ]
+          : [
+              { label: "Game", value: Number.isInteger(liveGameNumber) ? `G${liveGameNumber}` : "Live" },
+              {
+                label: "Maps",
+                value: `${completedMaps} done`,
+                note: completedMaps < bestOf ? `${Math.max(0, bestOf - completedMaps)} left` : "Series at limit"
+              },
+              promoteStats
+                ? {
+                    label: "Edge",
+                    value: favoriteTeamShort,
+                    note: Number.isFinite(favoritePct) ? `${Math.round(favoritePct)}% win` : "Projected edge"
+                  }
+                : {
+                    label: "Coverage",
+                    value: "Live map",
+                    note: "Telemetry is flowing. Deeper reads stay below."
+                  }
+            ]
   );
 
-  const predictionMarkup = prediction
+  const predictionMarkup = prediction && promoteStats
     ? `
       <article class="series-overview-panel series-overview-edge">
         <div class="series-overview-panel-head">
@@ -4456,15 +4607,24 @@ function renderSeriesOverview(match) {
       `
       : "";
 
+  const evidenceMarkup =
+    !compact && evidenceNote
+      ? `
+        <article class="series-overview-panel series-overview-evidence">
+          <div class="series-overview-panel-head">
+            <div>
+              <p class="tempo-label">Coverage</p>
+              <p class="series-overview-panel-title">${status === "live" ? "Keep this page on the series read" : "Use the strongest evidence first"}</p>
+            </div>
+          </div>
+          <p class="meta-text">${escapeHtml(evidenceNote)}</p>
+        </article>
+      `
+      : "";
+
   const completedSummaryMarkup = status === "completed" ? buildCompletedSeriesSummaryCards(match) : "";
   const scorecardMarkup = compact
-    ? `
-        <div class="series-overview-scoreline compact">
-          <span class="series-overview-scoreline-team left">${escapeHtml(leftShort)}</span>
-          <strong class="series-overview-scoreline-value">${seriesScoreLabel}</strong>
-          <span class="series-overview-scoreline-team right">${escapeHtml(rightShort)}</span>
-        </div>
-      `
+    ? ""
     : `
         <div class="series-overview-scorecard">
           <div class="series-overview-side left">
@@ -4500,7 +4660,7 @@ function renderSeriesOverview(match) {
       <div class="series-overview-grid${compact ? " compact" : ""}">
         ${compact ? compactOverviewCards : `${overviewCards}${formCards}${completedSummaryMarkup}`}
       </div>
-      ${compact ? "" : predictionMarkup || watchMarkup ? `<div class="series-overview-lower">${predictionMarkup}${watchMarkup}</div>` : ""}
+      ${compact ? "" : predictionMarkup || watchMarkup || evidenceMarkup ? `<div class="series-overview-lower">${predictionMarkup}${watchMarkup}${evidenceMarkup}</div>` : ""}
     </div>
   `;
 }
@@ -5130,12 +5290,16 @@ function renderGameExplorer(match, apiBase) {
   const isGameMode = uiState.viewMode === "game";
   const compact = isCompactUI();
   const activeGameNumber = contextGameNumber();
+  const explorerPanel = elements.gameNavWrap?.closest("section.panel");
 
   if (!nav || !Array.isArray(nav.availableGames) || !nav.availableGames.length) {
+    setPanelVisibility(explorerPanel, false);
     elements.gameNavWrap.innerHTML = `<div class="empty">No per-game navigation available for this match.</div>`;
     elements.gameContextWrap.innerHTML = "";
     return;
   }
+
+  setPanelVisibility(explorerPanel, true);
 
   const availableGames = Array.isArray(nav.availableGames) ? nav.availableGames : [];
   const seriesHref = detailUrlForGame(match.id, apiBase, null);
@@ -6169,6 +6333,10 @@ function applySeriesPanelVisibility(match = uiState.match) {
   const completedGames = seriesGames.filter((game) => game?.state === "completed").length;
   const hasSeriesMoments = Array.isArray(match?.seriesMoments) && match.seriesMoments.length > 0;
   const hasPlayerTrends = Array.isArray(match?.seriesPlayerTrends) && match.seriesPlayerTrends.length > 0;
+  const promoteStats = seriesStatsShouldPromote(match);
+  const promoteHistory = seriesHistoryShouldPromote(match);
+  const promoteH2h = headToHeadIsMeaningful(match);
+  const promoteLineups = lineupReadIsMeaningful(match);
   const setSeriesVisibility = (element, visible) => {
     const panel = element?.closest("section.panel");
     if (!panel) {
@@ -6178,11 +6346,14 @@ function applySeriesPanelVisibility(match = uiState.match) {
   };
 
   setSeriesVisibility(elements.seriesOverviewWrap, true);
-  setSeriesVisibility(elements.matchupConsoleWrap, true);
-  setSeriesVisibility(elements.seriesLineupsWrap, true);
-  setSeriesVisibility(elements.upcomingFormWrap, true);
-  setSeriesVisibility(elements.upcomingH2hWrap, true);
-  setSeriesVisibility(elements.seriesProgressWrap, !compactSeriesMode && (status === "live" || status === "completed"));
+  setSeriesVisibility(elements.matchupConsoleWrap, promoteStats);
+  setSeriesVisibility(elements.seriesLineupsWrap, promoteLineups);
+  setSeriesVisibility(elements.upcomingFormWrap, promoteHistory);
+  setSeriesVisibility(elements.upcomingH2hWrap, promoteH2h);
+  setSeriesVisibility(
+    elements.seriesProgressWrap,
+    !compactSeriesMode && completedGames > 0 && (status === "live" || status === "completed")
+  );
   setSeriesVisibility(elements.seriesMomentsList, !compactSeriesMode && hasSeriesMoments && (status === "live" || status === "completed"));
   setSeriesVisibility(elements.seriesGamesWrap, status === "live" || status === "completed");
   setSeriesVisibility(elements.seriesCompareWrap, status === "completed" && completedGames > 0);
@@ -6194,7 +6365,7 @@ function applyUpcomingPanelVisibility(match) {
   const compactUpcomingSeries = isUpcoming && isCompactUI() && uiState.viewMode === "series";
   setPanelVisibility(elements.upcomingEssentialsWrap?.closest("section.panel"), isUpcoming && !compactUpcomingSeries);
   setPanelVisibility(elements.upcomingWatchWrap?.closest("section.panel"), isUpcoming);
-  setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), isUpcoming);
+  setPanelVisibility(elements.upcomingPredictionWrap?.closest("section.panel"), isUpcoming && seriesPredictionIsMeaningful(match));
   setPanelVisibility(elements.preMatchPlanner?.closest("section.panel"), isUpcoming);
 }
 
@@ -11682,6 +11853,7 @@ function renderGameOverviewDesk(match) {
   const topPlayer = Array.isArray(match?.topPerformers) && match.topPerformers.length ? match.topPerformers[0] : null;
   const topPlayerTeam = topPlayer ? teamNameBySide(match, topPlayer.team) : null;
   const objectiveSummary = gameOverviewObjectiveSummary(match, left, right);
+  const coverageNote = gameCoverageNote(match);
 
   let headline = `Game ${selectedGame.number}`;
   let note = `${statusLabelText} · Series ${seriesScoreLabel}`;
@@ -11743,8 +11915,8 @@ function renderGameOverviewDesk(match) {
 
   const heroPillValues = [
     `Game ${selectedGame.number}`,
-    `Series ${seriesScoreLabel}`,
-    telemetryLabel,
+    compact ? null : `Series ${seriesScoreLabel}`,
+    compact ? null : telemetryLabel,
     normalizeGameKey(match?.game) === "dota2" ? null : match?.patch ? `Patch ${match.patch}` : null
   ].filter(Boolean);
   const heroPills = heroPillValues
@@ -11758,14 +11930,18 @@ function renderGameOverviewDesk(match) {
   }
 
   if (status === "completed") {
-    facts.push(
-      gameOverviewFactCard(
-        "Winner",
-        winnerName ? displayTeamName(winnerName, match?.game) : "TBD",
-        durationLabel !== "n/a" ? durationLabel : "Duration n/a",
-        winnerName === leftName ? "left" : winnerName === rightName ? "right" : "neutral"
-      )
-    );
+    if (!compact) {
+      facts.push(
+        gameOverviewFactCard(
+          "Winner",
+          winnerName ? displayTeamName(winnerName, match?.game) : "TBD",
+          durationLabel !== "n/a" ? durationLabel : "Duration n/a",
+          winnerName === leftName ? "left" : winnerName === rightName ? "right" : "neutral"
+        )
+      );
+    } else if (durationLabel !== "n/a") {
+      facts.push(gameOverviewFactCard("Duration", durationLabel, "Full map recap below.", "neutral"));
+    }
     if (completedStory?.turningPointLabel) {
       facts.push(gameOverviewFactCard("Turning Point", completedStory.turningPointLabel, completedStory.turningPointNote || null, "neutral"));
     }
@@ -11782,7 +11958,7 @@ function renderGameOverviewDesk(match) {
       gameOverviewFactCard(
         "Gold",
         hasGold ? `${formatNumber(leftGold)} - ${formatNumber(rightGold)}` : "n/a",
-        hasGold ? `Lead ${leadDescriptor.label}` : "Gold totals pending",
+        hasGold ? `Lead ${leadDescriptor.label}` : coverageNote || "Gold totals pending",
         leadDescriptor.tone || "neutral"
       )
     );
@@ -11799,7 +11975,14 @@ function renderGameOverviewDesk(match) {
         nextObjective?.state === "available" ? "live" : "neutral"
       )
     );
-    facts.push(gameOverviewFactCard("Pressure", pressureLabel, focusedRow?.summary && !genericFocusedRow ? clampSummaryText(focusedRow.summary, 84) : sideSummaryLabel, pulseState ? "warn" : "neutral"));
+    facts.push(
+      gameOverviewFactCard(
+        compact ? "Now" : "Pressure",
+        pressureLabel,
+        focusedRow?.summary && !genericFocusedRow ? clampSummaryText(focusedRow.summary, compact ? 68 : 84) : coverageNote || sideSummaryLabel,
+        pulseState ? "warn" : "neutral"
+      )
+    );
   } else {
     facts.push(
       gameOverviewFactCard(
@@ -11828,7 +12011,9 @@ function renderGameOverviewDesk(match) {
       gameOverviewFactCard(
         "Top Player",
         displayPlayerHandle(topPlayer.name, topPlayerTeam),
-        `${scoreboardTeamName(topPlayerTeam, match?.game)} · ${trackerHeroName(topPlayer)} · KDA ${topPlayer.kills || 0}/${topPlayer.deaths || 0}/${topPlayer.assists || 0}`,
+        compact
+          ? `${trackerHeroName(topPlayer)} · ${topPlayer.kills || 0}/${topPlayer.deaths || 0}/${topPlayer.assists || 0}`
+          : `${scoreboardTeamName(topPlayerTeam, match?.game)} · ${trackerHeroName(topPlayer)} · KDA ${topPlayer.kills || 0}/${topPlayer.deaths || 0}/${topPlayer.assists || 0}`,
         topPlayer.team || "neutral"
       )
     );
@@ -11841,13 +12026,7 @@ function renderGameOverviewDesk(match) {
       : headline;
   const noteText = compact ? clampSummaryText(note, 96) : note;
   const scorecardMarkup = compact
-    ? `
-        <div class="game-overview-scoreline compact">
-          <span class="game-overview-scoreline-team left">${escapeHtml(leftShort)}</span>
-          <strong class="game-overview-scoreline-value">${escapeHtml(centerValue)}</strong>
-          <span class="game-overview-scoreline-team right">${escapeHtml(rightShort)}</span>
-        </div>
-      `
+    ? ""
     : `
         <div class="game-overview-scorecard">
           <div class="game-overview-side left">
