@@ -6660,14 +6660,20 @@ export async function getTeamProfile(teamId, options = {}) {
   }
 
   if (cached?.detail) {
+    const hydratedCachedProfile = annotateTeamProfileIdentity(cached.detail, {
+      teamId: normalizedTeamId,
+      options
+    });
+    void persistCanonicalTeamProfile({
+      teamId: normalizedTeamId,
+      options,
+      profile: hydratedCachedProfile
+    });
     void refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options), {
       teamId: normalizedTeamId,
       options
     });
-    return annotateTeamProfileIdentity(cached.detail, {
-      teamId: normalizedTeamId,
-      options
-    });
+    return hydratedCachedProfile;
   }
 
   const canonicalProfile = await loadCanonicalTeamProfile({
@@ -6680,6 +6686,11 @@ export async function getTeamProfile(teamId, options = {}) {
       options
     });
     setTeamProfileCacheEntry(cacheKey, hydratedCanonicalProfile);
+    void persistCanonicalTeamProfile({
+      teamId: normalizedTeamId,
+      options,
+      profile: hydratedCanonicalProfile
+    });
     void refreshTeamProfile(cacheKey, () => buildTeamProfile(normalizedTeamId, options), {
       teamId: normalizedTeamId,
       options
