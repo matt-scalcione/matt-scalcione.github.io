@@ -62,6 +62,10 @@ const lolFallbackBetweenGamesSeconds = Number.parseInt(
   process.env.LOL_FALLBACK_BETWEEN_GAMES_SECONDS || "480",
   10
 );
+const lolSyntheticLiveThresholdMs = Number.parseInt(
+  process.env.LOL_SCHEDULE_PROMOTE_AFTER_MS || String(10 * oneMinute),
+  10
+);
 
 const dataMode = String(process.env.ESPORTS_DATA_MODE || "hybrid").toLowerCase();
 const providerCacheMs = Number.parseInt(process.env.PROVIDER_CACHE_MS || "30000", 10);
@@ -352,7 +356,6 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
   }
 
   if (
-    annotatedEntity?.game === "dota2" &&
     status === "live" &&
     String(annotatedEntity?.keySignal || "").includes("schedule_started")
   ) {
@@ -2726,6 +2729,100 @@ function mergeEffectiveDotaLiveRows(stratzRows = [], openDotaRows = [], steamRow
   return mergeDotaLiveRows(mergeDotaLiveRows(stratzRows, openDotaRows), steamRows);
 }
 
+function sameLolSeries(left, right) {
+  const leftIds = [
+    String(left?.id || "").trim(),
+    String(left?.providerMatchId || "").trim(),
+    String(left?.sourceMatchId || "").trim()
+  ].filter(Boolean);
+  const rightIds = [
+    String(right?.id || "").trim(),
+    String(right?.providerMatchId || "").trim(),
+    String(right?.sourceMatchId || "").trim()
+  ].filter(Boolean);
+
+  if (leftIds.length && rightIds.length && leftIds.some((id) => rightIds.includes(id))) {
+    return true;
+  }
+
+  const leftStartAt = String(left?.startAt || "").trim();
+  const rightStartAt = String(right?.startAt || "").trim();
+  const leftLeft = normalizeTeamName(left?.teams?.left?.name);
+  const leftRight = normalizeTeamName(left?.teams?.right?.name);
+  const rightLeft = normalizeTeamName(right?.teams?.left?.name);
+  const rightRight = normalizeTeamName(right?.teams?.right?.name);
+
+  if (!leftStartAt || !rightStartAt || !leftLeft || !leftRight || !rightLeft || !rightRight) {
+    return false;
+  }
+
+  return leftStartAt === rightStartAt && leftLeft === rightLeft && leftRight === rightRight;
+}
+
+function lolSyntheticLiveWindowMs(row) {
+  const bestOf = Math.max(1, Number(row?.bestOf || 1));
+  return bestOf * lolFallbackEstimatedGameSeconds * 1000 + Math.max(0, bestOf - 1) * lolFallbackBetweenGamesSeconds * 1000;
+}
+
+export function canonicalizeLolScheduleRowsForLive(scheduleRows = [], {
+  liveRows = [],
+  resultRows = [],
+  nowMs = Date.now()
+} = {}) {
+  const normalizedLiveRows = Array.isArray(liveRows) ? liveRows : [];
+  const normalizedResultRows = Array.isArray(resultRows) ? resultRows : [];
+
+  return (Array.isArray(scheduleRows) ? scheduleRows : [])
+    .filter((row) => row?.game === "lol")
+    .filter((row) => !normalizedResultRows.some((resultRow) => sameLolSeries(resultRow, row)))
+    .filter((row) => !normalizedLiveRows.some((liveRow) => sameLolSeries(liveRow, row)))
+    .map((row) => {
+      const status = String(row?.status || "").trim().toLowerCase();
+      if (status === "live") {
+        return {
+          ...row,
+          keySignal: row?.keySignal || "provider_schedule_started",
+          updatedAt: row?.updatedAt || new Date(nowMs).toISOString(),
+          source: {
+            ...(row?.source || {}),
+            provenance: {
+              ...(row?.source?.provenance || {}),
+              delivery: "schedule_inferred_live"
+            }
+          }
+        };
+      }
+
+      const startMs = Date.parse(String(row?.startAt || ""));
+      if (!Number.isFinite(startMs)) {
+        return null;
+      }
+
+      const lateByMs = nowMs - startMs;
+      const withinSyntheticWindow =
+        lateByMs >= lolSyntheticLiveThresholdMs &&
+        lateByMs <= lolSyntheticLiveWindowMs(row);
+      if (!withinSyntheticWindow) {
+        return null;
+      }
+
+      return {
+        ...row,
+        status: "live",
+        keySignal: "provider_schedule_started",
+        updatedAt: new Date(nowMs).toISOString(),
+        source: {
+          ...(row?.source || {}),
+          provenance: {
+            ...(row?.source?.provenance || {}),
+            delivery: "schedule_inferred_live"
+          }
+        }
+      };
+    })
+    .filter(Boolean);
+}
+
 function dotaSyntheticLiveWindowMs(row) {
   const bestOf = Math.max(1, Number(row?.bestOf || 1));
   return dotaSyntheticLiveBaseWindowMs + bestOf * dotaSyntheticLivePerGameWindowMs;
@@ -4897,11 +4994,20 @@ export async function listLiveMatches({
   lolTiers,
   useCanonicalFallback = true
 }) {
-  const [providerStratzLiveState, providerDotaLiveState, providerSteamLiveState, providerLolLiveState] = await Promise.all([
+  const [
+    providerStratzLiveState,
+    providerDotaLiveState,
+    providerSteamLiveState,
+    providerLolLiveState,
+    providerLolScheduleState,
+    providerLolResultsState
+  ] = await Promise.all([
     loadProviderStratzLiveMatches(),
     loadProviderLiveMatches(),
     loadProviderSteamLiveMatches(),
-    loadProviderLolLiveMatches()
+    loadProviderLolLiveMatches(),
+    loadProviderLolScheduleMatches(),
+    loadProviderLolResults()
   ]);
   const [providerDotaResultsState, providerDotaScheduleState] = await Promise.all([
     loadProviderResults(),
@@ -4925,6 +5031,21 @@ export async function listLiveMatches({
   rows = replaceFallbackRowsForGame(rows, "lol", providerLolLiveState, {
     strictNoFallback: shouldHideFallbackLolRows()
   });
+  const providerLolLiveHealth = assessProviderStateHealth(providerLolLiveState);
+  if (providerLolScheduleState.status === "success" && providerLolLiveHealth.fallbackRecommended) {
+    const inferredLolLiveRows = canonicalizeLolScheduleRowsForLive(providerLolScheduleState.rows, {
+      liveRows: providerLolLiveState.rows,
+      resultRows: providerLolResultsState.rows
+    });
+    rows = rows
+      .filter((row) => row.game !== "lol")
+      .concat(
+        dedupeRowsById([
+          ...(Array.isArray(providerLolLiveState.rows) ? providerLolLiveState.rows : []),
+          ...inferredLolLiveRows
+        ])
+      );
+  }
   if (
     providerStratzLiveState.status === "success" ||
     providerDotaLiveState.status === "success" ||
