@@ -96,6 +96,10 @@ const canonicalBackfillConcurrency = Math.max(
   1,
   Number.parseInt(process.env.CANONICAL_BACKFILL_CONCURRENCY || "3", 10) || 3
 );
+const canonicalBackfillTaskTimeoutMs = Math.max(
+  1000,
+  Number.parseInt(process.env.CANONICAL_BACKFILL_TASK_TIMEOUT_MS || "7000", 10) || 7000
+);
 const canonicalBackfillScheduleLookbackMs = Math.max(
   0,
   Number.parseInt(process.env.CANONICAL_BACKFILL_SCHEDULE_LOOKBACK_MS || String(6 * oneHour), 10) || 6 * oneHour
@@ -1964,10 +1968,33 @@ async function mapWithConcurrency(items, concurrency, mapper) {
   return results;
 }
 
+async function runWithTaskTimeout(runTask, timeoutMs, label) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return runTask();
+  }
+
+  let timer = null;
+  try {
+    return await Promise.race([
+      runTask(),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 async function hydrateCanonicalTargets({
   targets = {},
   concurrency = 1,
-  teamProfileOptions = null
+  teamProfileOptions = null,
+  taskTimeoutMs = 0
 } = {}) {
   const normalizedTargets = {
     matchTargets: Array.isArray(targets?.matchTargets) ? targets.matchTargets : [],
@@ -1987,7 +2014,11 @@ async function hydrateCanonicalTargets({
   const taskResults = await mapWithConcurrency(taskPlan, concurrency, async (task) => {
     if (task.type === "match") {
       try {
-        const detail = await getMatchDetail(task.target.matchId);
+        const detail = await runWithTaskTimeout(
+          () => getMatchDetail(task.target.matchId),
+          taskTimeoutMs,
+          `match ${task.target.matchId}`
+        );
         return {
           type: "match",
           matchId: task.target.matchId,
@@ -2004,10 +2035,15 @@ async function hydrateCanonicalTargets({
     }
 
     try {
-      const profile = await getTeamProfile(task.target.teamId, {
-        ...(task.target.options || {}),
-        ...(teamProfileOptions || {})
-      });
+      const profile = await runWithTaskTimeout(
+        () =>
+          getTeamProfile(task.target.teamId, {
+            ...(task.target.options || {}),
+            ...(teamProfileOptions || {})
+          }),
+        taskTimeoutMs,
+        `team ${task.target.teamId}`
+      );
       return {
         type: "team",
         teamId: task.target.teamId,
@@ -5211,6 +5247,7 @@ export async function runCanonicalBackfill({ reason = "scheduled" } = {}) {
     const hydration = await hydrateCanonicalTargets({
       targets,
       concurrency: canonicalBackfillConcurrency,
+      taskTimeoutMs: canonicalBackfillTaskTimeoutMs,
       teamProfileOptions: {
         prefetchedCollections: {
           liveRows,
@@ -5730,6 +5767,7 @@ export function getProviderDiagnostics() {
     canonicalBackfillMatchLimit,
     canonicalBackfillTeamLimit,
     canonicalBackfillConcurrency,
+    canonicalBackfillTaskTimeoutMs,
     canonicalBackfillScheduleLookbackMs,
     canonicalBackfillScheduleLookaheadMs,
     canonicalBackfillResultsLookbackMs,

@@ -281,6 +281,7 @@ describe("provider diagnostics", () => {
     assert.equal(typeof result.payload.data.canonicalBackfillMatchLimit, "number");
     assert.equal(typeof result.payload.data.canonicalBackfillTeamLimit, "number");
     assert.equal(typeof result.payload.data.canonicalBackfillConcurrency, "number");
+    assert.equal(typeof result.payload.data.canonicalBackfillTaskTimeoutMs, "number");
     assert.equal(typeof result.payload.data.canonicalBackfillScheduleLookbackMs, "number");
     assert.equal(typeof result.payload.data.canonicalBackfillScheduleLookaheadMs, "number");
     assert.equal(typeof result.payload.data.canonicalBackfillResultsLookbackMs, "number");
