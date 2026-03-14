@@ -22,7 +22,7 @@ import {
   productEmptyMarkup
 } from "./loading.js";
 import { loadRuntimeStatusPanel } from "./runtime-status.js";
-import { resolveWorkspaceUserId, saveWorkspaceUserId } from "./workspace-user.js";
+import { resolveWatchlistUserId } from "./watchlist-client.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const AUTO_REFRESH_MS = 15000;
@@ -36,6 +36,7 @@ const elements = {
   regionInput: document.querySelector("#regionInput"),
   dotaTiersInput: document.querySelector("#dotaTiersInput"),
   userIdInput: document.querySelector("#userIdInput"),
+  watchlistScopeValue: document.querySelector("#watchlistScopeValue"),
   followedOnlyInput: document.querySelector("#followedOnlyInput"),
   controlsPanel: document.querySelector("#controlsPanel"),
   controlsToggle: document.querySelector("#controlsToggle"),
@@ -585,14 +586,13 @@ function renderBoardLens(rows = []) {
   const game = normalizeGameKey(elements.gameSelect?.value || "");
   const region = String(elements.regionInput?.value || "").trim();
   const followedOnly = Boolean(elements.followedOnlyInput?.checked);
-  const userId = String(elements.userIdInput?.value || "").trim();
   const dotaTiers = String(elements.dotaTiersInput?.value || "").trim();
   const chips = [`<span class="lens-chip lens-chip-primary">${escapeHtml(liveStatusLabel(liveDeskState.statusFilter))}</span>`];
 
   if (game) chips.push(`<span class="lens-chip">${escapeHtml(gameLabel(game))}</span>`);
   if (region) chips.push(`<span class="lens-chip">${escapeHtml(region.toUpperCase())}</span>`);
   if (searchTerm) chips.push(`<span class="lens-chip">Search: ${escapeHtml(searchTerm)}</span>`);
-  if (followedOnly) chips.push(`<span class="lens-chip">Watchlist only${userId ? ` · ${escapeHtml(userId)}` : ""}</span>`);
+  if (followedOnly) chips.push(`<span class="lens-chip">Watchlist only</span>`);
   if (dotaTiers) chips.push(`<span class="lens-chip">Tiers ${escapeHtml(dotaTiers)}</span>`);
 
   elements.boardLensStrip.innerHTML = `
@@ -1170,13 +1170,9 @@ async function loadMatches() {
   const region = elements.regionInput.value;
   const dotaTiers = elements.dotaTiersInput.value;
   const followedOnly = elements.followedOnlyInput.checked;
-  const userId = elements.userIdInput.value;
-  saveWorkspaceUserId(userId);
-
-  if (followedOnly && !userId.trim()) {
-    setStatus("User ID is required for followed-only mode.", "error");
-    renderEmpty("Add a User ID to filter by follows.");
-    return;
+  const userId = followedOnly ? resolveWatchlistUserId() : "";
+  if (elements.userIdInput) {
+    elements.userIdInput.value = userId;
   }
 
   const query = buildQuery({ game, region, dotaTiers, followedOnly, userId });
@@ -1240,16 +1236,6 @@ function installEvents() {
   elements.regionInput.addEventListener("change", loadMatches);
   elements.dotaTiersInput.addEventListener("change", loadMatches);
   elements.followedOnlyInput.addEventListener("change", loadMatches);
-  elements.userIdInput.addEventListener("change", () => {
-    saveWorkspaceUserId(elements.userIdInput.value);
-    loadMatches();
-  });
-  elements.userIdInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      saveWorkspaceUserId(elements.userIdInput.value);
-      loadMatches();
-    }
-  });
 
   if (elements.liveStatusSwitch) {
     elements.liveStatusSwitch.addEventListener("click", (event) => {
@@ -1348,9 +1334,12 @@ function boot() {
   applyLiveStatusButtons();
   refreshLiveSeo();
   elements.dotaTiersInput.value = "1,2";
-  elements.userIdInput.value = resolveWorkspaceUserId({
-    fallback: "demo-user"
-  });
+  if (elements.userIdInput) {
+    elements.userIdInput.value = resolveWatchlistUserId();
+  }
+  if (elements.watchlistScopeValue) {
+    elements.watchlistScopeValue.textContent = "Saved on this device";
+  }
   installEvents();
   loadMatches();
   setInterval(loadMatches, AUTO_REFRESH_MS);

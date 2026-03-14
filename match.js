@@ -13,7 +13,13 @@ import {
 import { DOTA_HERO_MANIFEST, resolveLocalDotaHeroMeta } from "./dota-heroes.js";
 import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
 import { loadRuntimeStatusInline } from "./runtime-status.js";
-import { resolveWorkspaceUserId, workspaceUserLabel } from "./workspace-user.js";
+import {
+  addTeamToWatchlist,
+  fetchWatchlistRows,
+  findTeamFollow,
+  removeWatchlistFollow,
+  resolveWatchlistUserId
+} from "./watchlist-client.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
@@ -671,7 +677,14 @@ const uiState = {
   mapPulseByContext: {},
   storyFocusEventId: null,
   storyFocusUserSet: false,
-  storyInteractionsBound: false
+  storyInteractionsBound: false,
+  watchlistRows: [],
+  watchlistTeamKey: "",
+  watchlistBusySide: "",
+  watchlistMessage: {
+    text: "",
+    tone: "neutral"
+  }
 };
 const heroIconCatalog = {
   lol: {
@@ -2596,12 +2609,78 @@ function renderMatchHero(match) {
 }
 
 function followsWorkspaceUrl(apiBase) {
-  const url = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
-  const workspaceUser = resolveWorkspaceUserId();
-  if (workspaceUser) {
-    url.searchParams.set("user", workspaceUser);
+  return applyRouteContext(new URL("./follows.html", window.location.href), { apiBase }).toString();
+}
+
+function matchTeamWatchReference(match, side) {
+  const team = match?.teams?.[side];
+  return {
+    id: String(team?.id || "").trim(),
+    canonicalId: String(match?.identity?.teams?.[side] || "").trim(),
+    name: scoreboardTeamName(team?.name || (side === "left" ? "Left" : "Right"), match?.game)
+  };
+}
+
+function matchWatchButtonLabel(reference, active) {
+  const label = escapeHtml(reference.name || "Team");
+  return active ? `Watching ${label}` : `Watch ${label}`;
+}
+
+function matchActionMessageMarkup() {
+  if (!uiState.watchlistMessage.text) {
+    return "";
   }
-  return url.toString();
+
+  return `
+    <span class="watchlist-action-note tone-${escapeHtml(uiState.watchlistMessage.tone || "neutral")}">
+      ${escapeHtml(uiState.watchlistMessage.text)}
+    </span>
+  `;
+}
+
+function setMatchWatchlistMessage(message, tone = "neutral") {
+  uiState.watchlistMessage = {
+    text: String(message || "").trim(),
+    tone
+  };
+  renderMatchActionRow(uiState.match);
+  if (!uiState.watchlistMessage.text) {
+    return;
+  }
+  window.clearTimeout(uiState.watchlistMessageTimer);
+  uiState.watchlistMessageTimer = window.setTimeout(() => {
+    uiState.watchlistMessage = { text: "", tone: "neutral" };
+    renderMatchActionRow(uiState.match);
+  }, 2200);
+}
+
+async function refreshMatchWatchlistState(match = uiState.match, { force = false } = {}) {
+  const teamKey = [
+    String(match?.teams?.left?.id || "").trim(),
+    String(match?.identity?.teams?.left || "").trim(),
+    String(match?.teams?.right?.id || "").trim(),
+    String(match?.identity?.teams?.right || "").trim()
+  ].join("|");
+  if (!teamKey) {
+    uiState.watchlistRows = [];
+    uiState.watchlistTeamKey = "";
+    renderMatchActionRow(match);
+    return;
+  }
+
+  if (!force && uiState.watchlistTeamKey === teamKey) {
+    return;
+  }
+
+  try {
+    uiState.watchlistRows = await fetchWatchlistRows(uiState.apiBase, {
+      userId: resolveWatchlistUserId()
+    });
+    uiState.watchlistTeamKey = teamKey;
+  } catch {
+    uiState.watchlistRows = [];
+  }
+  renderMatchActionRow(match);
 }
 
 function renderMatchActionRow(match) {
@@ -2609,68 +2688,83 @@ function renderMatchActionRow(match) {
     return;
   }
 
-  const workspaceUser = resolveWorkspaceUserId();
   const workspaceHref = followsWorkspaceUrl(uiState.apiBase);
-  if (!match?.teams?.left?.id || !match?.teams?.right?.id) {
-    elements.matchActionRow.innerHTML = workspaceUser
-      ? `<a class="link-btn ghost" href="${workspaceHref}">${escapeHtml(workspaceUserLabel(workspaceUser))}</a>`
-      : `<a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>`;
+  const leftReference = matchTeamWatchReference(match, "left");
+  const rightReference = matchTeamWatchReference(match, "right");
+
+  if (!leftReference.id || !rightReference.id) {
+    elements.matchActionRow.innerHTML = `
+      <a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>
+      ${matchActionMessageMarkup()}
+    `;
     return;
   }
 
-  if (!workspaceUser) {
-    elements.matchActionRow.innerHTML = `<a class="link-btn" href="${workspaceHref}">Set watchlist user</a>`;
-    return;
-  }
-
-  const leftLabel = escapeHtml(scoreboardTeamName(match?.teams?.left?.name || "Left", match?.game));
-  const rightLabel = escapeHtml(scoreboardTeamName(match?.teams?.right?.name || "Right", match?.game));
+  const leftFollow = findTeamFollow(uiState.watchlistRows, {
+    teamId: leftReference.id,
+    canonicalTeamId: leftReference.canonicalId
+  });
+  const rightFollow = findTeamFollow(uiState.watchlistRows, {
+    teamId: rightReference.id,
+    canonicalTeamId: rightReference.canonicalId
+  });
   elements.matchActionRow.innerHTML = `
-    <button type="button" class="link-btn ghost" data-follow-side="left">Follow ${leftLabel}</button>
-    <button type="button" class="link-btn ghost" data-follow-side="right">Follow ${rightLabel}</button>
-    <a class="link-btn ghost" href="${workspaceHref}">${escapeHtml(workspaceUserLabel(workspaceUser))}</a>
+    <button
+      type="button"
+      class="link-btn ghost watch-toggle${leftFollow ? " is-active" : ""}${uiState.watchlistBusySide === "left" ? " is-pending" : ""}"
+      data-follow-side="left"
+      aria-pressed="${leftFollow ? "true" : "false"}"
+      ${uiState.watchlistBusySide === "left" ? "disabled" : ""}
+    >${matchWatchButtonLabel(leftReference, Boolean(leftFollow))}</button>
+    <button
+      type="button"
+      class="link-btn ghost watch-toggle${rightFollow ? " is-active" : ""}${uiState.watchlistBusySide === "right" ? " is-pending" : ""}"
+      data-follow-side="right"
+      aria-pressed="${rightFollow ? "true" : "false"}"
+      ${uiState.watchlistBusySide === "right" ? "disabled" : ""}
+    >${matchWatchButtonLabel(rightReference, Boolean(rightFollow))}</button>
+    <a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>
+    ${matchActionMessageMarkup()}
   `;
 }
 
 async function addMatchTeamToWorkspace(side) {
   const match = uiState.match;
-  const team = match?.teams?.[side];
-  const workspaceUser = resolveWorkspaceUserId();
-  if (!team?.id) {
-    return;
-  }
-
-  if (!workspaceUser) {
-    window.location.href = followsWorkspaceUrl(uiState.apiBase);
+  const reference = matchTeamWatchReference(match, side);
+  if (!reference.id) {
     return;
   }
 
   try {
-    const response = await fetch(`${uiState.apiBase}/v1/follows`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json"
-      },
-      body: JSON.stringify({
-        userId: workspaceUser,
-        entityType: "team",
-        entityId: team.id
-      })
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload?.error?.message || "Unable to save team follow.");
-    }
+    uiState.watchlistBusySide = side;
     renderMatchActionRow(match);
+
+    const existing = findTeamFollow(uiState.watchlistRows, {
+      teamId: reference.id,
+      canonicalTeamId: reference.canonicalId
+    });
+
+    if (existing?.id) {
+      await removeWatchlistFollow(uiState.apiBase, existing.id, {
+        userId: resolveWatchlistUserId()
+      });
+      setMatchWatchlistMessage(`Removed ${reference.name} from your watchlist.`, "neutral");
+    } else {
+      await addTeamToWatchlist(uiState.apiBase, reference.id, {
+        userId: resolveWatchlistUserId(),
+        displayName: reference.name,
+        game: match?.game || ""
+      });
+      setMatchWatchlistMessage(`Watching ${reference.name}.`, "success");
+    }
+
+    await refreshMatchWatchlistState(match, { force: true });
   } catch (error) {
     uiState.stream.lastErrorAt = Date.now();
-    if (elements.matchTrustInline) {
-      const errorChip = document.createElement("span");
-      errorChip.className = "match-inline-status tone-degraded";
-      errorChip.innerHTML = `<strong>Watchlist</strong><span>${escapeHtml(error.message)}</span>`;
-      elements.matchTrustInline.prepend(errorChip);
-    }
+    setMatchWatchlistMessage(error.message || "Unable to update watchlist.", "degraded");
+  } finally {
+    uiState.watchlistBusySide = "";
+    renderMatchActionRow(match);
   }
 }
 
@@ -2679,7 +2773,7 @@ function renderMatchTrustInline(match) {
     return;
   }
 
-  const workspaceUser = resolveWorkspaceUserId();
+  const watchlistUser = resolveWatchlistUserId();
   const provenance = buildRowDataProvenance(match, {
     fallbackTimestamp: match?.updatedAt || match?.startAt || null
   });
@@ -2700,8 +2794,8 @@ function renderMatchTrustInline(match) {
   }
   localItems.push({
     label: "Watchlist",
-    value: workspaceUser ? workspaceUserLabel(workspaceUser) : "Not set",
-    tone: workspaceUser ? "neutral" : "warming"
+    value: watchlistUser ? "Saved on this device" : "Unavailable",
+    tone: watchlistUser ? "neutral" : "warming"
   });
 
   elements.matchTrustInline.innerHTML = `
@@ -13368,6 +13462,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
 
   renderMatchHero(match);
   renderMatchActionRow(match);
+  refreshMatchWatchlistState(match);
   if (elements.freshnessText) {
     elements.freshnessText.textContent = "";
     elements.freshnessText.hidden = true;
@@ -13598,6 +13693,8 @@ async function loadMatch() {
       chips: []
     });
     clearMatchShellBoard();
+    uiState.watchlistRows = [];
+    uiState.watchlistTeamKey = "";
     refreshMatchSeo(null);
     renderMatchupConsole(null);
     applyMatchLayoutGroups(null);

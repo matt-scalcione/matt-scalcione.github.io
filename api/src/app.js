@@ -691,12 +691,14 @@ export async function routeRequest({
       const userId = getUserId(normalizedHeaders, urlObj, body);
       const entityType = body?.entityType;
       const entityId = body?.entityId;
+      const displayName = body?.displayName;
+      const game = body?.game;
 
       if (!userId || !entityType || !entityId) {
         return errorResponse(400, "bad_request", "userId, entityType, and entityId are required.");
       }
 
-      const follow = addFollow({ userId, entityType, entityId });
+      const follow = addFollow({ userId, entityType, entityId, displayName, game });
       return okResponse(
         {
           data: follow

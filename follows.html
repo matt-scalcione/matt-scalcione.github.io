@@ -3,26 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pulseboard Follows & Alerts</title>
+    <title>Pulseboard Watchlist</title>
     <meta
       name="description"
-      content="Manage followed teams and alert preferences for esports match tracking on Pulseboard."
+      content="Track watched teams, see who is live or next, and manage alert rules on Pulseboard."
     />
     <meta name="robots" content="noindex,follow" />
     <link rel="canonical" href="https://matt-scalcione.github.io/follows.html" />
     <meta property="og:site_name" content="Pulseboard" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Pulseboard Follows & Alerts" />
+    <meta property="og:title" content="Pulseboard Watchlist" />
     <meta
       property="og:description"
-      content="Manage followed teams and alert preferences for esports match tracking on Pulseboard."
+      content="Track watched teams, see who is live or next, and manage alert rules on Pulseboard."
     />
     <meta property="og:url" content="https://matt-scalcione.github.io/follows.html" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Pulseboard Follows & Alerts" />
+    <meta name="twitter:title" content="Pulseboard Watchlist" />
     <meta
       name="twitter:description"
-      content="Manage followed teams and alert preferences for esports match tracking on Pulseboard."
+      content="Track watched teams, see who is live or next, and manage alert rules on Pulseboard."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,7 +30,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260314b" />
+    <link rel="stylesheet" href="./styles.css?v=20260314d" />
   </head>
   <body class="product-shell follows-page">
     <div class="noise"></div>
@@ -60,37 +60,37 @@
         <div class="hero-main">
           <div class="hero-kicker-row">
             <p class="kicker">Pulseboard</p>
-            <span class="hero-badge">Personal workspace</span>
+            <span class="hero-badge">Saved on this device</span>
           </div>
-          <h1>Watchlist & Alerts</h1>
+          <h1>Your Watchlist</h1>
           <p class="subtitle">
-            Build the watchlist, define alert routing, and review what would fire right now from one personal workspace.
+            Save teams from match and team pages, then use this page to see who is live, who is next, and which alert rules are enabled.
           </p>
           <div class="hero-metrics" aria-label="Watchlist highlights">
             <div class="hero-metric">
-              <span>Layer</span>
-              <strong>Watchlist</strong>
+              <span>Saved</span>
+              <strong>This browser</strong>
             </div>
             <div class="hero-metric">
-              <span>Delivery</span>
-              <strong>Alerts + queue</strong>
+              <span>Focus</span>
+              <strong>Teams first</strong>
             </div>
             <div class="hero-metric">
-              <span>Use case</span>
-              <strong>Personal signal flow</strong>
+              <span>View</span>
+              <strong>Live + next</strong>
             </div>
           </div>
           <div class="hero-chips">
-            <span class="hero-chip">Team follows</span>
-            <span class="hero-chip">Alert routing</span>
-            <span class="hero-chip">Queue review</span>
+            <span class="hero-chip">Watched teams</span>
+            <span class="hero-chip">Live now</span>
+            <span class="hero-chip">Up next</span>
           </div>
         </div>
         <aside class="hero-side">
-          <p id="heroContextLabel" class="hero-side-label">Account Mode</p>
-          <p id="heroContextValue" class="hero-side-value">Signal control</p>
+          <p id="heroContextLabel" class="hero-side-label">Watchlist</p>
+          <p id="heroContextValue" class="hero-side-value">Saved on this device</p>
           <p id="heroContextCopy" class="hero-side-copy">
-            Use this page to decide what matters, who gets tracked, and how delivery should behave once alerts fire.
+            No account setup is required. Pulseboard keeps one personal watchlist in this browser and uses it across the site.
           </p>
           <div id="heroContextChips" class="hero-side-chips"></div>
           <div id="heroActionRow" class="hero-action-row"></div>
@@ -101,144 +101,128 @@
     <main class="layout">
       <section class="panel summary-panel" id="watchlistSummaryPanel">
         <div class="section-head">
-          <h2>Workspace Snapshot</h2>
-          <p class="meta-text">Live summary of watchlist coverage, alert readiness, and queue posture.</p>
+          <h2>Watchlist Snapshot</h2>
+          <p class="meta-text">The fastest read on how many teams you are tracking and what matters right now.</p>
         </div>
-        <div id="watchlistLensStrip" class="lens-strip"></div>
         <div id="followsSummaryWrap" class="overview-grid" aria-live="polite">
           <div class="empty">
             <p class="empty-title">Watchlist Overview</p>
-            <p class="meta-text">Add a user ID to load follows, rules, and delivery state.</p>
+            <p class="meta-text">Save a team from any match or team page to start building your watchlist.</p>
           </div>
         </div>
       </section>
 
-      <section class="panel runtime-trust-panel" id="runtimeTrustPanel"></section>
-
-      <section id="productGuidePanel" class="panel guide-panel hidden-panel"></section>
-
       <div id="followsQuickJump" class="mobile-page-jump" hidden></div>
 
-      <section class="panel" id="alertsPanel">
+      <section class="panel" id="watchlistLivePanel" hidden>
         <div class="section-head">
-          <h2>Attention Now</h2>
-          <p id="alertsMeta" class="meta-text">Previewing current alert candidates for the selected user.</p>
+          <h2>Live Now</h2>
+          <p id="watchlistLiveMeta" class="meta-text">Watched teams with a live series right now.</p>
+        </div>
+        <div id="watchlistLiveList" class="follow-list"></div>
+      </section>
+
+      <section class="panel" id="watchlistUpcomingPanel" hidden>
+        <div class="section-head">
+          <h2>Up Next</h2>
+          <p id="watchlistUpcomingMeta" class="meta-text">Watched teams with an upcoming series on deck.</p>
+        </div>
+        <div id="watchlistUpcomingList" class="follow-list"></div>
+      </section>
+
+      <section class="panel" id="watchlistRecentPanel" hidden>
+        <div class="section-head">
+          <h2>Recently Finished</h2>
+          <p id="watchlistRecentMeta" class="meta-text">Watched teams with the latest completed series.</p>
+        </div>
+        <div id="watchlistRecentList" class="follow-list"></div>
+      </section>
+
+      <section class="panel" id="watchlistWorkspacePanel">
+        <div id="followsBlock">
+          <div class="section-head">
+            <h2>All Watched Teams</h2>
+            <p id="followsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
+          </div>
+          <div id="followsList" class="follow-list"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="prefsPanel">
+        <div class="section-head">
+          <h2>Alert Rules</h2>
+          <p class="meta-text">These rules decide which watched-team events Pulseboard should surface for this device.</p>
+        </div>
+        <form id="prefsForm" class="prefs-grid">
+          <label class="check">
+            <input id="webPushInput" type="checkbox" />
+            Web push alerts
+          </label>
+          <label class="check">
+            <input id="emailDigestInput" type="checkbox" />
+            Email digest
+          </label>
+          <label class="check">
+            <input id="swingAlertsInput" type="checkbox" />
+            Swing alerts
+          </label>
+          <label class="check">
+            <input id="matchStartInput" type="checkbox" />
+            Match start alerts
+          </label>
+          <label class="check">
+            <input id="matchFinalInput" type="checkbox" />
+            Match final alerts
+          </label>
+        </form>
+        <div class="actions">
+          <button id="savePrefsButton" type="button">Save Rules</button>
+          <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
+        </div>
+      </section>
+
+      <section class="panel" id="alertsPanel" hidden>
+        <div class="section-head">
+          <h2>What Would Alert Now</h2>
+          <p id="alertsMeta" class="meta-text">Current alert candidates for this watchlist.</p>
         </div>
         <div id="alertsPreviewWrap" class="follow-list"></div>
       </section>
 
-      <section class="panel" id="outboxPanel">
+      <section class="panel" id="outboxPanel" hidden>
         <div class="section-head">
-          <h2>Delivery Queue</h2>
-          <p id="alertOutboxMeta" class="meta-text">Pending and acknowledged alert events for this user.</p>
+          <h2>Recent Notifications</h2>
+          <p id="alertOutboxMeta" class="meta-text">Recent notification events for this watchlist.</p>
         </div>
         <div id="alertOutboxWrap" class="follow-list"></div>
       </section>
 
       <section class="panel controls" id="controlsPanel">
         <div class="controls-head">
-          <h2>Workspace</h2>
+          <h2>Technical Tools</h2>
           <button
             id="controlsToggle"
             type="button"
             class="ghost controls-toggle"
-            aria-expanded="true"
+            aria-expanded="false"
             aria-controls="controlsBody"
           >
-            Hide Panel
+            Show Tools
           </button>
         </div>
         <div class="controls-body" id="controlsBody">
+          <p class="meta-text watchlist-tools-copy">
+            Pulseboard keeps one local watchlist in this browser. These tools are only for troubleshooting.
+          </p>
           <div class="controls-grid">
             <label class="api-base-field">
               API Base
               <input id="apiBaseInput" type="text" placeholder="http://localhost:4000" />
             </label>
-            <label>
-              User ID
-              <input id="userIdInput" type="text" placeholder="demo-user" />
-            </label>
           </div>
-
           <div class="actions">
             <button id="refreshButton" type="button">Reload</button>
             <button id="saveApiButton" type="button" class="ghost api-base-save">Save API Base</button>
-            <p id="statusText" class="status-text" aria-live="polite">Ready.</p>
-          </div>
-
-          <h2 class="top-space">Manual Add</h2>
-          <div class="controls-grid">
-            <label>
-              Entity Type
-              <select id="entityTypeSelect">
-                <option value="team">Team</option>
-                <option value="player">Player</option>
-                <option value="tournament">Tournament</option>
-              </select>
-            </label>
-            <label>
-              Entity ID
-              <input id="entityIdInput" type="text" placeholder="team_t1" />
-            </label>
-          </div>
-          <div class="actions">
-            <button id="addFollowButton" type="button">Add Follow</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel stack" id="watchlistWorkspacePanel">
-        <div id="followsSummaryHero" class="follow-summary-hero" aria-live="polite" hidden>
-          <div class="empty">
-            <p class="empty-title">Follow Overview</p>
-            <p class="meta-text">Add a user ID to load follows and notification preferences.</p>
-          </div>
-        </div>
-
-        <div id="followsViewSwitch" class="mobile-segment" aria-label="Follows view">
-          <button type="button" class="mobile-segment-btn" data-view="both" aria-pressed="true">Both</button>
-          <button type="button" class="mobile-segment-btn" data-view="follows" aria-pressed="false">Follows</button>
-          <button type="button" class="mobile-segment-btn" data-view="prefs" aria-pressed="false">Prefs</button>
-        </div>
-
-        <div id="followsBlock">
-          <div class="section-head">
-            <h2>Watchlist</h2>
-            <p id="followsMeta" class="meta-text" aria-live="polite">Waiting for data...</p>
-          </div>
-          <div id="followsList" class="follow-list"></div>
-        </div>
-
-        <div id="prefsBlock">
-          <div class="section-head top-space">
-            <h2>Delivery Rules</h2>
-            <p class="meta-text">Saved per user ID.</p>
-          </div>
-          <form id="prefsForm" class="prefs-grid">
-            <label class="check">
-              <input id="webPushInput" type="checkbox" />
-              Web push alerts
-            </label>
-            <label class="check">
-              <input id="emailDigestInput" type="checkbox" />
-              Email digest
-            </label>
-            <label class="check">
-              <input id="swingAlertsInput" type="checkbox" />
-              Swing alerts
-            </label>
-            <label class="check">
-              <input id="matchStartInput" type="checkbox" />
-              Match start alerts
-            </label>
-            <label class="check">
-              <input id="matchFinalInput" type="checkbox" />
-              Match final alerts
-            </label>
-          </form>
-
-          <div class="actions">
-            <button id="savePrefsButton" type="button">Save Rules</button>
           </div>
         </div>
       </section>
@@ -261,6 +245,6 @@
 
     <script src="./site-config.js?v=20260309c"></script>
     <script src="./site-header.js?v=20260312b"></script>
-    <script type="module" src="./follows.js?v=20260314a"></script>
+    <script type="module" src="./follows.js?v=20260314d"></script>
   </body>
 </html>

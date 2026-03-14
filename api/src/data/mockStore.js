@@ -1240,7 +1240,7 @@ function sortByDateDescending(rows, key) {
   return rows.slice().sort((a, b) => Date.parse(b[key]) - Date.parse(a[key]));
 }
 
-export function resolveCanonicalFollowTeamId(entityId, { rows = [] } = {}) {
+export function resolveCanonicalFollowTeamId(entityId, { rows = [], gameHint = null, teamNameHint = null } = {}) {
   const normalizedEntityId = String(entityId || "").trim();
   if (!normalizedEntityId) {
     return null;
@@ -1250,12 +1250,14 @@ export function resolveCanonicalFollowTeamId(entityId, { rows = [] } = {}) {
     return normalizedEntityId;
   }
 
-  let game = /^\d+$/.test(normalizedEntityId)
+  let game = String(gameHint || "").trim().toLowerCase() || (
+    /^\d+$/.test(normalizedEntityId)
     ? "dota2"
     : /^lol_/i.test(normalizedEntityId)
       ? "lol"
-      : null;
-  let teamName = null;
+      : null
+  );
+  let teamName = String(teamNameHint || "").trim() || null;
   const candidateRows = []
     .concat(Array.isArray(rows) ? rows : [])
     .concat(liveMatches, scheduleMatches, completedMatches);
@@ -1428,10 +1430,12 @@ function buildTeamFollowContext(follow, { rows = [] } = {}) {
     .filter(Boolean);
   const displayName =
     contexts.find((entry) => String(entry?.team?.name || "").trim())?.team?.name ||
+    follow.displayNameHint ||
     follow.displayName ||
     follow.entityId;
   const game =
     contexts.find((entry) => String(entry?.row?.game || "").trim())?.row?.game ||
+    follow.gameHint ||
     follow.game ||
     gameFromCanonicalEntityId(follow.canonicalEntityId);
   const liveEntry = contexts
@@ -1453,6 +1457,10 @@ function buildTeamFollowContext(follow, { rows = [] } = {}) {
       signalDetail: liveEntry.opponent?.name
         ? `vs ${liveEntry.opponent.name}`
         : liveEntry.row?.tournament || "Match live",
+      signalOpponentName: liveEntry.opponent?.name || null,
+      signalTournament: liveEntry.row?.tournament || null,
+      signalAt: liveEntry.row?.startAt || null,
+      signalProvider: liveEntry.row?.source?.providerLabel || liveEntry.row?.source?.provider || null,
       liveMatchId: liveEntry.row?.id || null,
       nextMatchId: upcomingEntry?.row?.id || null,
       recentMatchId: recentEntry?.row?.id || null
@@ -1468,6 +1476,10 @@ function buildTeamFollowContext(follow, { rows = [] } = {}) {
       signalDetail: upcomingEntry.opponent?.name
         ? `vs ${upcomingEntry.opponent.name}`
         : upcomingEntry.row?.tournament || "Scheduled",
+      signalOpponentName: upcomingEntry.opponent?.name || null,
+      signalTournament: upcomingEntry.row?.tournament || null,
+      signalAt: upcomingEntry.row?.startAt || null,
+      signalProvider: upcomingEntry.row?.source?.providerLabel || upcomingEntry.row?.source?.provider || null,
       liveMatchId: null,
       nextMatchId: upcomingEntry.row?.id || null,
       recentMatchId: recentEntry?.row?.id || null
@@ -1483,6 +1495,10 @@ function buildTeamFollowContext(follow, { rows = [] } = {}) {
       signalDetail: recentEntry.opponent?.name
         ? `vs ${recentEntry.opponent.name}`
         : recentEntry.row?.tournament || "Latest result",
+      signalOpponentName: recentEntry.opponent?.name || null,
+      signalTournament: recentEntry.row?.tournament || null,
+      signalAt: recentEntry.row?.endAt || recentEntry.row?.updatedAt || recentEntry.row?.startAt || null,
+      signalProvider: recentEntry.row?.source?.providerLabel || recentEntry.row?.source?.provider || null,
       liveMatchId: null,
       nextMatchId: null,
       recentMatchId: recentEntry.row?.id || null
@@ -1495,6 +1511,10 @@ function buildTeamFollowContext(follow, { rows = [] } = {}) {
     signalState: "idle",
     signalLabel: "Watching",
     signalDetail: "Waiting for the next series.",
+    signalOpponentName: null,
+    signalTournament: null,
+    signalAt: null,
+    signalProvider: null,
     liveMatchId: null,
     nextMatchId: null,
     recentMatchId: null
@@ -7143,10 +7163,15 @@ export function listFollows(userId) {
     .map((follow) => hydrateFollow(follow, { rows }));
 }
 
-export function addFollow({ userId, entityType, entityId }) {
+export function addFollow({ userId, entityType, entityId, displayName = null, game = null }) {
+  const displayNameHint = String(displayName || "").trim() || null;
+  const gameHint = String(game || "").trim().toLowerCase() || null;
   const canonicalEntityId =
     entityType === "team"
-      ? resolveCanonicalFollowTeamId(entityId)
+      ? resolveCanonicalFollowTeamId(entityId, {
+          gameHint,
+          teamNameHint: displayNameHint
+        })
       : null;
   const existing = follows.find(
     (follow) =>
@@ -7164,6 +7189,12 @@ export function addFollow({ userId, entityType, entityId }) {
     if (entityType === "team" && canonicalEntityId && !existing.canonicalEntityId) {
       existing.canonicalEntityId = canonicalEntityId;
     }
+    if (displayNameHint && !existing.displayNameHint) {
+      existing.displayNameHint = displayNameHint;
+    }
+    if (gameHint && !existing.gameHint) {
+      existing.gameHint = gameHint;
+    }
     return hydrateFollow(existing);
   }
 
@@ -7173,6 +7204,8 @@ export function addFollow({ userId, entityType, entityId }) {
     entityType,
     entityId,
     canonicalEntityId,
+    displayNameHint,
+    gameHint,
     createdAt: new Date().toISOString()
   };
 

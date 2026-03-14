@@ -2192,6 +2192,10 @@ button.ghost,
   box-shadow: none;
 }
 
+.follow-item.compact {
+  padding: 0.62rem 0.66rem;
+}
+
 .follow-item-head {
   display: grid;
   gap: 0.28rem;
@@ -11186,6 +11190,81 @@ body.product-shell .skeleton-list-copy {
   gap: 0.45rem;
 }
 
+.watchlist-card-line {
+  font-size: 0.9rem;
+  line-height: 1.34;
+}
+
+.watchlist-card-meta {
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+.watchlist-tools-copy {
+  margin: 0 0 0.7rem;
+}
+
+.watch-toggle.is-active {
+  border-color: rgba(216, 138, 51, 0.24);
+  background: rgba(216, 138, 51, 0.14);
+  color: #f1cd97;
+}
+
+.watch-toggle.is-pending {
+  opacity: 0.72;
+}
+
+.watchlist-action-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.9rem;
+  padding: 0.28rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid rgba(138, 154, 170, 0.24);
+  background: rgba(72, 84, 98, 0.36);
+  color: #dde6ee;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.watchlist-action-note.tone-success {
+  border-color: rgba(111, 181, 121, 0.28);
+  color: #d7f0d7;
+}
+
+.watchlist-action-note.tone-degraded {
+  border-color: rgba(203, 110, 91, 0.3);
+  color: #ffd2c8;
+}
+
+.watchlist-filter-card {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 100%;
+  padding: 0.72rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 56, 92, 0.08);
+  background: rgba(248, 251, 255, 0.88);
+}
+
+.watchlist-filter-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.watchlist-filter-card strong {
+  color: var(--ink);
+  font-size: 0.96rem;
+}
+
+.watchlist-filter-card .meta-text {
+  margin: 0;
+}
+
 body.product-shell .team-quick-nav {
   display: flex;
   flex-wrap: wrap;
@@ -17078,54 +17157,37 @@ body.product-shell.team-page .team-match-opponent-line .team-link {
     backdrop-filter: blur(14px);
   }
 
-  body.product-shell.follows-page #alertsPanel {
+  body.product-shell.follows-page #watchlistLivePanel {
     order: 3;
   }
 
-  body.product-shell.follows-page #outboxPanel {
+  body.product-shell.follows-page #watchlistUpcomingPanel {
     order: 4;
   }
 
-  body.product-shell.follows-page #watchlistWorkspacePanel {
+  body.product-shell.follows-page #watchlistRecentPanel {
     order: 5;
   }
 
-  body.product-shell.follows-page #controlsPanel {
+  body.product-shell.follows-page #watchlistWorkspacePanel {
     order: 6;
+  }
+
+  body.product-shell.follows-page #prefsPanel {
+    order: 7;
+  }
+
+  body.product-shell.follows-page #alertsPanel {
+    order: 8;
+  }
+
+  body.product-shell.follows-page #outboxPanel {
+    order: 9;
+  }
+
+  body.product-shell.follows-page #controlsPanel {
+    order: 10;
     margin-top: 0;
-  }
-
-  body.product-shell.follows-page .stack {
-    gap: 0.42rem;
-  }
-
-  body.product-shell.follows-page .mobile-segment {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.18rem;
-    padding: 0.18rem;
-    border: 1px solid rgba(226, 233, 241, 0.06);
-    border-radius: 10px;
-    background: rgba(47, 56, 66, 0.92);
-    box-shadow: none;
-  }
-
-  body.product-shell.follows-page .mobile-segment-btn {
-    min-height: 1.76rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.06);
-    color: #e1e8ef;
-    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-    font-size: 0.58rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  body.product-shell.follows-page .mobile-segment-btn[aria-pressed="true"] {
-    background: rgba(216, 138, 51, 0.14);
-    border-color: rgba(216, 138, 51, 0.22);
-    color: #f7d8aa;
   }
 
   body.product-shell.follows-page .follow-list {
@@ -17136,6 +17198,10 @@ body.product-shell.team-page .team-match-opponent-line .team-link {
     padding: 0.58rem 0.6rem;
     border-radius: 10px;
     gap: 0.58rem;
+  }
+
+  body.product-shell.follows-page .follow-item.compact {
+    padding: 0.52rem 0.56rem;
   }
 
   body.product-shell.follows-page .follow-alert-item {
@@ -17150,6 +17216,11 @@ body.product-shell.team-page .team-match-opponent-line .team-link {
 
   body.product-shell.follows-page .follow-actions .link-btn,
   body.product-shell.follows-page .follow-actions .ghost {
+    width: 100%;
+    justify-content: center;
+  }
+
+  body.product-shell.follows-page .watchlist-action-note {
     width: 100%;
     justify-content: center;
   }

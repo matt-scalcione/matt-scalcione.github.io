@@ -354,7 +354,9 @@ describe("follows", () => {
       body: {
         userId: "test-user",
         entityType: "team",
-        entityId: "team_gen"
+        entityId: "team_gen",
+        displayName: "Gen.G",
+        game: "lol"
       }
     });
 
@@ -369,7 +371,9 @@ describe("follows", () => {
     });
 
     assert.equal(listResult.statusCode, 200);
-    assert.ok(listResult.payload.data.some((row) => row.id === followId));
+    assert.ok(
+      listResult.payload.data.some((row) => row.id === followId && row.displayName === "Gen.G")
+    );
 
     const deleteResult = await routeRequest({
       method: "DELETE",

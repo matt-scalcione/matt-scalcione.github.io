@@ -62,5 +62,24 @@ describe("follow identity", () => {
     assert.equal(rows[0].game, "lol");
     assert.equal(rows[0].signalState, "upcoming");
     assert.equal(rows[0].nextMatchId, "lol_lck_2026_w2_t1_gen");
+    assert.equal(rows[0].signalOpponentName, "Gen.G");
+    assert.equal(typeof rows[0].signalTournament, "string");
+    assert.ok(rows[0].signalAt);
+  });
+
+  it("keeps saved display hints when no live context exists yet", () => {
+    const userId = `test-follow-hint-${Date.now()}`;
+    addFollow({
+      userId,
+      entityType: "team",
+      entityId: "99999999",
+      displayName: "Demo Watch Team",
+      game: "dota2"
+    });
+
+    const rows = listFollows(userId);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].displayName, "Demo Watch Team");
+    assert.equal(rows[0].game, "dota2");
   });
 });
