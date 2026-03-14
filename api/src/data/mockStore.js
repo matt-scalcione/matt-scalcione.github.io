@@ -2944,6 +2944,28 @@ function buildDotaFallbackSummary(match, relatedRows = []) {
   };
 }
 
+export function mergeDotaRowsForSurface(primaryRow, secondaryRow, {
+  surface = "live"
+} = {}) {
+  if (!primaryRow) {
+    return secondaryRow || null;
+  }
+
+  if (!secondaryRow) {
+    return primaryRow;
+  }
+
+  if (!sameDotaSeriesForAlias(primaryRow, secondaryRow)) {
+    return compareSourcePriority(primaryRow, secondaryRow, { surface }) >= 0 ? primaryRow : secondaryRow;
+  }
+
+  const preferredBase =
+    compareSourcePriority(primaryRow, secondaryRow, { surface }) >= 0 ? primaryRow : secondaryRow;
+  const supportingRow = preferredBase === primaryRow ? secondaryRow : primaryRow;
+
+  return buildDotaFallbackSummary(preferredBase, [supportingRow]);
+}
+
 function dotaDetailStrength(detail) {
   if (!detail || detail.game !== "dota2") {
     return Number.NEGATIVE_INFINITY;
@@ -3047,7 +3069,11 @@ function mergeDotaScheduleRows(liveRows = [], upcomingRows = []) {
       continue;
     }
 
-    if (normalizedLiveRows.some((liveRow) => sameDotaSeries(liveRow, row))) {
+    const existingIndex = merged.findIndex((liveRow) => sameDotaSeries(liveRow, row));
+    if (existingIndex >= 0) {
+      merged[existingIndex] = mergeDotaRowsForSurface(merged[existingIndex], row, {
+        surface: "live"
+      });
       continue;
     }
 
@@ -3067,9 +3093,9 @@ function mergeDotaLiveRows(primaryRows = [], secondaryRows = []) {
 
     const existingIndex = merged.findIndex((primaryRow) => sameDotaSeries(primaryRow, row));
     if (existingIndex >= 0) {
-      if (compareSourcePriority(row, merged[existingIndex], { surface: "live" }) > 0) {
-        merged[existingIndex] = row;
-      }
+      merged[existingIndex] = mergeDotaRowsForSurface(merged[existingIndex], row, {
+        surface: "live"
+      });
       continue;
     }
 
