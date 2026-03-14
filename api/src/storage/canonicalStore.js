@@ -249,6 +249,68 @@ async function loadPgPool() {
   return pgModule.Pool;
 }
 
+export function canonicalStoreMigrationStatements(tables) {
+  return [
+    `
+      ALTER TABLE ${tables.teamProfileState}
+      ADD COLUMN IF NOT EXISTS canonical_team_id TEXT
+    `,
+    `
+      ALTER TABLE ${tables.teamProfileState}
+      ADD COLUMN IF NOT EXISTS normalized_team_name TEXT
+    `,
+    `
+      ALTER TABLE ${tables.teamProfileSnapshots}
+      ADD COLUMN IF NOT EXISTS canonical_team_id TEXT
+    `,
+    `
+      ALTER TABLE ${tables.teamProfileSnapshots}
+      ADD COLUMN IF NOT EXISTS normalized_team_name TEXT
+    `
+  ];
+}
+
+export function canonicalStoreIndexStatements(tables) {
+  return [
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_match_state_surface_idx
+      ON ${tables.matchState} (surface, game, status, last_seen_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_match_snapshots_match_idx
+      ON ${tables.matchSnapshots} (match_id, observed_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_ingest_runs_surface_idx
+      ON ${tables.ingestRuns} (surface, observed_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_team_idx
+      ON ${tables.teamProfileState} (team_id, game, last_seen_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_canonical_idx
+      ON ${tables.teamProfileState} (canonical_team_id, game, last_seen_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_name_idx
+      ON ${tables.teamProfileState} (normalized_team_name, game, last_seen_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_match_detail_state_match_idx
+      ON ${tables.matchDetailState} (match_id, game_number, last_seen_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_match_detail_snapshots_detail_idx
+      ON ${tables.matchDetailSnapshots} (detail_key, observed_at DESC)
+    `,
+    `
+      CREATE INDEX IF NOT EXISTS pulseboard_team_profile_snapshots_profile_idx
+      ON ${tables.teamProfileSnapshots} (profile_key, observed_at DESC)
+    `
+  ];
+}
+
 async function ensureInitialized() {
   const config = canonicalStoreConfig();
   if (!config.enabled) {
@@ -376,54 +438,12 @@ async function ensureInitialized() {
           payload JSONB NOT NULL
         )
       `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_match_state_surface_idx
-        ON ${tables.matchState} (surface, game, status, last_seen_at DESC)
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_match_snapshots_match_idx
-        ON ${tables.matchSnapshots} (match_id, observed_at DESC)
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_ingest_runs_surface_idx
-        ON ${tables.ingestRuns} (surface, observed_at DESC)
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_team_idx
-        ON ${tables.teamProfileState} (team_id, game, last_seen_at DESC)
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_canonical_idx
-        ON ${tables.teamProfileState} (canonical_team_id, game, last_seen_at DESC)
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_match_detail_state_match_idx
-        ON ${tables.matchDetailState} (match_id, game_number, last_seen_at DESC)
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_match_detail_snapshots_detail_idx
-        ON ${tables.matchDetailSnapshots} (detail_key, observed_at DESC)
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS pulseboard_team_profile_snapshots_profile_idx
-        ON ${tables.teamProfileSnapshots} (profile_key, observed_at DESC)
-      `);
-      await pool.query(`
-        ALTER TABLE ${tables.teamProfileState}
-        ADD COLUMN IF NOT EXISTS canonical_team_id TEXT
-      `);
-      await pool.query(`
-        ALTER TABLE ${tables.teamProfileState}
-        ADD COLUMN IF NOT EXISTS normalized_team_name TEXT
-      `);
-      await pool.query(`
-        ALTER TABLE ${tables.teamProfileSnapshots}
-        ADD COLUMN IF NOT EXISTS canonical_team_id TEXT
-      `);
-      await pool.query(`
-        ALTER TABLE ${tables.teamProfileSnapshots}
-        ADD COLUMN IF NOT EXISTS normalized_team_name TEXT
-      `);
+      for (const statement of canonicalStoreMigrationStatements(tables)) {
+        await pool.query(statement);
+      }
+      for (const statement of canonicalStoreIndexStatements(tables)) {
+        await pool.query(statement);
+      }
 
       if (storeState.pool && storeState.pool !== pool) {
         await storeState.pool.end().catch(() => {});

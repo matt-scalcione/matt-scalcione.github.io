@@ -3344,6 +3344,44 @@ export function mergeDotaDetailContexts(primaryDetail, secondaryDetail) {
   };
 }
 
+async function mergeDotaDetailWithFallbackContext(detail, matchId, options = {}) {
+  if (!detail) {
+    return fallbackProviderDotaDetail(matchId, options);
+  }
+
+  const fallbackDetail = await fallbackProviderDotaDetail(matchId, options);
+  if (!fallbackDetail) {
+    return detail;
+  }
+
+  return mergeDotaDetailContexts(detail, fallbackDetail);
+}
+
+async function loadDirectProviderDotaDetail(matchId, options = {}) {
+  if (String(matchId).startsWith("dota_stratz_")) {
+    try {
+      const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
+      if (stratzDetail) {
+        return mergeDotaDetailWithFallbackContext(stratzDetail, matchId, options);
+      }
+    } catch {
+      // Fall through to the OpenDota / fallback detail path.
+    }
+  }
+
+  if (String(matchId).startsWith("dota_od_")) {
+    try {
+      const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
+      const mergedDetail = await mergeDotaDetailWithFallbackContext(detail, matchId, options);
+      return enrichDotaDetailWithStratz(mergedDetail, options);
+    } catch {
+      return enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
+    }
+  }
+
+  return null;
+}
+
 function materializeStaleDetail(detail, {
   reason = "stale_cache",
   aliasMatchId = null
@@ -5489,27 +5527,9 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         matchId,
         options,
         fetchDetail: async () => {
-          if (String(matchId).startsWith("dota_stratz_")) {
-            try {
-              const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
-              if (stratzDetail) {
-                return stratzDetail;
-              }
-            } catch {
-              // Fall through to OpenDota and fallback detail.
-            }
-          }
-
-          if (String(matchId).startsWith("dota_od_")) {
-            try {
-              const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
-              return enrichDotaDetailWithStratz(
-                detail || (await fallbackProviderDotaDetail(matchId, options)),
-                options
-              );
-            } catch {
-              return enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
-            }
+          const directDetail = await loadDirectProviderDotaDetail(matchId, options);
+          if (directDetail) {
+            return directDetail;
           }
 
           const aliasMatchId = await resolveDotaAliasMatchId(matchId, staleCachedDetail);
@@ -5537,27 +5557,9 @@ async function loadProviderMatchDetail(matchId, options = {}) {
         matchId,
         options,
         fetchDetail: async () => {
-          if (String(matchId).startsWith("dota_stratz_")) {
-            try {
-              const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
-              if (stratzDetail) {
-                return stratzDetail;
-              }
-            } catch {
-              // Fall through to the OpenDota / fallback detail path.
-            }
-          }
-
-          if (String(matchId).startsWith("dota_od_")) {
-            try {
-              const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
-              return enrichDotaDetailWithStratz(
-                detail || (await fallbackProviderDotaDetail(matchId, options)),
-                options
-              );
-            } catch {
-              return enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
-            }
+          const directDetail = await loadDirectProviderDotaDetail(matchId, options);
+          if (directDetail) {
+            return directDetail;
           }
 
           const aliasMatchId = await resolveDotaAliasMatchId(matchId, canonicalDetail);
@@ -5571,49 +5573,13 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       return canonicalDetail;
     }
 
-    if (String(matchId).startsWith("dota_stratz_")) {
-      try {
-        const stratzDetail = await stratzProvider.fetchMatchDetail(matchId, options);
-        if (stratzDetail) {
-          await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, stratzDetail, {
-            matchId,
-            options
-          });
-          return stratzDetail;
-        }
-      } catch {
-        // Fall through to the OpenDota / fallback detail path.
-      }
-    }
-
-    if (String(matchId).startsWith("dota_od_")) {
-      try {
-        const detail = await openDotaProvider.fetchMatchDetail(matchId, options);
-        const resolvedDetail = await enrichDotaDetailWithStratz(
-          detail || (await fallbackProviderDotaDetail(matchId, options)),
-          options
-        );
-        if (!resolvedDetail) {
-          return materializeStaleDetail(staleCachedDetail);
-        }
-
-        await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, resolvedDetail, {
-          matchId,
-          options
-        });
-        return resolvedDetail;
-      } catch {
-        const fallback = await enrichDotaDetailWithStratz(await fallbackProviderDotaDetail(matchId, options), options);
-        if (!fallback) {
-          return materializeStaleDetail(staleCachedDetail);
-        }
-
-        await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, fallback, {
-          matchId,
-          options
-        });
-        return fallback;
-      }
+    const directDetail = await loadDirectProviderDotaDetail(matchId, options);
+    if (directDetail) {
+      await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, directDetail, {
+        matchId,
+        options
+      });
+      return directDetail;
     }
 
     const aliasMatchId = await resolveDotaAliasMatchId(matchId, staleCachedDetail);

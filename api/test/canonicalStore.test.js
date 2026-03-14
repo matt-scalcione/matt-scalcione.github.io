@@ -159,4 +159,23 @@ describe("canonicalStore", () => {
       }
     }
   });
+
+  it("runs team profile schema migrations before dependent indexes", async () => {
+    const module = await import(`../src/storage/canonicalStore.js?test=migrations-${Date.now()}`);
+    const tables = {
+      teamProfileState: '"pulseboard"."pulseboard_team_profile_state"',
+      teamProfileSnapshots: '"pulseboard"."pulseboard_team_profile_snapshots"',
+      matchState: '"pulseboard"."pulseboard_match_state"',
+      matchSnapshots: '"pulseboard"."pulseboard_match_snapshots"',
+      ingestRuns: '"pulseboard"."pulseboard_ingest_runs"',
+      matchDetailState: '"pulseboard"."pulseboard_match_detail_state"',
+      matchDetailSnapshots: '"pulseboard"."pulseboard_match_detail_snapshots"'
+    };
+
+    const migrationSql = module.canonicalStoreMigrationStatements(tables).join("\n");
+    const indexSql = module.canonicalStoreIndexStatements(tables).join("\n");
+
+    assert.match(migrationSql, /ADD COLUMN IF NOT EXISTS canonical_team_id TEXT/);
+    assert.match(indexSql, /pulseboard_team_profile_state_canonical_idx/);
+  });
 });

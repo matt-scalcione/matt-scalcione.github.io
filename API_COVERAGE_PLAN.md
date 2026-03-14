@@ -1,5 +1,19 @@
 # API Coverage Plan
 
+## Status
+
+Completed on March 13, 2026.
+
+Delivered:
+
+- team identity and profile resolution now infer seed context, support aliases, and persist canonical team ids
+- Dota live resilience now combines STRATZ, OpenDota, Steam, synthetic schedule-live inference, and canonical live fallback
+- canonical runtime identity is present across match rows, team profiles, and follows
+- scheduled canonical backfills keep collections, match details, and team profiles warm without waiting for user traffic
+- provider health and inferred live state now drive fallback decisions and diagnostics
+- Dota handoff logic now merges richer row/detail context across provider aliases instead of discarding lower-priority context
+- canonical Postgres persistence is migration-safe for older schemas and is expected to initialize cleanly after deploy
+
 ## Objective
 
 Increase practical data coverage for the live Pulseboard API, starting with the weakest user-facing gaps and building toward a more stable multi-provider model.
