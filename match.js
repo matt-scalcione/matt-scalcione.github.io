@@ -4079,12 +4079,35 @@ function renderSeriesOverview(match) {
 
   const compactOverviewCards = renderSeriesInfoCards(
     status === "upcoming"
-      ? [
-          { label: "Kickoff", value: startLabel },
-          { label: "Format", value: formatLabel },
-          { label: "Patch", value: match.patch || "Unknown" },
-          { label: "Countdown", value: countdownLabel }
-        ]
+      ? (() => {
+          const nextMapLabel = completedMaps > 0 ? `G${Math.min(bestOf, completedMaps + 1)} next` : "G1 next";
+          const featuredWatch = watchOptions[0] || null;
+          const favoritePct =
+            prediction?.favoriteTeamName === leftName
+              ? Number(prediction?.leftWinPct || 0)
+              : prediction?.favoriteTeamName === rightName
+                ? Number(prediction?.rightWinPct || 0)
+                : null;
+          return [
+            {
+              label: "Next",
+              value: nextMapLabel,
+              note: countdownLabel === "Soon" ? "First map close" : `Starts in ${countdownLabel}`
+            },
+            {
+              label: "Watch",
+              value: watchOptions.length ? `${watchOptions.length} feed${watchOptions.length === 1 ? "" : "s"}` : "Pending",
+              note: watchOptions.length ? featuredWatch?.label || "Official links ready" : "Broadcast links pending"
+            },
+            {
+              label: "Edge",
+              value: prediction?.favoriteTeamName ? scoreboardTeamName(prediction.favoriteTeamName, match?.game) : "Even",
+              note: Number.isFinite(favoritePct)
+                ? `${Math.round(favoritePct)}% win · ${String(prediction?.confidence || "low").toUpperCase()}`
+                : "Read still building"
+            }
+          ];
+        })()
       : status === "completed"
         ? [
             { label: "Started", value: startLabel },
@@ -4093,10 +4116,16 @@ function renderSeriesOverview(match) {
             { label: "Maps", value: String(completedMaps) }
           ]
         : [
-            { label: "Started", value: startLabel },
-            { label: "Format", value: formatLabel },
             { label: "Game", value: Number.isInteger(liveGameNumber) ? `G${liveGameNumber}` : "Live" },
-            { label: "Score", value: seriesScoreLabel }
+            { label: "Score", value: seriesScoreLabel },
+            {
+              label: "Maps",
+              value: `${completedMaps} done`,
+              note: completedMaps < bestOf ? `${Math.max(0, bestOf - completedMaps)} left` : "Series at limit"
+            },
+            Number.isInteger(liveGameNumber)
+              ? { label: "State", value: `G${liveGameNumber} live` }
+              : { label: "State", value: "Series live" }
           ]
   );
 
