@@ -3852,7 +3852,81 @@ function shouldRetainDotaScheduleRow(row, nowMs = Date.now()) {
   return ageMs <= dotaSyntheticLiveWindowMs(row) && startMs <= nowMs + retainFutureWindowMs;
 }
 
-function mergeRetainedDotaScheduleRows(freshRows = [], previousRows = [], { knownRows = [], nowMs = Date.now() } = {}) {
+function sameDotaScheduleProviderSlot(left, right) {
+  if (!left || !right || left.game !== "dota2" || right.game !== "dota2") {
+    return false;
+  }
+
+  const leftSlotId =
+    String(left?.providerMatchId || "").trim() ||
+    String(left?.sourceMatchId || "").trim();
+  const rightSlotId =
+    String(right?.providerMatchId || "").trim() ||
+    String(right?.sourceMatchId || "").trim();
+  if (!leftSlotId || !rightSlotId || leftSlotId !== rightSlotId) {
+    return false;
+  }
+
+  const leftTournament = canonicalDotaTournamentKey(left?.tournament);
+  const rightTournament = canonicalDotaTournamentKey(right?.tournament);
+  if (leftTournament && rightTournament && leftTournament !== rightTournament) {
+    return false;
+  }
+
+  const leftStart = Date.parse(String(left?.startAt || ""));
+  const rightStart = Date.parse(String(right?.startAt || ""));
+  if (!Number.isNaN(leftStart) && !Number.isNaN(rightStart)) {
+    return Math.abs(leftStart - rightStart) <= 12 * oneHour;
+  }
+
+  return true;
+}
+
+function compareDotaScheduleRowFreshness(left, right) {
+  const leftRetained =
+    Boolean(left?.retainedFromScheduleCache) ||
+    String(left?.source?.provenance?.delivery || "").trim().toLowerCase() === "retained_cache";
+  const rightRetained =
+    Boolean(right?.retainedFromScheduleCache) ||
+    String(right?.source?.provenance?.delivery || "").trim().toLowerCase() === "retained_cache";
+  if (leftRetained !== rightRetained) {
+    return leftRetained ? -1 : 1;
+  }
+
+  const leftUpdatedAt = Date.parse(String(left?.updatedAt || ""));
+  const rightUpdatedAt = Date.parse(String(right?.updatedAt || ""));
+  if (!Number.isNaN(leftUpdatedAt) && !Number.isNaN(rightUpdatedAt) && leftUpdatedAt !== rightUpdatedAt) {
+    return leftUpdatedAt > rightUpdatedAt ? 1 : -1;
+  }
+
+  const leftQuality = Number(left?.quality?.score || 0);
+  const rightQuality = Number(right?.quality?.score || 0);
+  if (leftQuality !== rightQuality) {
+    return leftQuality > rightQuality ? 1 : -1;
+  }
+
+  return 0;
+}
+
+function dedupeDotaScheduleRowsByProviderSlot(rows = []) {
+  const dedupedRows = [];
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const existingIndex = dedupedRows.findIndex((existingRow) => sameDotaScheduleProviderSlot(existingRow, row));
+    if (existingIndex === -1) {
+      dedupedRows.push(row);
+      continue;
+    }
+
+    if (compareDotaScheduleRowFreshness(row, dedupedRows[existingIndex]) > 0) {
+      dedupedRows[existingIndex] = row;
+    }
+  }
+
+  return dedupedRows;
+}
+
+export function mergeRetainedDotaScheduleRows(freshRows = [], previousRows = [], { knownRows = [], nowMs = Date.now() } = {}) {
   const normalizedFreshRows = Array.isArray(freshRows) ? freshRows : [];
   const normalizedPreviousRows = Array.isArray(previousRows) ? previousRows : [];
   const normalizedKnownRows = Array.isArray(knownRows) ? knownRows : [];
@@ -3863,11 +3937,19 @@ function mergeRetainedDotaScheduleRows(freshRows = [], previousRows = [], { know
       continue;
     }
 
-    if (normalizedFreshRows.some((freshRow) => sameDotaSeries(freshRow, row))) {
+    if (
+      normalizedFreshRows.some(
+        (freshRow) => sameDotaSeries(freshRow, row) || sameDotaScheduleProviderSlot(freshRow, row)
+      )
+    ) {
       continue;
     }
 
-    if (normalizedKnownRows.some((knownRow) => sameDotaSeries(knownRow, row))) {
+    if (
+      normalizedKnownRows.some(
+        (knownRow) => sameDotaSeries(knownRow, row) || sameDotaScheduleProviderSlot(knownRow, row)
+      )
+    ) {
       continue;
     }
 
@@ -3878,7 +3960,7 @@ function mergeRetainedDotaScheduleRows(freshRows = [], previousRows = [], { know
     });
   }
 
-  return dedupeRowsById(mergedRows);
+  return dedupeRowsById(dedupeDotaScheduleRowsByProviderSlot(mergedRows));
 }
 
 async function hydrateDotaScheduleRowsWithResolvedTeams(rows = []) {
