@@ -2399,8 +2399,31 @@ function annotateTeamPerspectiveIdentity(row) {
     return row;
   }
 
+  const perspectiveIdentity =
+    row?.identity ||
+    buildMatchIdentity({
+      id: row?.matchId || row?.id || null,
+      providerMatchId: row?.providerMatchId || row?.matchId || null,
+      sourceMatchId: row?.sourceMatchId || row?.matchId || null,
+      game: row?.game,
+      tournament: row?.tournament,
+      startAt: row?.startAt,
+      updatedAt: row?.updatedAt,
+      teams: {
+        left: {
+          id: row?.ownTeamId,
+          name: row?.ownTeamName
+        },
+        right: {
+          id: row?.opponentId,
+          name: row?.opponentName
+        }
+      }
+    });
+
   return {
     ...annotateEntityQuality(row),
+    identity: perspectiveIdentity,
     ownCanonicalTeamId:
       row?.ownCanonicalTeamId ||
       canonicalTeamEntityId(String(row?.ownTeamId || "").trim(), {
