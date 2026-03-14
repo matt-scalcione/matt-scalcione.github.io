@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   addFollow,
+  listFollows,
   matchTeamFollowAgainstRow,
   resolveCanonicalFollowTeamId
 } from "../src/data/mockStore.js";
@@ -45,5 +46,21 @@ describe("follow identity", () => {
     );
 
     assert.equal(matched, true);
+  });
+
+  it("hydrates team follows with display and signal context", () => {
+    const userId = `test-follow-context-${Date.now()}`;
+    addFollow({
+      userId,
+      entityType: "team",
+      entityId: "team_t1"
+    });
+
+    const rows = listFollows(userId);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].displayName, "T1");
+    assert.equal(rows[0].game, "lol");
+    assert.equal(rows[0].signalState, "upcoming");
+    assert.equal(rows[0].nextMatchId, "lol_lck_2026_w2_t1_gen");
   });
 });

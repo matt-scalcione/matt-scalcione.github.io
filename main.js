@@ -21,6 +21,8 @@ import {
   overviewSkeletonMarkup,
   productEmptyMarkup
 } from "./loading.js";
+import { loadRuntimeStatusPanel } from "./runtime-status.js";
+import { resolveWorkspaceUserId, saveWorkspaceUserId } from "./workspace-user.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const AUTO_REFRESH_MS = 15000;
@@ -54,6 +56,7 @@ const elements = {
   heroContextChips: document.querySelector("#heroContextChips"),
   heroActionRow: document.querySelector("#heroActionRow"),
   productGuidePanel: document.querySelector("#productGuidePanel"),
+  runtimeTrustPanel: document.querySelector("#runtimeTrustPanel"),
   boardLensStrip: document.querySelector("#boardLensStrip"),
   metaText: document.querySelector("#metaText"),
   liveStatusSwitch: document.querySelector("#liveStatusSwitch"),
@@ -1168,6 +1171,7 @@ async function loadMatches() {
   const dotaTiers = elements.dotaTiersInput.value;
   const followedOnly = elements.followedOnlyInput.checked;
   const userId = elements.userIdInput.value;
+  saveWorkspaceUserId(userId);
 
   if (followedOnly && !userId.trim()) {
     setStatus("User ID is required for followed-only mode.", "error");
@@ -1183,6 +1187,10 @@ async function loadMatches() {
     // Ignore storage failures in private mode.
   }
   updateNav(apiBase);
+  loadRuntimeStatusPanel(elements.runtimeTrustPanel, apiBase, {
+    eyebrow: "Trust",
+    title: "Live data status"
+  });
 
   try {
     renderLoadingCards();
@@ -1232,9 +1240,13 @@ function installEvents() {
   elements.regionInput.addEventListener("change", loadMatches);
   elements.dotaTiersInput.addEventListener("change", loadMatches);
   elements.followedOnlyInput.addEventListener("change", loadMatches);
-  elements.userIdInput.addEventListener("change", loadMatches);
+  elements.userIdInput.addEventListener("change", () => {
+    saveWorkspaceUserId(elements.userIdInput.value);
+    loadMatches();
+  });
   elements.userIdInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
+      saveWorkspaceUserId(elements.userIdInput.value);
       loadMatches();
     }
   });
@@ -1336,7 +1348,9 @@ function boot() {
   applyLiveStatusButtons();
   refreshLiveSeo();
   elements.dotaTiersInput.value = "1,2";
-  elements.userIdInput.value = "demo-user";
+  elements.userIdInput.value = resolveWorkspaceUserId({
+    fallback: "demo-user"
+  });
   installEvents();
   loadMatches();
   setInterval(loadMatches, AUTO_REFRESH_MS);

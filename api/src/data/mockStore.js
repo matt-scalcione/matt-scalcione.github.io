@@ -1284,17 +1284,220 @@ export function resolveCanonicalFollowTeamId(entityId, { rows = [] } = {}) {
 }
 
 function hydrateFollow(follow, { rows = [] } = {}) {
-  if (!follow || follow.entityType !== "team") {
+  if (!follow) {
     return follow;
   }
 
-  return {
+  if (follow.entityType !== "team") {
+    return {
+      ...follow,
+      displayName: follow.displayName || follow.entityId,
+      game: follow.game || null,
+      signalState: follow.signalState || "idle",
+      signalLabel: follow.signalLabel || "Watching"
+    };
+  }
+
+  const hydrated = {
     ...follow,
     canonicalEntityId:
       follow.canonicalEntityId ||
       resolveCanonicalFollowTeamId(follow.entityId, {
         rows
       })
+  };
+
+  return {
+    ...hydrated,
+    ...buildTeamFollowContext(hydrated, {
+      rows
+    })
+  };
+}
+
+function collectFollowCandidateRows() {
+  const rows = [];
+  const seen = new Set();
+
+  function append(input) {
+    for (const row of Array.isArray(input) ? input : []) {
+      const id = String(row?.id || `${row?.game || "game"}:${row?.teams?.left?.id || "left"}:${row?.teams?.right?.id || "right"}:${row?.startAt || row?.updatedAt || ""}`);
+      if (!id || seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      rows.push(row);
+    }
+  }
+
+  append(liveMatches);
+  append(scheduleMatches);
+  append(completedMatches);
+  for (const stateKey of Object.keys(providerState)) {
+    append(providerState[stateKey]?.rows);
+  }
+
+  return rows;
+}
+
+function gameFromCanonicalEntityId(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized.startsWith("lol:")) {
+    return "lol";
+  }
+  if (normalized.startsWith("dota2:")) {
+    return "dota2";
+  }
+  return null;
+}
+
+function followRowTimeValue(row) {
+  const status = String(row?.status || "").toLowerCase();
+  if (status === "completed") {
+    return Date.parse(String(row?.endAt || row?.updatedAt || row?.startAt || "")) || 0;
+  }
+  return Date.parse(String(row?.startAt || row?.updatedAt || row?.endAt || "")) || 0;
+}
+
+function resolveFollowTeamMatchContext(follow, row) {
+  if (!rawMatchTeamFollowAgainstRow(follow, row)) {
+    return null;
+  }
+
+  const leftCanonical =
+    String(row?.identity?.teams?.left || "").trim() ||
+    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.left);
+  const rightCanonical =
+    String(row?.identity?.teams?.right || "").trim() ||
+    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.right);
+  const canonicalEntityId = String(follow?.canonicalEntityId || "").trim();
+  const rawEntityId = String(follow?.entityId || "").trim();
+  const leftId = String(row?.teams?.left?.id || "").trim();
+  const rightId = String(row?.teams?.right?.id || "").trim();
+
+  const side =
+    leftId === rawEntityId || (canonicalEntityId && leftCanonical === canonicalEntityId)
+      ? "left"
+      : rightId === rawEntityId || (canonicalEntityId && rightCanonical === canonicalEntityId)
+        ? "right"
+        : null;
+  if (!side) {
+    return null;
+  }
+
+  const opponentSide = side === "left" ? "right" : "left";
+  return {
+    row,
+    side,
+    team: row?.teams?.[side] || null,
+    opponent: row?.teams?.[opponentSide] || null,
+    timeValue: followRowTimeValue(row)
+  };
+}
+
+function rawMatchTeamFollowAgainstRow(follow, row) {
+  if (!follow || follow.entityType !== "team") {
+    return false;
+  }
+  const rawEntityId = String(follow.entityId || "").trim();
+  const canonicalEntityId =
+    String(follow.canonicalEntityId || "").trim() ||
+    resolveCanonicalFollowTeamId(rawEntityId, {
+      rows: [row]
+    });
+  const leftId = String(row?.teams?.left?.id || "").trim();
+  const rightId = String(row?.teams?.right?.id || "").trim();
+  const leftCanonical =
+    String(row?.identity?.teams?.left || "").trim() ||
+    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.left);
+  const rightCanonical =
+    String(row?.identity?.teams?.right || "").trim() ||
+    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.right);
+
+  return (
+    leftId === rawEntityId ||
+    rightId === rawEntityId ||
+    (canonicalEntityId && leftCanonical === canonicalEntityId) ||
+    (canonicalEntityId && rightCanonical === canonicalEntityId)
+  );
+}
+
+function buildTeamFollowContext(follow, { rows = [] } = {}) {
+  const contexts = rows
+    .map((row) => resolveFollowTeamMatchContext(follow, row))
+    .filter(Boolean);
+  const displayName =
+    contexts.find((entry) => String(entry?.team?.name || "").trim())?.team?.name ||
+    follow.displayName ||
+    follow.entityId;
+  const game =
+    contexts.find((entry) => String(entry?.row?.game || "").trim())?.row?.game ||
+    follow.game ||
+    gameFromCanonicalEntityId(follow.canonicalEntityId);
+  const liveEntry = contexts
+    .filter((entry) => String(entry?.row?.status || "").toLowerCase() === "live")
+    .sort((left, right) => right.timeValue - left.timeValue)[0];
+  const upcomingEntry = contexts
+    .filter((entry) => String(entry?.row?.status || "").toLowerCase() === "upcoming")
+    .sort((left, right) => left.timeValue - right.timeValue)[0];
+  const recentEntry = contexts
+    .filter((entry) => String(entry?.row?.status || "").toLowerCase() === "completed")
+    .sort((left, right) => right.timeValue - left.timeValue)[0];
+
+  if (liveEntry) {
+    return {
+      displayName,
+      game,
+      signalState: "live",
+      signalLabel: "Live now",
+      signalDetail: liveEntry.opponent?.name
+        ? `vs ${liveEntry.opponent.name}`
+        : liveEntry.row?.tournament || "Match live",
+      liveMatchId: liveEntry.row?.id || null,
+      nextMatchId: upcomingEntry?.row?.id || null,
+      recentMatchId: recentEntry?.row?.id || null
+    };
+  }
+
+  if (upcomingEntry) {
+    return {
+      displayName,
+      game,
+      signalState: "upcoming",
+      signalLabel: "Next up",
+      signalDetail: upcomingEntry.opponent?.name
+        ? `vs ${upcomingEntry.opponent.name}`
+        : upcomingEntry.row?.tournament || "Scheduled",
+      liveMatchId: null,
+      nextMatchId: upcomingEntry.row?.id || null,
+      recentMatchId: recentEntry?.row?.id || null
+    };
+  }
+
+  if (recentEntry) {
+    return {
+      displayName,
+      game,
+      signalState: "recent",
+      signalLabel: "Recent final",
+      signalDetail: recentEntry.opponent?.name
+        ? `vs ${recentEntry.opponent.name}`
+        : recentEntry.row?.tournament || "Latest result",
+      liveMatchId: null,
+      nextMatchId: null,
+      recentMatchId: recentEntry.row?.id || null
+    };
+  }
+
+  return {
+    displayName,
+    game,
+    signalState: "idle",
+    signalLabel: "Watching",
+    signalDetail: "Waiting for the next series.",
+    liveMatchId: null,
+    nextMatchId: null,
+    recentMatchId: null
   };
 }
 
@@ -6852,9 +7055,10 @@ export async function refreshProviderCaches(providerKeys = []) {
 }
 
 export function listFollows(userId) {
+  const rows = collectFollowCandidateRows();
   return follows
     .filter((follow) => follow.userId === userId)
-    .map((follow) => hydrateFollow(follow));
+    .map((follow) => hydrateFollow(follow, { rows }));
 }
 
 export function addFollow({ userId, entityType, entityId }) {
@@ -6988,29 +7192,9 @@ function syncAlertOutbox(userId, alerts = [], preferences = {}) {
 }
 
 export function matchTeamFollowAgainstRow(follow, row) {
-  if (!follow || follow.entityType !== "team") {
-    return false;
-  }
-  const hydratedFollow = hydrateFollow(follow, {
+  return rawMatchTeamFollowAgainstRow(hydrateFollow(follow, {
     rows: [row]
-  });
-  const rawEntityId = String(hydratedFollow.entityId || "").trim();
-  const canonicalEntityId = String(hydratedFollow.canonicalEntityId || "").trim();
-  const leftId = String(row?.teams?.left?.id || "").trim();
-  const rightId = String(row?.teams?.right?.id || "").trim();
-  const leftCanonical =
-    String(row?.identity?.teams?.left || "").trim() ||
-    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.left);
-  const rightCanonical =
-    String(row?.identity?.teams?.right || "").trim() ||
-    canonicalMatchTeamEntityId(String(row?.game || "").trim().toLowerCase(), row?.teams?.right);
-
-  return (
-    leftId === rawEntityId ||
-    rightId === rawEntityId ||
-    (canonicalEntityId && leftCanonical === canonicalEntityId) ||
-    (canonicalEntityId && rightCanonical === canonicalEntityId)
-  );
+  }), row);
 }
 
 function buildAlertCollections({

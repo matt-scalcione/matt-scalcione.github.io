@@ -12,6 +12,7 @@ import {
   toAbsoluteSiteUrl
 } from "./seo.js";
 import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
+import { resolveWorkspaceUserId, workspaceUserLabel } from "./workspace-user.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_API_TIMEOUT_MS = 8000;
@@ -32,6 +33,7 @@ const TEAM_MOBILE_JUMP_TARGETS = [
 const elements = {
   teamTitle: document.querySelector("#teamTitle"),
   backLink: document.querySelector("#backLink"),
+  teamHeroActions: document.querySelector("#teamHeroActions"),
   liveDeskNav: document.querySelector("#liveDeskNav"),
   scheduleNav: document.querySelector("#scheduleNav"),
   followsNav: document.querySelector("#followsNav"),
@@ -541,6 +543,77 @@ function buildBackLink(apiBase) {
   const scheduleUrl = applyRouteContext(new URL("./schedule.html", window.location.href), { apiBase });
   elements.backLink.href = scheduleUrl.toString();
   elements.backLink.textContent = "Back to Schedule";
+}
+
+function followsWorkspaceUrl(apiBase) {
+  const url = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const workspaceUser = resolveWorkspaceUserId();
+  if (workspaceUser) {
+    url.searchParams.set("user", workspaceUser);
+  }
+  return url.toString();
+}
+
+function renderTeamHeroActions(profile, apiBase) {
+  if (!elements.teamHeroActions) {
+    return;
+  }
+
+  const workspaceUser = resolveWorkspaceUserId();
+  const workspaceHref = followsWorkspaceUrl(apiBase);
+  if (!profile?.id) {
+    elements.teamHeroActions.innerHTML = `<a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>`;
+    return;
+  }
+
+  if (!workspaceUser) {
+    elements.teamHeroActions.innerHTML = `<a class="link-btn" href="${workspaceHref}">Set watchlist user</a>`;
+    return;
+  }
+
+  elements.teamHeroActions.innerHTML = `
+    <button type="button" class="link-btn" data-team-follow="true">Follow ${escapeHtml(profile.name)}</button>
+    <a class="link-btn ghost" href="${workspaceHref}">${escapeHtml(workspaceUserLabel(workspaceUser))}</a>
+  `;
+}
+
+async function addTeamToWorkspace() {
+  const profile = state.profile;
+  const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
+  const workspaceUser = resolveWorkspaceUserId();
+
+  if (!profile?.id) {
+    return;
+  }
+
+  if (!workspaceUser) {
+    window.location.href = followsWorkspaceUrl(apiBase);
+    return;
+  }
+
+  try {
+    setStatus("Saving team to watchlist...", "loading");
+    const response = await fetch(`${apiBase}/v1/follows`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        userId: workspaceUser,
+        entityType: "team",
+        entityId: profile.id
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || "Unable to save team follow.");
+    }
+    setStatus(`Saved ${profile.name} to ${workspaceUser}.`, "success");
+    renderTeamHeroActions(profile, apiBase);
+  } catch (error) {
+    setStatus(`Error: ${error.message}`, "error");
+  }
 }
 
 function resolveProfileOpponentName(profile, opponentId) {
@@ -1442,6 +1515,7 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
     : h2h?.opponentName
       ? `Focused on the ${h2h.opponentName} matchup.`
       : `${recentCount} recent series and ${upcomingRows.length} upcoming matches tracked.`;
+  const workspaceUser = resolveWorkspaceUserId();
 
   elements.teamMobileOverview.innerHTML = `
     <div class="mobile-glance-shell team-mobile-glance">
@@ -1480,6 +1554,10 @@ function renderTeamMobileOverview(profile, { loading = false, errorMessage = "" 
           </a>
         `
         : ""}
+      <div class="mobile-glance-actions">
+        <button type="button" class="link-btn ghost" data-team-follow="true">Follow ${escapeHtml(profile.name)}</button>
+        <a class="link-btn ghost" href="${followsWorkspaceUrl(apiBase)}">${escapeHtml(workspaceUser ? workspaceUserLabel(workspaceUser) : "Set watchlist user")}</a>
+      </div>
     </div>
   `;
 }
@@ -1931,6 +2009,7 @@ async function loadTeamProfile() {
   }
   updateNav(apiBase);
   buildBackLink(apiBase);
+  renderTeamHeroActions(state.profile, apiBase);
 
   try {
     renderTeamLoadingState();
@@ -1944,6 +2023,7 @@ async function loadTeamProfile() {
     const profile = payload.data;
     state.profile = profile;
     elements.teamTitle.textContent = `${profile.name} · ${gameLabel(normalizeGameKey(profile.game || "lol"))}`;
+    renderTeamHeroActions(profile, apiBase);
     syncOpponentSelect(profile);
     renderSummary(profile);
     renderPerformanceInsights(profile);
@@ -1964,6 +2044,7 @@ async function loadTeamProfile() {
     state.pastTournamentSignature = null;
     setStatus(`Error: ${error.message}`, "error");
     elements.teamTitle.textContent = `Error loading team: ${error.message}`;
+    renderTeamHeroActions(null, apiBase);
     elements.teamMetaText.textContent =
       error?.code === "timeout" ? "Team profile request timed out." : "";
     if (elements.performanceMetaText) {
@@ -2049,6 +2130,19 @@ function installEvents() {
   if (elements.exportPastCsvButton) {
     elements.exportPastCsvButton.addEventListener("click", () => {
       exportPastMatchesCsv(state.profile);
+    });
+  }
+  if (elements.teamHeroActions) {
+    elements.teamHeroActions.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const button = target.closest("[data-team-follow]");
+      if (!button) {
+        return;
+      }
+      addTeamToWorkspace();
     });
   }
 }

@@ -17,6 +17,7 @@ import {
 } from "./seo.js";
 import { resolveLocalTeamCode, resolveLocalTeamLogo } from "./team-logos.js";
 import { tableSkeletonMarkup } from "./loading.js";
+import { loadRuntimeStatusPanel } from "./runtime-status.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_API_TIMEOUT_MS = 8000;
@@ -105,6 +106,7 @@ const elements = {
   mobileScheduleNav: document.querySelector("#mobileScheduleNav"),
   mobileFollowsNav: document.querySelector("#mobileFollowsNav"),
   statusText: document.querySelector("#statusText"),
+  runtimeTrustPanel: document.querySelector("#runtimeTrustPanel"),
   scheduleSectionTitle: document.querySelector("#scheduleSectionTitle"),
   resultsSectionTitle: document.querySelector("#resultsSectionTitle"),
   scheduleMeta: document.querySelector("#scheduleMeta"),
@@ -1316,6 +1318,10 @@ async function loadCollections() {
     // Ignore storage failures in private mode.
   }
   updateNav();
+  loadRuntimeStatusPanel(elements.runtimeTrustPanel, apiBase, {
+    eyebrow: "Trust",
+    title: "Schedule data status"
+  });
 
   try {
     if (elements.scheduleTableWrap?.dataset.loaded !== "1") {
@@ -1519,6 +1525,10 @@ function boot() {
   const apiBase = readApiBase();
   elements.apiBaseInput.value = apiBase;
   updateNav();
+  loadRuntimeStatusPanel(elements.runtimeTrustPanel, apiBase, {
+    eyebrow: "Trust",
+    title: "Schedule data status"
+  });
 
   const now = new Date();
   const initialWindow = presetWindow("live", now);

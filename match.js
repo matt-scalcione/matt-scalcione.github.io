@@ -12,6 +12,8 @@ import {
 } from "./seo.js";
 import { DOTA_HERO_MANIFEST, resolveLocalDotaHeroMeta } from "./dota-heroes.js";
 import { resolveLocalTeamCode, resolveLocalTeamLogo, resolveLocalTeamMeta } from "./team-logos.js";
+import { loadRuntimeStatusInline } from "./runtime-status.js";
+import { resolveWorkspaceUserId, workspaceUserLabel } from "./workspace-user.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_REFRESH_SECONDS = 15;
@@ -516,6 +518,7 @@ const elements = {
   matchHeroKicker: document.querySelector("#matchHeroKicker"),
   matchHeroMeta: document.querySelector("#matchHeroMeta"),
   matchHeroChips: document.querySelector("#matchHeroChips"),
+  matchActionRow: document.querySelector("#matchActionRow"),
   matchHeroFocus: document.querySelector("#matchHeroFocus"),
   matchHeroCopy: document.querySelector("#matchHeroCopy"),
   brandHomeLink: document.querySelector("#brandHomeLink"),
@@ -531,6 +534,7 @@ const elements = {
   freshnessText: document.querySelector("#freshnessText"),
   scoreboard: document.querySelector("#scoreboard"),
   streamStatusWrap: document.querySelector("#streamStatusWrap"),
+  matchTrustInline: document.querySelector("#matchTrustInline"),
   matchDetailRail: document.querySelector("#matchDetailRail"),
   matchDetailContent: document.querySelector("#matchDetailContent"),
   matchTopTabs: document.querySelector("#matchTopTabs"),
@@ -2509,6 +2513,12 @@ function clearMatchShellBoard() {
   if (elements.streamStatusWrap) {
     elements.streamStatusWrap.innerHTML = "";
   }
+  if (elements.matchTrustInline) {
+    elements.matchTrustInline.innerHTML = "";
+  }
+  if (elements.matchActionRow) {
+    elements.matchActionRow.innerHTML = "";
+  }
 }
 
 function renderMatchHero(match) {
@@ -2583,6 +2593,136 @@ function renderMatchHero(match) {
     meta,
     chips: visibleChips
   });
+}
+
+function followsWorkspaceUrl(apiBase) {
+  const url = applyRouteContext(new URL("./follows.html", window.location.href), { apiBase });
+  const workspaceUser = resolveWorkspaceUserId();
+  if (workspaceUser) {
+    url.searchParams.set("user", workspaceUser);
+  }
+  return url.toString();
+}
+
+function renderMatchActionRow(match) {
+  if (!elements.matchActionRow) {
+    return;
+  }
+
+  const workspaceUser = resolveWorkspaceUserId();
+  const workspaceHref = followsWorkspaceUrl(uiState.apiBase);
+  if (!match?.teams?.left?.id || !match?.teams?.right?.id) {
+    elements.matchActionRow.innerHTML = workspaceUser
+      ? `<a class="link-btn ghost" href="${workspaceHref}">${escapeHtml(workspaceUserLabel(workspaceUser))}</a>`
+      : `<a class="link-btn ghost" href="${workspaceHref}">Open watchlist</a>`;
+    return;
+  }
+
+  if (!workspaceUser) {
+    elements.matchActionRow.innerHTML = `<a class="link-btn" href="${workspaceHref}">Set watchlist user</a>`;
+    return;
+  }
+
+  const leftLabel = escapeHtml(scoreboardTeamName(match?.teams?.left?.name || "Left", match?.game));
+  const rightLabel = escapeHtml(scoreboardTeamName(match?.teams?.right?.name || "Right", match?.game));
+  elements.matchActionRow.innerHTML = `
+    <button type="button" class="link-btn ghost" data-follow-side="left">Follow ${leftLabel}</button>
+    <button type="button" class="link-btn ghost" data-follow-side="right">Follow ${rightLabel}</button>
+    <a class="link-btn ghost" href="${workspaceHref}">${escapeHtml(workspaceUserLabel(workspaceUser))}</a>
+  `;
+}
+
+async function addMatchTeamToWorkspace(side) {
+  const match = uiState.match;
+  const team = match?.teams?.[side];
+  const workspaceUser = resolveWorkspaceUserId();
+  if (!team?.id) {
+    return;
+  }
+
+  if (!workspaceUser) {
+    window.location.href = followsWorkspaceUrl(uiState.apiBase);
+    return;
+  }
+
+  try {
+    const response = await fetch(`${uiState.apiBase}/v1/follows`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        userId: workspaceUser,
+        entityType: "team",
+        entityId: team.id
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || "Unable to save team follow.");
+    }
+    renderMatchActionRow(match);
+  } catch (error) {
+    uiState.stream.lastErrorAt = Date.now();
+    if (elements.matchTrustInline) {
+      const errorChip = document.createElement("span");
+      errorChip.className = "match-inline-status tone-degraded";
+      errorChip.innerHTML = `<strong>Watchlist</strong><span>${escapeHtml(error.message)}</span>`;
+      elements.matchTrustInline.prepend(errorChip);
+    }
+  }
+}
+
+function renderMatchTrustInline(match) {
+  if (!elements.matchTrustInline) {
+    return;
+  }
+
+  const workspaceUser = resolveWorkspaceUserId();
+  const provenance = buildRowDataProvenance(match, {
+    fallbackTimestamp: match?.updatedAt || match?.startAt || null
+  });
+  const qualityNotice = buildRowQualityNotice(match);
+  const localItems = [];
+  if (qualityNotice.text) {
+    localItems.push({
+      label: "Coverage",
+      value: qualityNotice.text,
+      tone: qualityNotice.tone === "degraded" ? "degraded" : "warming"
+    });
+  } else if (provenance.text) {
+    localItems.push({
+      label: "Source",
+      value: provenance.label || provenance.text,
+      tone: provenance.tone === "snapshot" ? "warming" : "neutral"
+    });
+  }
+  localItems.push({
+    label: "Watchlist",
+    value: workspaceUser ? workspaceUserLabel(workspaceUser) : "Not set",
+    tone: workspaceUser ? "neutral" : "warming"
+  });
+
+  elements.matchTrustInline.innerHTML = `
+    <div class="match-inline-status-local">
+      ${localItems
+        .map(
+          (item) => `
+            <span class="match-inline-status tone-${item.tone}" title="${escapeHtml(item.value)}">
+              <strong>${escapeHtml(item.label)}</strong>
+              <span>${escapeHtml(item.value)}</span>
+            </span>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+
+  const runtimeHost = document.createElement("div");
+  runtimeHost.className = "match-inline-status-runtime";
+  elements.matchTrustInline.appendChild(runtimeHost);
+  loadRuntimeStatusInline(runtimeHost, uiState.apiBase);
 }
 
 function renderScoreboard(match) {
@@ -13227,6 +13367,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
   }
 
   renderMatchHero(match);
+  renderMatchActionRow(match);
   if (elements.freshnessText) {
     elements.freshnessText.textContent = "";
     elements.freshnessText.hidden = true;
@@ -13236,6 +13377,7 @@ function renderMatchPayload(match, apiBase, source = "polling") {
 
   renderScoreboard(match);
   renderStreamStatus(match);
+  renderMatchTrustInline(match);
   renderSeriesHeader(match);
   renderSeriesOverview(match);
   renderSeriesStatsSummary(match);
@@ -13573,6 +13715,20 @@ window.addEventListener("resize", () => {
     applyMatchMobilePanelCollapseState(null);
   }
 });
+
+if (elements.matchActionRow) {
+  elements.matchActionRow.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const button = target.closest("[data-follow-side]");
+    if (!button) {
+      return;
+    }
+    addMatchTeamToWorkspace(String(button.getAttribute("data-follow-side") || ""));
+  });
+}
 
 initializeMatchLayoutShell();
 applyMobileSectionHeadings();

@@ -17712,12 +17712,237 @@ body.product-shell.hub-page .table-link {
     backdrop-filter: none;
   }
 
-  body.product-shell.schedule-page .mobile-page-jump,
-  body.product-shell.follows-page #followsQuickJump,
-  body.product-shell.hub-page #hubQuickJump,
-  body.product-shell.team-page #teamQuickJump {
-    padding-inline: 0.16rem;
+body.product-shell.schedule-page .mobile-page-jump,
+body.product-shell.follows-page #followsQuickJump,
+body.product-shell.hub-page #hubQuickJump,
+body.product-shell.team-page #teamQuickJump {
+  padding-inline: 0.16rem;
+}
+
+.runtime-trust-panel {
+  display: grid;
+  gap: 0.8rem;
+  background: linear-gradient(180deg, rgba(45, 52, 61, 0.96), rgba(39, 45, 53, 0.96));
+  border: 1px solid rgba(240, 197, 122, 0.14);
+}
+
+.runtime-panel-head {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.runtime-panel-kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(247, 216, 170, 0.76);
+}
+
+.runtime-panel-head h2 {
+  margin: 0;
+}
+
+.runtime-panel-note {
+  margin: 0;
+  color: rgba(226, 233, 241, 0.72);
+  font-size: 0.88rem;
+}
+
+.runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.68rem;
+}
+
+.runtime-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.82rem 0.88rem;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: rgba(23, 28, 34, 0.72);
+}
+
+.runtime-card-label,
+.runtime-card-value,
+.runtime-card-detail {
+  margin: 0;
+}
+
+.runtime-card-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(226, 233, 241, 0.62);
+}
+
+.runtime-card-value {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #f6f7fb;
+}
+
+.runtime-card-detail {
+  color: rgba(226, 233, 241, 0.74);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.runtime-card.tone-live {
+  border-color: rgba(103, 191, 120, 0.22);
+  background: linear-gradient(180deg, rgba(26, 46, 34, 0.9), rgba(22, 37, 28, 0.9));
+}
+
+.runtime-card.tone-degraded {
+  border-color: rgba(207, 106, 86, 0.26);
+  background: linear-gradient(180deg, rgba(58, 35, 35, 0.92), rgba(42, 28, 28, 0.92));
+}
+
+.runtime-card.tone-warming {
+  border-color: rgba(240, 197, 122, 0.22);
+  background: linear-gradient(180deg, rgba(65, 49, 25, 0.9), rgba(47, 36, 20, 0.9));
+}
+
+.match-shell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.46rem;
+  margin-top: 0.78rem;
+}
+
+.match-shell-trust {
+  display: grid;
+  gap: 0.42rem;
+  margin-top: 0.72rem;
+}
+
+.match-inline-status-local,
+.match-inline-status-runtime {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.match-inline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-height: 2rem;
+  padding: 0.34rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 233, 241, 0.08);
+  background: rgba(27, 33, 39, 0.78);
+  color: rgba(244, 247, 251, 0.88);
+  font-size: 0.8rem;
+}
+
+.match-inline-status strong {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(226, 233, 241, 0.56);
+}
+
+.match-inline-status.tone-live {
+  border-color: rgba(103, 191, 120, 0.2);
+}
+
+.match-inline-status.tone-warming {
+  border-color: rgba(240, 197, 122, 0.22);
+}
+
+.match-inline-status.tone-degraded {
+  border-color: rgba(207, 106, 86, 0.28);
+}
+
+.mobile-glance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+body.product-shell.follows-page .follow-item {
+  align-items: stretch;
+}
+
+body.product-shell.follows-page .follow-item-head {
+  flex: 1;
+}
+
+body.product-shell.follows-page .follow-created {
+  opacity: 0.78;
+}
+
+body.product-shell.follows-page .follow-actions {
+  align-items: stretch;
+}
+
+body.product-shell.team-page .hero-action-row,
+body.product-shell.match-page .match-shell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.46rem;
+}
+
+@media (max-width: 760px) {
+  .runtime-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.52rem;
   }
+
+  .runtime-card {
+    padding: 0.68rem 0.72rem;
+    border-radius: 12px;
+  }
+
+  .runtime-card-value {
+    font-size: 0.94rem;
+  }
+
+  .runtime-card-detail {
+    font-size: 0.76rem;
+  }
+
+  .match-shell-actions {
+    gap: 0.36rem;
+    margin-top: 0.54rem;
+  }
+
+  .match-shell-actions .link-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 0.66rem;
+  }
+
+  .match-inline-status-local,
+  .match-inline-status-runtime {
+    gap: 0.34rem;
+  }
+
+  .match-inline-status {
+    min-height: 1.86rem;
+    padding: 0.28rem 0.54rem;
+    font-size: 0.74rem;
+  }
+
+  body.product-shell.team-page .hero-action-row {
+    width: 100%;
+    gap: 0.34rem;
+  }
+
+  .mobile-glance-actions .link-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  body.product-shell.team-page .hero-action-row .link-btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
 
   body.product-shell.schedule-page .mobile-page-jump,
   body.product-shell.follows-page #followsQuickJump,

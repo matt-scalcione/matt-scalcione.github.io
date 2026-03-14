@@ -1,7 +1,9 @@
 import { resolveInitialApiBase } from "./api-config.js";
-import { applyRouteContext, buildMatchUrl } from "./routes.js?v=20260309c";
+import { applyRouteContext, buildMatchUrl, buildTeamUrl } from "./routes.js?v=20260309c";
 import { applySeo, inferRobotsDirective, setJsonLd } from "./seo.js";
 import { productEmptyMarkup } from "./loading.js";
+import { loadRuntimeStatusPanel } from "./runtime-status.js";
+import { resolveWorkspaceUserId, saveWorkspaceUserId, workspaceUserLabel } from "./workspace-user.js";
 
 const DEFAULT_API_BASE = resolveInitialApiBase();
 const DEFAULT_API_TIMEOUT_MS = 8000;
@@ -35,6 +37,7 @@ const elements = {
   heroContextCopy: document.querySelector("#heroContextCopy"),
   heroContextChips: document.querySelector("#heroContextChips"),
   heroActionRow: document.querySelector("#heroActionRow"),
+  runtimeTrustPanel: document.querySelector("#runtimeTrustPanel"),
   quickJump: document.querySelector("#followsQuickJump"),
   productGuidePanel: document.querySelector("#productGuidePanel"),
   watchlistLensStrip: document.querySelector("#watchlistLensStrip"),
@@ -344,6 +347,26 @@ function alertToneClass(tone) {
   return "neutral";
 }
 
+function followEntityTypeLabel(type) {
+  if (type === "team") return "Team";
+  if (type === "player") return "Player";
+  if (type === "tournament") return "Tournament";
+  return "Entity";
+}
+
+function followGameLabel(game) {
+  if (game === "lol") return "LoL";
+  if (game === "dota2") return "Dota 2";
+  return "";
+}
+
+function followSignalTone(state) {
+  if (state === "live") return "live";
+  if (state === "upcoming") return "upcoming";
+  if (state === "recent") return "complete";
+  return "neutral";
+}
+
 function deliveryStatusPill(status) {
   if (status === "delivered") return "live";
   if (status === "acknowledged") return "complete";
@@ -381,8 +404,8 @@ function renderSummaryHero() {
     : 0;
 
   if (elements.heroContextLabel && elements.heroContextValue && elements.heroContextCopy) {
-    elements.heroContextLabel.textContent = "Account Mode";
-    elements.heroContextValue.textContent = rows.length ? "Signal control" : "Watchlist setup";
+    elements.heroContextLabel.textContent = "Workspace";
+    elements.heroContextValue.textContent = workspaceUserLabel(userId);
     elements.heroContextCopy.textContent = rows.length
       ? `${rows.length} tracked entities, ${previewCount} alert candidates, ${pendingOutbox} queue items. Use this page to turn discovery into durable signal.`
       : "Start by following a team or tournament, then enable the alert rules that actually matter.";
@@ -433,7 +456,7 @@ function renderSummaryHero() {
     <article class="overview-featured static">
       <div class="overview-featured-top">
         <span class="pill live">Signal posture</span>
-        <span class="overview-featured-meta">Players ${playerCount}</span>
+        <span class="overview-featured-meta">${escapeHtml(workspaceUserLabel(userId))}</span>
       </div>
       <p class="overview-featured-match">Keep the right entities in view and route alerts with less noise.</p>
       <div class="overview-inline-row">
@@ -555,6 +578,7 @@ function renderLoadingFollows() {
 function getContext() {
   const apiBase = elements.apiBaseInput.value.trim() || DEFAULT_API_BASE;
   const userId = elements.userIdInput.value.trim();
+  saveWorkspaceUserId(userId);
   return { apiBase, userId };
 }
 
@@ -610,16 +634,48 @@ function renderFollows(rows) {
 
   elements.followsList.innerHTML = rows
     .map(
-      (row) => `
+      (row) => {
+        const title = escapeHtml(row.displayName || row.entityId);
+        const gameLabel = followGameLabel(row.game);
+        const signalLabel = escapeHtml(row.signalLabel || "Watching");
+        const signalDetail = escapeHtml(row.signalDetail || "Waiting for the next series.");
+        const teamHref =
+          row.entityType === "team"
+            ? buildTeamUrl({
+                teamId: row.entityId,
+                game: row.game,
+                matchId: row.liveMatchId || row.nextMatchId || row.recentMatchId || null,
+                teamName: row.displayName || row.entityId
+              })
+            : "";
+        const matchHref = buildMatchUrl({
+          matchId: row.liveMatchId || row.nextMatchId || row.recentMatchId || null
+        });
+        const primaryHref = row.liveMatchId || row.nextMatchId || row.recentMatchId ? matchHref : teamHref;
+        const primaryLabel =
+          row.liveMatchId ? "Open live" : row.nextMatchId ? "Open next" : row.recentMatchId ? "Open latest" : "Open team";
+        return `
       <article class="follow-item">
         <div class="follow-item-head">
-          <span class="follow-entity-chip">${row.entityType}</span>
-          <p class="follow-entity-id">${row.entityId}</p>
-          <p class="meta-text follow-created">Created ${new Date(row.createdAt).toLocaleString()}</p>
+          <div class="follow-item-main">
+            <div class="follow-alert-top">
+              <span class="follow-entity-chip">${followEntityTypeLabel(row.entityType)}</span>
+              ${gameLabel ? `<span class="pill neutral">${escapeHtml(gameLabel)}</span>` : ""}
+              <span class="pill ${followSignalTone(row.signalState)}">${signalLabel}</span>
+            </div>
+            <p class="follow-title"><strong>${title}</strong></p>
+            <p class="meta-text">${signalDetail}</p>
+            <p class="meta-text follow-created">Saved ${new Date(row.createdAt).toLocaleString()}${row.canonicalEntityId ? ` · ${escapeHtml(row.canonicalEntityId)}` : ""}</p>
+          </div>
         </div>
-        <button type="button" class="danger-btn" data-follow-id="${row.id}">Remove</button>
+        <div class="follow-actions">
+          ${primaryHref ? `<a class="link-btn" href="${primaryHref}">${primaryLabel}</a>` : ""}
+          ${teamHref && primaryHref !== teamHref ? `<a class="link-btn ghost" href="${teamHref}">Team</a>` : ""}
+          <button type="button" class="danger-btn" data-follow-id="${row.id}">Remove</button>
+        </div>
       </article>
-    `
+    `;
+      }
     )
     .join("");
   elements.followsMeta.textContent = `${rows.length} follows · ${teamCount} teams · ${playerCount} players · ${tournamentCount} tournaments`;
@@ -862,6 +918,10 @@ async function loadAll() {
   const requestId = ++followsState.activeLoadRequestId;
   try {
     const { apiBase } = getContext();
+    loadRuntimeStatusPanel(elements.runtimeTrustPanel, apiBase, {
+      eyebrow: "Trust",
+      title: "Alert runtime status"
+    });
     try {
       localStorage.setItem("pulseboard.apiBase", apiBase);
     } catch {
@@ -1006,9 +1066,13 @@ function installEvents() {
   elements.refreshButton.addEventListener("click", loadAll);
   elements.addFollowButton.addEventListener("click", addFollow);
   elements.savePrefsButton.addEventListener("click", savePreferences);
-  elements.userIdInput.addEventListener("change", loadAll);
+  elements.userIdInput.addEventListener("change", () => {
+    saveWorkspaceUserId(elements.userIdInput.value);
+    loadAll();
+  });
   elements.userIdInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
+      saveWorkspaceUserId(elements.userIdInput.value);
       loadAll();
     }
   });
@@ -1062,8 +1126,14 @@ function installEvents() {
 function boot() {
   const startupApiBase = readApiBase();
   elements.apiBaseInput.value = startupApiBase;
-  elements.userIdInput.value = "demo-user";
+  elements.userIdInput.value = resolveWorkspaceUserId({
+    fallback: "demo-user"
+  });
   updateNav();
+  loadRuntimeStatusPanel(elements.runtimeTrustPanel, startupApiBase, {
+    eyebrow: "Trust",
+    title: "Alert runtime status"
+  });
   refreshFollowsSeo();
   setupControlsPanel();
   setupFollowsViewSwitch();
