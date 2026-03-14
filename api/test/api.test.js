@@ -28,6 +28,8 @@ describe("live matches", () => {
     assert.equal(result.payload.meta.sourceSummary.total, result.payload.data.length);
     assert.equal(typeof result.payload.data[0].source?.provenance?.priority, "number");
     assert.equal(result.payload.data[0].source?.provenance?.surface, "live");
+    assert.equal(typeof result.payload.data[0].identity?.seriesId, "string");
+    assert.equal(typeof result.payload.data[0].identity?.teams?.left, "string");
   });
 
   it("filters matches by game", async () => {
@@ -122,10 +124,14 @@ describe("team profile", () => {
 
     assert.equal(result.statusCode, 200);
     assert.equal(result.payload.data.id, "team_t1");
+    assert.equal(typeof result.payload.data.canonicalTeamId, "string");
+    assert.ok(Array.isArray(result.payload.data.teamAliases?.ids));
     assert.ok(Array.isArray(result.payload.data.recentMatches));
     assert.ok(result.payload.data.recentMatches.length <= 5);
     if (result.payload.data.recentMatches.length > 0) {
       assert.equal(typeof result.payload.data.recentMatches[0].quality?.score, "number");
+      assert.equal(typeof result.payload.data.recentMatches[0].identity?.seriesId, "string");
+      assert.equal(typeof result.payload.data.recentMatches[0].ownCanonicalTeamId, "string");
     }
   });
 
@@ -182,6 +188,7 @@ describe("schedule", () => {
     assert.equal(result.statusCode, 200);
     assert.ok(Array.isArray(result.payload.data));
     assert.ok(result.payload.data.length >= 1);
+    assert.equal(typeof result.payload.data[0].identity?.tournamentId, "string");
   });
 
   it("filters schedule by region", async () => {

@@ -18,6 +18,7 @@ import { StratzProvider } from "../providers/dota/stratzProvider.js";
 import { LolEsportsProvider } from "../providers/lol/lolEsportsProvider.js";
 import { fetchJson } from "../providers/shared/http.js";
 import {
+  canonicalTeamEntityId,
   getCanonicalStoreDiagnostics,
   loadCanonicalMatchDetail,
   loadCanonicalMatchCollection,
@@ -265,6 +266,111 @@ function cloneValue(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function normalizeEntityKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function bucketTimestamp(value, bucketHours = 1) {
+  const parsedMs = Date.parse(String(value || ""));
+  if (!Number.isFinite(parsedMs)) {
+    return null;
+  }
+
+  const bucketMs = Math.max(1, bucketHours) * oneHour;
+  return new Date(Math.floor(parsedMs / bucketMs) * bucketMs)
+    .toISOString()
+    .slice(0, 13)
+    .replace(/[^0-9]/g, "");
+}
+
+export function canonicalTournamentEntityId(value, { game } = {}) {
+  const normalizedGame = String(game || "").trim().toLowerCase();
+  const rawTournament = typeof value === "object" && value !== null ? value?.tournament : value;
+  const normalizedTournament =
+    normalizedGame === "dota2"
+      ? canonicalDotaTournamentKey(rawTournament)
+      : normalizeEntityKey(rawTournament);
+
+  if (!normalizedGame || !normalizedTournament) {
+    return null;
+  }
+
+  return `${normalizedGame}:tournament:${normalizedTournament}`;
+}
+
+function canonicalMatchTeamEntityId(game, team = {}) {
+  return canonicalTeamEntityId(String(team?.id || "").trim(), {
+    game,
+    teamNameHint: String(team?.name || "").trim(),
+    payload: team
+  });
+}
+
+export function canonicalSeriesEntityId(row) {
+  const normalizedGame = String(row?.game || "").trim().toLowerCase();
+  if (!normalizedGame) {
+    return null;
+  }
+
+  if (normalizedGame === "lol") {
+    const stableProviderId =
+      String(row?.providerMatchId || "").trim() ||
+      String(row?.sourceMatchId || "").trim() ||
+      (/^lol_riot_/i.test(String(row?.id || "").trim()) ? String(row?.id || "").trim() : "");
+    if (stableProviderId) {
+      return `lol:series:${normalizeEntityKey(stableProviderId)}`;
+    }
+  }
+
+  const teamIds = [
+    canonicalMatchTeamEntityId(normalizedGame, row?.teams?.left),
+    canonicalMatchTeamEntityId(normalizedGame, row?.teams?.right)
+  ]
+    .filter(Boolean)
+    .sort();
+  const bucket = bucketTimestamp(row?.startAt || row?.updatedAt, normalizedGame === "dota2" ? 6 : 3);
+  if (teamIds.length === 2 && bucket) {
+    return `${normalizedGame}:series:${teamIds[0]}_${teamIds[1]}_${bucket}`;
+  }
+
+  const fallbackId =
+    String(row?.providerMatchId || "").trim() ||
+    String(row?.sourceMatchId || "").trim() ||
+    String(row?.id || "").trim();
+  return fallbackId ? `${normalizedGame}:series:${normalizeEntityKey(fallbackId)}` : null;
+}
+
+function buildMatchIdentity(row) {
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+
+  const game = String(row?.game || "").trim().toLowerCase();
+  if (!game) {
+    return null;
+  }
+
+  const leftTeamId = canonicalMatchTeamEntityId(game, row?.teams?.left);
+  const rightTeamId = canonicalMatchTeamEntityId(game, row?.teams?.right);
+  const tournamentId = canonicalTournamentEntityId(row, { game });
+  const seriesId = canonicalSeriesEntityId(row);
+  if (!leftTeamId && !rightTeamId && !tournamentId && !seriesId) {
+    return null;
+  }
+
+  return {
+    seriesId,
+    tournamentId,
+    teams: {
+      left: leftTeamId,
+      right: rightTeamId
+    }
+  };
+}
+
 function normalizeSnapshotPayload(payload) {
   if (Array.isArray(payload)) {
     return {
@@ -318,6 +424,7 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
   }
 
   const annotatedEntity = annotateEntitySource(entity);
+  const identity = buildMatchIdentity(annotatedEntity);
 
   const status = String(annotatedEntity?.status || "").toLowerCase();
   const issues = [];
@@ -422,6 +529,7 @@ function annotateEntityQuality(entity, { nowMs = Date.now() } = {}) {
 
   return {
     ...annotatedEntity,
+    identity: identity || annotatedEntity?.identity || null,
     quality: {
       score: normalizedScore,
       level,
@@ -2421,8 +2529,20 @@ function sameDotaSeries(left, right) {
     return false;
   }
 
-  const leftTeams = [normalizeTeamName(left?.teams?.left?.name), normalizeTeamName(left?.teams?.right?.name)].sort();
-  const rightTeams = [normalizeTeamName(right?.teams?.left?.name), normalizeTeamName(right?.teams?.right?.name)].sort();
+  const leftSeriesId = canonicalSeriesEntityId(left);
+  const rightSeriesId = canonicalSeriesEntityId(right);
+  if (leftSeriesId && rightSeriesId && leftSeriesId === rightSeriesId) {
+    return true;
+  }
+
+  const leftTeams = [
+    canonicalMatchTeamEntityId("dota2", left?.teams?.left) || normalizeTeamName(left?.teams?.left?.name),
+    canonicalMatchTeamEntityId("dota2", left?.teams?.right) || normalizeTeamName(left?.teams?.right?.name)
+  ].sort();
+  const rightTeams = [
+    canonicalMatchTeamEntityId("dota2", right?.teams?.left) || normalizeTeamName(right?.teams?.left?.name),
+    canonicalMatchTeamEntityId("dota2", right?.teams?.right) || normalizeTeamName(right?.teams?.right?.name)
+  ].sort();
   if (leftTeams[0] !== rightTeams[0] || leftTeams[1] !== rightTeams[1]) {
     return false;
   }
@@ -2452,10 +2572,22 @@ export function sameDotaSeriesForAlias(left, right) {
     return false;
   }
 
-  const leftIds = [String(left?.teams?.left?.id || ""), String(left?.teams?.right?.id || "")]
+  const leftSeriesId = canonicalSeriesEntityId(left);
+  const rightSeriesId = canonicalSeriesEntityId(right);
+  if (leftSeriesId && rightSeriesId && leftSeriesId === rightSeriesId) {
+    return true;
+  }
+
+  const leftIds = [
+    canonicalMatchTeamEntityId("dota2", left?.teams?.left) || String(left?.teams?.left?.id || ""),
+    canonicalMatchTeamEntityId("dota2", left?.teams?.right) || String(left?.teams?.right?.id || "")
+  ]
     .filter(Boolean)
     .sort();
-  const rightIds = [String(right?.teams?.left?.id || ""), String(right?.teams?.right?.id || "")]
+  const rightIds = [
+    canonicalMatchTeamEntityId("dota2", right?.teams?.left) || String(right?.teams?.left?.id || ""),
+    canonicalMatchTeamEntityId("dota2", right?.teams?.right) || String(right?.teams?.right?.id || "")
+  ]
     .filter(Boolean)
     .sort();
   if (
@@ -2466,8 +2598,14 @@ export function sameDotaSeriesForAlias(left, right) {
     return false;
   }
 
-  const leftTeams = [normalizeTeamName(left?.teams?.left?.name), normalizeTeamName(left?.teams?.right?.name)].sort();
-  const rightTeams = [normalizeTeamName(right?.teams?.left?.name), normalizeTeamName(right?.teams?.right?.name)].sort();
+  const leftTeams = [
+    canonicalMatchTeamEntityId("dota2", left?.teams?.left) || normalizeTeamName(left?.teams?.left?.name),
+    canonicalMatchTeamEntityId("dota2", left?.teams?.right) || normalizeTeamName(left?.teams?.right?.name)
+  ].sort();
+  const rightTeams = [
+    canonicalMatchTeamEntityId("dota2", right?.teams?.left) || normalizeTeamName(right?.teams?.left?.name),
+    canonicalMatchTeamEntityId("dota2", right?.teams?.right) || normalizeTeamName(right?.teams?.right?.name)
+  ].sort();
   if (leftTeams[0] !== rightTeams[0] || leftTeams[1] !== rightTeams[1]) {
     return false;
   }
@@ -2784,6 +2922,12 @@ function mergeEffectiveDotaLiveRows(stratzRows = [], openDotaRows = [], steamRow
 }
 
 function sameLolSeries(left, right) {
+  const leftSeriesId = canonicalSeriesEntityId(left);
+  const rightSeriesId = canonicalSeriesEntityId(right);
+  if (leftSeriesId && rightSeriesId && leftSeriesId === rightSeriesId) {
+    return true;
+  }
+
   const leftIds = [
     String(left?.id || "").trim(),
     String(left?.providerMatchId || "").trim(),
@@ -3074,6 +3218,7 @@ function perspectiveForTeam(match, { teamId, teamName, teamIds = [], teamNames =
 
   return {
     matchId: match.id,
+    identity: buildMatchIdentity(match),
     game: match.game,
     status: match.status,
     tournament: match.tournament,
@@ -3085,11 +3230,13 @@ function perspectiveForTeam(match, { teamId, teamName, teamIds = [], teamNames =
     side,
     result,
     ownTeamId,
+    ownCanonicalTeamId: canonicalMatchTeamEntityId(match.game, match?.teams?.[side]),
     ownTeamName,
     ownScore,
     oppScore,
     scoreLabel: `${ownScore}-${oppScore}`,
     opponentId: match?.teams?.[opponentSide]?.id || null,
+    opponentCanonicalTeamId: canonicalMatchTeamEntityId(match.game, match?.teams?.[opponentSide]),
     opponentName: match?.teams?.[opponentSide]?.name || "Unknown",
     keySignal: match?.keySignal || null,
     source: match?.source ? cloneValue(match.source) : null,
@@ -5969,6 +6116,14 @@ async function buildTeamProfile(teamId, {
 
   return {
     id: normalizedTeamId,
+    canonicalTeamId: canonicalTeamEntityId(normalizedTeamId, {
+      game: dominantGame,
+      teamNameHint: teamName
+    }),
+    teamAliases: {
+      ids: resolvedTeamIdAliases.slice(),
+      names: resolvedTeamNameAliases.slice()
+    },
     game: dominantGame,
     name: teamName || `Team ${normalizedTeamId}`,
     generatedAt: new Date().toISOString(),
