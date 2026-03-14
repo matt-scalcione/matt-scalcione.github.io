@@ -35,6 +35,31 @@ describe("canonicalStore", () => {
     assert.equal(key.length, 64);
   });
 
+  it("derives a shared canonical entity id for LoL team aliases by name", async () => {
+    const module = await import(`../src/storage/canonicalStore.js?test=team-entity-lol-${Date.now()}`);
+    const leftKey = module.canonicalTeamEntityId("lol_left_116130368700936068", {
+      game: "lol",
+      teamNameHint: "Frites Esports Club"
+    });
+    const rightKey = module.canonicalTeamEntityId("lol_right_999999999999999999", {
+      game: "lol",
+      teamNameHint: "Frites Esports Club"
+    });
+
+    assert.equal(leftKey, "lol:name:fritesesportsclub");
+    assert.equal(rightKey, leftKey);
+  });
+
+  it("prefers stable numeric Dota ids for canonical team entities", async () => {
+    const module = await import(`../src/storage/canonicalStore.js?test=team-entity-dota-${Date.now()}`);
+    const key = module.canonicalTeamEntityId("2163", {
+      game: "dota2",
+      teamNameHint: "Team Liquid"
+    });
+
+    assert.equal(key, "dota2:id:2163");
+  });
+
   it("derives a stable canonical key for match detail queries", async () => {
     const module = await import(`../src/storage/canonicalStore.js?test=detail-key-${Date.now()}`);
     const key = module.canonicalMatchDetailKey("lol_riot_116130368700936056", {

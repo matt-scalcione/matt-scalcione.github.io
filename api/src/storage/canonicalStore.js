@@ -146,6 +146,47 @@ export function canonicalTeamProfileKey(teamId, options = {}) {
     .digest("hex");
 }
 
+export function canonicalTeamEntityId(teamId, options = {}) {
+  const normalizedTeamId = String(teamId || "").trim();
+  const normalizedGame = normalizeToken(options?.game || options?.payload?.game);
+  const normalizedName = normalizeKey(
+    options?.teamNameHint ||
+      options?.payload?.name ||
+      options?.payload?.teamName ||
+      ""
+  );
+
+  if (!normalizedGame && !normalizedTeamId && !normalizedName) {
+    return null;
+  }
+
+  if (normalizedGame === "dota2") {
+    if (/^\d+$/.test(normalizedTeamId)) {
+      return `dota2:id:${normalizedTeamId}`;
+    }
+
+    if (normalizedName) {
+      return `dota2:name:${normalizedName}`;
+    }
+
+    return normalizedTeamId ? `dota2:id:${normalizeKey(normalizedTeamId)}` : null;
+  }
+
+  if (normalizedGame === "lol") {
+    if (normalizedName) {
+      return `lol:name:${normalizedName}`;
+    }
+
+    return normalizedTeamId ? `lol:id:${normalizeKey(normalizedTeamId)}` : null;
+  }
+
+  if (normalizedName) {
+    return `${normalizedGame || "unknown"}:name:${normalizedName}`;
+  }
+
+  return normalizedTeamId ? `${normalizedGame || "unknown"}:id:${normalizeKey(normalizedTeamId)}` : null;
+}
+
 export function canonicalMatchDetailKey(matchId, options = {}) {
   const normalizedMatchId = String(matchId || "").trim();
   if (!normalizedMatchId) {
@@ -285,6 +326,8 @@ async function ensureInitialized() {
         CREATE TABLE IF NOT EXISTS ${tables.teamProfileState} (
           profile_key TEXT PRIMARY KEY,
           team_id TEXT NOT NULL,
+          canonical_team_id TEXT,
+          normalized_team_name TEXT,
           game TEXT,
           opponent_id TEXT,
           row_updated_at TIMESTAMPTZ,
@@ -325,6 +368,8 @@ async function ensureInitialized() {
           ingest_run_id UUID NOT NULL REFERENCES ${tables.ingestRuns}(ingest_run_id) ON DELETE CASCADE,
           profile_key TEXT NOT NULL,
           team_id TEXT NOT NULL,
+          canonical_team_id TEXT,
+          normalized_team_name TEXT,
           game TEXT,
           opponent_id TEXT,
           observed_at TIMESTAMPTZ NOT NULL,
@@ -348,6 +393,10 @@ async function ensureInitialized() {
         ON ${tables.teamProfileState} (team_id, game, last_seen_at DESC)
       `);
       await pool.query(`
+        CREATE INDEX IF NOT EXISTS pulseboard_team_profile_state_canonical_idx
+        ON ${tables.teamProfileState} (canonical_team_id, game, last_seen_at DESC)
+      `);
+      await pool.query(`
         CREATE INDEX IF NOT EXISTS pulseboard_match_detail_state_match_idx
         ON ${tables.matchDetailState} (match_id, game_number, last_seen_at DESC)
       `);
@@ -358,6 +407,22 @@ async function ensureInitialized() {
       await pool.query(`
         CREATE INDEX IF NOT EXISTS pulseboard_team_profile_snapshots_profile_idx
         ON ${tables.teamProfileSnapshots} (profile_key, observed_at DESC)
+      `);
+      await pool.query(`
+        ALTER TABLE ${tables.teamProfileState}
+        ADD COLUMN IF NOT EXISTS canonical_team_id TEXT
+      `);
+      await pool.query(`
+        ALTER TABLE ${tables.teamProfileState}
+        ADD COLUMN IF NOT EXISTS normalized_team_name TEXT
+      `);
+      await pool.query(`
+        ALTER TABLE ${tables.teamProfileSnapshots}
+        ADD COLUMN IF NOT EXISTS canonical_team_id TEXT
+      `);
+      await pool.query(`
+        ALTER TABLE ${tables.teamProfileSnapshots}
+        ADD COLUMN IF NOT EXISTS normalized_team_name TEXT
       `);
 
       if (storeState.pool && storeState.pool !== pool) {
@@ -627,6 +692,10 @@ export async function loadCanonicalTeamProfile({
   const config = canonicalStoreConfig();
   const normalizedTeamId = String(teamId || "").trim();
   const profileKey = canonicalTeamProfileKey(normalizedTeamId, options);
+  const canonicalTeamId = canonicalTeamEntityId(normalizedTeamId, options);
+  const normalizedTeamName = normalizeKey(options?.teamNameHint || "");
+  const normalizedGame = normalizeToken(options?.game);
+  const normalizedOpponentId = String(options?.opponentId || "").trim() || null;
 
   if (!config.enabled || !profileKey) {
     return null;
@@ -640,7 +709,7 @@ export async function loadCanonicalTeamProfile({
   const tables = canonicalTables(config.schema);
 
   try {
-    const result = await storeState.pool.query(
+    let result = await storeState.pool.query(
       `
         SELECT payload, last_seen_at, row_updated_at
         FROM ${tables.teamProfileState}
@@ -649,7 +718,31 @@ export async function loadCanonicalTeamProfile({
       `,
       [profileKey]
     );
-    const row = result.rows[0];
+    let row = result.rows[0];
+    if (!row && (canonicalTeamId || normalizedTeamName)) {
+      result = await storeState.pool.query(
+        `
+          SELECT payload, last_seen_at, row_updated_at
+          FROM ${tables.teamProfileState}
+          WHERE ($1::text IS NULL OR game = $1)
+            AND (
+              ($2::text IS NOT NULL AND canonical_team_id = $2)
+              OR ($3::text IS NOT NULL AND normalized_team_name = $3)
+            )
+          ORDER BY
+            CASE WHEN $4::text IS NOT NULL AND opponent_id = $4 THEN 0 ELSE 1 END,
+            last_seen_at DESC
+          LIMIT 1
+        `,
+        [
+          normalizedGame || null,
+          canonicalTeamId || null,
+          normalizedTeamName || null,
+          normalizedOpponentId
+        ]
+      );
+      row = result.rows[0];
+    }
     const payload = safeJson(row?.payload);
 
     if (!payload || typeof payload !== "object") {
@@ -1052,6 +1145,12 @@ export async function persistCanonicalTeamProfile({
   const normalizedGame = normalizeToken(options?.game || payload?.game) || null;
   const normalizedOpponentId =
     String(options?.opponentId || payload?.headToHead?.opponentId || "").trim() || null;
+  const canonicalTeamId = canonicalTeamEntityId(normalizedTeamId, {
+    game: normalizedGame,
+    teamNameHint: options?.teamNameHint || payload?.name,
+    payload
+  });
+  const normalizedTeamName = normalizeKey(options?.teamNameHint || payload?.name || "");
   const rowUpdatedAt = toIsoTimestamp(payload?.generatedAt || payload?.freshness?.updatedAt, observedAt);
 
   try {
@@ -1101,18 +1200,22 @@ export async function persistCanonicalTeamProfile({
           ingest_run_id,
           profile_key,
           team_id,
+          canonical_team_id,
+          normalized_team_name,
           game,
           opponent_id,
           observed_at,
           payload
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
       `,
       [
         randomUUID(),
         ingestRunId,
         profileKey,
         normalizedTeamId,
+        canonicalTeamId,
+        normalizedTeamName || null,
         normalizedGame,
         normalizedOpponentId,
         observedAt,
@@ -1124,6 +1227,8 @@ export async function persistCanonicalTeamProfile({
         INSERT INTO ${tables.teamProfileState} (
           profile_key,
           team_id,
+          canonical_team_id,
+          normalized_team_name,
           game,
           opponent_id,
           row_updated_at,
@@ -1132,10 +1237,12 @@ export async function persistCanonicalTeamProfile({
           last_ingest_run_id,
           payload
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
         ON CONFLICT (profile_key)
         DO UPDATE SET
           team_id = EXCLUDED.team_id,
+          canonical_team_id = EXCLUDED.canonical_team_id,
+          normalized_team_name = EXCLUDED.normalized_team_name,
           game = EXCLUDED.game,
           opponent_id = EXCLUDED.opponent_id,
           row_updated_at = EXCLUDED.row_updated_at,
@@ -1146,6 +1253,8 @@ export async function persistCanonicalTeamProfile({
       [
         profileKey,
         normalizedTeamId,
+        canonicalTeamId,
+        normalizedTeamName || null,
         normalizedGame,
         normalizedOpponentId,
         rowUpdatedAt,
