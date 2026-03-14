@@ -2995,6 +2995,355 @@ function preferDotaDetail(primaryDetail, secondaryDetail) {
     : secondaryDetail;
 }
 
+function hasPresentDetailValue(value) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.keys(value).length > 0;
+  }
+
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function mergeDetailWatchOptions(primaryOptions = [], secondaryOptions = []) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const option of [...(Array.isArray(primaryOptions) ? primaryOptions : []), ...(Array.isArray(secondaryOptions) ? secondaryOptions : [])]) {
+    const url = String(option?.watchUrl || option?.url || "").trim();
+    if (!url || seen.has(url)) {
+      continue;
+    }
+
+    seen.add(url);
+    merged.push({ ...option });
+  }
+
+  return merged;
+}
+
+function pickDetailWatchUrl(primaryUrl, secondaryUrl, mergedWatchOptions = []) {
+  return (
+    primaryUrl ||
+    secondaryUrl ||
+    mergedWatchOptions.find((option) => String(option?.watchUrl || option?.url || "").trim())?.watchUrl ||
+    mergedWatchOptions.find((option) => String(option?.watchUrl || option?.url || "").trim())?.url ||
+    null
+  );
+}
+
+function mergeDotaDetailSeriesGames(primaryGames = [], secondaryGames = [], selectedGameNumber = null) {
+  const primaryByNumber = new Map(
+    (Array.isArray(primaryGames) ? primaryGames : [])
+      .map((game) => [Number(game?.number || 0), game])
+      .filter(([number]) => number > 0)
+  );
+  const secondaryByNumber = new Map(
+    (Array.isArray(secondaryGames) ? secondaryGames : [])
+      .map((game) => [Number(game?.number || 0), game])
+      .filter(([number]) => number > 0)
+  );
+  const numbers = Array.from(new Set([...primaryByNumber.keys(), ...secondaryByNumber.keys()])).sort((left, right) => left - right);
+
+  return numbers.map((number) => {
+    const primaryGame = primaryByNumber.get(number) || null;
+    const secondaryGame = secondaryByNumber.get(number) || null;
+    const mergedWatchOptions = mergeDetailWatchOptions(
+      primaryGame?.watchOptions,
+      secondaryGame?.watchOptions
+    );
+
+    return {
+      ...(secondaryGame || {}),
+      ...(primaryGame || {}),
+      number,
+      state: primaryGame?.state || secondaryGame?.state || "unstarted",
+      label: primaryGame?.label || secondaryGame?.label || null,
+      selected: Number(selectedGameNumber || 0) === number || Boolean(primaryGame?.selected || secondaryGame?.selected),
+      winnerTeamId: primaryGame?.winnerTeamId || secondaryGame?.winnerTeamId || null,
+      durationMinutes:
+        primaryGame?.durationMinutes ??
+        secondaryGame?.durationMinutes ??
+        null,
+      startedAt: primaryGame?.startedAt || secondaryGame?.startedAt || null,
+      watchOptions: mergedWatchOptions,
+      watchUrl: pickDetailWatchUrl(primaryGame?.watchUrl, secondaryGame?.watchUrl, mergedWatchOptions),
+      sourceMatchId: primaryGame?.sourceMatchId || secondaryGame?.sourceMatchId || null
+    };
+  });
+}
+
+function buildMergedDotaGameNavigation(primaryNavigation, secondaryNavigation, mergedSeriesGames, mergedSelectedGame) {
+  const selectedGameNumber = Number(
+    mergedSelectedGame?.number ||
+      primaryNavigation?.selectedGameNumber ||
+      secondaryNavigation?.selectedGameNumber ||
+      1
+  );
+  const selectedIndex = mergedSeriesGames.findIndex((game) => Number(game?.number) === selectedGameNumber);
+  const previousGameNumber = selectedIndex > 0 ? mergedSeriesGames[selectedIndex - 1].number : null;
+  const nextGameNumber =
+    selectedIndex >= 0 && selectedIndex < mergedSeriesGames.length - 1
+      ? mergedSeriesGames[selectedIndex + 1].number
+      : null;
+  const currentLiveGameNumber =
+    mergedSeriesGames.find((game) => String(game?.state || "") === "inProgress")?.number || null;
+  const requestedGameNumber =
+    primaryNavigation?.requestedGameNumber ?? secondaryNavigation?.requestedGameNumber ?? null;
+  const requestedMissing =
+    primaryNavigation?.requestedMissing ??
+    secondaryNavigation?.requestedMissing ??
+    Boolean(requestedGameNumber && requestedGameNumber !== selectedGameNumber);
+
+  return {
+    ...(secondaryNavigation || {}),
+    ...(primaryNavigation || {}),
+    availableGames: mergedSeriesGames,
+    selectedGameNumber,
+    previousGameNumber,
+    nextGameNumber,
+    currentLiveGameNumber,
+    requestedGameNumber,
+    requestedMissing,
+    selectedReason:
+      primaryNavigation?.selectedReason ||
+      secondaryNavigation?.selectedReason ||
+      (String(mergedSelectedGame?.state || "") === "inProgress"
+        ? "in_progress"
+        : String(mergedSelectedGame?.state || "") === "completed"
+          ? "latest_completed"
+          : "first_scheduled")
+  };
+}
+
+export function mergeDotaDetailContexts(primaryDetail, secondaryDetail) {
+  if (!primaryDetail) {
+    return secondaryDetail || null;
+  }
+
+  if (!secondaryDetail) {
+    return primaryDetail;
+  }
+
+  if (!sameDotaSeriesForAlias(primaryDetail, secondaryDetail)) {
+    return preferDotaDetail(primaryDetail, secondaryDetail);
+  }
+
+  const contextualBase = buildDotaFallbackSummary(primaryDetail, [secondaryDetail]);
+  const selectedGameNumber = Number(
+    primaryDetail?.selectedGame?.number ||
+      secondaryDetail?.selectedGame?.number ||
+      primaryDetail?.gameNavigation?.selectedGameNumber ||
+      secondaryDetail?.gameNavigation?.selectedGameNumber ||
+      1
+  );
+  const mergedSeriesGames = mergeDotaDetailSeriesGames(
+    primaryDetail?.seriesGames,
+    secondaryDetail?.seriesGames,
+    selectedGameNumber
+  );
+  const primarySelectedGame =
+    primaryDetail?.selectedGame ||
+    mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber) ||
+    null;
+  const secondarySelectedGame =
+    secondaryDetail?.selectedGame ||
+    mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber) ||
+    null;
+  const mergedSelectedGameWatchOptions = mergeDetailWatchOptions(
+    primarySelectedGame?.watchOptions,
+    secondarySelectedGame?.watchOptions
+  );
+  const mergedSelectedGame = {
+    ...(secondarySelectedGame || {}),
+    ...(primarySelectedGame || {}),
+    number: selectedGameNumber,
+    state:
+      primarySelectedGame?.state ||
+      secondarySelectedGame?.state ||
+      mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber)?.state ||
+      "unstarted",
+    label:
+      primarySelectedGame?.label ||
+      secondarySelectedGame?.label ||
+      mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber)?.label ||
+      null,
+    watchOptions: mergedSelectedGameWatchOptions,
+    watchUrl: pickDetailWatchUrl(
+      primarySelectedGame?.watchUrl,
+      secondarySelectedGame?.watchUrl,
+      mergedSelectedGameWatchOptions
+    ),
+    startedAt:
+      primarySelectedGame?.startedAt ||
+      secondarySelectedGame?.startedAt ||
+      mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber)?.startedAt ||
+      null,
+    durationMinutes:
+      primarySelectedGame?.durationMinutes ??
+      secondarySelectedGame?.durationMinutes ??
+      mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber)?.durationMinutes ??
+      null,
+    winnerTeamId:
+      primarySelectedGame?.winnerTeamId ||
+      secondarySelectedGame?.winnerTeamId ||
+      mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber)?.winnerTeamId ||
+      null,
+    sourceMatchId:
+      primarySelectedGame?.sourceMatchId ||
+      secondarySelectedGame?.sourceMatchId ||
+      mergedSeriesGames.find((game) => Number(game?.number) === selectedGameNumber)?.sourceMatchId ||
+      null
+  };
+  const mergedGameNavigation = buildMergedDotaGameNavigation(
+    primaryDetail?.gameNavigation,
+    secondaryDetail?.gameNavigation,
+    mergedSeriesGames,
+    mergedSelectedGame
+  );
+  const mergedRootWatchOptions = mergeDetailWatchOptions(primaryDetail?.watchOptions, secondaryDetail?.watchOptions);
+  const mergedProjectionGamesByNumber = new Map(
+    [
+      ...((Array.isArray(secondaryDetail?.seriesProjection?.games) ? secondaryDetail.seriesProjection.games : []).map((game) => [Number(game?.number || 0), game])),
+      ...((Array.isArray(primaryDetail?.seriesProjection?.games) ? primaryDetail.seriesProjection.games : []).map((game) => [Number(game?.number || 0), game]))
+    ]
+      .filter(([number]) => number > 0)
+  );
+  const mergedProjectionGames = mergedSeriesGames.map((game) => ({
+    ...(mergedProjectionGamesByNumber.get(Number(game?.number || 0)) || {}),
+    number: Number(game?.number || 0),
+    estimatedStartAt:
+      mergedProjectionGamesByNumber.get(Number(game?.number || 0))?.estimatedStartAt ||
+      game?.startedAt ||
+      null
+  }));
+  const mergedSeriesProgress = fallbackSeriesProgress(
+    contextualBase?.seriesScore,
+    contextualBase?.bestOf,
+    mergedSeriesGames
+  );
+  const mergedPreMatchWatchOptions = mergeDetailWatchOptions(
+    primaryDetail?.preMatchInsights?.watchOptions,
+    secondaryDetail?.preMatchInsights?.watchOptions
+  );
+
+  return {
+    ...secondaryDetail,
+    ...primaryDetail,
+    bestOf: Math.max(1, Number(contextualBase?.bestOf || primaryDetail?.bestOf || secondaryDetail?.bestOf || 1)),
+    seriesScore: contextualBase?.seriesScore || primaryDetail?.seriesScore || secondaryDetail?.seriesScore || { left: 0, right: 0 },
+    startAt: contextualBase?.startAt || primaryDetail?.startAt || secondaryDetail?.startAt || null,
+    tournament: contextualBase?.tournament || primaryDetail?.tournament || secondaryDetail?.tournament || null,
+    status: contextualBase?.status || primaryDetail?.status || secondaryDetail?.status || "upcoming",
+    competitiveTier:
+      contextualBase?.competitiveTier ||
+      primaryDetail?.competitiveTier ||
+      secondaryDetail?.competitiveTier ||
+      null,
+    sourceMatchId:
+      contextualBase?.sourceMatchId ||
+      primaryDetail?.sourceMatchId ||
+      secondaryDetail?.sourceMatchId ||
+      null,
+    watchOptions: mergedRootWatchOptions,
+    watchUrl: pickDetailWatchUrl(
+      primaryDetail?.watchUrl,
+      secondaryDetail?.watchUrl,
+      mergedRootWatchOptions
+    ),
+    freshness: {
+      ...(secondaryDetail?.freshness || {}),
+      ...(primaryDetail?.freshness || {}),
+      source:
+        primaryDetail?.freshness?.source ||
+        secondaryDetail?.freshness?.source ||
+        "provider_alias_merge",
+      status:
+        primaryDetail?.freshness?.status ||
+        secondaryDetail?.freshness?.status ||
+        "partial",
+      updatedAt:
+        primaryDetail?.freshness?.updatedAt ||
+        secondaryDetail?.freshness?.updatedAt ||
+        new Date().toISOString()
+    },
+    source: {
+      ...(secondaryDetail?.source || {}),
+      ...(primaryDetail?.source || {}),
+      provider: primaryDetail?.source?.provider || secondaryDetail?.source?.provider || null
+    },
+    identity: primaryDetail?.identity || secondaryDetail?.identity || null,
+    seriesGames: mergedSeriesGames,
+    selectedGame: mergedSelectedGame,
+    gameNavigation: mergedGameNavigation,
+    seriesProgress: mergedSeriesProgress,
+    teamForm: hasPresentDetailValue(primaryDetail?.teamForm) ? primaryDetail.teamForm : secondaryDetail?.teamForm || null,
+    headToHead: hasPresentDetailValue(primaryDetail?.headToHead) ? primaryDetail.headToHead : secondaryDetail?.headToHead || null,
+    prediction: hasPresentDetailValue(primaryDetail?.prediction) ? primaryDetail.prediction : secondaryDetail?.prediction || null,
+    preMatchInsights:
+      hasPresentDetailValue(primaryDetail?.preMatchInsights) || hasPresentDetailValue(secondaryDetail?.preMatchInsights)
+        ? {
+            ...(secondaryDetail?.preMatchInsights || {}),
+            ...(primaryDetail?.preMatchInsights || {}),
+            essentials: {
+              ...(secondaryDetail?.preMatchInsights?.essentials || {}),
+              ...(primaryDetail?.preMatchInsights?.essentials || {}),
+              bestOf: Number(contextualBase?.bestOf || primaryDetail?.preMatchInsights?.essentials?.bestOf || secondaryDetail?.preMatchInsights?.essentials?.bestOf || 1),
+              tournament:
+                contextualBase?.tournament ||
+                primaryDetail?.preMatchInsights?.essentials?.tournament ||
+                secondaryDetail?.preMatchInsights?.essentials?.tournament ||
+                null,
+              scheduledAt:
+                contextualBase?.startAt ||
+                primaryDetail?.preMatchInsights?.essentials?.scheduledAt ||
+                secondaryDetail?.preMatchInsights?.essentials?.scheduledAt ||
+                null
+            },
+            watchOptions: mergedPreMatchWatchOptions
+          }
+        : null,
+    watchGuide:
+      hasPresentDetailValue(primaryDetail?.watchGuide) || hasPresentDetailValue(secondaryDetail?.watchGuide)
+        ? {
+            ...(secondaryDetail?.watchGuide || {}),
+            ...(primaryDetail?.watchGuide || {}),
+            venue:
+              primaryDetail?.watchGuide?.venue ||
+              secondaryDetail?.watchGuide?.venue ||
+              contextualBase?.tournament ||
+              null,
+            streamUrl:
+              primaryDetail?.watchGuide?.streamUrl ||
+              secondaryDetail?.watchGuide?.streamUrl ||
+              mergedSelectedGame?.watchUrl ||
+              contextualBase?.watchUrl ||
+              null,
+            status:
+              primaryDetail?.watchGuide?.status ||
+              secondaryDetail?.watchGuide?.status ||
+              contextualBase?.status ||
+              null
+          }
+        : null,
+    seriesProjection:
+      hasPresentDetailValue(primaryDetail?.seriesProjection) || hasPresentDetailValue(secondaryDetail?.seriesProjection)
+        ? {
+            ...(secondaryDetail?.seriesProjection || {}),
+            ...(primaryDetail?.seriesProjection || {}),
+            matchStartAt:
+              contextualBase?.startAt ||
+              primaryDetail?.seriesProjection?.matchStartAt ||
+              secondaryDetail?.seriesProjection?.matchStartAt ||
+              null,
+            games: mergedProjectionGames
+          }
+        : null
+  };
+}
+
 function materializeStaleDetail(detail, {
   reason = "stale_cache",
   aliasMatchId = null
@@ -5273,18 +5622,20 @@ async function loadProviderMatchDetail(matchId, options = {}) {
       if (aliasDetail) {
         const referenceFallback = await fallbackProviderDotaDetail(matchId, options);
         const preferredDetail = preferDotaDetail(aliasDetail, referenceFallback);
+        const supportingDetail = preferredDetail === aliasDetail ? referenceFallback : aliasDetail;
+        const mergedDetail = mergeDotaDetailContexts(preferredDetail, supportingDetail);
         const resolvedAliasDetail =
           preferredDetail === aliasDetail
             ? {
-                ...aliasDetail,
+                ...mergedDetail,
                 resolvedFromMatchId: String(matchId),
                 freshness: {
-                  ...(aliasDetail?.freshness || {}),
-                  status: aliasDetail?.freshness?.status || "resolved_alias",
-                  updatedAt: aliasDetail?.freshness?.updatedAt || new Date().toISOString()
+                  ...(mergedDetail?.freshness || {}),
+                  status: mergedDetail?.freshness?.status || "resolved_alias",
+                  updatedAt: mergedDetail?.freshness?.updatedAt || new Date().toISOString()
                 }
               }
-            : preferredDetail;
+            : mergedDetail;
 
         await cacheAndPersistMatchDetail(providerState.detailById, cacheKey, resolvedAliasDetail, {
           matchId,
