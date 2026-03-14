@@ -523,6 +523,50 @@ function renderFollowCard(row, { compact = false } = {}) {
   `;
 }
 
+function inventoryStateLabel(row) {
+  if (row?.signalState === "live") {
+    return "Live now";
+  }
+  if (row?.signalState === "upcoming") {
+    return "Up next";
+  }
+  if (row?.signalState === "recent") {
+    return "Recent final";
+  }
+  return "Watching";
+}
+
+function renderWatchlistInventoryCard(row) {
+  const title = escapeHtml(row.displayName || row.entityId);
+  const gameLabel = followGameLabel(row.game);
+  const signalTone = followSignalTone(row.signalState);
+  const stateLabel = escapeHtml(inventoryStateLabel(row));
+  const primaryHref = row.liveMatchId || row.nextMatchId || row.recentMatchId ? followPrimaryHref(row) : "";
+  const teamHref = followTeamHref(row);
+  const summaryLine = escapeHtml(buildFollowContextLine(row) || "Waiting for the next series.");
+
+  return `
+    <article class="follow-item watchlist-manage-item">
+      <div class="follow-item-head">
+        <div class="follow-item-main">
+          <div class="follow-alert-top">
+            <span class="follow-entity-chip">${followEntityTypeLabel(row.entityType)}</span>
+            ${gameLabel ? `<span class="pill neutral">${escapeHtml(gameLabel)}</span>` : ""}
+            <span class="pill ${signalTone}">${stateLabel}</span>
+          </div>
+          <p class="follow-title"><strong>${title}</strong></p>
+          <p class="meta-text watchlist-card-line">${summaryLine}</p>
+        </div>
+      </div>
+      <div class="follow-actions">
+        ${primaryHref ? `<a class="link-btn" href="${primaryHref}">${followPrimaryLabel(row)}</a>` : ""}
+        ${teamHref ? `<a class="link-btn ghost" href="${teamHref}">Open team</a>` : ""}
+        <button type="button" class="danger-btn" data-follow-id="${escapeHtml(row.id)}">Remove</button>
+      </div>
+    </article>
+  `;
+}
+
 function enabledRuleCount(preferences) {
   if (!preferences) {
     return 0;
@@ -703,8 +747,13 @@ function renderFollows(rows) {
   }
 
   const teamCount = sortedRows.filter((row) => row.entityType === "team").length;
-  elements.followsList.innerHTML = sortedRows.map((row) => renderFollowCard(row)).join("");
-  elements.followsMeta.textContent = `${sortedRows.length} watched ${sortedRows.length === 1 ? "entity" : "entities"} · ${teamCount} teams`;
+  const inventoryRows = sortedRows
+    .slice()
+    .sort((left, right) =>
+      String(left?.displayName || left?.entityId || "").localeCompare(String(right?.displayName || right?.entityId || ""))
+    );
+  elements.followsList.innerHTML = inventoryRows.map((row) => renderWatchlistInventoryCard(row)).join("");
+  elements.followsMeta.textContent = `${teamCount} saved ${teamCount === 1 ? "team" : "teams"} · open or remove them here`;
   renderFollowsQuickJump();
 }
 

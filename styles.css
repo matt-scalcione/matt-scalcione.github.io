@@ -2196,6 +2196,14 @@ button.ghost,
   padding: 0.62rem 0.66rem;
 }
 
+.watchlist-manage-item {
+  padding: 0.64rem 0.68rem;
+}
+
+.watchlist-manage-item .watchlist-card-line {
+  font-size: 0.82rem;
+}
+
 .follow-item-head {
   display: grid;
   gap: 0.28rem;
@@ -17220,6 +17228,10 @@ body.product-shell.team-page .team-match-opponent-line .team-link {
     gap: 0.58rem;
   }
 
+  body.product-shell.follows-page .watchlist-manage-item {
+    padding: 0.54rem 0.58rem;
+  }
+
   body.product-shell.follows-page .follow-item.compact {
     padding: 0.52rem 0.56rem;
   }
@@ -17998,6 +18010,10 @@ body.product-shell.team-page #teamQuickJump {
 
 body.product-shell.follows-page .follow-item {
   align-items: stretch;
+}
+
+body.product-shell.follows-page .watchlist-manage-item .follow-actions {
+  justify-content: flex-start;
 }
 
 body.product-shell.follows-page .follow-item-head {
