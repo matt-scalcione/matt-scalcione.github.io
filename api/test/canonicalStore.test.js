@@ -178,4 +178,15 @@ describe("canonicalStore", () => {
     assert.match(migrationSql, /ADD COLUMN IF NOT EXISTS canonical_team_id TEXT/);
     assert.match(indexSql, /pulseboard_team_profile_state_canonical_idx/);
   });
+
+  it("uses 11 placeholders for team profile state upserts", async () => {
+    const module = await import(`../src/storage/canonicalStore.js?test=profile-upsert-${Date.now()}`);
+    const sql = module.canonicalTeamProfileStateUpsertStatement({
+      teamProfileState: '"pulseboard"."pulseboard_team_profile_state"'
+    });
+    const placeholders = sql.match(/\$\d+/g) || [];
+
+    assert.equal(placeholders.length, 11);
+    assert.match(sql, /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11::jsonb\)/);
+  });
 });

@@ -311,6 +311,36 @@ export function canonicalStoreIndexStatements(tables) {
   ];
 }
 
+export function canonicalTeamProfileStateUpsertStatement(tables) {
+  return `
+    INSERT INTO ${tables.teamProfileState} (
+      profile_key,
+      team_id,
+      canonical_team_id,
+      normalized_team_name,
+      game,
+      opponent_id,
+      row_updated_at,
+      first_seen_at,
+      last_seen_at,
+      last_ingest_run_id,
+      payload
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
+    ON CONFLICT (profile_key)
+    DO UPDATE SET
+      team_id = EXCLUDED.team_id,
+      canonical_team_id = EXCLUDED.canonical_team_id,
+      normalized_team_name = EXCLUDED.normalized_team_name,
+      game = EXCLUDED.game,
+      opponent_id = EXCLUDED.opponent_id,
+      row_updated_at = EXCLUDED.row_updated_at,
+      last_seen_at = EXCLUDED.last_seen_at,
+      last_ingest_run_id = EXCLUDED.last_ingest_run_id,
+      payload = EXCLUDED.payload
+  `;
+}
+
 async function ensureInitialized() {
   const config = canonicalStoreConfig();
   if (!config.enabled) {
@@ -1243,33 +1273,7 @@ export async function persistCanonicalTeamProfile({
       ]
     );
     await client.query(
-      `
-        INSERT INTO ${tables.teamProfileState} (
-          profile_key,
-          team_id,
-          canonical_team_id,
-          normalized_team_name,
-          game,
-          opponent_id,
-          row_updated_at,
-          first_seen_at,
-          last_seen_at,
-          last_ingest_run_id,
-          payload
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
-        ON CONFLICT (profile_key)
-        DO UPDATE SET
-          team_id = EXCLUDED.team_id,
-          canonical_team_id = EXCLUDED.canonical_team_id,
-          normalized_team_name = EXCLUDED.normalized_team_name,
-          game = EXCLUDED.game,
-          opponent_id = EXCLUDED.opponent_id,
-          row_updated_at = EXCLUDED.row_updated_at,
-          last_seen_at = EXCLUDED.last_seen_at,
-          last_ingest_run_id = EXCLUDED.last_ingest_run_id,
-          payload = EXCLUDED.payload
-      `,
+      canonicalTeamProfileStateUpsertStatement(tables),
       [
         profileKey,
         normalizedTeamId,
