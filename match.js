@@ -1711,7 +1711,7 @@ function seriesEvidenceNote(match = uiState.match) {
   }
   const status = String(match?.status || "").toLowerCase();
   if (status === "live" && seriesCoverageMode(match) === "series") {
-    return "Provider has series status, but not reliable live map telemetry yet.";
+    return "Series status is confirmed, but full live map detail is not available yet.";
   }
   if (!seriesStatsShouldPromote(match) && !seriesHistoryShouldPromote(match)) {
     return "History sample is too thin to separate these teams yet.";
@@ -1727,7 +1727,7 @@ function gameCoverageNote(match = uiState.match) {
   const telemetryStatus = liveTelemetryStatus(match);
   if (selectedState === "inprogress") {
     if (telemetryStatus === "none") {
-      return "No reliable live map telemetry yet.";
+      return "No reliable live map detail yet.";
     }
     if (telemetryStatus === "basic") {
       return "Live map detail is partial right now.";
@@ -11435,7 +11435,7 @@ function renderSeriesGames(match, apiBase) {
           </div>
           ${
             game.state === "completed" && !winnerMeta
-              ? `<p class="series-game-provider-note">Winner label unavailable on the series payload.</p>`
+              ? `<p class="series-game-provider-note">Winner label unavailable in the current series summary.</p>`
               : ""
           }
           ${options.length
@@ -11588,8 +11588,8 @@ function renderSeriesComparison(match, apiBase) {
     resolvedWinnerCount === completedGames.length
       ? "All map winners resolved."
       : resolvedWinnerCount > 0
-        ? "Some map winners inferred from provider hints or the focused map."
-        : "Provider exposed map completion and VODs, but not per-map winner labels.";
+        ? "Some map winners were inferred from the current series state or the focused game."
+        : "Map completion is available, but explicit per-map winner labels are not.";
 
   const summaryCards = compact
     ? [
@@ -12399,7 +12399,7 @@ function inferDraftPreview(match) {
         badge: "Live Series",
         headline: "Current Dota map is not linked yet",
         summary:
-          "The series is live, but the current map has not been attached to a usable telemetry feed yet. This usually happens between maps or while the provider has not exposed the new lobby.",
+          "The series is live, but the current map has not been attached to a usable live-detail feed yet. This usually happens between maps or while the new lobby is still being resolved.",
         detail: lastCompletedGame
           ? `Game ${lastCompletedGame.number} is complete. Waiting for the current map feed to attach.`
           : elapsedLabel
@@ -12419,7 +12419,7 @@ function inferDraftPreview(match) {
         badge: "Feed Pending",
         headline: "Live Dota feed has not started",
         summary:
-          "The map is marked live, but no current-map combat telemetry is available yet. Watch links and series context are still valid while the feed catches up.",
+          "The map is marked live, but no current-map combat detail is available yet. Watch links and series context remain valid while the feed catches up.",
         detail: elapsedLabel ? `Map has been marked live for ${elapsedLabel}.` : "Waiting for the first confirmed current-map frame.",
         leftRows: [],
         rightRows: [],
@@ -12436,7 +12436,7 @@ function inferDraftPreview(match) {
       badge: hasDraftRows ? "Draft Live" : "Awaiting Frame",
       headline: hasDraftRows ? "Champion select is underway" : "Game start is close",
       summary: hasDraftRows
-        ? "Champion selections are available, but combat telemetry has not started yet."
+        ? "Champion selections are available, but combat detail has not started yet."
         : "Riot has marked this map live, but no in-game frames are available yet. This usually means champion select, loading, or a stage delay.",
       detail: elapsedLabel ? `Live state opened ${elapsedLabel} ago.` : "Waiting for first confirmed in-game frame.",
       leftRows: hasDraftRows ? leftRows : buildDraftPlaceholderRows(match),
@@ -12451,8 +12451,8 @@ function inferDraftPreview(match) {
       label: "Draft Snapshot",
       badge: "Metadata Only",
       headline: "Champion select is underway",
-      summary: "Current champion selections are available before full live telemetry arrives.",
-      detail: elapsedLabel ? `Map state has been live for ${elapsedLabel}.` : "Waiting for telemetry to stabilize.",
+      summary: "Current champion selections are available before full live detail arrives.",
+      detail: elapsedLabel ? `Map state has been live for ${elapsedLabel}.` : "Waiting for live detail to stabilize.",
       leftRows,
       rightRows,
       hasDraftRows: true
