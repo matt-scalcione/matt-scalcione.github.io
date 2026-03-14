@@ -31,6 +31,7 @@ const publicFiles = [
   "providers-admin.js",
   "robots.txt",
   "routes.js",
+  "runtime-status.js",
   "schedule.js",
   "seo.js",
   "site-config.js",
@@ -39,7 +40,9 @@ const publicFiles = [
   "styles.css",
   "team-logos.generated.js",
   "team-logos.js",
-  "team.js"
+  "team.js",
+  "watchlist-client.js",
+  "workspace-user.js"
 ];
 
 const publicDirectories = ["assets"];
