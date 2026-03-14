@@ -53,8 +53,8 @@ rsync -az --delete \
 
 echo "Installing dependencies and restarting $APP_NAME on $TARGET"
 ssh "$TARGET" "bash -lc '
-  set -euo pipefail
   source scl_source enable nodejs20
+  set -euo pipefail
   cd $REMOTE_APP
   npm install
   $REMOTE_ROOT/stop || true
@@ -63,7 +63,17 @@ ssh "$TARGET" "bash -lc '
 
 if [[ -n "$HEALTH_URL" ]]; then
   echo "Checking health: $HEALTH_URL"
-  curl --fail --silent --show-error "$HEALTH_URL"
+  attempts=0
+  until curl --fail --silent --show-error "$HEALTH_URL"; do
+    attempts=$((attempts + 1))
+    if [[ $attempts -ge 10 ]]; then
+      echo >&2
+      echo "Health check failed after $attempts attempts." >&2
+      exit 1
+    fi
+    echo >&2 "Health check not ready yet, retrying..."
+    sleep 2
+  done
   echo
 fi
 
