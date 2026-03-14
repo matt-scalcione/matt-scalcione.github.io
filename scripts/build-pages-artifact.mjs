@@ -10,6 +10,7 @@ const publicFiles = [
   ".nojekyll",
   "404.html",
   "index.html",
+  "signal-live.html",
   "schedule.html",
   "match.html",
   "team.html",
